@@ -1,0 +1,6 @@
+alpaca:
+  # Recommend loading credentials from environment variables for security
+  key: ${ALPACA_KEY}
+  secret: ${ALPACA_SECRET}
+  base_url: https://data.sandbox.alpaca.markets/v2
+  rate_limit_per_min: 200
