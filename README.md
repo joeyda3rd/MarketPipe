@@ -1,4 +1,4 @@
-# MarketPipe
+# MarketPipe (MarketPype)
 
 MarketPipe is a lightweight, Python-native ETL framework focused on time
 series market data.  It aims to provide a simple command line interface
