@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+# Path to the canonical OHLCV schema used throughout the package
+SCHEMA_PATH = "schema/schema_v1.json"
+
 
 class ClientConfig(BaseModel):
     """Configuration for API clients."""

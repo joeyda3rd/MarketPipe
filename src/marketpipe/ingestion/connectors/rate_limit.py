@@ -11,3 +11,6 @@ class RateLimiter:
     async def acquire_async(self) -> None:
         """Async token acquisition stub."""
         return None
+
+    async def async_acquire(self) -> None:  # backward compat alias
+        return await self.acquire_async()
