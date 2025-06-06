@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import datetime as dt
 import os
-import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -43,23 +42,6 @@ def load_dotenv_file(dotenv_path: str = ".env") -> None:
                 os.environ[key] = value
 
 
-def expand_env_vars(obj: Any) -> Any:
-    """Recursively expand environment variables in config values."""
-    if isinstance(obj, str):
-        # Look for ${VAR_NAME} pattern and replace with environment variable
-        def replace_env_var(match):
-            var_name = match.group(1)
-            return os.environ.get(var_name, match.group(0))
-        
-        return re.sub(r'\$\{([^}]+)\}', replace_env_var, obj)
-    elif isinstance(obj, dict):
-        return {k: expand_env_vars(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [expand_env_vars(item) for item in obj]
-    else:
-        return obj
-
-
 class IngestionCoordinator:
     """Simple orchestration layer that fans out ingest jobs to workers."""
 
@@ -69,9 +51,6 @@ class IngestionCoordinator:
         
         with open(config_path, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f)
-        
-        # Expand environment variables in config
-        cfg = expand_env_vars(cfg)
 
         self.symbols: List[str] = cfg.get("symbols", [])
         self.output_root = cfg["output_path"]
@@ -104,13 +83,25 @@ class IngestionCoordinator:
             
         self.workers = cfg.get("workers", len(self.symbols))
 
+        # Get credentials from .env file (loaded above)
+        api_key = os.environ.get("ALPACA_KEY")
+        api_secret = os.environ.get("ALPACA_SECRET")
+        
+        if not api_key or not api_secret:
+            raise ValueError(
+                "ALPACA_KEY and ALPACA_SECRET must be set in .env file. "
+                "Create a .env file with:\n"
+                "ALPACA_KEY=your_api_key_here\n"
+                "ALPACA_SECRET=your_secret_key_here"
+            )
+
         a_cfg = cfg["alpaca"]
         self.client_cfg = ClientConfig(
-            api_key=a_cfg["key"],
+            api_key=api_key,
             base_url=a_cfg["base_url"],
             rate_limit_per_min=a_cfg.get("rate_limit_per_min"),
         )
-        self.auth = HeaderTokenAuth(a_cfg["key"], a_cfg["secret"])
+        self.auth = HeaderTokenAuth(api_key, api_secret)
         self.state = SQLiteState(Path(state_path) if state_path else None)
 
         self.validator = SchemaValidator()

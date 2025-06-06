@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+import json
 import logging
 import random
 import time
@@ -75,8 +76,26 @@ class AlpacaClient(BaseApiClient):
             REQUESTS.labels("alpaca").inc()
             if r.status_code >= 400:
                 ERRORS.labels("alpaca", str(r.status_code)).inc()
-            if not self.should_retry(r.status_code, r.json()):
-                return r.json()
+            
+            # Handle JSON parsing safely
+            try:
+                response_json = r.json()
+            except (json.JSONDecodeError, ValueError) as e:
+                # If JSON parsing fails, check if we should retry based on status code only
+                self.log.warning(f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}")
+                if self.should_retry(r.status_code, {}):
+                    retries += 1
+                    if retries > self.config.max_retries:
+                        raise RuntimeError(f"Alpaca request exceeded retry limit: {r.text}")
+                    sleep = self._backoff(retries)
+                    self.log.warning("Retry %d sleeping %.2fs", retries, sleep)
+                    time.sleep(sleep)
+                    continue
+                else:
+                    raise RuntimeError(f"Failed to parse Alpaca API response as JSON: {r.text}")
+            
+            if not self.should_retry(r.status_code, response_json):
+                return response_json
 
             retries += 1
             if retries > self.config.max_retries:
@@ -108,8 +127,26 @@ class AlpacaClient(BaseApiClient):
                 REQUESTS.labels("alpaca").inc()
                 if r.status_code >= 400:
                     ERRORS.labels("alpaca", str(r.status_code)).inc()
-                if not self.should_retry(r.status_code, r.json()):
-                    return r.json()
+                
+                # Handle JSON parsing safely
+                try:
+                    response_json = r.json()
+                except (json.JSONDecodeError, ValueError) as e:
+                    # If JSON parsing fails, check if we should retry based on status code only
+                    self.log.warning(f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}")
+                    if self.should_retry(r.status_code, {}):
+                        retries += 1
+                        if retries > self.config.max_retries:
+                            raise RuntimeError("Alpaca async retry limit hit")
+                        sleep = self._backoff(retries)
+                        self.log.warning("Async retry %d sleeping %.2fs", retries, sleep)
+                        await asyncio.sleep(sleep)
+                        continue
+                    else:
+                        raise RuntimeError(f"Failed to parse Alpaca API response as JSON: {r.text}")
+                
+                if not self.should_retry(r.status_code, response_json):
+                    return response_json
 
                 retries += 1
                 if retries > self.config.max_retries:
