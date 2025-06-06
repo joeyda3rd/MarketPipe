@@ -43,6 +43,7 @@ def test_coordinator_flow(tmp_path, monkeypatch):
         "start": "2023-01-02",
         "end": "2023-01-02",
         "workers": 1,
+        "compression": "zstd",
     }
     cfg_file = tmp_path / "cfg.yaml"
     cfg_file.write_text(yaml.safe_dump(cfg))
@@ -70,9 +71,11 @@ def test_coordinator_flow(tmp_path, monkeypatch):
         / "day=02.parquet"
     )
     assert p.exists()
-    table = pq.ParquetFile(p).read()
+    pf = pq.ParquetFile(p)
+    table = pf.read()
     assert table.num_rows == len(rows)
     assert set(table.column("schema_version").to_pylist()) == {1}
+    assert pf.metadata.row_group(0).column(0).compression == "ZSTD"
 
     # second run should skip because checkpoint saved
     summary2 = coord.run()

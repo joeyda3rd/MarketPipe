@@ -72,6 +72,7 @@ class IngestionCoordinator:
 
         self.symbols: List[str] = cfg.get("symbols", [])
         self.output_root = cfg["output_path"]
+        self.compression = cfg.get("compression", "snappy")
         
         # Handle date parsing - config might have dates as strings or date objects
         start_val = cfg["start"]
@@ -124,7 +125,12 @@ class IngestionCoordinator:
             return 0
 
         self.validator.validate_batch(rows)
-        write_parquet(rows, self.output_root, overwrite=True)
+        write_parquet(
+            rows,
+            self.output_root,
+            overwrite=True,
+            compression=self.compression,
+        )
 
         last_ts = max(r["timestamp"] for r in rows)
         self.state.set(symbol, last_ts)
@@ -132,9 +138,13 @@ class IngestionCoordinator:
 
     # ---------------------------------------------------------------
     def run(self) -> Dict[str, int]:
-        total_rows = 0
         with ThreadPoolExecutor(max_workers=self.workers) as pool:
-            results = list(pool.map(self._process_symbol, self.symbols))
+            try:
+                results = list(pool.map(self._process_symbol, self.symbols))
+            except KeyboardInterrupt:
+                pool.shutdown(wait=False, cancel_futures=True)
+                raise
+
         total_rows = sum(results)
         summary = {
             "symbols": len(self.symbols),
