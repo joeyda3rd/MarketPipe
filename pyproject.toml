@@ -15,11 +15,12 @@ dependencies = [
     "duckdb",
     "pyarrow",
     "requests",
-    "pyyaml"
+    "pyyaml",
+    "httpx",
+    "prometheus_client",
+    "python-dotenv"
 ]
 
 [project.scripts]
 marketpipe = "marketpipe.cli:app"
 
-[tool.poetry.dependencies]
-prometheus_client = "*"
