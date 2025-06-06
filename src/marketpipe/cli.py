@@ -7,10 +7,9 @@ app = typer.Typer(add_completion=False, help="MarketPipe ETL commands")
 
 
 @app.command()
-def ingest(start: str | None = typer.Option(None, help="Start date YYYY-MM-DD"),
-           end: str | None = typer.Option(None, help="End date YYYY-MM-DD")):
-    """Ingest daily or historical OHLCV data."""
-    ingestion.ingest(start=start, end=end)
+def ingest(config: str = typer.Option(..., "--config", help="Path to YAML config")):
+    """Run the ingestion pipeline."""
+    ingestion.ingest(config)
 
 
 @app.command()
