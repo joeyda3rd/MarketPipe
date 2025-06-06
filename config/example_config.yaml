@@ -4,3 +4,9 @@ alpaca:
   secret: ${ALPACA_SECRET}
   base_url: https://data.sandbox.alpaca.markets/v2
   rate_limit_per_min: 200
+
+output_path: data
+symbols: ["AAPL", "MSFT", "TSLA"]
+start: 2025-06-04
+end: 2025-06-04
+workers: 3

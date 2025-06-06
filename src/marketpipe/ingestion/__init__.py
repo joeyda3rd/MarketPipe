@@ -1,12 +1,13 @@
 """Data ingestion stubs."""
 
-from datetime import date
+from .coordinator import IngestionCoordinator
 
 
-def ingest(start: str | None = None, end: str | None = None) -> None:
-    """Placeholder for daily or historical ingestion."""
-    if start and end:
-        print(f"Backfilling data from {start} to {end} ...")
-    else:
-        today = date.today().isoformat()
-        print(f"Ingesting data for {today} ...")
+def ingest(config: str) -> None:
+    """Run the ingestion pipeline from a YAML config."""
+    coord = IngestionCoordinator(config)
+    summary = coord.run()
+    print(
+        f"Ingested {summary['symbols']} symbols, {summary['rows']} rows, "
+        f"wrote {summary['files']} parquet files."
+    )
