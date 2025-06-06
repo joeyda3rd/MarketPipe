@@ -22,9 +22,19 @@ ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 class AlpacaClient(BaseApiClient):
-    """Alpaca Data v2 minute-bar connector (sandbox)."""
+    """Alpaca Data v2 minute-bar connector with IEX support."""
 
     _PATH_TEMPLATE = "/stocks/{symbol}/bars"
+
+    def __init__(self, *args, feed: str = "iex", **kwargs):
+        """Initialize AlpacaClient with feed option.
+        
+        Args:
+            feed: Data feed to use ("iex" for free tier, "sip" for paid tier)
+        """
+        super().__init__(*args, **kwargs)
+        self.feed = feed
+        self.log.info(f"AlpacaClient initialized with feed: {feed}")
 
     # ---------- URL helpers ----------
     def endpoint_path(self) -> str:
@@ -45,6 +55,7 @@ class AlpacaClient(BaseApiClient):
             "start": start,
             "end": end,
             "limit": "10000",
+            "feed": self.feed,  # Add feed parameter for IEX/SIP selection
         }
         if cursor:
             qp["page_token"] = cursor

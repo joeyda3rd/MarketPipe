@@ -27,19 +27,36 @@ except KeyError as e:
 
 cfg = ClientConfig(
     api_key=key,
-    base_url="https://data.alpaca.markets/v2",
+    base_url="https://data.alpaca.markets/v1beta1",  # Use v1beta1 for IEX
     rate_limit_per_min=200,
 )
 
 auth = HeaderTokenAuth(key, secret)
 limiter = RateLimiter()
-client = AlpacaClient(config=cfg, auth=auth, rate_limiter=limiter)
+client = AlpacaClient(config=cfg, auth=auth, rate_limiter=limiter, feed="iex")
 
 start = int((dt.datetime.utcnow() - dt.timedelta(days=1)).timestamp() * 1000)
 end = int(dt.datetime.utcnow().timestamp() * 1000)
 
+# Show the URI that will be created
+symbol = "AAPL"
+params = client.build_request_params(symbol, start, end)
+url = f"{cfg.base_url}/stocks/{symbol}/bars"
+query_params = "&".join([f"{k}={v}" for k, v in params.items() if k != "symbol"])
+full_uri = f"{url}?{query_params}"
+print(f"\n🌐 Market Data API URI: {full_uri}")
+
+# Show the authentication headers that will be sent
+auth_headers = {}
+auth.apply(auth_headers, {})  # auth.apply modifies the headers dict in-place
+print(f"🔐 Authentication headers:")
+for header_name, header_value in auth_headers.items():
+    # Show first 8 chars of values for security
+    display_value = f"{header_value[:8]}..." if len(header_value) > 8 else header_value
+    print(f"   {header_name}: {display_value}")
+
 try:
-    print(f"🔄 Fetching AAPL data from {dt.datetime.utcfromtimestamp(start/1000)} to {dt.datetime.utcfromtimestamp(end/1000)}...")
+    print(f"\n🔄 Fetching AAPL data from {dt.datetime.utcfromtimestamp(start/1000)} to {dt.datetime.utcfromtimestamp(end/1000)}...")
     rows = client.fetch_batch("AAPL", start, end)
     print(f"✅ Successfully fetched {len(rows)} rows")
     

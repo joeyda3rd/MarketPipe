@@ -102,6 +102,7 @@ class IngestionCoordinator:
             rate_limit_per_min=a_cfg.get("rate_limit_per_min"),
         )
         self.auth = HeaderTokenAuth(api_key, api_secret)
+        self.feed = a_cfg.get("feed", "iex")  # Default to IEX for free tier
         self.state = SQLiteState(Path(state_path) if state_path else None)
 
         self.validator = SchemaValidator()
@@ -114,6 +115,7 @@ class IngestionCoordinator:
             auth=self.auth,
             rate_limiter=limiter,
             state_backend=self.state,
+            feed=self.feed,
         )
 
         end_ms = int(self.end.timestamp() * 1000)
