@@ -5,7 +5,8 @@ from __future__ import annotations
 import datetime as dt
 import os
 import re
-from concurrent.futures import ThreadPoolExecutor
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -18,6 +19,8 @@ from .connectors.rate_limit import RateLimiter
 from .state import SQLiteState
 from .validator import SchemaValidator
 from .writer import write_parquet
+from marketpipe.metrics import BACKLOG
+from marketpipe.metrics_server import run as metrics_server_run
 
 
 def load_dotenv_file(dotenv_path: str = ".env") -> None:
@@ -73,6 +76,16 @@ class IngestionCoordinator:
         self.symbols: List[str] = cfg.get("symbols", [])
         self.output_root = cfg["output_path"]
         self.compression = cfg.get("compression", "snappy")
+
+        m_cfg = cfg.get("metrics", {})
+        self.metrics_enabled = m_cfg.get("enabled", False)
+        self.metrics_port = m_cfg.get("port", 8000)
+        if self.metrics_enabled:
+            threading.Thread(
+                target=metrics_server_run,
+                kwargs={"port": self.metrics_port},
+                daemon=True,
+            ).start()
         
         # Handle date parsing - config might have dates as strings or date objects
         start_val = cfg["start"]
@@ -139,8 +152,13 @@ class IngestionCoordinator:
     # ---------------------------------------------------------------
     def run(self) -> Dict[str, int]:
         with ThreadPoolExecutor(max_workers=self.workers) as pool:
+            futures = [pool.submit(self._process_symbol, s) for s in self.symbols]
+            BACKLOG.set(len(futures))
+            results = []
             try:
-                results = list(pool.map(self._process_symbol, self.symbols))
+                for fut in as_completed(futures):
+                    results.append(fut.result())
+                    BACKLOG.dec()
             except KeyboardInterrupt:
                 pool.shutdown(wait=False, cancel_futures=True)
                 raise

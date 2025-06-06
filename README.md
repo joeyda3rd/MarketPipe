@@ -1,5 +1,7 @@
 # MarketPipe (MarketPype)
 
+[![Live Metrics](https://img.shields.io/badge/Live%20Metrics-online-brightgreen)](docs/pipeline.md#metrics)
+
 MarketPipe is a lightweight, Python-native ETL framework focused on time
 series market data.  It aims to provide a simple command line interface
 for ingesting, aggregating and validating OHLCV data with baked in

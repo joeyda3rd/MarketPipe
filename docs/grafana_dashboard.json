@@ -1,0 +1,39 @@
+{
+  "dashboard": {
+    "title": "MarketPipe Metrics",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "Requests/sec per source",
+        "targets": [{"expr": "rate(mp_requests_total[1m])", "legendFormat": "{{source}}"}]
+      },
+      {
+        "type": "graph",
+        "title": "Error rate stacked by status-code",
+        "stack": true,
+        "targets": [{"expr": "rate(mp_errors_total[1m])", "legendFormat": "{{code}}"}]
+      },
+      {
+        "type": "graph",
+        "title": "95th percentile latency",
+        "targets": [{"expr": "histogram_quantile(0.95, rate(mp_request_latency_seconds_bucket[5m]))"}]
+      },
+      {
+        "type": "gauge",
+        "title": "Backlog",
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "gt",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 100}
+              ]
+            }
+          }
+        },
+        "targets": [{"expr": "mp_backlog_jobs"}]
+      }
+    ]
+  }
+}
