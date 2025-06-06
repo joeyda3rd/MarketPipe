@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Mapping, Optional
 
 import httpx
 
+from marketpipe.metrics import REQUESTS, ERRORS, LATENCY
+
 from .base_api_client import BaseApiClient
 from .models import ClientConfig
 from .rate_limit import RateLimiter
@@ -61,12 +63,18 @@ class AlpacaClient(BaseApiClient):
 
         retries = 0
         while True:
+            start = time.perf_counter()
             r = httpx.get(
                 url,
                 params={k: v for k, v in params.items() if k != "symbol"},
                 headers=headers,
                 timeout=self.config.timeout,
             )
+            duration = time.perf_counter() - start
+            LATENCY.labels("alpaca").observe(duration)
+            REQUESTS.labels("alpaca").inc()
+            if r.status_code >= 400:
+                ERRORS.labels("alpaca", str(r.status_code)).inc()
             if not self.should_retry(r.status_code, r.json()):
                 return r.json()
 
@@ -89,11 +97,17 @@ class AlpacaClient(BaseApiClient):
         retries = 0
         async with httpx.AsyncClient(timeout=self.config.timeout) as client:
             while True:
+                start = time.perf_counter()
                 r = await client.get(
                     url,
                     params={k: v for k, v in params.items() if k != "symbol"},
                     headers=headers,
                 )
+                duration = time.perf_counter() - start
+                LATENCY.labels("alpaca").observe(duration)
+                REQUESTS.labels("alpaca").inc()
+                if r.status_code >= 400:
+                    ERRORS.labels("alpaca", str(r.status_code)).inc()
                 if not self.should_retry(r.status_code, r.json()):
                     return r.json()
 
