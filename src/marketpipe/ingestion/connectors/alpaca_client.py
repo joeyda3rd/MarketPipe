@@ -107,11 +107,12 @@ class AlpacaClient(BaseApiClient):
     # ---------- parsing ----------
     def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []
+        symbol = raw_json.get("symbol", "UNKNOWN")  # Get symbol from top level
         for bar in raw_json.get("bars", []):
             rows.append(
                 {
-                    "symbol": bar["S"],
-                    "timestamp": int(dt.datetime.fromisoformat(bar["t"]).timestamp() * 1_000_000_000),
+                    "symbol": symbol,  # Use symbol from response root
+                    "timestamp": int(dt.datetime.fromisoformat(bar["t"].replace('Z', '+00:00')).timestamp() * 1_000_000_000),
                     "date": dt.date.fromisoformat(bar["t"][:10]),
                     "open": bar["o"],
                     "high": bar["h"],

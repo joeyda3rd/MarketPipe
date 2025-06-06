@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import yaml
 
@@ -19,17 +20,74 @@ from .validator import SchemaValidator
 from .writer import write_parquet
 
 
+def load_dotenv_file(dotenv_path: str = ".env") -> None:
+    """Load environment variables from a .env file."""
+    if not os.path.exists(dotenv_path):
+        return
+    
+    with open(dotenv_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+                # Remove quotes if present
+                if value.startswith('"') and value.endswith('"'):
+                    value = value[1:-1]
+                elif value.startswith("'") and value.endswith("'"):
+                    value = value[1:-1]
+                os.environ[key] = value
+
+
+def expand_env_vars(obj: Any) -> Any:
+    """Recursively expand environment variables in config values."""
+    if isinstance(obj, str):
+        # Look for ${VAR_NAME} pattern and replace with environment variable
+        def replace_env_var(match):
+            var_name = match.group(1)
+            return os.environ.get(var_name, match.group(0))
+        
+        return re.sub(r'\$\{([^}]+)\}', replace_env_var, obj)
+    elif isinstance(obj, dict):
+        return {k: expand_env_vars(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [expand_env_vars(item) for item in obj]
+    else:
+        return obj
+
+
 class IngestionCoordinator:
     """Simple orchestration layer that fans out ingest jobs to workers."""
 
     def __init__(self, config_path: str, state_path: str | None = None) -> None:
+        # Load environment variables from .env file
+        load_dotenv_file()
+        
         with open(config_path, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f)
+        
+        # Expand environment variables in config
+        cfg = expand_env_vars(cfg)
 
         self.symbols: List[str] = cfg.get("symbols", [])
         self.output_root = cfg["output_path"]
-        self.start = dt.datetime.fromisoformat(cfg["start"])
-        self.end = dt.datetime.fromisoformat(cfg["end"])
+        
+        # Handle date parsing - config might have dates as strings or date objects
+        start_val = cfg["start"]
+        if isinstance(start_val, str):
+            self.start = dt.datetime.fromisoformat(start_val)
+        else:
+            # Already a date object, convert to datetime
+            self.start = dt.datetime.combine(start_val, dt.time.min)
+            
+        end_val = cfg["end"]
+        if isinstance(end_val, str):
+            self.end = dt.datetime.fromisoformat(end_val)
+        else:
+            # Already a date object, convert to datetime
+            self.end = dt.datetime.combine(end_val, dt.time.max)
+            
         self.workers = cfg.get("workers", len(self.symbols))
 
         a_cfg = cfg["alpaca"]
