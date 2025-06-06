@@ -20,3 +20,6 @@ marketpipe ingest --config config/example_config.yaml
 This writes partitioned files like
 `data/symbol=AAPL/year=2025/month=06/day=04.parquet`.
 
+The `compression` field in `config/example_config.yaml` controls the
+Parquet codec (`snappy` or `zstd`).
+

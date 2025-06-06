@@ -14,3 +14,6 @@ class RateLimiter:
 
     async def async_acquire(self) -> None:  # backward compat alias
         return await self.acquire_async()
+
+
+__all__ = ["RateLimiter"]
