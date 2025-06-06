@@ -58,6 +58,9 @@ def test_coordinator_flow(tmp_path, monkeypatch):
         fake_fetch,
     )
 
+    monkeypatch.setenv("ALPACA_KEY", "k")
+    monkeypatch.setenv("ALPACA_SECRET", "s")
+
     coord = IngestionCoordinator(str(cfg_file), state_path=str(tmp_path / "state.db"))
     summary = coord.run()
     assert summary["rows"] == len(rows)
