@@ -24,7 +24,7 @@ ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
 class AlpacaClient(BaseApiClient):
     """Alpaca Data v2 minute-bar connector with IEX support."""
 
-    _PATH_TEMPLATE = "/stocks/{symbol}/bars"
+    _PATH_TEMPLATE = "/stocks/bars"
 
     def __init__(self, *args, feed: str = "iex", **kwargs):
         """Initialize AlpacaClient with feed option.
@@ -50,7 +50,7 @@ class AlpacaClient(BaseApiClient):
         start = dt.datetime.utcfromtimestamp(start_ts / 1_000).strftime(ISO_FMT)
         end = dt.datetime.utcfromtimestamp(end_ts / 1_000).strftime(ISO_FMT)
         qp: Dict[str, str] = {
-            "symbol": symbol,
+            "symbols": symbol,  # v2 API uses "symbols" not "symbol"
             "timeframe": "1Min",
             "start": start,
             "end": end,
@@ -69,7 +69,7 @@ class AlpacaClient(BaseApiClient):
         if self.rate_limiter:
             self.rate_limiter.acquire()
 
-        url = f"{self.config.base_url}{self._PATH_TEMPLATE.format(symbol=params['symbol'])}"
+        url = f"{self.config.base_url}{self._PATH_TEMPLATE}"  # v2 API doesn't need symbol in URL
         headers = {"Accept": "application/json", "User-Agent": self.config.user_agent}
         self.auth.apply(headers, params={})
 
@@ -78,7 +78,7 @@ class AlpacaClient(BaseApiClient):
             start = time.perf_counter()
             r = httpx.get(
                 url,
-                params={k: v for k, v in params.items() if k != "symbol"},
+                params=params,  # Include all params including symbols
                 headers=headers,
                 timeout=self.config.timeout,
             )
@@ -120,7 +120,7 @@ class AlpacaClient(BaseApiClient):
         if self.rate_limiter:
             await self.rate_limiter.async_acquire()
 
-        url = f"{self.config.base_url}{self._PATH_TEMPLATE.format(symbol=params['symbol'])}"
+        url = f"{self.config.base_url}{self._PATH_TEMPLATE}"  # v2 API doesn't need symbol in URL
         headers = {"Accept": "application/json", "User-Agent": self.config.user_agent}
         self.auth.apply(headers, params={})
 
@@ -130,7 +130,7 @@ class AlpacaClient(BaseApiClient):
                 start = time.perf_counter()
                 r = await client.get(
                     url,
-                    params={k: v for k, v in params.items() if k != "symbol"},
+                    params=params,  # Include all params including symbols
                     headers=headers,
                 )
                 duration = time.perf_counter() - start
@@ -169,28 +169,30 @@ class AlpacaClient(BaseApiClient):
     # ---------- parsing ----------
     def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []
-        symbol = raw_json.get("symbol", "UNKNOWN")  # Get symbol from top level
-        for bar in raw_json.get("bars", []):
-            rows.append(
-                {
-                    "symbol": symbol,  # Use symbol from response root
-                    "timestamp": int(dt.datetime.fromisoformat(bar["t"].replace('Z', '+00:00')).timestamp() * 1_000_000_000),
-                    "date": dt.date.fromisoformat(bar["t"][:10]),
-                    "open": bar["o"],
-                    "high": bar["h"],
-                    "low": bar["l"],
-                    "close": bar["c"],
-                    "volume": bar["v"],
-                    "trade_count": bar.get("n"),
-                    "vwap": None,
-                    "session": "regular",
-                    "currency": "USD",
-                    "status": "ok",
-                    "source": "alpaca",
-                    "frame": "1m",
-                    "schema_version": 1,
-                }
-            )
+        # v2 API returns bars as a dict with symbol as key
+        bars_dict = raw_json.get("bars", {})
+        for symbol, bars in bars_dict.items():
+            for bar in bars:
+                rows.append(
+                    {
+                        "symbol": symbol,
+                        "timestamp": int(dt.datetime.fromisoformat(bar["t"].replace('Z', '+00:00')).timestamp() * 1_000_000_000),
+                        "date": dt.date.fromisoformat(bar["t"][:10]),
+                        "open": bar["o"],
+                        "high": bar["h"],
+                        "low": bar["l"],
+                        "close": bar["c"],
+                        "volume": bar["v"],
+                        "trade_count": bar.get("n"),
+                        "vwap": None,
+                        "session": "regular",
+                        "currency": "USD",
+                        "status": "ok",
+                        "source": "alpaca",
+                        "frame": "1m",
+                        "schema_version": 1,
+                    }
+                )
         return rows
 
     # ---------- helpers ----------
