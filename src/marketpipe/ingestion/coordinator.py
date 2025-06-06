@@ -28,6 +28,7 @@ class IngestionCoordinator:
 
         self.symbols: List[str] = cfg.get("symbols", [])
         self.output_root = cfg["output_path"]
+        self.compression = cfg.get("compression", "snappy")
         self.start = dt.datetime.fromisoformat(cfg["start"])
         self.end = dt.datetime.fromisoformat(cfg["end"])
         self.workers = cfg.get("workers", len(self.symbols))
@@ -66,7 +67,12 @@ class IngestionCoordinator:
             return 0
 
         self.validator.validate_batch(rows)
-        write_parquet(rows, self.output_root, overwrite=True)
+        write_parquet(
+            rows,
+            self.output_root,
+            overwrite=True,
+            compression=self.compression,
+        )
 
         last_ts = max(r["timestamp"] for r in rows)
         self.state.set(symbol, last_ts)

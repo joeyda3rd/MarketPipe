@@ -29,3 +29,6 @@ class OHLCVRow(BaseModel):
     volume: float
     trade_count: int | None = None
     vwap: float | None = None
+
+
+__all__ = ["ClientConfig", "OHLCVRow"]

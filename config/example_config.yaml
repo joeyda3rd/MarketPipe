@@ -6,6 +6,7 @@ alpaca:
   rate_limit_per_min: 200
 
 output_path: data
+compression: snappy
 symbols: ["AAPL", "MSFT", "TSLA"]
 start: 2025-06-04
 end: 2025-06-04

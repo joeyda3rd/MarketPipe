@@ -149,3 +149,6 @@ class BaseApiClient(abc.ABC):
     def load_checkpoint(self, symbol: str) -> Optional[str | int]:
         """Load the last saved checkpoint for a symbol."""
         return self.state.get(symbol) if self.state else None
+
+
+__all__ = ["BaseApiClient"]

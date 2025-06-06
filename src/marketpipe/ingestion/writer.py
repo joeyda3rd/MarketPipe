@@ -10,7 +10,12 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 
-def write_parquet(rows: List[Dict], output_root: str, overwrite: bool = False) -> str:
+def write_parquet(
+    rows: List[Dict],
+    output_root: str,
+    overwrite: bool = False,
+    compression: str = "snappy",
+) -> str:
     """Write rows to a partitioned Parquet file."""
     if not rows:
         raise ValueError("No rows supplied")
@@ -30,6 +35,9 @@ def write_parquet(rows: List[Dict], output_root: str, overwrite: bool = False) -
         return path
 
     table = pa.Table.from_pylist(rows)
-    pq.write_table(table, path)
+    pq.write_table(table, path, compression=compression)
     return path
+
+
+__all__ = ["write_parquet"]
 

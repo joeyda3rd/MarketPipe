@@ -20,3 +20,6 @@ marketpipe ingest --config config/example_config.yaml
 This writes partitioned files like
 `data/symbol=AAPL/year=2025/month=06/day=04.parquet`.
 
+Compression defaults to **snappy** but can be overridden via the
+`compression` field in ``config/example_config.yaml`` (e.g. ``zstd``).
+
