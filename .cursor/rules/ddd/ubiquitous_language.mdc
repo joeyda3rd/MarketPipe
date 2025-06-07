@@ -1,0 +1,315 @@
+---
+description: Ubiquitous Language and domain terminology for MarketPipe financial ETL
+globs:
+  - 'src/**/*.py'
+  - 'tests/**/*.py'
+  - 'docs/**/*.md'
+  - 'config/**/*.yaml'
+alwaysApply: true
+priority: high
+---
+
+# Ubiquitous Language
+
+## Objective
+Establish consistent domain terminology across code, documentation, and communication within MarketPipe.
+
+## Context
+- Financial market data processing domain
+- Multiple bounded contexts with overlapping terminology
+- Need for precise, unambiguous language that domain experts and developers share
+- Integration with external financial data providers
+
+## Rules
+
+### Core Financial Domain Terms
+Use these exact terms consistently across all contexts:
+
+✅ **Financial Instruments**
+```python
+# Use "Symbol" not "Ticker", "Security", "Instrument"
+class Symbol:
+    """Stock symbol (e.g., AAPL, GOOGL)"""
+
+# Use "OHLCV Bar" not "Candle", "Quote", "Price Data"
+class OHLCVBar:
+    """Open, High, Low, Close, Volume bar for a time period"""
+
+# Use "Trading Date" not "Business Date", "Market Date"
+def trading_date(self) -> date:
+    """The date for which this data applies in market timezone"""
+```
+
+❌ Avoid inconsistent terminology:
+```python
+class Ticker:          # Use Symbol instead
+class SecurityData:    # Use OHLCVBar instead
+class MarketQuote:     # Use OHLCVBar instead
+def business_date():   # Use trading_date() instead
+```
+
+### Temporal Domain Terms
+Be precise about time-related concepts:
+
+✅ **Time Terminology**
+```python
+# Use "Timestamp" for specific moments in time
+class Timestamp:
+    """Specific point in time with timezone awareness"""
+
+# Use "Time Range" for periods
+class TimeRange:
+    """Start and end timestamps defining a period"""
+
+# Use "Trading Session" for market periods
+class TradingSession(Enum):
+    REGULAR = "regular"      # 9:30 AM - 4:00 PM ET
+    PRE_MARKET = "pre"       # 4:00 AM - 9:30 AM ET
+    POST_MARKET = "post"     # 4:00 PM - 8:00 PM ET
+
+# Use "Time Frame" for aggregation periods
+class TimeFrame(Enum):
+    ONE_MINUTE = "1m"
+    FIVE_MINUTES = "5m"
+    FIFTEEN_MINUTES = "15m"
+    ONE_HOUR = "1h"
+    ONE_DAY = "1d"
+```
+
+### Data Processing Domain Terms
+Use consistent language for ETL operations:
+
+✅ **Processing Terminology**
+```python
+# Use "Ingestion" not "Import", "Load", "Fetch"
+class IngestionCoordinator:
+    """Orchestrates the ingestion of market data"""
+
+def ingest_symbol_data(symbol: Symbol) -> None:
+    """Ingest OHLCV data for a symbol"""
+
+# Use "Validation" not "Verification", "Check"
+class DataValidator:
+    """Validates market data against business rules"""
+
+def validate_ohlcv_consistency(bar: OHLCVBar) -> ValidationResult:
+    """Validate OHLCV price relationships"""
+
+# Use "Partition" for data organization
+class DataPartition:
+    """Logical grouping of data (e.g., by symbol and date)"""
+
+# Use "Aggregate" in DDD sense, not statistical
+class SymbolBarsAggregate:
+    """Domain aggregate containing bars for a symbol/date"""
+
+# Use "Aggregation" for statistical operations
+def aggregate_to_daily(minute_bars: List[OHLCVBar]) -> OHLCVBar:
+    """Aggregate minute bars into daily bar"""
+```
+
+### Integration Domain Terms
+Consistent language for external system integration:
+
+✅ **Integration Terminology**
+```python
+# Use "Market Data Provider" not "Vendor", "Source", "Feed"
+class MarketDataProvider:
+    """External source of market data (Alpaca, Polygon, etc.)"""
+
+# Use "Data Feed" for specific provider offerings
+class DataFeed(Enum):
+    IEX = "iex"          # Free tier data
+    SIP = "sip"          # Securities Information Processor (paid)
+    OPRA = "opra"        # Options data
+
+# Use "API Client" not "Connector", "Adapter", "Interface"
+class AlpacaApiClient(BaseApiClient):
+    """Client for Alpaca Markets API"""
+
+# Use "Raw Data" for vendor-specific format
+class RawMarketData:
+    """Unprocessed data from market data provider"""
+
+# Use "Canonical Data" for normalized format
+class CanonicalOHLCVBar:
+    """Normalized OHLCV bar in MarketPipe format"""
+```
+
+### State Management Domain Terms
+Precise language for processing state:
+
+✅ **State Terminology**
+```python
+# Use "Checkpoint" for resumable progress markers
+class IngestionCheckpoint:
+    """Progress marker for resumable ingestion"""
+
+def save_checkpoint(symbol: Symbol, timestamp: Timestamp) -> None:
+    """Save progress checkpoint for symbol ingestion"""
+
+# Use "Processing State" for current operation status
+class ProcessingState(Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+# Use "Ingestion Job" for unit of work
+class IngestionJob:
+    """Unit of work for ingesting data for symbol/date combination"""
+```
+
+### Quality and Monitoring Domain Terms
+Consistent observability language:
+
+✅ **Quality Terminology**
+```python
+# Use "Data Quality" not "Data Integrity", "Data Correctness"
+class DataQualityRule:
+    """Business rule for validating data quality"""
+
+# Use "Validation Error" for quality failures
+class ValidationError:
+    """Error when data fails quality validation"""
+
+# Use "Metric" for measurements
+class IngestionMetric:
+    """Measurement of ingestion performance or quality"""
+
+# Use "Backlog" for pending work
+def get_ingestion_backlog() -> int:
+    """Number of pending ingestion jobs"""
+```
+
+### Error and Exception Domain Terms
+Consistent error handling language:
+
+✅ **Error Terminology**
+```python
+# Use domain-specific exception names
+class InvalidOHLCVDataError(ValueError):
+    """Raised when OHLCV data violates business rules"""
+
+class MarketDataProviderError(Exception):
+    """Error communicating with market data provider"""
+
+class IngestionJobFailedError(Exception):
+    """Error when ingestion job cannot complete"""
+
+class DataPartitionNotFoundError(Exception):
+    """Requested data partition does not exist"""
+
+# Use "Rate Limit Exceeded" not "Throttled", "API Limit"
+class RateLimitExceededError(Exception):
+    """Market data provider rate limit exceeded"""
+```
+
+### Configuration Domain Terms
+Consistent configuration language:
+
+✅ **Configuration Terminology**
+```python
+# Use "Configuration" not "Settings", "Options", "Params"
+class IngestionConfiguration:
+    """Configuration for ingestion operations"""
+
+# Use "Credentials" not "Keys", "Auth", "Secrets"
+class MarketDataCredentials:
+    """Authentication credentials for market data provider"""
+
+# Use "Environment" for deployment contexts
+class Environment(Enum):
+    DEVELOPMENT = "dev"
+    TESTING = "test"
+    STAGING = "staging"
+    PRODUCTION = "prod"
+```
+
+### Anti-Patterns to Avoid
+These terms should NOT be used in the domain:
+
+❌ **Avoid Technical Implementation Terms in Domain**
+```python
+# Don't use these in domain layer:
+class DatabaseRecord    # Use domain entity instead
+class DataTable        # Use domain aggregate instead
+class APIResponse      # Use domain value object instead
+class FileProcessor    # Use domain service instead
+class HTTPClient       # Keep in infrastructure layer
+
+# Don't use generic terms:
+class Data             # Be specific: OHLCVBar, Symbol, etc.
+class Item             # Be specific about what kind of item
+class Record           # Use appropriate domain entity
+class Object           # Use specific domain concept
+```
+
+### Context-Specific Terminology
+Some terms have different meanings in different bounded contexts:
+
+✅ **Context-Aware Usage**
+```python
+# In Data Storage Context:
+class StoragePartition:
+    """Physical organization of data files"""
+
+# In Data Ingestion Context:
+class IngestionPartition:
+    """Logical grouping of ingestion work"""
+
+# In Validation Context:
+class ValidationRule:
+    """Business rule for data validation"""
+
+# In Integration Context:
+class IntegrationRule:
+    """Rule for transforming external data formats"""
+```
+
+### Documentation and Communication
+Apply ubiquitous language in all communication:
+
+✅ **Consistent Usage**
+```python
+# Code comments
+def ingest_symbol_data(symbol: Symbol) -> None:
+    """
+    Ingest OHLCV bars for the specified symbol from the configured 
+    market data provider. Validates data quality and stores in 
+    partitioned format for efficient retrieval.
+    """
+
+# Log messages
+logger.info(f"Starting ingestion job for symbol {symbol} on trading date {trading_date}")
+logger.error(f"Validation failed for OHLCV bar: {validation_error}")
+
+# Configuration files
+symbols:
+  - AAPL
+  - GOOGL
+start_trading_date: "2024-01-02"
+end_trading_date: "2024-01-03"
+market_data_provider: "alpaca"
+data_feed: "iex"
+```
+
+### Glossary Reference
+Maintain this terminology reference for the team:
+
+**Core Concepts:**
+- **Symbol**: Stock ticker identifier (e.g., AAPL)
+- **OHLCV Bar**: Open, High, Low, Close, Volume data for time period
+- **Trading Date**: Calendar date in market timezone
+- **Time Frame**: Duration for data aggregation (1m, 5m, 1h, 1d)
+- **Ingestion**: Process of collecting data from external sources
+- **Market Data Provider**: External source of financial data
+- **Data Feed**: Specific offering from market data provider
+- **Validation**: Checking data against business rules
+- **Partition**: Logical/physical organization of data
+- **Checkpoint**: Progress marker for resumable operations
+
+## Exceptions
+- Legacy code may use different terminology until refactored
+- External API terms may differ but should be translated to domain language
+- Technical documentation may need both domain and implementation terms

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+import socket
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -42,6 +43,30 @@ def load_dotenv_file(dotenv_path: str = ".env") -> None:
                 os.environ[key] = value
 
 
+def _is_port_in_use(host: str, port: int) -> bool:
+    """Check if a port is already in use."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((host, port))
+            return False
+        except OSError:
+            return True
+
+
+def _start_metrics_server_safe(port: int) -> None:
+    """Safely start metrics server with error handling."""
+    try:
+        metrics_server_run(port=port)
+    except OSError as e:
+        if e.errno == 98:  # Address already in use
+            print(f"⚠️  Warning: Metrics server could not start - port {port} is already in use", flush=True)
+            print(f"   Metrics are being collected and will be available at http://localhost:{port}/metrics", flush=True)
+        else:
+            print(f"⚠️  Warning: Metrics server failed to start: {e}", flush=True)
+    except Exception as e:
+        print(f"⚠️  Warning: Metrics server failed to start: {e}", flush=True)
+
+
 class IngestionCoordinator:
     """Simple orchestration layer that fans out ingest jobs to workers."""
 
@@ -60,11 +85,24 @@ class IngestionCoordinator:
         self.metrics_enabled = m_cfg.get("enabled", False)
         self.metrics_port = m_cfg.get("port", 8000)
         if self.metrics_enabled:
-            threading.Thread(
-                target=metrics_server_run,
-                kwargs={"port": self.metrics_port},
-                daemon=True,
-            ).start()
+            # Set up multiprocess metrics directory if not already set
+            import tempfile
+            if 'PROMETHEUS_MULTIPROC_DIR' not in os.environ:
+                multiproc_dir = os.path.join(tempfile.gettempdir(), 'prometheus_multiproc')
+                os.makedirs(multiproc_dir, exist_ok=True)
+                os.environ['PROMETHEUS_MULTIPROC_DIR'] = multiproc_dir
+            if _is_port_in_use("localhost", self.metrics_port):
+                print(f"⚠️  Metrics server already running on port {self.metrics_port}", flush=True)
+                print(f"   Metrics will be collected and available at http://localhost:{self.metrics_port}/metrics", flush=True)
+            else:
+                threading.Thread(
+                    target=_start_metrics_server_safe,
+                    args=(self.metrics_port,),
+                    daemon=True,
+                ).start()
+                # Give the metrics server thread a moment to start and report any errors
+                import time
+                time.sleep(0.1)
         
         # Handle date parsing - config might have dates as strings or date objects
         start_val = cfg["start"]

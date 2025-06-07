@@ -1,0 +1,399 @@
+---
+description: ETL pipeline patterns and data processing rules for MarketPipe
+globs:
+  - 'src/marketpipe/ingestion/**/*.py'
+  - 'src/marketpipe/aggregation.py'
+  - 'src/marketpipe/loader.py'
+  - 'src/marketpipe/validation.py'
+alwaysApply: true
+priority: high
+---
+
+# Data Pipeline
+
+## Objective
+Maintain consistent patterns for ETL operations, data validation, and pipeline coordination in MarketPipe.
+
+## Context
+- Threaded ingestion coordinator for parallel symbol processing
+- Schema validation using JSON Schema
+- Partitioned Parquet storage with Hive-style partitioning
+- DuckDB integration for aggregation and querying
+- State persistence for checkpoint/resume functionality
+
+## Rules
+
+### Pipeline Coordination
+Use the coordinator pattern for orchestrating parallel data collection:
+
+✅ Good:
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Tuple
+
+class IngestionCoordinator:
+    """Coordinates threaded ingestion across multiple symbols and date ranges."""
+    
+    def __init__(
+        self,
+        client: BaseApiClient,
+        validator: SchemaValidator,
+        writer: ParquetWriter,
+        max_workers: int = 3,
+    ):
+        self.client = client
+        self.validator = validator
+        self.writer = writer
+        self.max_workers = max_workers
+        self.log = logging.getLogger(self.__class__.__name__)
+    
+    def ingest_batch(
+        self,
+        symbols: List[str],
+        date_ranges: List[Tuple[int, int]],
+    ) -> Dict[str, Any]:
+        """Coordinate parallel ingestion across symbols and date ranges."""
+        tasks = [
+            (symbol, start_ts, end_ts)
+            for symbol in symbols
+            for start_ts, end_ts in date_ranges
+        ]
+        
+        results = {"success": 0, "failed": 0, "errors": []}
+        
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all tasks
+            future_to_task = {
+                executor.submit(self._process_symbol_date, symbol, start_ts, end_ts): (symbol, start_ts, end_ts)
+                for symbol, start_ts, end_ts in tasks
+            }
+            
+            # Process completed tasks
+            for future in as_completed(future_to_task):
+                symbol, start_ts, end_ts = future_to_task[future]
+                try:
+                    rows_written = future.result()
+                    results["success"] += 1
+                    self.log.info(f"Processed {symbol} {start_ts}-{end_ts}: {rows_written} rows")
+                except Exception as e:
+                    results["failed"] += 1
+                    error_msg = f"Failed {symbol} {start_ts}-{end_ts}: {e}"
+                    results["errors"].append(error_msg)
+                    self.log.error(error_msg)
+        
+        return results
+```
+
+### Data Validation Pipeline
+Implement schema validation with comprehensive error reporting:
+
+✅ Good:
+```python
+import jsonschema
+from typing import List, Dict, Any, Tuple
+
+class SchemaValidator:
+    """Validates OHLCV data against JSON schema."""
+    
+    def __init__(self, schema_path: str):
+        with open(schema_path, 'r') as f:
+            self.schema = json.load(f)
+        self.validator = jsonschema.Draft7Validator(self.schema)
+        self.log = logging.getLogger(self.__class__.__name__)
+    
+    def validate_batch(
+        self,
+        rows: List[Dict[str, Any]],
+        symbol: str,
+    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+        """Validate batch of OHLCV rows."""
+        valid_rows = []
+        errors = []
+        
+        for i, row in enumerate(rows):
+            validation_errors = list(self.validator.iter_errors(row))
+            if validation_errors:
+                error_details = [
+                    f"Row {i}: {error.message} at {'.'.join(str(p) for p in error.absolute_path)}"
+                    for error in validation_errors
+                ]
+                errors.extend(error_details)
+                self.log.warning(f"Invalid row {i} for {symbol}: {error_details}")
+            else:
+                valid_rows.append(row)
+        
+        if errors:
+            self.log.warning(f"Validation failed for {len(errors)} rows in {symbol}")
+        
+        return valid_rows, errors
+    
+    def validate_required_fields(self, row: Dict[str, Any]) -> List[str]:
+        """Check required fields are present and valid."""
+        errors = []
+        required_fields = ["symbol", "timestamp", "open", "high", "low", "close", "volume"]
+        
+        for field in required_fields:
+            if field not in row or row[field] is None:
+                errors.append(f"Missing required field: {field}")
+            elif field in ["open", "high", "low", "close"] and row[field] <= 0:
+                errors.append(f"Invalid price for {field}: {row[field]}")
+            elif field == "volume" and row[field] < 0:
+                errors.append(f"Invalid volume: {row[field]}")
+        
+        return errors
+```
+
+### Parquet Storage Patterns
+Use partitioned Parquet storage with proper schema handling:
+
+✅ Good:
+```python
+import pyarrow as pa
+import pyarrow.parquet as pq
+from pathlib import Path
+from typing import List, Dict, Any
+
+class ParquetWriter:
+    """Writes OHLCV data to partitioned Parquet files."""
+    
+    def __init__(self, output_path: str, compression: str = "snappy"):
+        self.output_path = Path(output_path)
+        self.compression = compression
+        self.log = logging.getLogger(self.__class__.__name__)
+    
+    def write_batch(
+        self,
+        rows: List[Dict[str, Any]],
+        symbol: str,
+        date: str,
+    ) -> int:
+        """Write batch of rows to partitioned Parquet file."""
+        if not rows:
+            return 0
+        
+        # Convert to Arrow table
+        table = pa.Table.from_pylist(rows)
+        
+        # Create partition path
+        partition_path = self.output_path / f"symbol={symbol}" / f"date={date}"
+        partition_path.mkdir(parents=True, exist_ok=True)
+        
+        # Write Parquet file
+        filename = partition_path / f"{symbol}_{date}.parquet"
+        pq.write_table(
+            table,
+            filename,
+            compression=self.compression,
+            use_dictionary=True,
+            row_group_size=10000,
+        )
+        
+        self.log.info(f"Wrote {len(rows)} rows to {filename}")
+        return len(rows)
+    
+    def append_to_existing(
+        self,
+        rows: List[Dict[str, Any]],
+        symbol: str,
+        date: str,
+    ) -> int:
+        """Append rows to existing Parquet file or create new one."""
+        partition_path = self.output_path / f"symbol={symbol}" / f"date={date}"
+        filename = partition_path / f"{symbol}_{date}.parquet"
+        
+        if filename.exists():
+            # Read existing data
+            existing_table = pq.read_table(filename)
+            existing_rows = existing_table.to_pylist()
+            
+            # Combine with new rows and deduplicate
+            all_rows = existing_rows + rows
+            deduped_rows = self._deduplicate_by_timestamp(all_rows)
+            
+            # Write combined data
+            table = pa.Table.from_pylist(deduped_rows)
+            pq.write_table(table, filename, compression=self.compression)
+            
+            return len(deduped_rows) - len(existing_rows)
+        else:
+            return self.write_batch(rows, symbol, date)
+    
+    def _deduplicate_by_timestamp(
+        self,
+        rows: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Remove duplicate rows based on symbol and timestamp."""
+        seen = set()
+        deduped = []
+        
+        for row in sorted(rows, key=lambda r: (r["symbol"], r["timestamp"])):
+            key = (row["symbol"], row["timestamp"])
+            if key not in seen:
+                seen.add(key)
+                deduped.append(row)
+        
+        return deduped
+```
+
+### DuckDB Integration
+Use DuckDB for efficient querying and aggregation:
+
+✅ Good:
+```python
+import duckdb
+from pathlib import Path
+from typing import Optional, List, Dict, Any
+
+class DataLoader:
+    """Loads and queries Parquet data using DuckDB."""
+    
+    def __init__(self, data_path: str):
+        self.data_path = Path(data_path)
+        self.log = logging.getLogger(self.__class__.__name__)
+    
+    def query_symbol_data(
+        self,
+        symbol: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Query OHLCV data for a symbol with optional date filtering."""
+        symbol_path = self.data_path / f"symbol={symbol}"
+        
+        if not symbol_path.exists():
+            return []
+        
+        # Build DuckDB query
+        query = f"""
+        SELECT *
+        FROM read_parquet('{symbol_path}/**/*.parquet')
+        WHERE 1=1
+        """
+        
+        if start_date:
+            query += f" AND date >= '{start_date}'"
+        if end_date:
+            query += f" AND date <= '{end_date}'"
+        
+        query += " ORDER BY timestamp"
+        
+        # Execute query
+        conn = duckdb.connect()
+        try:
+            result = conn.execute(query).fetchall()
+            columns = [desc[0] for desc in conn.description]
+            return [dict(zip(columns, row)) for row in result]
+        finally:
+            conn.close()
+    
+    def aggregate_to_timeframe(
+        self,
+        symbol: str,
+        timeframe: str,  # '5m', '15m', '1h', '1d'
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Aggregate 1-minute bars to coarser timeframes."""
+        interval_map = {
+            "5m": "5 minutes",
+            "15m": "15 minutes",
+            "1h": "1 hour",
+            "1d": "1 day",
+        }
+        
+        if timeframe not in interval_map:
+            raise ValueError(f"Unsupported timeframe: {timeframe}")
+        
+        interval = interval_map[timeframe]
+        symbol_path = self.data_path / f"symbol={symbol}"
+        
+        query = f"""
+        SELECT
+            symbol,
+            time_bucket(INTERVAL '{interval}', timestamp::TIMESTAMP) as timestamp,
+            DATE(time_bucket(INTERVAL '{interval}', timestamp::TIMESTAMP)) as date,
+            first(open ORDER BY timestamp) as open,
+            max(high) as high,
+            min(low) as low,
+            last(close ORDER BY timestamp) as close,
+            sum(volume) as volume,
+            sum(trade_count) as trade_count,
+            avg(vwap) as vwap,
+            '{timeframe}' as frame
+        FROM read_parquet('{symbol_path}/**/*.parquet')
+        WHERE 1=1
+        """
+        
+        if start_date:
+            query += f" AND date >= '{start_date}'"
+        if end_date:
+            query += f" AND date <= '{end_date}'"
+        
+        query += """
+        GROUP BY symbol, time_bucket(INTERVAL '{interval}', timestamp::TIMESTAMP)
+        ORDER BY timestamp
+        """.replace('{interval}', interval)
+        
+        conn = duckdb.connect()
+        try:
+            result = conn.execute(query).fetchall()
+            columns = [desc[0] for desc in conn.description]
+            return [dict(zip(columns, row)) for row in result]
+        finally:
+            conn.close()
+```
+
+### State Management
+Implement persistent state for checkpointing:
+
+✅ Good:
+```python
+import sqlite3
+from typing import Optional, Union
+
+class SQLiteState:
+    """SQLite-based state persistence for checkpointing."""
+    
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+        self._init_db()
+    
+    def _init_db(self) -> None:
+        """Initialize database schema."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS checkpoints (
+                    symbol TEXT PRIMARY KEY,
+                    checkpoint TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+    
+    def set(self, symbol: str, checkpoint: Union[str, int]) -> None:
+        """Save checkpoint for symbol."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                INSERT OR REPLACE INTO checkpoints (symbol, checkpoint, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            """, (symbol, str(checkpoint)))
+    
+    def get(self, symbol: str) -> Optional[str]:
+        """Load checkpoint for symbol."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT checkpoint FROM checkpoints WHERE symbol = ?",
+                (symbol,)
+            )
+            result = cursor.fetchone()
+            return result[0] if result else None
+    
+    def clear(self, symbol: str) -> None:
+        """Clear checkpoint for symbol."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("DELETE FROM checkpoints WHERE symbol = ?", (symbol,))
+```
+
+## Exceptions
+- Example scripts may use simplified patterns for demonstration
+- Test environments may use in-memory or temporary storage
+- CLI commands may use different coordination patterns for user interaction

@@ -1,0 +1,549 @@
+---
+description: Domain-Driven Design architecture patterns and bounded context organization for MarketPipe
+globs:
+  - 'src/marketpipe/domain/**/*.py'
+  - 'src/marketpipe/ingestion/**/*.py'
+  - 'src/marketpipe/storage/**/*.py'
+  - 'src/marketpipe/integration/**/*.py'
+alwaysApply: true
+priority: high
+---
+
+# Domain-Driven Design Architecture
+
+## Objective
+Enforce Domain-Driven Design principles and patterns across MarketPipe's financial ETL architecture.
+
+## Context
+- Financial market data processing pipeline with multiple bounded contexts
+- Core domain: Data Ingestion and Processing
+- Supporting domains: Market Data Integration, Validation, Storage, Monitoring
+- Generic subdomains: Authentication, Rate Limiting, Configuration, State Management
+
+## Rules
+
+### Bounded Context Organization
+Organize code by bounded contexts with clear boundaries:
+
+✅ Good:
+```
+src/marketpipe/
+├── domain/                     # Core domain models
+│   ├── __init__.py
+│   ├── entities.py            # Domain entities
+│   ├── value_objects.py       # Value objects
+│   ├── aggregates.py          # Aggregate roots
+│   ├── events.py              # Domain events
+│   └── services.py            # Domain services
+├── ingestion/                 # Data Ingestion Context
+│   ├── domain/               # Ingestion-specific domain models
+│   ├── services/             # Application services
+│   ├── repositories/         # Repository implementations
+│   └── infrastructure/       # External integrations
+├── integration/              # Market Data Integration Context
+│   ├── domain/
+│   ├── connectors/
+│   └── adapters/
+├── validation/               # Data Quality Context
+│   ├── domain/
+│   ├── rules/
+│   └── validators/
+└── storage/                  # Data Storage Context
+    ├── domain/
+    ├── repositories/
+    └── infrastructure/
+```
+
+### Entity Design Patterns
+Define entities with clear identity and business behavior:
+
+✅ Good:
+```python
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Optional
+from uuid import UUID, uuid4
+
+from ..value_objects import Symbol, Timestamp, Price, Volume
+
+@dataclass(frozen=True)
+class EntityId:
+    """Base class for entity identifiers."""
+    value: UUID
+    
+    @classmethod
+    def generate(cls) -> EntityId:
+        return cls(uuid4())
+    
+    def __str__(self) -> str:
+        return str(self.value)
+
+class Entity(ABC):
+    """Base class for all domain entities."""
+    
+    def __init__(self, id: EntityId):
+        self._id = id
+        self._version = 1
+    
+    @property
+    def id(self) -> EntityId:
+        return self._id
+    
+    @property
+    def version(self) -> int:
+        return self._version
+    
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Entity) and self._id == other._id
+    
+    def __hash__(self) -> int:
+        return hash(self._id)
+
+class OHLCVBar(Entity):
+    """Represents a single OHLCV bar with business behavior."""
+    
+    def __init__(
+        self,
+        id: EntityId,
+        symbol: Symbol,
+        timestamp: Timestamp,
+        open_price: Price,
+        high_price: Price,
+        low_price: Price,
+        close_price: Price,
+        volume: Volume,
+    ):
+        super().__init__(id)
+        self._symbol = symbol
+        self._timestamp = timestamp
+        self._open_price = open_price
+        self._high_price = high_price
+        self._low_price = low_price
+        self._close_price = close_price
+        self._volume = volume
+        self._validate_ohlc_consistency()
+    
+    def _validate_ohlc_consistency(self) -> None:
+        """Validate OHLC price relationships."""
+        if not (self._high_price >= self._open_price and 
+                self._high_price >= self._close_price and
+                self._high_price >= self._low_price and
+                self._low_price <= self._open_price and
+                self._low_price <= self._close_price):
+            raise ValueError("OHLC prices are inconsistent")
+    
+    @property
+    def symbol(self) -> Symbol:
+        return self._symbol
+    
+    @property
+    def timestamp(self) -> Timestamp:
+        return self._timestamp
+    
+    def calculate_price_range(self) -> Price:
+        """Calculate the price range (high - low)."""
+        return Price(self._high_price.value - self._low_price.value)
+    
+    def is_same_trading_day(self, other: OHLCVBar) -> bool:
+        """Check if this bar is from the same trading day as another."""
+        return self._timestamp.trading_date() == other._timestamp.trading_date()
+```
+
+### Value Object Patterns
+Use value objects for domain concepts without identity:
+
+✅ Good:
+```python
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date, datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
+from typing import Any, Union
+
+@dataclass(frozen=True)
+class Symbol:
+    """Stock symbol value object."""
+    value: str
+    
+    def __post_init__(self):
+        if not self.value or not self.value.isalpha():
+            raise ValueError(f"Invalid symbol: {self.value}")
+        if len(self.value) > 10:
+            raise ValueError(f"Symbol too long: {self.value}")
+    
+    def __str__(self) -> str:
+        return self.value.upper()
+
+@dataclass(frozen=True)
+class Price:
+    """Monetary price value object with precision handling."""
+    value: Decimal
+    
+    def __post_init__(self):
+        if self.value < 0:
+            raise ValueError("Price cannot be negative")
+        # Quantize to 4 decimal places for financial precision
+        object.__setattr__(self, 'value', self.value.quantize(
+            Decimal('0.0001'), rounding=ROUND_HALF_UP
+        ))
+    
+    @classmethod
+    def from_float(cls, value: float) -> Price:
+        """Create price from float with proper precision."""
+        return cls(Decimal(str(value)))
+    
+    def __add__(self, other: Price) -> Price:
+        return Price(self.value + other.value)
+    
+    def __sub__(self, other: Price) -> Price:
+        return Price(self.value - other.value)
+    
+    def __str__(self) -> str:
+        return f"${self.value}"
+
+@dataclass(frozen=True)
+class Timestamp:
+    """Timestamp value object with timezone awareness."""
+    value: datetime
+    
+    def __post_init__(self):
+        if self.value.tzinfo is None:
+            # Assume UTC if no timezone provided
+            object.__setattr__(self, 'value', self.value.replace(tzinfo=timezone.utc))
+    
+    def trading_date(self) -> date:
+        """Get the trading date (useful for partitioning)."""
+        return self.value.date()
+    
+    def to_nanoseconds(self) -> int:
+        """Convert to nanoseconds since epoch (Arrow format)."""
+        return int(self.value.timestamp() * 1_000_000_000)
+    
+    def is_market_hours(self) -> bool:
+        """Check if timestamp is during regular market hours (simplified)."""
+        market_time = self.value.astimezone(timezone.utc)
+        hour = market_time.hour
+        return 14 <= hour < 21  # 9:30 AM - 4:00 PM ET in UTC
+
+@dataclass(frozen=True)
+class Volume:
+    """Trading volume value object."""
+    value: int
+    
+    def __post_init__(self):
+        if self.value < 0:
+            raise ValueError("Volume cannot be negative")
+    
+    def __add__(self, other: Volume) -> Volume:
+        return Volume(self.value + other.value)
+```
+
+### Aggregate Design Patterns
+Design aggregates with clear boundaries and consistency rules:
+
+✅ Good:
+```python
+from __future__ import annotations
+
+from typing import List, Optional, Dict, Iterator
+from datetime import date
+
+from .entities import OHLCVBar, EntityId
+from .value_objects import Symbol, Timestamp
+from .events import DomainEvent, BarCollectionCompleted
+
+class SymbolBarsAggregate:
+    """Aggregate root for managing OHLCV bars for a single symbol."""
+    
+    def __init__(self, symbol: Symbol, trading_date: date):
+        self._symbol = symbol
+        self._trading_date = trading_date
+        self._bars: Dict[Timestamp, OHLCVBar] = {}
+        self._events: List[DomainEvent] = []
+        self._version = 1
+    
+    @property
+    def symbol(self) -> Symbol:
+        return self._symbol
+    
+    @property
+    def trading_date(self) -> date:
+        return self._trading_date
+    
+    @property
+    def bar_count(self) -> int:
+        return len(self._bars)
+    
+    def add_bar(self, bar: OHLCVBar) -> None:
+        """Add a bar to the collection with validation."""
+        if bar.symbol != self._symbol:
+            raise ValueError(f"Bar symbol {bar.symbol} doesn't match aggregate symbol {self._symbol}")
+        
+        if bar.timestamp.trading_date() != self._trading_date:
+            raise ValueError(f"Bar date {bar.timestamp.trading_date()} doesn't match aggregate date {self._trading_date}")
+        
+        if bar.timestamp in self._bars:
+            raise ValueError(f"Bar already exists for timestamp {bar.timestamp}")
+        
+        self._bars[bar.timestamp] = bar
+        self._version += 1
+    
+    def get_bar(self, timestamp: Timestamp) -> Optional[OHLCVBar]:
+        """Retrieve a specific bar by timestamp."""
+        return self._bars.get(timestamp)
+    
+    def get_all_bars(self) -> List[OHLCVBar]:
+        """Get all bars sorted by timestamp."""
+        return sorted(self._bars.values(), key=lambda b: b.timestamp.value)
+    
+    def complete_collection(self) -> None:
+        """Mark the bar collection as complete and raise domain event."""
+        event = BarCollectionCompleted(
+            symbol=self._symbol,
+            trading_date=self._trading_date,
+            bar_count=self.bar_count
+        )
+        self._events.append(event)
+    
+    def get_uncommitted_events(self) -> List[DomainEvent]:
+        """Get domain events that haven't been published."""
+        return self._events.copy()
+    
+    def mark_events_committed(self) -> None:
+        """Mark all events as committed (published)."""
+        self._events.clear()
+    
+    def calculate_daily_summary(self) -> DailySummary:
+        """Calculate daily OHLCV summary from minute bars."""
+        if not self._bars:
+            raise ValueError("Cannot calculate summary with no bars")
+        
+        sorted_bars = self.get_all_bars()
+        first_bar = sorted_bars[0]
+        last_bar = sorted_bars[-1]
+        
+        daily_high = max(bar.high_price for bar in sorted_bars)
+        daily_low = min(bar.low_price for bar in sorted_bars)
+        daily_volume = sum(bar.volume for bar in sorted_bars)
+        
+        return DailySummary(
+            symbol=self._symbol,
+            trading_date=self._trading_date,
+            open_price=first_bar.open_price,
+            high_price=daily_high,
+            low_price=daily_low,
+            close_price=last_bar.close_price,
+            volume=daily_volume
+        )
+```
+
+### Repository Interface Patterns
+Define repository interfaces in the domain layer:
+
+✅ Good:
+```python
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import List, Optional, Iterator
+from datetime import date
+
+from .aggregates import SymbolBarsAggregate
+from .value_objects import Symbol, Timestamp
+from .entities import OHLCVBar
+
+class ISymbolBarsRepository(ABC):
+    """Repository interface for symbol bars aggregates."""
+    
+    @abstractmethod
+    async def get_by_symbol_and_date(
+        self, 
+        symbol: Symbol, 
+        trading_date: date
+    ) -> Optional[SymbolBarsAggregate]:
+        """Load aggregate for symbol and trading date."""
+        pass
+    
+    @abstractmethod
+    async def save(self, aggregate: SymbolBarsAggregate) -> None:
+        """Save aggregate and publish domain events."""
+        pass
+    
+    @abstractmethod
+    async def find_symbols_with_data(
+        self, 
+        start_date: date, 
+        end_date: date
+    ) -> List[Symbol]:
+        """Find symbols that have data in date range."""
+        pass
+
+class IOHLCVRepository(ABC):
+    """Repository interface for individual OHLCV bars."""
+    
+    @abstractmethod
+    async def get_bars_for_symbol(
+        self,
+        symbol: Symbol,
+        start_time: Timestamp,
+        end_time: Timestamp
+    ) -> Iterator[OHLCVBar]:
+        """Stream bars for symbol in time range."""
+        pass
+    
+    @abstractmethod
+    async def save_bars(self, bars: List[OHLCVBar]) -> None:
+        """Batch save multiple bars."""
+        pass
+    
+    @abstractmethod
+    async def exists(self, symbol: Symbol, timestamp: Timestamp) -> bool:
+        """Check if bar exists for symbol at timestamp."""
+        pass
+```
+
+### Domain Event Patterns
+Use domain events for cross-context communication:
+
+✅ Good:
+```python
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from datetime import date, datetime, timezone
+from uuid import UUID, uuid4
+
+from .value_objects import Symbol
+
+class DomainEvent(ABC):
+    """Base class for all domain events."""
+    
+    def __init__(self):
+        self.event_id = uuid4()
+        self.occurred_at = datetime.now(timezone.utc)
+    
+    @property
+    @abstractmethod
+    def event_type(self) -> str:
+        """Unique identifier for the event type."""
+        pass
+
+@dataclass(frozen=True)
+class BarCollectionCompleted(DomainEvent):
+    """Event raised when bar collection for a symbol/date is complete."""
+    symbol: Symbol
+    trading_date: date
+    bar_count: int
+    
+    @property
+    def event_type(self) -> str:
+        return "bar_collection_completed"
+
+@dataclass(frozen=True)
+class ValidationFailed(DomainEvent):
+    """Event raised when data validation fails."""
+    symbol: Symbol
+    timestamp: datetime
+    error_message: str
+    
+    @property
+    def event_type(self) -> str:
+        return "validation_failed"
+
+@dataclass(frozen=True)
+class IngestionJobCompleted(DomainEvent):
+    """Event raised when ingestion job completes."""
+    symbol: Symbol
+    trading_date: date
+    bars_processed: int
+    success: bool
+    
+    @property
+    def event_type(self) -> str:
+        return "ingestion_job_completed"
+```
+
+### Application Service Patterns
+Coordinate between domain and infrastructure:
+
+✅ Good:
+```python
+from __future__ import annotations
+
+from typing import List, Optional
+from datetime import date
+import logging
+
+from ..domain.aggregates import SymbolBarsAggregate
+from ..domain.repositories import ISymbolBarsRepository, IOHLCVRepository
+from ..domain.value_objects import Symbol
+from ..domain.events import DomainEvent
+
+class IngestionApplicationService:
+    """Application service for coordinating ingestion operations."""
+    
+    def __init__(
+        self,
+        symbol_bars_repo: ISymbolBarsRepository,
+        ohlcv_repo: IOHLCVRepository,
+        event_publisher: IDomainEventPublisher,
+        logger: logging.Logger
+    ):
+        self._symbol_bars_repo = symbol_bars_repo
+        self._ohlcv_repo = ohlcv_repo
+        self._event_publisher = event_publisher
+        self._logger = logger
+    
+    async def ingest_symbol_data(
+        self,
+        symbol: Symbol,
+        trading_date: date,
+        raw_bars: List[Dict[str, Any]]
+    ) -> None:
+        """Coordinate ingestion of raw bar data for a symbol."""
+        try:
+            # Load or create aggregate
+            aggregate = await self._symbol_bars_repo.get_by_symbol_and_date(
+                symbol, trading_date
+            )
+            if aggregate is None:
+                aggregate = SymbolBarsAggregate(symbol, trading_date)
+            
+            # Convert raw data to domain objects
+            domain_bars = []
+            for raw_bar in raw_bars:
+                bar = self._convert_raw_to_domain(raw_bar)
+                aggregate.add_bar(bar)
+                domain_bars.append(bar)
+            
+            # Save bars individually for querying
+            await self._ohlcv_repo.save_bars(domain_bars)
+            
+            # Complete collection and save aggregate
+            aggregate.complete_collection()
+            await self._symbol_bars_repo.save(aggregate)
+            
+            # Publish domain events
+            await self._publish_events(aggregate.get_uncommitted_events())
+            aggregate.mark_events_committed()
+            
+            self._logger.info(f"Successfully ingested {len(domain_bars)} bars for {symbol} on {trading_date}")
+            
+        except Exception as e:
+            self._logger.error(f"Failed to ingest data for {symbol} on {trading_date}: {e}")
+            raise
+    
+    async def _publish_events(self, events: List[DomainEvent]) -> None:
+        """Publish domain events to event bus."""
+        for event in events:
+            await self._event_publisher.publish(event)
+```
+
+## Exceptions
+- Infrastructure code may use different patterns for external integrations
+- Legacy modules may not follow DDD patterns until refactored
+- Test code may use simplified domain objects for specific scenarios

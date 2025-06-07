@@ -1,0 +1,463 @@
+---
+description: Python packaging and distribution standards for MarketPipe
+globs:
+  - 'pyproject.toml'
+  - 'setup.py'
+  - 'MANIFEST.in'
+  - 'src/marketpipe/__init__.py'
+alwaysApply: true
+priority: low
+---
+
+# Packaging Standards
+
+## Objective
+Maintain consistent packaging and distribution standards for MarketPipe.
+
+## Context
+- Modern Python packaging using pyproject.toml
+- Source distribution with setuptools backend
+- CLI entry points and module execution support
+- Development and production dependency management
+
+## Rules
+
+### pyproject.toml Structure
+Follow modern Python packaging standards:
+
+✅ Good:
+```toml
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "marketpipe"
+version = "0.1.0"
+description = "Lightweight CLI-based ETL for market data"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "MarketPipe Team", email = "maintainers@marketpipe.dev"}
+]
+maintainers = [
+    {name = "MarketPipe Team", email = "maintainers@marketpipe.dev"}
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["etl", "finance", "market-data", "trading", "data-pipeline"]
+
+dependencies = [
+    "typer[all]>=0.9.0",
+    "pandas>=1.5.0",
+    "duckdb>=0.8.0",
+    "pyarrow>=12.0.0",
+    "requests>=2.28.0",
+    "pyyaml>=6.0",
+    "httpx>=0.24.0",
+    "prometheus_client>=0.17.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "types-PyYAML",
+    "types-requests",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.22.0",
+]
+all = [
+    "marketpipe[dev,test,docs]"
+]
+
+[project.urls]
+Homepage = "https://github.com/yourorg/marketpipe"
+Documentation = "https://marketpipe.readthedocs.io"
+Repository = "https://github.com/yourorg/marketpipe"
+Issues = "https://github.com/yourorg/marketpipe/issues"
+Changelog = "https://github.com/yourorg/marketpipe/blob/main/CHANGELOG.md"
+
+[project.scripts]
+marketpipe = "marketpipe.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+marketpipe = ["py.typed"]
+```
+
+❌ Avoid:
+```toml
+[project]
+name = "marketpipe"
+version = "0.1.0"
+dependencies = [
+    "typer",  # No version constraints
+    "pandas",
+    "requests"
+]
+# Missing metadata, classifiers, URLs
+```
+
+### Package Structure
+Organize package files consistently:
+
+✅ Good:
+```
+src/marketpipe/
+├── __init__.py          # Package exports and version
+├── __main__.py          # Module entry point
+├── py.typed             # Type hint marker
+├── cli.py               # CLI commands
+├── main.py              # Legacy entry point
+├── aggregation.py       # Core modules
+├── validation.py
+├── loader.py
+├── metrics.py
+├── metrics_server.py
+└── ingestion/           # Subpackages
+    ├── __init__.py
+    ├── __main__.py
+    ├── coordinator.py
+    ├── state.py
+    ├── validator.py
+    ├── writer.py
+    └── connectors/
+        ├── __init__.py
+        ├── base_api_client.py
+        ├── alpaca_client.py
+        ├── auth.py
+        ├── models.py
+        └── rate_limit.py
+```
+
+### Package Initialization
+Define clear package exports and version management:
+
+✅ Good:
+```python
+# src/marketpipe/__init__.py
+"""MarketPipe package initialization."""
+
+__version__ = "0.1.0"
+__author__ = "MarketPipe Team"
+__email__ = "maintainers@marketpipe.dev"
+
+# Public API exports
+__all__ = [
+    # Core modules
+    "cli",
+    "ingestion", 
+    "aggregation",
+    "validation",
+    "loader",
+    "metrics",
+    "metrics_server",
+    
+    # Version info
+    "__version__",
+]
+
+# Import main components for convenience
+from . import (
+    cli,
+    ingestion,
+    aggregation, 
+    validation,
+    loader,
+    metrics,
+    metrics_server,
+)
+
+# Optional: Provide convenience imports for common use cases
+from .ingestion import ingest
+from .loader import DataLoader
+from .metrics import REQUESTS, ERRORS, LATENCY
+```
+
+### Type Hints Support
+Include type hints marker for distribution:
+
+✅ Good:
+```python
+# src/marketpipe/py.typed
+# Marker file indicating this package supports type hints
+```
+
+### Version Management
+Use single source of truth for versioning:
+
+✅ Good:
+```python
+# src/marketpipe/_version.py
+"""Version information for MarketPipe."""
+
+__version__ = "0.1.0"
+__version_info__ = tuple(int(i) for i in __version__.split('.'))
+```
+
+```python
+# src/marketpipe/__init__.py
+from ._version import __version__, __version_info__
+
+__all__ = ["__version__", "__version_info__", ...]
+```
+
+```toml
+# pyproject.toml
+[project]
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "marketpipe._version.__version__"}
+```
+
+### Development Dependencies
+Organize development tools consistently:
+
+✅ Good:
+```toml
+[project.optional-dependencies]
+dev = [
+    # Formatters and linters
+    "black>=23.0.0",
+    "ruff>=0.1.0", 
+    "isort>=5.12.0",
+    
+    # Type checking
+    "mypy>=1.5.0",
+    "types-PyYAML",
+    "types-requests",
+    
+    # Testing
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.11.0",
+    
+    # Documentation
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=1.3.0",
+    
+    # Development utilities
+    "pre-commit>=3.0.0",
+    "tox>=4.0.0",
+]
+
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0", 
+    "pytest-cov>=4.0.0",
+]
+
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "myst-parser>=2.0.0",
+]
+```
+
+### Build Configuration
+Configure build tools properly:
+
+✅ Good:
+```toml
+[tool.black]
+line-length = 100
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+"tests/**/*" = ["B018"]   # Allow "useless" expressions in tests
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\bProtocol\):",
+    "@(abc\.)?abstractmethod",
+]
+```
+
+### Distribution Configuration
+Prepare for distribution:
+
+✅ Good:
+```toml
+[project]
+# ... other configuration ...
+
+# Ensure proper metadata for PyPI
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10", 
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["tests", "tests.*"]
+```
+
+### Installation Verification
+Provide installation verification:
+
+✅ Good:
+```python
+# src/marketpipe/cli.py
+@app.command()
+def version():
+    """Show MarketPipe version information."""
+    import sys
+    from . import __version__
+    
+    typer.echo(f"MarketPipe {__version__}")
+    typer.echo(f"Python {sys.version}")
+    typer.echo(f"Platform: {sys.platform}")
+
+@app.command()
+def check():
+    """Verify MarketPipe installation and dependencies."""
+    import importlib
+    import sys
+    
+    required_modules = [
+        "pandas", "duckdb", "pyarrow", "httpx", 
+        "typer", "yaml", "prometheus_client"
+    ]
+    
+    typer.echo("🔍 Checking MarketPipe installation...")
+    
+    missing = []
+    for module in required_modules:
+        try:
+            importlib.import_module(module)
+            typer.echo(f"✅ {module}")
+        except ImportError:
+            typer.echo(f"❌ {module}")
+            missing.append(module)
+    
+    if missing:
+        typer.echo(f"\n❌ Missing dependencies: {', '.join(missing)}")
+        typer.echo("Try: pip install marketpipe")
+        raise typer.Exit(1)
+    else:
+        typer.echo("\n✅ All dependencies available")
+        typer.echo("MarketPipe is ready to use!")
+```
+
+## Exceptions
+- Development builds may include additional test dependencies
+- Local installations may use different versioning schemes
+- CI/CD environments may require specific build configurations

@@ -1,0 +1,60 @@
+# Pre-commit hooks for MarketPipe DDD validation
+repos:
+  - repo: local
+    hooks:
+      - id: validate-ddd-rules
+        name: Validate DDD Rules
+        entry: python scripts/ddd-validation/validate_ddd_rules.py
+        language: system
+        files: ^src/marketpipe/.*\.py$
+        stages: [commit]
+        
+      - id: check-ubiquitous-language
+        name: Check Ubiquitous Language
+        entry: scripts/ddd-validation/check_ubiquitous_language.sh
+        language: system
+        files: ^src/marketpipe/.*\.py$
+        stages: [commit]
+        
+      - id: sync-domain-models
+        name: Sync Domain Models
+        entry: python scripts/ddd-validation/sync_domain_models.py --check-only
+        language: system
+        files: ^src/marketpipe/domain/.*\.py$
+        stages: [commit]
+        
+      - id: validate-bounded-contexts
+        name: Validate Bounded Context Isolation
+        entry: scripts/ddd-validation/check_context_isolation.sh
+        language: system
+        files: ^src/marketpipe/.*\.py$
+        stages: [commit]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+        
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+        files: ^src/marketpipe/.*\.py$
+        
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.270
+    hooks:
+      - id: ruff
+        files: ^src/marketpipe/.*\.py$
+        args: [--fix, --exit-non-zero-on-fix]
+        
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.3.0
+    hooks:
+      - id: mypy
+        files: ^src/marketpipe/.*\.py$
+        additional_dependencies: [types-PyYAML, types-requests]

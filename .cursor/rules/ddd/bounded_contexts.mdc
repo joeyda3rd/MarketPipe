@@ -1,0 +1,508 @@
+---
+description: Bounded context boundaries and integration patterns for MarketPipe DDD architecture
+globs:
+  - 'src/marketpipe/**/*.py'
+alwaysApply: true
+priority: high
+---
+
+# Bounded Contexts
+
+## Objective
+Define clear boundaries between different business domains and ensure proper integration patterns.
+
+## Context
+- MarketPipe operates across multiple business domains
+- Each bounded context has its own domain model and ubiquitous language
+- Contexts must integrate without creating tight coupling
+- Clear ownership and responsibility boundaries
+
+## Rules
+
+### Context Boundary Enforcement
+Enforce strict boundaries between bounded contexts:
+
+✅ Good:
+```python
+# Each context has its own domain model
+# src/marketpipe/ingestion/domain/
+class IngestionJob(Entity):
+    """Ingestion context's view of a processing job"""
+
+# src/marketpipe/storage/domain/
+class StoragePartition(Entity):
+    """Storage context's view of data organization"""
+
+# src/marketpipe/validation/domain/
+class ValidationRule(Entity):
+    """Validation context's view of quality rules"""
+
+# Contexts communicate via well-defined interfaces
+from abc import ABC, abstractmethod
+
+class IMarketDataProvider(ABC):
+    """Interface for accessing market data (Integration context)"""
+    
+    @abstractmethod
+    async def get_bars(self, symbol: Symbol, time_range: TimeRange) -> List[RawMarketData]:
+        pass
+
+class IDataStorage(ABC):
+    """Interface for data persistence (Storage context)"""
+    
+    @abstractmethod
+    async def store_bars(self, bars: List[OHLCVBar], partition: DataPartition) -> None:
+        pass
+```
+
+❌ Avoid cross-context dependencies:
+```python
+# DON'T import domain models across contexts
+from marketpipe.storage.domain.storage_partition import StoragePartition
+from marketpipe.ingestion.domain.ingestion_job import IngestionJob
+
+class ValidationService:
+    def validate(self, job: IngestionJob, partition: StoragePartition):  # Tight coupling
+        pass
+```
+
+### Data Ingestion Context
+**Responsibility**: Orchestrate collection of market data from external sources
+
+```python
+# src/marketpipe/ingestion/domain/
+from dataclasses import dataclass
+from enum import Enum
+from typing import List, Optional
+from datetime import date
+
+class JobStatus(Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+@dataclass(frozen=True)
+class IngestionJobId:
+    symbol: Symbol
+    trading_date: date
+    
+    def __str__(self) -> str:
+        return f"{self.symbol}_{self.trading_date.isoformat()}"
+
+class IngestionJob(Entity):
+    """Represents a unit of work for ingesting symbol data for a specific date."""
+    
+    def __init__(
+        self,
+        job_id: IngestionJobId,
+        symbols: List[Symbol],
+        trading_date: date,
+        time_ranges: List[TimeRange]
+    ):
+        super().__init__(EntityId.generate())
+        self._job_id = job_id
+        self._symbols = symbols
+        self._trading_date = trading_date
+        self._time_ranges = time_ranges
+        self._status = JobStatus.PENDING
+        self._started_at: Optional[datetime] = None
+        self._completed_at: Optional[datetime] = None
+        self._error_message: Optional[str] = None
+    
+    def start(self) -> None:
+        """Mark job as started."""
+        if self._status != JobStatus.PENDING:
+            raise ValueError(f"Cannot start job in status {self._status}")
+        self._status = JobStatus.IN_PROGRESS
+        self._started_at = datetime.now(timezone.utc)
+    
+    def complete(self) -> None:
+        """Mark job as completed successfully."""
+        if self._status != JobStatus.IN_PROGRESS:
+            raise ValueError(f"Cannot complete job in status {self._status}")
+        self._status = JobStatus.COMPLETED
+        self._completed_at = datetime.now(timezone.utc)
+    
+    def fail(self, error_message: str) -> None:
+        """Mark job as failed with error message."""
+        if self._status not in (JobStatus.PENDING, JobStatus.IN_PROGRESS):
+            raise ValueError(f"Cannot fail job in status {self._status}")
+        self._status = JobStatus.FAILED
+        self._error_message = error_message
+        self._completed_at = datetime.now(timezone.utc)
+
+# Application Service for coordinating ingestion
+class IngestionCoordinatorService:
+    """Coordinates ingestion jobs across multiple symbols and dates."""
+    
+    def __init__(
+        self,
+        market_data_provider: IMarketDataProvider,
+        data_storage: IDataStorage,
+        data_validator: IDataValidator,
+        job_repository: IIngestionJobRepository
+    ):
+        self._market_data_provider = market_data_provider
+        self._data_storage = data_storage
+        self._data_validator = data_validator
+        self._job_repository = job_repository
+    
+    async def execute_ingestion(
+        self,
+        symbols: List[Symbol],
+        trading_dates: List[date]
+    ) -> IngestionResult:
+        """Execute ingestion for multiple symbols and dates."""
+        jobs = []
+        for symbol in symbols:
+            for trading_date in trading_dates:
+                job_id = IngestionJobId(symbol, trading_date)
+                job = IngestionJob(job_id, [symbol], trading_date, [self._get_trading_hours(trading_date)])
+                jobs.append(job)
+        
+        results = []
+        for job in jobs:
+            result = await self._execute_single_job(job)
+            results.append(result)
+        
+        return IngestionResult(jobs=jobs, results=results)
+```
+
+### Market Data Integration Context
+**Responsibility**: Abstract integration with external market data providers
+
+```python
+# src/marketpipe/integration/domain/
+class MarketDataProvider(Entity):
+    """Represents an external source of market data."""
+    
+    def __init__(
+        self,
+        provider_id: str,
+        name: str,
+        supported_feeds: List[DataFeed],
+        rate_limits: Dict[DataFeed, RateLimit]
+    ):
+        super().__init__(EntityId.generate())
+        self._provider_id = provider_id
+        self._name = name
+        self._supported_feeds = supported_feeds
+        self._rate_limits = rate_limits
+    
+    def supports_feed(self, feed: DataFeed) -> bool:
+        """Check if provider supports specific data feed."""
+        return feed in self._supported_feeds
+    
+    def get_rate_limit(self, feed: DataFeed) -> RateLimit:
+        """Get rate limit for specific feed."""
+        return self._rate_limits.get(feed, RateLimit.unlimited())
+
+@dataclass(frozen=True)
+class RawMarketData:
+    """Unprocessed market data from external provider."""
+    provider_id: str
+    feed: DataFeed
+    symbol: str
+    timestamp: str  # Provider-specific format
+    data: Dict[str, Any]  # Provider-specific structure
+
+class MarketDataIntegrationService:
+    """Service for retrieving and normalizing market data."""
+    
+    def __init__(
+        self,
+        providers: Dict[str, IMarketDataProviderClient],
+        data_normalizer: IDataNormalizer
+    ):
+        self._providers = providers
+        self._data_normalizer = data_normalizer
+    
+    async def fetch_market_data(
+        self,
+        provider_id: str,
+        symbol: Symbol,
+        time_range: TimeRange,
+        feed: DataFeed
+    ) -> List[OHLCVBar]:
+        """Fetch and normalize market data from provider."""
+        provider = self._providers.get(provider_id)
+        if not provider:
+            raise ValueError(f"Unknown provider: {provider_id}")
+        
+        raw_data = await provider.get_bars(symbol.value, time_range, feed)
+        normalized_bars = []
+        
+        for raw_bar in raw_data:
+            bar = self._data_normalizer.normalize_bar(raw_bar)
+            normalized_bars.append(bar)
+        
+        return normalized_bars
+```
+
+### Data Validation Context
+**Responsibility**: Ensure data quality and business rule compliance
+
+```python
+# src/marketpipe/validation/domain/
+class ValidationRule(Entity):
+    """Represents a business rule for data validation."""
+    
+    def __init__(
+        self,
+        rule_id: str,
+        name: str,
+        description: str,
+        severity: ValidationSeverity
+    ):
+        super().__init__(EntityId.generate())
+        self._rule_id = rule_id
+        self._name = name
+        self._description = description
+        self._severity = severity
+    
+    @abstractmethod
+    def validate(self, bar: OHLCVBar) -> ValidationResult:
+        """Apply validation rule to OHLCV bar."""
+        pass
+
+class OHLCConsistencyRule(ValidationRule):
+    """Validates OHLC price relationships."""
+    
+    def __init__(self):
+        super().__init__(
+            rule_id="ohlc_consistency",
+            name="OHLC Price Consistency",
+            description="High >= Open, Close, Low and Low <= Open, Close",
+            severity=ValidationSeverity.ERROR
+        )
+    
+    def validate(self, bar: OHLCVBar) -> ValidationResult:
+        """Validate OHLC price consistency."""
+        errors = []
+        
+        if not (bar.high_price >= bar.open_price and 
+                bar.high_price >= bar.close_price and
+                bar.high_price >= bar.low_price):
+            errors.append("High price must be >= open, close, and low prices")
+        
+        if not (bar.low_price <= bar.open_price and 
+                bar.low_price <= bar.close_price):
+            errors.append("Low price must be <= open and close prices")
+        
+        return ValidationResult(
+            rule_id=self._rule_id,
+            passed=len(errors) == 0,
+            errors=errors
+        )
+
+class DataValidationService:
+    """Coordinates validation of market data."""
+    
+    def __init__(self, validation_rules: List[ValidationRule]):
+        self._validation_rules = validation_rules
+    
+    async def validate_bars(self, bars: List[OHLCVBar]) -> ValidationSummary:
+        """Validate collection of OHLCV bars."""
+        all_results = []
+        
+        for bar in bars:
+            bar_results = []
+            for rule in self._validation_rules:
+                result = rule.validate(bar)
+                bar_results.append(result)
+            all_results.append(bar_results)
+        
+        return ValidationSummary(
+            total_bars=len(bars),
+            validation_results=all_results
+        )
+```
+
+### Data Storage Context
+**Responsibility**: Manage persistent storage of time-series data
+
+```python
+# src/marketpipe/storage/domain/
+class DataPartition(Entity):
+    """Represents a logical partition of market data."""
+    
+    def __init__(
+        self,
+        partition_key: PartitionKey,
+        storage_format: StorageFormat,
+        compression: CompressionType
+    ):
+        super().__init__(EntityId.generate())
+        self._partition_key = partition_key
+        self._storage_format = storage_format
+        self._compression = compression
+        self._created_at = datetime.now(timezone.utc)
+        self._size_bytes: Optional[int] = None
+        self._record_count: Optional[int] = None
+    
+    def update_statistics(self, size_bytes: int, record_count: int) -> None:
+        """Update partition statistics after write."""
+        self._size_bytes = size_bytes
+        self._record_count = record_count
+
+@dataclass(frozen=True)
+class PartitionKey:
+    """Key for identifying data partitions."""
+    symbol: Symbol
+    year: int
+    month: int
+    day: int
+    
+    def to_path(self) -> str:
+        """Convert to file system path."""
+        return f"symbol={self.symbol}/year={self.year}/month={self.month:02d}/day={self.day:02d}"
+
+class StorageService:
+    """Manages storage operations for market data."""
+    
+    def __init__(
+        self,
+        storage_engine: IStorageEngine,
+        partition_strategy: IPartitionStrategy
+    ):
+        self._storage_engine = storage_engine
+        self._partition_strategy = partition_strategy
+    
+    async def store_bars(
+        self,
+        bars: List[OHLCVBar],
+        storage_config: StorageConfiguration
+    ) -> List[DataPartition]:
+        """Store OHLCV bars using partitioning strategy."""
+        partitioned_bars = self._partition_strategy.partition_bars(bars)
+        created_partitions = []
+        
+        for partition_key, partition_bars in partitioned_bars.items():
+            partition = DataPartition(
+                partition_key=partition_key,
+                storage_format=storage_config.format,
+                compression=storage_config.compression
+            )
+            
+            await self._storage_engine.write_partition(partition, partition_bars)
+            
+            # Update statistics
+            size_bytes = await self._storage_engine.get_partition_size(partition)
+            partition.update_statistics(size_bytes, len(partition_bars))
+            
+            created_partitions.append(partition)
+        
+        return created_partitions
+```
+
+### Context Integration Patterns
+Use anti-corruption layers and published interfaces:
+
+✅ Good:
+```python
+# Integration through well-defined interfaces
+class IngestionOrchestrator:
+    """Orchestrates across multiple bounded contexts."""
+    
+    def __init__(
+        self,
+        market_data_integration: IMarketDataIntegration,
+        data_validation: IDataValidation,
+        data_storage: IDataStorage,
+        ingestion_jobs: IIngestionJobRepository
+    ):
+        self._market_data = market_data_integration
+        self._validation = data_validation
+        self._storage = data_storage
+        self._jobs = ingestion_jobs
+    
+    async def execute_ingestion_workflow(
+        self,
+        job: IngestionJob
+    ) -> IngestionResult:
+        """Execute complete ingestion workflow across contexts."""
+        try:
+            job.start()
+            await self._jobs.save(job)
+            
+            # Fetch data (Integration context)
+            raw_bars = await self._market_data.fetch_market_data(
+                provider_id="alpaca",
+                symbol=job.symbol,
+                time_range=job.time_range,
+                feed=DataFeed.IEX
+            )
+            
+            # Validate data (Validation context)
+            validation_result = await self._validation.validate_bars(raw_bars)
+            if not validation_result.all_passed():
+                raise ValidationError(f"Validation failed: {validation_result.errors}")
+            
+            # Store data (Storage context)
+            partitions = await self._storage.store_bars(
+                bars=raw_bars,
+                storage_config=StorageConfiguration.default()
+            )
+            
+            job.complete()
+            await self._jobs.save(job)
+            
+            return IngestionResult(success=True, partitions_created=len(partitions))
+            
+        except Exception as e:
+            job.fail(str(e))
+            await self._jobs.save(job)
+            raise
+```
+
+### Anti-Corruption Layer Pattern
+Protect domain models from external systems:
+
+✅ Good:
+```python
+class AlpacaMarketDataAdapter:
+    """Anti-corruption layer for Alpaca API integration."""
+    
+    def __init__(self, alpaca_client: AlpacaApiClient):
+        self._alpaca_client = alpaca_client
+    
+    async def fetch_bars(
+        self,
+        symbol: Symbol,
+        time_range: TimeRange
+    ) -> List[OHLCVBar]:
+        """Fetch bars and translate to domain model."""
+        # Get raw Alpaca data
+        alpaca_response = await self._alpaca_client.get_bars(
+            symbol=symbol.value,
+            start=time_range.start.isoformat(),
+            end=time_range.end.isoformat()
+        )
+        
+        # Translate to domain model
+        domain_bars = []
+        for alpaca_bar in alpaca_response["bars"]:
+            domain_bar = self._translate_alpaca_bar_to_domain(alpaca_bar)
+            domain_bars.append(domain_bar)
+        
+        return domain_bars
+    
+    def _translate_alpaca_bar_to_domain(self, alpaca_bar: Dict[str, Any]) -> OHLCVBar:
+        """Translate Alpaca bar format to domain model."""
+        return OHLCVBar(
+            id=EntityId.generate(),
+            symbol=Symbol(alpaca_bar["S"]),
+            timestamp=Timestamp.from_iso(alpaca_bar["t"]),
+            open_price=Price.from_float(alpaca_bar["o"]),
+            high_price=Price.from_float(alpaca_bar["h"]),
+            low_price=Price.from_float(alpaca_bar["l"]),
+            close_price=Price.from_float(alpaca_bar["c"]),
+            volume=Volume(alpaca_bar["v"])
+        )
+```
+
+## Exceptions
+- Infrastructure concerns may cross context boundaries for technical reasons
+- Shared kernel patterns may be used for common value objects like Symbol, Timestamp
+- Legacy code may violate boundaries until refactored to DDD patterns

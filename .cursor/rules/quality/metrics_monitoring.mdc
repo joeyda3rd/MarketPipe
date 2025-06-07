@@ -1,0 +1,369 @@
+---
+description: Metrics collection and monitoring patterns for MarketPipe
+globs:
+  - 'src/marketpipe/metrics.py'
+  - 'src/marketpipe/metrics_server.py'
+  - 'src/marketpipe/ingestion/**/*.py'
+alwaysApply: true
+priority: medium
+---
+
+# Metrics and Monitoring
+
+## Objective
+Maintain consistent metrics collection and monitoring patterns for MarketPipe's ETL operations.
+
+## Context
+- Prometheus metrics with multiprocess support
+- HTTP metrics server for scraping
+- Performance monitoring for API clients
+- Error tracking and alerting capabilities
+- Grafana dashboard integration
+
+## Rules
+
+### Metrics Definition Patterns
+Define metrics with clear labels and appropriate types:
+
+✅ Good:
+```python
+from prometheus_client import Counter, Histogram, Gauge
+from prometheus_client.multiprocess import MultiProcessCollector
+
+# Request metrics with vendor labels
+REQUESTS = Counter(
+    'marketpipe_requests_total',
+    'Total number of API requests made',
+    ['vendor']  # Label by data vendor (alpaca, polygon, etc.)
+)
+
+# Error metrics with vendor and status code
+ERRORS = Counter(
+    'marketpipe_errors_total',
+    'Total number of API errors encountered',
+    ['vendor', 'status_code']
+)
+
+# Latency histogram with vendor labels
+LATENCY = Histogram(
+    'marketpipe_request_duration_seconds',
+    'Time spent on API requests',
+    ['vendor'],
+    buckets=[0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]  # Appropriate buckets for API calls
+)
+
+# Backlog gauge for monitoring queue depth
+BACKLOG = Gauge(
+    'marketpipe_ingestion_backlog',
+    'Number of pending ingestion tasks',
+    ['symbol']
+)
+
+# Data quality metrics
+DATA_QUALITY = Counter(
+    'marketpipe_data_quality_total',
+    'Data quality issues encountered',
+    ['symbol', 'issue_type']  # validation_error, missing_data, etc.
+)
+```
+
+❌ Avoid:
+```python
+# Generic metrics without context
+requests_counter = Counter('requests', 'Requests')
+error_counter = Counter('errors', 'Errors')
+
+# Metrics without useful labels
+LATENCY = Histogram('latency', 'Latency')  # No vendor context
+```
+
+### Metrics Collection in Clients
+Integrate metrics collection into API client operations:
+
+✅ Good:
+```python
+import time
+from marketpipe.metrics import REQUESTS, ERRORS, LATENCY
+
+class AlpacaClient(BaseApiClient):
+    def _request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+        """HTTP request with metrics collection."""
+        vendor_label = "alpaca"
+        
+        # Record request start time
+        start_time = time.perf_counter()
+        
+        try:
+            response = httpx.get(url, params=params, headers=headers, timeout=self.config.timeout)
+            
+            # Record request completion
+            duration = time.perf_counter() - start_time
+            LATENCY.labels(vendor=vendor_label).observe(duration)
+            REQUESTS.labels(vendor=vendor_label).inc()
+            
+            # Record errors if any
+            if response.status_code >= 400:
+                ERRORS.labels(vendor=vendor_label, status_code=str(response.status_code)).inc()
+                self.log.warning(f"API error {response.status_code}: {response.text[:200]}")
+            
+            # Handle response...
+            return response.json()
+            
+        except Exception as e:
+            # Record duration even for exceptions
+            duration = time.perf_counter() - start_time
+            LATENCY.labels(vendor=vendor_label).observe(duration)
+            ERRORS.labels(vendor=vendor_label, status_code="timeout").inc()
+            
+            self.log.error(f"Request failed after {duration:.2f}s: {e}")
+            raise
+```
+
+### Coordinator Metrics
+Track pipeline coordination and throughput:
+
+✅ Good:
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from marketpipe.metrics import BACKLOG, DATA_QUALITY
+
+class IngestionCoordinator:
+    def ingest_batch(self, symbols: List[str], date_ranges: List[Tuple[int, int]]) -> Dict[str, Any]:
+        """Coordinate ingestion with metrics tracking."""
+        tasks = [(symbol, start_ts, end_ts) for symbol in symbols for start_ts, end_ts in date_ranges]
+        
+        # Update backlog metrics
+        for symbol in symbols:
+            symbol_tasks = len([t for t in tasks if t[0] == symbol])
+            BACKLOG.labels(symbol=symbol).set(symbol_tasks)
+        
+        results = {"success": 0, "failed": 0, "errors": [], "rows_written": 0}
+        
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            future_to_task = {
+                executor.submit(self._process_symbol_date, symbol, start_ts, end_ts): (symbol, start_ts, end_ts)
+                for symbol, start_ts, end_ts in tasks
+            }
+            
+            for future in as_completed(future_to_task):
+                symbol, start_ts, end_ts = future_to_task[future]
+                try:
+                    rows_written = future.result()
+                    results["success"] += 1
+                    results["rows_written"] += rows_written
+                    self.log.info(f"Processed {symbol} {start_ts}-{end_ts}: {rows_written} rows")
+                    
+                except Exception as e:
+                    results["failed"] += 1
+                    error_msg = f"Failed {symbol} {start_ts}-{end_ts}: {e}"
+                    results["errors"].append(error_msg)
+                    self.log.error(error_msg)
+                
+                finally:
+                    # Decrement backlog
+                    current_backlog = BACKLOG.labels(symbol=symbol)._value.get()
+                    BACKLOG.labels(symbol=symbol).set(max(0, current_backlog - 1))
+        
+        return results
+```
+
+### Data Quality Metrics
+Track validation errors and data quality issues:
+
+✅ Good:
+```python
+from marketpipe.metrics import DATA_QUALITY
+
+class SchemaValidator:
+    def validate_batch(self, rows: List[Dict[str, Any]], symbol: str) -> Tuple[List[Dict[str, Any]], List[str]]:
+        """Validate batch with quality metrics."""
+        valid_rows = []
+        errors = []
+        
+        for i, row in enumerate(rows):
+            validation_errors = list(self.validator.iter_errors(row))
+            
+            if validation_errors:
+                # Record specific validation issues
+                for error in validation_errors:
+                    issue_type = self._categorize_validation_error(error)
+                    DATA_QUALITY.labels(symbol=symbol, issue_type=issue_type).inc()
+                
+                error_details = [f"Row {i}: {error.message}" for error in validation_errors]
+                errors.extend(error_details)
+                self.log.warning(f"Invalid row {i} for {symbol}: {error_details}")
+            else:
+                valid_rows.append(row)
+        
+        # Record overall validation results
+        if errors:
+            DATA_QUALITY.labels(symbol=symbol, issue_type="batch_validation_failed").inc()
+        else:
+            DATA_QUALITY.labels(symbol=symbol, issue_type="batch_validation_passed").inc()
+        
+        return valid_rows, errors
+    
+    def _categorize_validation_error(self, error) -> str:
+        """Categorize validation errors for metrics."""
+        if "required" in error.message.lower():
+            return "missing_required_field"
+        elif "type" in error.message.lower():
+            return "type_mismatch"
+        elif "minimum" in error.message.lower() or "maximum" in error.message.lower():
+            return "value_out_of_range"
+        else:
+            return "other_validation_error"
+```
+
+### Metrics Server Setup
+Provide HTTP endpoint for Prometheus scraping:
+
+✅ Good:
+```python
+import os
+import tempfile
+from prometheus_client import start_http_server, multiprocess, CollectorRegistry
+from prometheus_client.multiprocess import MultiProcessCollector
+
+def setup_multiprocess_metrics():
+    """Setup multiprocess metrics collection."""
+    if 'PROMETHEUS_MULTIPROC_DIR' not in os.environ:
+        multiproc_dir = os.path.join(tempfile.gettempdir(), 'prometheus_multiproc')
+        os.makedirs(multiproc_dir, exist_ok=True)
+        os.environ['PROMETHEUS_MULTIPROC_DIR'] = multiproc_dir
+        print(f"📊 Multiprocess metrics enabled: {multiproc_dir}")
+
+def run_metrics_server(port: int = 8000):
+    """Start Prometheus metrics HTTP server."""
+    setup_multiprocess_metrics()
+    
+    # Create registry with multiprocess collector
+    registry = CollectorRegistry()
+    MultiProcessCollector(registry)
+    
+    # Start HTTP server
+    start_http_server(port, registry=registry)
+    print(f"Metrics server running on http://localhost:{port}/metrics")
+
+class MetricsMiddleware:
+    """Middleware for automatic metrics collection."""
+    
+    def __init__(self, app_name: str):
+        self.app_name = app_name
+    
+    def __enter__(self):
+        """Setup metrics collection context."""
+        self.start_time = time.perf_counter()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Record metrics on context exit."""
+        duration = time.perf_counter() - self.start_time
+        
+        if exc_type is None:
+            # Success
+            REQUESTS.labels(vendor=self.app_name).inc()
+            LATENCY.labels(vendor=self.app_name).observe(duration)
+        else:
+            # Error
+            ERRORS.labels(vendor=self.app_name, status_code="exception").inc()
+            LATENCY.labels(vendor=self.app_name).observe(duration)
+```
+
+### CLI Integration
+Add metrics commands to CLI:
+
+✅ Good:
+```python
+import typer
+from .metrics_server import run_metrics_server, setup_multiprocess_metrics
+
+@app.command()
+def metrics(port: int = typer.Option(8000, "--port", "-p", help="Port to run metrics server on")):
+    """Start the Prometheus metrics server."""
+    try:
+        setup_multiprocess_metrics()
+        print(f"Starting metrics server on http://localhost:{port}/metrics")
+        print("Press Ctrl+C to stop the server")
+        
+        run_metrics_server(port=port)
+        
+        # Keep server running
+        while True:
+            time.sleep(1)
+            
+    except OSError as e:
+        if e.errno == 98:  # Address already in use
+            print(f"\n❌ Error: Port {port} is already in use!")
+            print(f"To find what's using the port: lsof -i :{port}")
+            print(f"To kill the process: kill <PID>")
+            print(f"Or try a different port: marketpipe metrics --port <other_port>")
+            raise typer.Exit(1)
+        else:
+            raise
+    except KeyboardInterrupt:
+        print("\nMetrics server stopped")
+```
+
+### Grafana Dashboard Configuration
+Provide dashboard configuration for visualization:
+
+✅ Good:
+```json
+{
+  "dashboard": {
+    "title": "MarketPipe ETL Metrics",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(marketpipe_requests_total[5m])",
+            "legendFormat": "{{vendor}} requests/sec"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(marketpipe_errors_total[5m])",
+            "legendFormat": "{{vendor}} {{status_code}} errors/sec"
+          }
+        ]
+      },
+      {
+        "title": "Request Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(marketpipe_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{vendor}} 95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(marketpipe_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{vendor}} median"
+          }
+        ]
+      },
+      {
+        "title": "Ingestion Backlog",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "marketpipe_ingestion_backlog",
+            "legendFormat": "{{symbol}} pending tasks"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## Exceptions
+- Development environments may disable metrics collection for simplicity
+- Test environments may use different metrics backends or mock collectors
+- CLI tools may have simplified metrics for user-facing operations
