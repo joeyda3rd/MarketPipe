@@ -30,11 +30,12 @@ class TestCliHelpDisplay:
             # Skip test if new CLI not yet available
             assert True
     
-    def test_legacy_ingestion_module_help_still_works(self):
-        """Test that legacy ingestion module help still works for backward compatibility."""
+    def test_legacy_ingestion_module_removed(self):
+        """Test that legacy ingestion module entry point has been removed."""
         result = subprocess.run([
             'python', '-m', 'marketpipe.ingestion', '--help'
         ], capture_output=True, text=True)
         
-        # Should work even if it shows legacy interface
-        assert result.returncode == 0
+        # Should fail since we removed the legacy __main__.py
+        assert result.returncode != 0
+        assert "cannot be directly executed" in result.stderr
