@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import pytest
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pyarrow.parquet as pq
+from datetime import timedelta
 from marketpipe.domain.entities import EntityId
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.domain.entities import IngestionJobId, ProcessingState
@@ -20,6 +23,8 @@ from tests.fakes.repositories import (
 )
 from tests.fakes.adapters import FakeMarketDataAdapter, create_test_ohlcv_bars
 from tests.fakes.events import FakeEventPublisher
+from tests.fakes.validators import FakeDataValidator
+from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
 
 
 def create_test_configuration(output_path: Path) -> IngestionConfiguration:
@@ -71,7 +76,10 @@ def ingestion_services(tmp_path):
         progress_tracker=progress_tracker,
         event_publisher=event_publisher
     )
-    
+
+    data_validator = FakeDataValidator()
+    data_storage = ParquetDataStorage()
+
     # Create coordinator service (with simplified dependencies for testing)
     coordinator_service = IngestionCoordinatorService(
         job_service=job_service,
@@ -79,8 +87,8 @@ def ingestion_services(tmp_path):
         checkpoint_repository=checkpoint_repository,
         metrics_repository=metrics_repository,
         market_data_provider=market_data_adapter,
-        data_validator=None,  # Simplified for testing
-        data_storage=None,    # Simplified for testing
+        data_validator=data_validator,
+        data_storage=data_storage,
         event_publisher=event_publisher
     )
     
@@ -92,6 +100,7 @@ def ingestion_services(tmp_path):
         "metrics_repository": metrics_repository,
         "market_data_adapter": market_data_adapter,
         "event_publisher": event_publisher,
+        "data_storage": data_storage,
     }
 
 
@@ -432,3 +441,38 @@ class TestIngestionCoordinatorEndToEndFlow:
         assert len(completed_events) == 1
         assert completed_events[0].symbols_processed == 1
         assert completed_events[0].total_bars_processed == len(test_bars)
+
+    def test_process_symbol_writes_parquet_partition(self, ingestion_services, tmp_path):
+        """Coordinator should write Parquet partition via storage service."""
+        services = ingestion_services
+        job_service = services["job_service"]
+        coordinator = services["coordinator_service"]
+        job_repo = services["job_repository"]
+        market_data_adapter = services["market_data_adapter"]
+
+        symbol = Symbol("AAPL")
+        bars = create_test_ohlcv_bars(symbol, count=4)
+        market_data_adapter.set_bars_data(symbol, bars)
+
+        now = datetime.now(timezone.utc)
+        start_time = now.replace(hour=13, minute=30, second=0, microsecond=0) - timedelta(days=1)
+        end_time = start_time + timedelta(hours=1)
+        time_range = TimeRange(start=Timestamp(start_time), end=Timestamp(end_time))
+
+        command = CreateIngestionJobCommand(
+            symbols=[symbol],
+            time_range=time_range,
+            configuration=create_test_configuration(tmp_path / "data"),
+            batch_config=create_test_batch_configuration(),
+        )
+
+        job_id = asyncio.run(job_service.create_job(command))
+        asyncio.run(job_service.start_job(StartJobCommand(job_id)))
+        job = asyncio.run(job_repo.get_by_id(job_id))
+
+        count, partition = asyncio.run(coordinator._process_symbol(job, symbol))
+
+        assert count == len(bars)
+        assert partition.file_path.exists()
+        table = pq.ParquetFile(partition.file_path).read()
+        assert table.num_rows == len(bars)

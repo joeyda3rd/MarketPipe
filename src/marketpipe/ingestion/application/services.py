@@ -18,6 +18,7 @@ from ..domain.repositories import (
 )
 from ..domain.services import IngestionDomainService, IngestionProgressTracker, JobCreationRequest
 from ..domain.value_objects import IngestionPartition, ProcessingMetrics, IngestionCheckpoint
+from ..domain.storage import IDataStorage
 from .commands import (
     CreateIngestionJobCommand, 
     StartJobCommand, 
@@ -216,7 +217,7 @@ class IngestionCoordinatorService:
         # These would be injected from other contexts
         market_data_provider,  # From integration context
         data_validator,        # From validation context
-        data_storage,         # From storage context
+        data_storage: IDataStorage,  # From storage context
         event_publisher: IEventPublisher
     ):
         self._job_service = job_service
