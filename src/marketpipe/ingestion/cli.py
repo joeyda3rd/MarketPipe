@@ -20,6 +20,7 @@ from .application.commands import CreateIngestionJobCommand, StartJobCommand
 from .application.queries import GetJobStatusQuery, GetActiveJobsQuery, GetJobHistoryQuery
 from .infrastructure.repositories import SqliteIngestionJobRepository, SqliteCheckpointRepository, SqliteMetricsRepository
 from .infrastructure.adapters import MarketDataProviderFactory
+from .infrastructure.parquet_storage import ParquetDataStorage
 
 
 app = typer.Typer(
@@ -72,8 +73,10 @@ def create_services() -> tuple[IngestionJobService, IngestionCoordinatorService]
         event_publisher=event_publisher
     )
     
+    # Create storage implementation
+    data_storage = ParquetDataStorage()
+
     # For the coordinator service, we'd inject actual implementations
-    # from other contexts. For now, we'll use None placeholders
     coordinator_service = IngestionCoordinatorService(
         job_service=job_service,
         job_repository=job_repository,
@@ -81,7 +84,7 @@ def create_services() -> tuple[IngestionJobService, IngestionCoordinatorService]
         metrics_repository=metrics_repository,
         market_data_provider=None,  # Would be injected from integration context
         data_validator=None,        # Would be injected from validation context
-        data_storage=None,          # Would be injected from storage context
+        data_storage=data_storage,
         event_publisher=event_publisher
     )
     

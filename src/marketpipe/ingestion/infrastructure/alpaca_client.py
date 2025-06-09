@@ -169,14 +169,18 @@ class AlpacaClient(BaseApiClient):
     # ---------- parsing ----------
     def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []
-        # v2 API returns bars as a dict with symbol as key
-        bars_dict = raw_json.get("bars", {})
-        for symbol, bars in bars_dict.items():
-            for bar in bars:
+
+        bars_obj = raw_json.get("bars", {})
+
+        if isinstance(bars_obj, list):
+            # Legacy format returned a list of bars with short field names
+            for bar in bars_obj:
+                symbol = bar.get("S") or bar.get("symbol", "")
                 rows.append(
                     {
                         "symbol": symbol,
-                        "timestamp": int(dt.datetime.fromisoformat(bar["t"].replace('Z', '+00:00')).timestamp() * 1_000_000_000),
+                        "t": bar["t"],
+                        "timestamp": int(dt.datetime.fromisoformat(bar["t"].replace("Z", "+00:00")).timestamp() * 1_000_000_000),
                         "date": dt.date.fromisoformat(bar["t"][:10]),
                         "open": bar["o"],
                         "high": bar["h"],
@@ -193,6 +197,33 @@ class AlpacaClient(BaseApiClient):
                         "schema_version": 1,
                     }
                 )
+        else:
+            # Current API returns a mapping of symbol -> list[bar]
+            bars_dict = bars_obj or {}
+            for symbol, bars in bars_dict.items():
+                for bar in bars:
+                    rows.append(
+                        {
+                            "symbol": symbol,
+                            "t": bar["t"],
+                            "timestamp": int(dt.datetime.fromisoformat(bar["t"].replace("Z", "+00:00")).timestamp() * 1_000_000_000),
+                            "date": dt.date.fromisoformat(bar["t"][:10]),
+                            "open": bar["o"],
+                            "high": bar["h"],
+                            "low": bar["l"],
+                            "close": bar["c"],
+                            "volume": bar["v"],
+                            "trade_count": bar.get("n"),
+                            "vwap": None,
+                            "session": "regular",
+                            "currency": "USD",
+                            "status": "ok",
+                            "source": "alpaca",
+                            "frame": "1m",
+                            "schema_version": 1,
+                        }
+                    )
+
         return rows
 
     # ---------- helpers ----------

@@ -9,6 +9,7 @@ from .repositories import (
 )
 from .adapters import FakeMarketDataAdapter
 from .events import FakeEventPublisher
+from .validators import FakeDataValidator
 
 __all__ = [
     "FakeIngestionJobRepository",
@@ -16,4 +17,5 @@ __all__ = [
     "FakeIngestionMetricsRepository",
     "FakeMarketDataAdapter",
     "FakeEventPublisher",
+    "FakeDataValidator",
 ]
