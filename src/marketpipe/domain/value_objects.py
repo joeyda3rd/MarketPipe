@@ -280,6 +280,30 @@ class Timestamp:
         rounded = self.value.replace(second=0, microsecond=0)
         return Timestamp(rounded)
     
+    def __lt__(self, other: Timestamp) -> bool:
+        """Compare if this timestamp is less than another."""
+        return self.value < other.value
+    
+    def __le__(self, other: Timestamp) -> bool:
+        """Compare if this timestamp is less than or equal to another."""
+        return self.value <= other.value
+    
+    def __gt__(self, other: Timestamp) -> bool:
+        """Compare if this timestamp is greater than another."""
+        return self.value > other.value
+    
+    def __ge__(self, other: Timestamp) -> bool:
+        """Compare if this timestamp is greater than or equal to another."""
+        return self.value >= other.value
+    
+    def __eq__(self, other: object) -> bool:
+        """Compare if this timestamp equals another."""
+        return isinstance(other, Timestamp) and self.value == other.value
+    
+    def __hash__(self) -> int:
+        """Hash based on timestamp value."""
+        return hash(self.value)
+
     def __str__(self) -> str:
         """ISO format string representation."""
         return self.value.isoformat()

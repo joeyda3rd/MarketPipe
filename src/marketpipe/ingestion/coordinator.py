@@ -12,10 +12,10 @@ from typing import Any, Dict, List
 
 import yaml
 
-from .connectors.alpaca_client import AlpacaClient
-from .connectors.models import ClientConfig
-from .connectors.auth import HeaderTokenAuth
-from .connectors.rate_limit import RateLimiter
+from .infrastructure.alpaca_client import AlpacaClient
+from .infrastructure.models import ClientConfig
+from .infrastructure.auth import HeaderTokenAuth
+from .infrastructure.rate_limit import RateLimiter
 from .state import SQLiteState
 from .validator import SchemaValidator
 from .writer import write_parquet

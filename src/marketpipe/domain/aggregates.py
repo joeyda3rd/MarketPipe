@@ -7,6 +7,7 @@ for operations that span multiple domain objects.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import List, Optional, Dict, Iterator
 from datetime import date
 from collections import defaultdict
