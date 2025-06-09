@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
 from marketpipe.domain.entities import OHLCVBar, EntityId
 from marketpipe.domain.value_objects import Symbol, Price, Timestamp, Volume, TimeRange
+from marketpipe.domain.market_data import (
+    IMarketDataProvider,
+    ProviderMetadata,
+    MarketDataUnavailableError,
+    InvalidSymbolError,
+)
 from ..domain.value_objects import IngestionConfiguration
 from .alpaca_client import AlpacaClient
 from .models import ClientConfig
@@ -16,48 +21,7 @@ from .auth import HeaderTokenAuth
 from .rate_limit import RateLimiter
 
 
-class MarketDataProviderAdapter(ABC):
-    """
-    Abstract adapter for market data providers.
-    
-    This adapter pattern protects the domain from external API formats
-    and provides a consistent interface for all market data sources.
-    """
-    
-    @abstractmethod
-    async def fetch_bars(
-        self,
-        symbol: Symbol,
-        start_timestamp: int,
-        end_timestamp: int,
-        batch_size: int = 1000
-    ) -> List[OHLCVBar]:
-        """
-        Fetch OHLCV bars for a symbol within a time range.
-        
-        Args:
-            symbol: The financial symbol to fetch
-            start_timestamp: Start time in nanoseconds since epoch
-            end_timestamp: End time in nanoseconds since epoch
-            batch_size: Maximum number of bars to fetch
-            
-        Returns:
-            List of domain OHLCV bar entities
-        """
-        pass
-    
-    @abstractmethod
-    async def test_connection(self) -> bool:
-        """Test if the connection to the provider is working."""
-        pass
-    
-    @abstractmethod
-    def get_provider_info(self) -> Dict[str, Any]:
-        """Get information about the provider (name, rate limits, etc.)."""
-        pass
-
-
-class AlpacaMarketDataAdapter(MarketDataProviderAdapter):
+class AlpacaMarketDataAdapter(IMarketDataProvider):
     """
     Anti-corruption layer for Alpaca Markets API integration.
     
@@ -95,12 +59,11 @@ class AlpacaMarketDataAdapter(MarketDataProviderAdapter):
             feed=feed_type
         )
     
-    async def fetch_bars(
+    async def fetch_bars_for_symbol(
         self,
         symbol: Symbol,
-        start_timestamp: int,
-        end_timestamp: int,
-        batch_size: int = 1000
+        time_range: TimeRange,
+        max_bars: int = 1000,
     ) -> List[OHLCVBar]:
         """
         Fetch bars from Alpaca and translate to domain models.
@@ -108,9 +71,9 @@ class AlpacaMarketDataAdapter(MarketDataProviderAdapter):
         This method handles the translation from Alpaca's format to our domain format,
         protecting the domain from external API changes.
         """
-        # Convert nanoseconds to milliseconds for Alpaca API
-        start_ms = start_timestamp // 1_000_000
-        end_ms = end_timestamp // 1_000_000
+        # Convert time range to milliseconds for Alpaca API
+        start_ms = time_range.start.to_nanoseconds() // 1_000_000
+        end_ms = time_range.end.to_nanoseconds() // 1_000_000
         
         # Fetch raw data from Alpaca
         try:
@@ -121,7 +84,11 @@ class AlpacaMarketDataAdapter(MarketDataProviderAdapter):
             )
         except Exception as e:
             # Translate infrastructure exceptions to domain exceptions
-            raise MarketDataProviderError(f"Failed to fetch data for {symbol}: {e}") from e
+            raise MarketDataUnavailableError(f"Failed to fetch data for {symbol}: {e}") from e
+        
+        # Limit results to max_bars
+        if len(raw_bars) > max_bars:
+            raw_bars = raw_bars[:max_bars]
         
         # Translate raw data to domain models
         domain_bars = []
@@ -136,7 +103,21 @@ class AlpacaMarketDataAdapter(MarketDataProviderAdapter):
         
         return domain_bars
     
-    async def test_connection(self) -> bool:
+    async def get_supported_symbols(self) -> List[Symbol]:
+        """
+        Get list of symbols supported by Alpaca.
+        
+        Note: Alpaca supports most US equities, but we'll return a basic list for now.
+        In a real implementation, this might query Alpaca's assets endpoint.
+        """
+        # This is a simplified implementation
+        # In reality, you'd query Alpaca's assets endpoint
+        common_symbols = [
+            "AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "META", "NVDA", "NFLX", "CRM", "ORCL"
+        ]
+        return [Symbol.from_string(s) for s in common_symbols]
+    
+    async def is_available(self) -> bool:
         """Test connection to Alpaca API."""
         try:
             # Try to fetch account info as a connection test
@@ -145,8 +126,19 @@ class AlpacaMarketDataAdapter(MarketDataProviderAdapter):
         except Exception:
             return False
     
+    def get_provider_metadata(self) -> ProviderMetadata:
+        """Get Alpaca provider metadata."""
+        return ProviderMetadata(
+            provider_name="alpaca",
+            supports_real_time=self._feed_type == "sip",
+            supports_historical=True,
+            rate_limit_per_minute=self._client_config.rate_limit_per_min,
+            minimum_time_resolution="1m",
+            maximum_history_days=5 * 365 if self._feed_type == "sip" else 365  # SIP has more history
+        )
+    
     def get_provider_info(self) -> Dict[str, Any]:
-        """Get Alpaca provider information."""
+        """Get Alpaca provider information (legacy method for compatibility)."""
         return {
             "provider": "alpaca",
             "feed_type": self._feed_type,
@@ -215,8 +207,22 @@ class AlpacaMarketDataAdapter(MarketDataProviderAdapter):
         except (ValueError, TypeError, InvalidOperation) as e:
             raise DataTranslationError(f"Invalid price value: {value}") from e
 
+    # Legacy method for backward compatibility
+    async def fetch_bars(
+        self,
+        symbol: Symbol,
+        start_timestamp: int,
+        end_timestamp: int,
+        batch_size: int = 1000
+    ) -> List[OHLCVBar]:
+        """Legacy method for backward compatibility."""
+        start_ts = Timestamp.from_nanoseconds(start_timestamp)
+        end_ts = Timestamp.from_nanoseconds(end_timestamp)
+        time_range = TimeRange(start_ts, end_ts)
+        return await self.fetch_bars_for_symbol(symbol, time_range, batch_size)
 
-class IEXMarketDataAdapter(MarketDataProviderAdapter):
+
+class IEXMarketDataAdapter(IMarketDataProvider):
     """
     Anti-corruption layer for IEX Cloud API integration.
     
@@ -229,25 +235,40 @@ class IEXMarketDataAdapter(MarketDataProviderAdapter):
         self._is_sandbox = is_sandbox
         self._base_url = "https://sandbox-cloud.iexapis.com" if is_sandbox else "https://cloud.iexapis.com"
     
-    async def fetch_bars(
+    async def fetch_bars_for_symbol(
         self,
         symbol: Symbol,
-        start_timestamp: int,
-        end_timestamp: int,
-        batch_size: int = 1000
+        time_range: TimeRange,
+        max_bars: int = 1000,
     ) -> List[OHLCVBar]:
         """Fetch bars from IEX and translate to domain models."""
         # This would implement IEX-specific fetching logic
         # and translate to the same domain models
         raise NotImplementedError("IEX adapter not yet implemented")
     
-    async def test_connection(self) -> bool:
+    async def get_supported_symbols(self) -> List[Symbol]:
+        """Get list of symbols supported by IEX."""
+        # This would query IEX's symbols endpoint
+        raise NotImplementedError("IEX adapter not yet implemented")
+    
+    async def is_available(self) -> bool:
         """Test connection to IEX API."""
         # Implementation would test IEX connection
         return False
     
+    def get_provider_metadata(self) -> ProviderMetadata:
+        """Get IEX provider metadata."""
+        return ProviderMetadata(
+            provider_name="iex",
+            supports_real_time=True,
+            supports_historical=True,
+            rate_limit_per_minute=100,  # IEX typical rate limit
+            minimum_time_resolution="1m",
+            maximum_history_days=365 * 5
+        )
+
     def get_provider_info(self) -> Dict[str, Any]:
-        """Get IEX provider information."""
+        """Get IEX provider information (legacy method for compatibility)."""
         return {
             "provider": "iex",
             "is_sandbox": self._is_sandbox,
@@ -255,6 +276,20 @@ class IEXMarketDataAdapter(MarketDataProviderAdapter):
             "supports_real_time": True,
             "supports_historical": True
         }
+
+    # Legacy method for backward compatibility
+    async def fetch_bars(
+        self,
+        symbol: Symbol,
+        start_timestamp: int,
+        end_timestamp: int,
+        batch_size: int = 1000
+    ) -> List[OHLCVBar]:
+        """Legacy method for backward compatibility."""
+        start_ts = Timestamp.from_nanoseconds(start_timestamp)
+        end_ts = Timestamp.from_nanoseconds(end_timestamp)
+        time_range = TimeRange(start_ts, end_ts)
+        return await self.fetch_bars_for_symbol(symbol, time_range, batch_size)
 
 
 class MarketDataProviderError(Exception):
@@ -293,7 +328,7 @@ class MarketDataProviderFactory:
         return IEXMarketDataAdapter(api_token=api_token, is_sandbox=is_sandbox)
     
     @staticmethod
-    def create_from_config(config: Dict[str, Any]) -> MarketDataProviderAdapter:
+    def create_from_config(config: Dict[str, Any]) -> IMarketDataProvider:
         """Create adapter from configuration dictionary."""
         provider_type = config.get("provider", "alpaca").lower()
         

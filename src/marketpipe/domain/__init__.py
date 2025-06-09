@@ -16,6 +16,12 @@ from .value_objects import Symbol, Price, Timestamp, Volume, TimeRange
 from .aggregates import SymbolBarsAggregate
 from .events import DomainEvent, BarCollectionCompleted, ValidationFailed, IngestionJobCompleted
 from .services import DomainService
+from .market_data import (
+    IMarketDataProvider, 
+    ProviderMetadata, 
+    MarketDataUnavailableError, 
+    InvalidSymbolError
+)
 
 __all__ = [
     # Base classes
@@ -41,4 +47,10 @@ __all__ = [
     "BarCollectionCompleted",
     "ValidationFailed",
     "IngestionJobCompleted",
+    
+    # Market Data Port
+    "IMarketDataProvider",
+    "ProviderMetadata",
+    "MarketDataUnavailableError",
+    "InvalidSymbolError",
 ]

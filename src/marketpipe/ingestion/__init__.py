@@ -19,7 +19,7 @@ from .application import (
     GetJobStatusQuery, GetJobHistoryQuery
 )
 from .infrastructure import (
-    AlpacaMarketDataAdapter, MarketDataProviderAdapter,
+    AlpacaMarketDataAdapter,
     SqliteIngestionJobRepository, SqliteCheckpointRepository
 )
 
@@ -71,7 +71,6 @@ __all__ = [
     
     # Infrastructure layer
     "AlpacaMarketDataAdapter",
-    "MarketDataProviderAdapter", 
     "SqliteIngestionJobRepository",
     "SqliteCheckpointRepository",
 ]

@@ -7,20 +7,25 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from marketpipe.domain.entities import OHLCVBar, EntityId
-from marketpipe.domain.value_objects import Symbol, Price, Timestamp, Volume
-from marketpipe.ingestion.infrastructure.adapters import MarketDataProviderAdapter
+from marketpipe.domain.value_objects import Symbol, Price, Timestamp, Volume, TimeRange
+from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
 
 
-class FakeMarketDataAdapter(MarketDataProviderAdapter):
+class FakeMarketDataAdapter(IMarketDataProvider):
     """Fake market data adapter for testing."""
     
     def __init__(self, provider_name: str = "fake"):
         self.provider_name = provider_name
         self._bars_data: Dict[Symbol, List[OHLCVBar]] = {}
-        self._fetch_calls: List[tuple[Symbol, int, int]] = []
+        self._fetch_calls: List[tuple[Symbol, TimeRange]] = []
         self._should_fail = False
         self._failure_message = "Simulated provider failure"
         self._connection_working = True
+        self._supported_symbols = [
+            Symbol.from_string("AAPL"),
+            Symbol.from_string("GOOGL"),
+            Symbol.from_string("MSFT")
+        ]
     
     def set_bars_data(self, symbol: Symbol, bars: List[OHLCVBar]) -> None:
         """Set the bars data that will be returned for a symbol."""
@@ -35,16 +40,19 @@ class FakeMarketDataAdapter(MarketDataProviderAdapter):
         """Configure the connection status for testing."""
         self._connection_working = is_working
     
-    async def fetch_bars(
+    def set_supported_symbols(self, symbols: List[Symbol]) -> None:
+        """Set the list of symbols supported by this provider."""
+        self._supported_symbols = symbols
+    
+    async def fetch_bars_for_symbol(
         self,
         symbol: Symbol,
-        start_timestamp: int,
-        end_timestamp: int,
-        batch_size: int = 1000
+        time_range: TimeRange,
+        max_bars: int = 1000,
     ) -> List[OHLCVBar]:
         """Fetch OHLCV bars for a symbol within a time range."""
         # Record the call for testing
-        self._fetch_calls.append((symbol, start_timestamp, end_timestamp))
+        self._fetch_calls.append((symbol, time_range))
         
         if self._should_fail:
             raise Exception(self._failure_message)
@@ -55,18 +63,32 @@ class FakeMarketDataAdapter(MarketDataProviderAdapter):
         # Filter by timestamp range
         filtered_bars = []
         for bar in bars:
-            bar_timestamp_ns = int(bar.timestamp.value.timestamp() * 1_000_000_000)
-            if start_timestamp <= bar_timestamp_ns <= end_timestamp:
+            if time_range.contains(bar.timestamp):
                 filtered_bars.append(bar)
         
-        return filtered_bars[:batch_size]
+        return filtered_bars[:max_bars]
     
-    async def test_connection(self) -> bool:
-        """Test if the connection to the provider is working."""
+    async def get_supported_symbols(self) -> List[Symbol]:
+        """Get list of symbols supported by this provider."""
+        return self._supported_symbols.copy()
+    
+    async def is_available(self) -> bool:
+        """Test if the provider is currently available."""
         return self._connection_working
     
+    def get_provider_metadata(self) -> ProviderMetadata:
+        """Get metadata about this provider's capabilities."""
+        return ProviderMetadata(
+            provider_name=self.provider_name,
+            supports_real_time=True,
+            supports_historical=True,
+            rate_limit_per_minute=None,
+            minimum_time_resolution="1m",
+            maximum_history_days=365
+        )
+    
     def get_provider_info(self) -> Dict[str, Any]:
-        """Get information about the provider."""
+        """Get information about the provider (legacy method for compatibility)."""
         return {
             "provider": self.provider_name,
             "type": "fake",
@@ -75,8 +97,26 @@ class FakeMarketDataAdapter(MarketDataProviderAdapter):
             "rate_limit_per_min": None
         }
     
+    # Legacy method for backward compatibility
+    async def fetch_bars(
+        self,
+        symbol: Symbol,
+        start_timestamp: int,
+        end_timestamp: int,
+        batch_size: int = 1000
+    ) -> List[OHLCVBar]:
+        """Legacy method for backward compatibility."""
+        start_ts = Timestamp.from_nanoseconds(start_timestamp)
+        end_ts = Timestamp.from_nanoseconds(end_timestamp)
+        time_range = TimeRange(start_ts, end_ts)
+        return await self.fetch_bars_for_symbol(symbol, time_range, batch_size)
+    
+    async def test_connection(self) -> bool:
+        """Legacy method for backward compatibility."""
+        return await self.is_available()
+    
     # Test helpers
-    def get_fetch_calls(self) -> List[tuple[Symbol, int, int]]:
+    def get_fetch_calls(self) -> List[tuple[Symbol, TimeRange]]:
         """Get list of fetch calls made (for testing)."""
         return self._fetch_calls.copy()
     
