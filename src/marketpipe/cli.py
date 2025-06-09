@@ -1,7 +1,7 @@
 """Command line interface for MarketPipe."""
 
 import typer
-from . import ingestion, aggregation, validation
+from . import ingestion
 from .metrics_server import run as metrics_server_run
 
 app = typer.Typer(add_completion=False, help="MarketPipe ETL commands")
@@ -11,18 +11,6 @@ app = typer.Typer(add_completion=False, help="MarketPipe ETL commands")
 def ingest(config: str = typer.Option(..., "--config", help="Path to YAML config")):
     """Run the ingestion pipeline."""
     ingestion.ingest(config)
-
-
-@app.command()
-def aggregate():
-    """Aggregate raw data into coarser time frames."""
-    aggregation.aggregate()
-
-
-@app.command()
-def validate():
-    """Validate aggregated data against a reference API."""
-    validation.validate()
 
 
 @app.command()
