@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict
 
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -97,3 +98,43 @@ class ParquetDataStorage(IDataStorage):
                     bars_by_symbol[symbol_name] = bars
         
         return bars_by_symbol
+
+    def load_job_bars_as_dataframes(self, job_id: str) -> Dict[str, pd.DataFrame]:
+        """Load all bars for a job as pandas DataFrames for aggregation."""
+        # For simplicity, we'll scan all parquet files in the data directory
+        # In a real implementation, we'd store job metadata to know which files belong to which job
+        dataframes_by_symbol = {}
+        
+        # Scan the data directory for parquet files
+        if not self.base_path.exists():
+            return dataframes_by_symbol
+        
+        for symbol_dir in self.base_path.iterdir():
+            if symbol_dir.is_dir() and symbol_dir.name.startswith("symbol="):
+                symbol_name = symbol_dir.name.split("=")[1]
+                dfs = []
+                
+                # Recursively find all parquet files for this symbol
+                for parquet_file in symbol_dir.glob("**/*.parquet"):
+                    try:
+                        df = pd.read_parquet(parquet_file)
+                        # Ensure we have the required columns and rename for aggregation
+                        if all(col in df.columns for col in ['timestamp_ns', 'open', 'high', 'low', 'close', 'volume']):
+                            # Add symbol column and rename timestamp column
+                            df = df.copy()
+                            df['symbol'] = symbol_name
+                            df['ts_ns'] = df['timestamp_ns']
+                            dfs.append(df)
+                    except Exception as e:
+                        # Skip files that can't be read
+                        print(f"Warning: Could not read {parquet_file}: {e}")
+                        continue
+                
+                if dfs:
+                    # Concatenate all DataFrames for this symbol
+                    combined_df = pd.concat(dfs, ignore_index=True)
+                    # Sort by timestamp
+                    combined_df = combined_df.sort_values('ts_ns')
+                    dataframes_by_symbol[symbol_name] = combined_df
+        
+        return dataframes_by_symbol
