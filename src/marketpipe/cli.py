@@ -32,6 +32,7 @@ from marketpipe.ingestion.infrastructure.repositories import (
 )
 from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
 from marketpipe.domain.events import InMemoryEventPublisher
+from marketpipe.config import IngestionJobConfig
 from .metrics_server import run as metrics_server_run
 
 app = typer.Typer(add_completion=False, help="MarketPipe ETL commands")
@@ -98,34 +99,97 @@ def _build_ingestion_services() -> Tuple[IngestionJobService, IngestionCoordinat
 
 @app.command()
 def ingest(
-    symbols: str = typer.Option(..., "--symbols", "-s", help="Comma-separated tickers, e.g. AAPL,MSFT"),
-    start: str = typer.Option(..., "--start", help="Start date (YYYY-MM-DD)"),
-    end: str = typer.Option(..., "--end", help="End date (YYYY-MM-DD)"),
-    batch_size: int = typer.Option(1000, "--batch-size", help="Bars per request"),
-    output_path: str = typer.Option("./data", "--output", help="Output directory"),
-    workers: int = typer.Option(4, "--workers", help="Number of worker threads"),
+    # Config file option
+    config: Path = typer.Option(
+        None, 
+        "--config", 
+        "-c", 
+        help="Path to YAML configuration file",
+        exists=True,
+        file_okay=True,
+        dir_okay=False
+    ),
+    # Direct flag options (optional when using config)
+    symbols: str = typer.Option(None, "--symbols", "-s", help="Comma-separated tickers, e.g. AAPL,MSFT"),
+    start: str = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
+    end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
+    # Override options (work with both config and direct flags)
+    batch_size: int = typer.Option(None, "--batch-size", help="Bars per request (overrides config)"),
+    output_path: str = typer.Option(None, "--output", help="Output directory (overrides config)"),
+    workers: int = typer.Option(None, "--workers", help="Number of worker threads (overrides config)"),
+    provider: str = typer.Option(None, "--provider", help="Market data provider (overrides config)"),
+    feed_type: str = typer.Option(None, "--feed-type", help="Data feed type (overrides config)"),
 ):
-    """Start a new ingestion job and run it synchronously."""
+    """Start a new ingestion job and run it synchronously.
+    
+    Either use --config to load from YAML file, or specify --symbols, --start, and --end directly.
+    CLI flags override config file values when both are provided.
+    """
     try:
-        # Parse command line arguments
-        symbol_list = [Symbol.from_string(s.strip().upper()) for s in symbols.split(",")]
-        start_date = datetime.fromisoformat(start).date()
-        end_date = datetime.fromisoformat(end).date()
+        # Determine configuration source and validate mutual exclusivity
+        if config is not None:
+            # Load from YAML file
+            print(f"📄 Loading configuration from: {config}")
+            job_config = IngestionJobConfig.from_yaml(config)
+            
+            # Apply CLI overrides if provided
+            overrides = {
+                'batch_size': batch_size,
+                'output_path': output_path,
+                'workers': workers,
+                'provider': provider,
+                'feed_type': feed_type,
+            }
+            # Add symbols/start/end overrides if provided
+            if symbols is not None:
+                overrides['symbols'] = [s.strip().upper() for s in symbols.split(",")]
+            if start is not None:
+                overrides['start'] = datetime.fromisoformat(start).date()
+            if end is not None:
+                overrides['end'] = datetime.fromisoformat(end).date()
+                
+            job_config = job_config.merge_overrides(**overrides)
+            
+        else:
+            # Use direct flags - validate required fields
+            if symbols is None or start is None or end is None:
+                print("❌ Error: Either provide --config file OR all of --symbols, --start, and --end")
+                print("💡 Examples:")
+                print("   marketpipe ingest --config config.yaml")
+                print("   marketpipe ingest --symbols AAPL,MSFT --start 2025-01-01 --end 2025-01-07")
+                raise typer.Exit(1)
+            
+            # Build config from direct flags
+            symbol_list = [s.strip().upper() for s in symbols.split(",")]
+            start_date = datetime.fromisoformat(start).date()
+            end_date = datetime.fromisoformat(end).date()
+            
+            job_config = IngestionJobConfig(
+                symbols=symbol_list,
+                start=start_date,
+                end=end_date,
+                batch_size=batch_size or 1000,
+                output_path=output_path or "./data",
+                workers=workers or 4,
+                provider=provider or "alpaca",
+                feed_type=feed_type or "iex",
+            )
         
-        # Create time range from dates
-        time_range = TimeRange.from_dates(start_date, end_date)
+        # Convert config to domain objects
+        symbol_list = [Symbol.from_string(s) for s in job_config.symbols]
+        time_range = TimeRange.from_dates(job_config.start, job_config.end)
         
         # Build services
         job_service, coordinator_service = _build_ingestion_services()
         
         # Create ingestion configuration
-        config = IngestionConfiguration(
-            output_path=Path(output_path),
+        ingestion_config = IngestionConfiguration(
+            output_path=Path(job_config.output_path),
             compression="snappy",
-            max_workers=workers,
-            batch_size=batch_size,
+            max_workers=job_config.workers,
+            batch_size=job_config.batch_size,
             rate_limit_per_minute=200,
-            feed_type="iex"
+            feed_type=job_config.feed_type
         )
         
         batch_config = BatchConfiguration.default()
@@ -134,11 +198,15 @@ def ingest(
         command = CreateIngestionJobCommand(
             symbols=symbol_list,
             time_range=time_range,
-            configuration=config,
+            configuration=ingestion_config,
             batch_config=batch_config
         )
         
-        print(f"🚀 Creating ingestion job for {len(symbol_list)} symbols from {start} to {end}")
+        print(f"🚀 Creating ingestion job for {len(symbol_list)} symbols from {job_config.start} to {job_config.end}")
+        print(f"   Provider: {job_config.provider} ({job_config.feed_type})")
+        print(f"   Batch size: {job_config.batch_size}")
+        print(f"   Workers: {job_config.workers}")
+        print(f"   Output: {job_config.output_path}")
         
         # Create and execute job
         job_id = asyncio.run(job_service.create_job(command))
