@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Fake repository implementations for testing."""
 
 from __future__ import annotations

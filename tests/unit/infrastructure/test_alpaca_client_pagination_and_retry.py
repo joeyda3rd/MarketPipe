@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Unit tests for Alpaca client pagination and retry functionality."""
 
 from __future__ import annotations

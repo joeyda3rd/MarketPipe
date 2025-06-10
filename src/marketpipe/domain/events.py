@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain events for MarketPipe.
 
 Domain events represent important business occurrences that other parts

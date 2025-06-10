@@ -1,6 +1,7 @@
 # MarketPipe (MarketPype)
 
 [![Live Metrics](https://img.shields.io/badge/Live%20Metrics-online-brightgreen)](docs/pipeline.md#metrics)
+![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 MarketPipe is a lightweight, Python-native ETL framework focused on time
 series market data.  It aims to provide a simple command line interface
@@ -101,3 +102,9 @@ marketpipe metrics --port 8000
 marketpipe --help
 marketpipe ingest --help
 ```
+
+## License
+
+MarketPipe is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
+
+The Apache 2.0 license permits commercial use, including the development of closed-source plugins, user interfaces, and hosted services based on this codebase. This enables flexible monetization strategies while keeping the core framework open source.

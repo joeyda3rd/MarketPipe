@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """SQLite implementations of domain repositories.
 
 Provides concrete implementations of domain repository interfaces using SQLite

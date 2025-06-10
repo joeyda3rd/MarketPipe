@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from prometheus_client import Counter, Histogram, Gauge
 
 REQUESTS = Counter("mp_requests_total", "API requests", ["source"])

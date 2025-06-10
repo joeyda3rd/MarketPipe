@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Repository implementations for MarketPipe domain interfaces.
 
 This package contains concrete implementations of the repository interfaces

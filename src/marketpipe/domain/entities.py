@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain entities for MarketPipe.
 
 Entities are objects that have identity and lifecycle. They are distinguished

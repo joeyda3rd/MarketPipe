@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Fake implementations for testing Domain-Driven Design patterns."""
 
 from __future__ import annotations

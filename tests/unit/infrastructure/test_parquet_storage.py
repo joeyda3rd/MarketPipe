@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 import asyncio
@@ -13,7 +14,7 @@ from tests.fakes.adapters import create_test_ohlcv_bars
 
 
 def test_store_bars_writes_parquet_and_returns_partition(tmp_path):
-    storage = ParquetDataStorage()
+    storage = ParquetDataStorage(root=tmp_path)
     symbol = Symbol("AAPL")
     bars = create_test_ohlcv_bars(symbol, count=3)
     config = IngestionConfiguration(

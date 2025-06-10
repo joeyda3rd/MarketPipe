@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # src/marketpipe/domain/market_data.py
 from __future__ import annotations
 

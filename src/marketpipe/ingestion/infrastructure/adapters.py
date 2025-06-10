@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Anti-corruption layer adapters for external market data providers."""
 
 from __future__ import annotations
@@ -84,7 +85,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
             )
         except Exception as e:
             # Translate infrastructure exceptions to domain exceptions
-            raise MarketDataUnavailableError(f"Failed to fetch data for {symbol}: {e}") from e
+            raise MarketDataProviderError(f"Failed to fetch data for {symbol}: {e}") from e
         
         # Limit results to max_bars
         if len(raw_bars) > max_bars:
@@ -125,6 +126,10 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
             return True
         except Exception:
             return False
+    
+    async def test_connection(self) -> bool:
+        """Test connection to Alpaca API (alias for is_available)."""
+        return await self.is_available()
     
     def get_provider_metadata(self) -> ProviderMetadata:
         """Get Alpaca provider metadata."""

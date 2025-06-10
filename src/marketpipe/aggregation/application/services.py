@@ -1,9 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 import logging
 from pathlib import Path
+from datetime import date
 
 from marketpipe.events import EventBus, IngestionJobCompleted
+from marketpipe.domain.value_objects import Symbol
 from ..domain.services import AggregationDomainService
 from ..domain.value_objects import DEFAULT_SPECS
 from ..domain.events import AggregationCompleted, AggregationFailed
@@ -64,7 +67,13 @@ class AggregationRunnerService:
         self.log.info(f"Running manual aggregation for job {job_id}")
         
         # Create fake event and handle it
-        event = IngestionJobCompleted(job_id)
+        event = IngestionJobCompleted(
+            job_id=job_id,
+            symbol=Symbol("MANUAL"),
+            trading_date=date.today(),
+            bars_processed=0,
+            success=True
+        )
         self.handle_ingestion_completed(event)
 
     @classmethod

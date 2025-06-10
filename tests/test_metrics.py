@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Legacy metrics tests - keeping for backward compatibility."""
 
 from marketpipe.metrics import REQUESTS

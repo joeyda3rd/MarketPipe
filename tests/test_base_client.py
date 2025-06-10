@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Legacy base client tests - maintaining backward compatibility."""
 
 import pytest

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """In-memory event bus and domain events."""
 
 from __future__ import annotations

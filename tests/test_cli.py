@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Legacy CLI tests - maintaining backward compatibility."""
 
 import subprocess

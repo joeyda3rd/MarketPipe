@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain aggregates for MarketPipe.
 
 Aggregates are consistency boundaries that group related entities and value objects.

@@ -1,9 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
 """Ingestion application services."""
 
 from __future__ import annotations
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 
@@ -99,6 +99,9 @@ class IngestionJobService:
         # Publish domain events
         for event in job.domain_events:
             await self._event_publisher.publish(event)
+        
+        # Clear events after publishing to avoid duplicates
+        job.clear_domain_events()
     
     async def cancel_job(self, command: CancelJobCommand) -> None:
         """Cancel an ingestion job."""
@@ -115,6 +118,9 @@ class IngestionJobService:
         # Publish domain events
         for event in job.domain_events:
             await self._event_publisher.publish(event)
+        
+        # Clear events after publishing to avoid duplicates
+        job.clear_domain_events()
     
     async def restart_job(self, command: RestartJobCommand) -> IngestionJobId:
         """Restart a failed or cancelled job."""
@@ -255,21 +261,27 @@ class IngestionCoordinatorService:
         total_bars = 0
         
         try:
-            # Process symbols in parallel using thread pool
-            with ThreadPoolExecutor(max_workers=job.configuration.max_workers) as executor:
-                # Submit all symbol processing tasks
-                futures = {
-                    executor.submit(self._process_symbol, job, symbol): symbol
-                    for symbol in job.symbols
-                }
+            # Process symbols in parallel using asyncio.gather
+            tasks = [
+                self._process_symbol(job, symbol)
+                for symbol in job.symbols
+            ]
+            
+            # Execute all tasks concurrently
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Process results
+            for i, result in enumerate(results):
+                symbol = job.symbols[i]
                 
-                # Process completed tasks
-                for future in as_completed(futures):
-                    symbol = futures[future]
-                    
+                if isinstance(result, Exception):
+                    # Log error and continue with other symbols
+                    failed_symbols += 1
+                    print(f"Failed to process symbol {symbol}: {result}")
+                    # Could emit a domain event for symbol processing failure
+                else:
                     try:
-                        # Get the result
-                        bars_count, partition = await asyncio.wrap_future(future)
+                        bars_count, partition = result
                         
                         # Mark symbol as processed in the job
                         job = await self._job_repository.get_by_id(job_id)  # Refresh job state
@@ -284,11 +296,13 @@ class IngestionCoordinatorService:
                         for event in job.domain_events:
                             await self._event_publisher.publish(event)
                         
+                        # Clear events after publishing
+                        job.clear_domain_events()
+                        
                     except Exception as e:
-                        # Log error and continue with other symbols
+                        # Log error
                         failed_symbols += 1
-                        print(f"Failed to process symbol {symbol}: {e}")
-                        # Could emit a domain event for symbol processing failure
+                        print(f"Failed to process result for symbol {symbol}: {e}")
             
             # Job should auto-complete when all symbols are processed
             # Calculate and save final metrics
@@ -306,7 +320,16 @@ class IngestionCoordinatorService:
             await self._metrics_repository.save_metrics(job_id, metrics)
             
             # Publish ingestion job completed event
-            EventBus.publish(IngestionJobCompleted(str(job_id)))
+            # Note: Using first symbol as representative for the event
+            first_symbol = job.symbols[0] if job.symbols else Symbol("UNKNOWN")
+            completed_event = IngestionJobCompleted(
+                job_id=str(job_id),
+                symbol=first_symbol,
+                trading_date=job.time_range.start.value.date(),
+                bars_processed=total_bars,
+                success=processed_symbols > 0
+            )
+            EventBus.publish(completed_event)
             
             return {
                 "job_id": str(job_id),
@@ -326,6 +349,9 @@ class IngestionCoordinatorService:
             # Publish failure events
             for event in job.domain_events:
                 await self._event_publisher.publish(event)
+            
+            # Clear events after publishing
+            job.clear_domain_events()
             
             raise
     

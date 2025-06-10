@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """MarketPipe package initialization."""
 
 __all__ = [

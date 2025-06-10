@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Unit tests for IngestionJob domain entity."""
 
 from __future__ import annotations
