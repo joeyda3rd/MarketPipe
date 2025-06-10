@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.domain.events import IEventPublisher
+from marketpipe.events import EventBus, IngestionJobCompleted
 from ..domain.entities import IngestionJob, IngestionJobId, ProcessingState
 from ..domain.repositories import (
     IIngestionJobRepository, 
@@ -303,6 +304,9 @@ class IngestionCoordinatorService:
             )
             
             await self._metrics_repository.save_metrics(job_id, metrics)
+            
+            # Publish ingestion job completed event
+            EventBus.publish(IngestionJobCompleted(str(job_id)))
             
             return {
                 "job_id": str(job_id),

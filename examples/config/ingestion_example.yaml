@@ -1,0 +1,27 @@
+# MarketPipe Ingestion Configuration Example
+#
+# This file demonstrates how to configure ingestion jobs using YAML.
+# You can use either snake_case or kebab-case for field names.
+
+# Required: List of stock symbols to ingest
+symbols: [AAPL, MSFT, NVDA]
+
+# Required: Date range for ingestion (YYYY-MM-DD format)
+start: 2025-06-01
+end: 2025-06-07
+
+# Optional: Configuration parameters with defaults
+batch_size: 1000        # Number of bars per API request (1-10000)
+provider: alpaca        # Market data provider (alpaca, polygon, iex)
+feed_type: iex         # Data feed type (iex for free, sip for paid)
+output_path: ./data    # Output directory for data files
+workers: 4             # Number of worker threads (1-32)
+
+# Alternative kebab-case format (equivalent to above):
+# batch-size: 1000
+# feed-type: iex
+# output-path: ./data
+
+# Environment variables are supported:
+# api_key: ${ALPACA_KEY}
+# api_secret: ${ALPACA_SECRET} 
