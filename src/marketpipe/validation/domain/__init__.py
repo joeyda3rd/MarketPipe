@@ -1,0 +1,1 @@
+"""Validation domain layer.""" 

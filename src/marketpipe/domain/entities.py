@@ -128,6 +128,11 @@ class OHLCVBar(Entity):
         return self._timestamp
     
     @property
+    def timestamp_ns(self) -> int:
+        """Get the bar timestamp in nanoseconds since epoch."""
+        return self._timestamp.to_nanoseconds()
+    
+    @property
     def open_price(self) -> Price:
         """Get the opening price."""
         return self._open_price

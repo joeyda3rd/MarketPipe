@@ -10,6 +10,9 @@ from pathlib import Path
 
 import typer
 
+from marketpipe.validation import ValidationRunnerService
+ValidationRunnerService.register()
+
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.application.services import (
     IngestionJobService,
@@ -33,6 +36,7 @@ from marketpipe.ingestion.infrastructure.repositories import (
 from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
 from marketpipe.domain.events import InMemoryEventPublisher
 from marketpipe.config import IngestionJobConfig
+from marketpipe.events import IngestionJobCompleted
 from .metrics_server import run as metrics_server_run
 
 app = typer.Typer(add_completion=False, help="MarketPipe ETL commands")
@@ -231,6 +235,15 @@ def ingest(
     except Exception as e:
         print(f"❌ Ingestion failed: {e}")
         raise typer.Exit(1)
+
+
+@app.command()
+def validate(job_id: str):
+    """Run validation manually for an existing job."""
+    ValidationRunnerService.build_default().handle_ingestion_completed(
+        IngestionJobCompleted(job_id)
+    )
+    print(f"✅ Validation completed for job: {job_id}")
 
 
 @app.command()
