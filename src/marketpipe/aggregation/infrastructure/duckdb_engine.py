@@ -8,7 +8,7 @@ import duckdb
 import pandas as pd
 import pyarrow as pa
 
-from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
+from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 from ..domain.value_objects import FrameSpec
 
 
@@ -22,9 +22,8 @@ class DuckDBAggregationEngine:
             raw_root: Path to raw 1-minute Parquet data
             agg_root: Path to write aggregated Parquet data
         """
-        self._raw = ParquetDataStorage(str(raw_root))
-        self._agg_root = Path(agg_root)
-        self._agg_root.mkdir(parents=True, exist_ok=True)
+        self._raw_storage = ParquetStorageEngine(raw_root)
+        self._agg_storage = ParquetStorageEngine(agg_root)
         self.log = logging.getLogger(self.__class__.__name__)
 
     def aggregate_job(self, job_id: str, frame_sql_pairs: List[Tuple[FrameSpec, str]]) -> None:
@@ -35,8 +34,8 @@ class DuckDBAggregationEngine:
             frame_sql_pairs: List of (FrameSpec, SQL) tuples for aggregation
         """
         try:
-            # Load raw data for all symbols in the job
-            symbol_dataframes = self._raw.load_job_bars_as_dataframes(job_id)
+            # Load raw data for all symbols in the job using new engine
+            symbol_dataframes = self._raw_storage.load_job_bars(job_id)
             
             if not symbol_dataframes:
                 self.log.warning(f"No data found for job {job_id}")
@@ -48,6 +47,16 @@ class DuckDBAggregationEngine:
             # Process each symbol
             for symbol, df in symbol_dataframes.items():
                 self.log.info(f"Aggregating {len(df)} bars for symbol {symbol}")
+                
+                # Ensure we have the ts_ns column for aggregation
+                if 'ts_ns' not in df.columns and 'timestamp_ns' in df.columns:
+                    df = df.copy()
+                    df['ts_ns'] = df['timestamp_ns']
+                
+                # Add symbol column if missing
+                if 'symbol' not in df.columns:
+                    df = df.copy()
+                    df['symbol'] = symbol
                 
                 # Register DataFrame as table in DuckDB
                 con.register("bars", pa.Table.from_pandas(df))
@@ -64,7 +73,7 @@ class DuckDBAggregationEngine:
                             self.log.warning(f"No aggregated data for {symbol} {spec.name}")
                             continue
                         
-                        # Write aggregated data to partitioned Parquet
+                        # Write aggregated data using the new storage engine
                         self._write_aggregated_data(result_df, symbol, spec, job_id)
                         
                         self.log.info(f"Aggregated {len(result_df)} {spec.name} bars for {symbol}")
@@ -87,20 +96,30 @@ class DuckDBAggregationEngine:
         spec: FrameSpec, 
         job_id: str
     ) -> None:
-        """Write aggregated DataFrame to partitioned Parquet file."""
-        # Create partition directory structure
-        partition_path = (
-            self._agg_root
-            / f"frame={spec.name}"
-            / f"symbol={symbol}"
-        )
-        partition_path.mkdir(parents=True, exist_ok=True)
+        """Write aggregated DataFrame using the new storage engine."""
+        # Determine trading day from the first timestamp
+        if 'ts_ns' in df.columns and not df.empty:
+            first_ts_ns = df['ts_ns'].iloc[0]
+            trading_day = pd.Timestamp(first_ts_ns, unit='ns').date()
+        else:
+            # Fallback to today if no timestamp data
+            from datetime import date
+            trading_day = date.today()
         
-        # Write Parquet file
-        output_file = partition_path / f"{job_id}.parquet"
-        df.to_parquet(output_file, index=False, compression="snappy")
-        
-        self.log.debug(f"Wrote {len(df)} rows to {output_file}")
+        # Use the new storage engine to write the data
+        try:
+            output_path = self._agg_storage.write(
+                df,
+                frame=spec.name,
+                symbol=symbol,
+                trading_day=trading_day,
+                job_id=job_id,
+                overwrite=True
+            )
+            self.log.debug(f"Wrote {len(df)} rows to {output_path}")
+        except Exception as e:
+            self.log.error(f"Failed to write aggregated data for {symbol} {spec.name}: {e}")
+            raise
 
     def get_aggregated_data(
         self, 
@@ -120,38 +139,19 @@ class DuckDBAggregationEngine:
         Returns:
             DataFrame with aggregated OHLCV data
         """
-        partition_path = (
-            self._agg_root
-            / f"frame={frame.name}"
-            / f"symbol={symbol}"
+        # Use the new storage engine to load data
+        df = self._agg_storage.load_symbol_data(
+            symbol=symbol,
+            frame=frame.name
         )
         
-        if not partition_path.exists():
-            return pd.DataFrame()
-        
-        # Read all Parquet files for this symbol/frame
-        dfs = []
-        for parquet_file in partition_path.glob("*.parquet"):
-            try:
-                df = pd.read_parquet(parquet_file)
-                dfs.append(df)
-            except Exception as e:
-                self.log.warning(f"Could not read {parquet_file}: {e}")
-                continue
-        
-        if not dfs:
-            return pd.DataFrame()
-        
-        # Combine all data
-        combined_df = pd.concat(dfs, ignore_index=True)
-        
-        # Sort by timestamp
-        combined_df = combined_df.sort_values("ts_ns")
+        if df.empty:
+            return df
         
         # Apply time filtering if specified
-        if start_ts is not None:
-            combined_df = combined_df[combined_df["ts_ns"] >= start_ts]
-        if end_ts is not None:
-            combined_df = combined_df[combined_df["ts_ns"] <= end_ts]
+        if start_ts is not None and 'ts_ns' in df.columns:
+            df = df[df["ts_ns"] >= start_ts]
+        if end_ts is not None and 'ts_ns' in df.columns:
+            df = df[df["ts_ns"] <= end_ts]
         
-        return combined_df 
+        return df 
