@@ -13,6 +13,9 @@ import typer
 from marketpipe.validation import ValidationRunnerService
 ValidationRunnerService.register()
 
+from marketpipe.aggregation import AggregationRunnerService
+AggregationRunnerService.register()
+
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.application.services import (
     IngestionJobService,
@@ -244,6 +247,18 @@ def validate(job_id: str):
         IngestionJobCompleted(job_id)
     )
     print(f"✅ Validation completed for job: {job_id}")
+
+
+@app.command()
+def aggregate(job_id: str):
+    """Run aggregation manually for a given ingestion job."""
+    print(f"🔄 Starting aggregation for job: {job_id}")
+    try:
+        AggregationRunnerService.build_default().run_manual_aggregation(job_id)
+        print(f"✅ Aggregation completed for job: {job_id}")
+    except Exception as e:
+        print(f"❌ Aggregation failed for job {job_id}: {e}")
+        raise typer.Exit(1)
 
 
 @app.command()
