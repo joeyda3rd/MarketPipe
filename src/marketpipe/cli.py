@@ -33,8 +33,12 @@ from marketpipe.ingestion.domain.value_objects import (
 from marketpipe.ingestion.infrastructure.adapters import AlpacaMarketDataAdapter
 from marketpipe.ingestion.infrastructure.repositories import (
     SqliteIngestionJobRepository,
-    SqliteCheckpointRepository,
     SqliteMetricsRepository,
+)
+from marketpipe.infrastructure.repositories.sqlite_domain import (
+    SqliteSymbolBarsRepository,
+    SqliteOHLCVRepository,
+    SqliteCheckpointRepository,
 )
 from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
 from marketpipe.domain.events import InMemoryEventPublisher
@@ -70,10 +74,15 @@ def _build_ingestion_services() -> Tuple[IngestionJobService, IngestionCoordinat
     )
     
     # Repository setup
+    core_db_path = str(data_dir / "db" / "core.db")
     job_repo = SqliteIngestionJobRepository(str(data_dir / "ingestion_jobs.db"))
-    checkpoint_repo = SqliteCheckpointRepository(str(data_dir / "checkpoints.db"))
+    checkpoint_repo = SqliteCheckpointRepository(core_db_path)
     metrics_repo = SqliteMetricsRepository(str(data_dir / "metrics.db"))
     data_storage = ParquetDataStorage(str(data_dir / "raw"))
+    
+    # Domain repositories
+    symbol_bars_repo = SqliteSymbolBarsRepository(core_db_path)
+    ohlcv_repo = SqliteOHLCVRepository(core_db_path)
     
     # Domain services
     domain_service = IngestionDomainService()
