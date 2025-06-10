@@ -36,20 +36,37 @@ class AggregationRunnerService:
         try:
             self.log.info(f"Starting aggregation for job {event.job_id}")
             
+            # Record aggregation start metrics
+            from marketpipe.metrics import record_metric
+            record_metric("aggregation_jobs_started", 1)
+            
             # Generate SQL for each frame
             sql_pairs = [(spec, self._domain.duckdb_sql(spec)) for spec in DEFAULT_SPECS]
             
             # Run aggregation
-            self._engine.aggregate_job(event.job_id, sql_pairs)
+            result = self._engine.aggregate_job(event.job_id, sql_pairs)
+            
+            # Record success metrics
+            frames_processed = len(DEFAULT_SPECS)
+            record_metric("aggregation_jobs_success", 1)
+            record_metric("aggregation_frames_processed", frames_processed)
+            
+            # If engine returns row counts, record those too
+            if hasattr(result, 'total_rows_aggregated'):
+                record_metric("aggregation_rows_processed", result.total_rows_aggregated)
             
             # Publish success event
-            success_event = AggregationCompleted(event.job_id, len(DEFAULT_SPECS))
+            success_event = AggregationCompleted(event.job_id, frames_processed)
             EventBus.publish(success_event)
             
-            self.log.info(f"Aggregation completed for job {event.job_id}")
+            self.log.info(f"Aggregation completed for job {event.job_id}: {frames_processed} frames processed")
             
         except Exception as e:
             self.log.error(f"Aggregation failed for job {event.job_id}: {e}")
+            
+            # Record failure metrics
+            from marketpipe.metrics import record_metric
+            record_metric("aggregation_jobs_failed", 1)
             
             # Publish failure event
             failure_event = AggregationFailed(event.job_id, str(e))
@@ -65,6 +82,10 @@ class AggregationRunnerService:
             job_id: Job identifier to aggregate
         """
         self.log.info(f"Running manual aggregation for job {job_id}")
+        
+        # Record manual aggregation metrics
+        from marketpipe.metrics import record_metric
+        record_metric("aggregation_manual_runs", 1)
         
         # Create fake event and handle it
         event = IngestionJobCompleted(

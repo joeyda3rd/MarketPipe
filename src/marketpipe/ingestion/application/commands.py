@@ -45,6 +45,21 @@ class CancelJobCommand:
 
 
 @dataclass(frozen=True)
+class CompleteJobCommand:
+    """Command to mark an ingestion job as completed."""
+    
+    job_id: IngestionJobId
+
+
+@dataclass(frozen=True)
+class FailJobCommand:
+    """Command to mark an ingestion job as failed."""
+    
+    job_id: IngestionJobId
+    error_message: str
+
+
+@dataclass(frozen=True)
 class RestartJobCommand:
     """Command to restart a failed or cancelled job."""
     

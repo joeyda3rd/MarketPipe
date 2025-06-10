@@ -24,6 +24,8 @@ from .commands import (
     CreateIngestionJobCommand, 
     StartJobCommand, 
     CancelJobCommand,
+    CompleteJobCommand,
+    FailJobCommand,
     RestartJobCommand
 )
 from .queries import (
@@ -120,6 +122,44 @@ class IngestionJobService:
             await self._event_publisher.publish(event)
         
         # Clear events after publishing to avoid duplicates
+        job.clear_domain_events()
+    
+    async def complete_job(self, command: CompleteJobCommand) -> None:
+        """Mark an ingestion job as completed."""
+        job = await self._job_repository.get_by_id(command.job_id)
+        if not job:
+            raise IngestionJobNotFoundError(command.job_id)
+        
+        # Complete the job (domain logic handles state validation)
+        job.complete()
+        
+        # Save updated job
+        await self._job_repository.save(job)
+        
+        # Publish domain events
+        for event in job.domain_events:
+            await self._event_publisher.publish(event)
+        
+        # Clear events after publishing
+        job.clear_domain_events()
+    
+    async def fail_job(self, command: FailJobCommand) -> None:
+        """Mark an ingestion job as failed."""
+        job = await self._job_repository.get_by_id(command.job_id)
+        if not job:
+            raise IngestionJobNotFoundError(command.job_id)
+        
+        # Fail the job (domain logic handles state validation)
+        job.fail(command.error_message)
+        
+        # Save updated job
+        await self._job_repository.save(job)
+        
+        # Publish domain events
+        for event in job.domain_events:
+            await self._event_publisher.publish(event)
+        
+        # Clear events after publishing
         job.clear_domain_events()
     
     async def restart_job(self, command: RestartJobCommand) -> IngestionJobId:
@@ -278,7 +318,10 @@ class IngestionCoordinatorService:
                     # Log error and continue with other symbols
                     failed_symbols += 1
                     print(f"Failed to process symbol {symbol}: {result}")
-                    # Could emit a domain event for symbol processing failure
+                    # Record symbol-level failure metrics
+                    from marketpipe.metrics import record_metric
+                    record_metric("ingest_symbol_failures", 1)
+                    record_metric(f"ingest_failures_{symbol.value}", 1)
                 else:
                     try:
                         bars_count, partition = result
@@ -292,6 +335,12 @@ class IngestionCoordinatorService:
                         processed_symbols += 1
                         total_bars += bars_count
                         
+                        # Record success metrics
+                        from marketpipe.metrics import record_metric
+                        record_metric("ingest_symbols_success", 1)
+                        record_metric("ingest_rows_processed", bars_count)
+                        record_metric(f"ingest_success_{symbol.value}", 1)
+                        
                         # Publish events
                         for event in job.domain_events:
                             await self._event_publisher.publish(event)
@@ -303,55 +352,48 @@ class IngestionCoordinatorService:
                         # Log error
                         failed_symbols += 1
                         print(f"Failed to process result for symbol {symbol}: {e}")
+                        # Record metrics
+                        from marketpipe.metrics import record_metric
+                        record_metric("ingest_symbol_failures", 1)
             
             # Job should auto-complete when all symbols are processed
             # Calculate and save final metrics
             end_time = datetime.now(timezone.utc)
             processing_time = (end_time - start_time).total_seconds()
             
-            metrics = ProcessingMetrics(
-                symbols_processed=processed_symbols,
-                symbols_failed=failed_symbols,
-                total_bars_ingested=total_bars,
-                total_processing_time_seconds=processing_time,
-                average_processing_time_per_symbol=processing_time / max(1, processed_symbols)
-            )
+            # Record job-level metrics
+            from marketpipe.metrics import record_metric
+            record_metric("ingest_job_duration_seconds", processing_time)
+            record_metric("ingest_job_total_bars", total_bars)
             
-            await self._metrics_repository.save_metrics(job_id, metrics)
-            
-            # Publish ingestion job completed event
-            # Note: Using first symbol as representative for the event
-            first_symbol = job.symbols[0] if job.symbols else Symbol("UNKNOWN")
-            completed_event = IngestionJobCompleted(
-                job_id=str(job_id),
-                symbol=first_symbol,
-                trading_date=job.time_range.start.value.date(),
-                bars_processed=total_bars,
-                success=processed_symbols > 0
-            )
-            EventBus.publish(completed_event)
+            # Complete the job if successful
+            if failed_symbols == 0:
+                await self._job_service.complete_job(CompleteJobCommand(job_id))
+                record_metric("ingest_job_success", 1)
+            else:
+                # Partial success - record mixed results
+                record_metric("ingest_job_partial_success", 1)
+                record_metric("ingest_job_failed_symbols", failed_symbols)
             
             return {
                 "job_id": str(job_id),
-                "status": "completed",
-                "symbols_processed": processed_symbols,
-                "symbols_failed": failed_symbols,
+                "processed_symbols": processed_symbols,
+                "failed_symbols": failed_symbols,
                 "total_bars": total_bars,
-                "processing_time_seconds": processing_time
+                "processing_time_seconds": processing_time,
+                "success": failed_symbols == 0
             }
             
         except Exception as e:
-            # Job failed - mark it as failed
-            job = await self._job_repository.get_by_id(job_id)
-            job.fail(str(e))
-            await self._job_repository.save(job)
+            # Mark job as failed
+            await self._job_service.fail_job(FailJobCommand(job_id, str(e)))
             
-            # Publish failure events
-            for event in job.domain_events:
-                await self._event_publisher.publish(event)
-            
-            # Clear events after publishing
-            job.clear_domain_events()
+            # Record failure metrics
+            from marketpipe.metrics import record_metric
+            record_metric("ingest_job_failures", 1)
+            if job.symbols:
+                for symbol in job.symbols:
+                    record_metric(f"ingest_failures_{symbol.value}", 1)
             
             raise
     
@@ -398,20 +440,35 @@ class IngestionCoordinatorService:
         # Validate data using validation context
         validation_result = await self._data_validator.validate_bars(bars)
         if not validation_result.is_valid:
-            raise ValueError(f"Data validation failed for {symbol}: {validation_result.errors}")
+            # Record validation failure metrics but continue with valid data
+            from marketpipe.metrics import record_metric
+            record_metric("validation_failures", len(validation_result.errors))
+            record_metric(f"validation_failures_{symbol.value}", len(validation_result.errors))
+            
+            # Use only valid bars if any exist
+            bars = validation_result.valid_bars
+        
+        if not bars:
+            # No valid bars after validation
+            return 0, IngestionPartition(
+                symbol=symbol,
+                file_path=job.configuration.output_path / f"{symbol.value}_no_valid_data.parquet",
+                record_count=0,
+                file_size_bytes=0,
+                created_at=datetime.now(timezone.utc)
+            )
         
         # Store data using storage context
-        partition = await self._data_storage.store_bars(bars, job.configuration)
+        partition = await self._data_storage.store_bars(bars, symbol, job.configuration)
         
         # Update checkpoint
-        last_timestamp = max(bar.timestamp.value.timestamp() * 1_000_000_000 for bar in bars)
+        latest_timestamp = max(bar.timestamp for bar in bars)
         new_checkpoint = IngestionCheckpoint(
+            job_id=job.job_id,
             symbol=symbol,
-            last_processed_timestamp=int(last_timestamp),
-            records_processed=len(bars),
-            updated_at=datetime.now(timezone.utc)
+            last_processed_timestamp=latest_timestamp,
+            partition_reference=str(partition.file_path)
         )
-        
-        await self._checkpoint_repository.save_checkpoint(job.job_id, new_checkpoint)
+        await self._checkpoint_repository.save_checkpoint(new_checkpoint)
         
         return len(bars), partition

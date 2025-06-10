@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from typing import List, Optional, Dict
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from ..domain.entities import IngestionJob, IngestionJobId, ProcessingState
@@ -496,9 +496,34 @@ class SqliteMetricsRepository(IIngestionMetricsRepository):
         end_date: datetime
     ) -> List[tuple[IngestionJobId, ProcessingMetrics]]:
         """Get metrics for jobs within a date range."""
-        # Implementation would query metrics within date range
-        # and return list of (job_id, metrics) tuples
-        raise NotImplementedError("Metrics history not yet implemented")
+        try:
+            with sqlite3.connect(self._db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT job_id, metrics_data
+                    FROM ingestion_metrics 
+                    WHERE created_at BETWEEN ? AND ?
+                    ORDER BY created_at DESC
+                """, (start_date, end_date))
+                
+                results = []
+                for row in cursor.fetchall():
+                    job_id = IngestionJobId(row["job_id"])
+                    metrics_dict = json.loads(row["metrics_data"])
+                    metrics = ProcessingMetrics(
+                        symbols_processed=metrics_dict["symbols_processed"],
+                        symbols_failed=metrics_dict["symbols_failed"],
+                        total_bars_ingested=metrics_dict["total_bars_ingested"],
+                        total_processing_time_seconds=metrics_dict["total_processing_time_seconds"],
+                        average_processing_time_per_symbol=metrics_dict["average_processing_time_per_symbol"],
+                        peak_memory_usage_mb=metrics_dict.get("peak_memory_usage_mb")
+                    )
+                    results.append((job_id, metrics))
+                
+                return results
+                
+        except sqlite3.Error as e:
+            raise IngestionRepositoryError(f"Failed to get metrics history: {e}") from e
     
     async def get_average_metrics(
         self, 
@@ -506,13 +531,74 @@ class SqliteMetricsRepository(IIngestionMetricsRepository):
         end_date: datetime
     ) -> Optional[ProcessingMetrics]:
         """Calculate average metrics across jobs in a date range."""
-        # Implementation would calculate averages across all jobs in range
-        raise NotImplementedError("Average metrics not yet implemented")
+        try:
+            with sqlite3.connect(self._db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT metrics_data
+                    FROM ingestion_metrics 
+                    WHERE created_at BETWEEN ? AND ?
+                """, (start_date, end_date))
+                
+                all_metrics = []
+                for row in cursor.fetchall():
+                    metrics_dict = json.loads(row["metrics_data"])
+                    all_metrics.append(metrics_dict)
+                
+                if not all_metrics:
+                    return None
+                
+                # Calculate averages
+                avg_symbols_processed = sum(m["symbols_processed"] for m in all_metrics) / len(all_metrics)
+                avg_symbols_failed = sum(m["symbols_failed"] for m in all_metrics) / len(all_metrics)
+                avg_bars_ingested = sum(m["total_bars_ingested"] for m in all_metrics) / len(all_metrics)
+                avg_processing_time = sum(m["total_processing_time_seconds"] for m in all_metrics) / len(all_metrics)
+                avg_time_per_symbol = sum(m["average_processing_time_per_symbol"] for m in all_metrics) / len(all_metrics)
+                
+                # Average memory usage (only for jobs that have it)
+                memory_values = [m.get("peak_memory_usage_mb") for m in all_metrics if m.get("peak_memory_usage_mb") is not None]
+                avg_memory = sum(memory_values) / len(memory_values) if memory_values else None
+                
+                return ProcessingMetrics(
+                    symbols_processed=int(avg_symbols_processed),
+                    symbols_failed=int(avg_symbols_failed),
+                    total_bars_ingested=int(avg_bars_ingested),
+                    total_processing_time_seconds=avg_processing_time,
+                    average_processing_time_per_symbol=avg_time_per_symbol,
+                    peak_memory_usage_mb=avg_memory
+                )
+                
+        except sqlite3.Error as e:
+            raise IngestionRepositoryError(f"Failed to calculate average metrics: {e}") from e
     
     async def get_performance_trends(
         self, 
         days: int = 30
     ) -> List[tuple[datetime, float]]:
         """Get daily average processing performance over time."""
-        # Implementation would return daily performance trends
-        raise NotImplementedError("Performance trends not yet implemented")
+        try:
+            # Calculate start date
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days)
+            
+            with sqlite3.connect(self._db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT DATE(created_at) as date, 
+                           AVG(json_extract(metrics_data, '$.total_processing_time_seconds')) as avg_time
+                    FROM ingestion_metrics 
+                    WHERE created_at BETWEEN ? AND ?
+                    GROUP BY DATE(created_at)
+                    ORDER BY date
+                """, (start_date, end_date))
+                
+                trends = []
+                for row in cursor.fetchall():
+                    date_obj = datetime.fromisoformat(row["date"])
+                    avg_time = float(row["avg_time"]) if row["avg_time"] else 0.0
+                    trends.append((date_obj, avg_time))
+                
+                return trends
+                
+        except sqlite3.Error as e:
+            raise IngestionRepositoryError(f"Failed to get performance trends: {e}") from e
