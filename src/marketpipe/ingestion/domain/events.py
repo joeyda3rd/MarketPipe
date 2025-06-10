@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
+from uuid import UUID, uuid4
 
 from marketpipe.domain.events import DomainEvent
 from marketpipe.domain.value_objects import Symbol, TimeRange
@@ -12,21 +13,23 @@ from .entities import IngestionJobId
 from .value_objects import IngestionPartition
 
 
+@dataclass(frozen=True)
 class IngestionJobStarted(DomainEvent):
     """Event raised when an ingestion job starts."""
+    job_id: IngestionJobId
+    symbols: List[Symbol]
+    time_range: TimeRange
+    started_at: datetime
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
-    def __init__(
-        self,
-        job_id: IngestionJobId,
-        symbols: List[Symbol],
-        time_range: TimeRange,
-        started_at: datetime
-    ):
-        super().__init__()
-        self.job_id = job_id
-        self.symbols = symbols
-        self.time_range = time_range
-        self.started_at = started_at
+    def __post_init__(self):
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -48,23 +51,24 @@ class IngestionJobStarted(DomainEvent):
         }
 
 
+@dataclass(frozen=True)
 class IngestionJobCompleted(DomainEvent):
     """Event raised when an ingestion job completes successfully."""
+    job_id: IngestionJobId
+    symbols_processed: int
+    total_bars_processed: int
+    partitions_created: int
+    completed_at: datetime
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
-    def __init__(
-        self,
-        job_id: IngestionJobId,
-        symbols_processed: int,
-        total_bars_processed: int,
-        partitions_created: int,
-        completed_at: datetime
-    ):
-        super().__init__()
-        self.job_id = job_id
-        self.symbols_processed = symbols_processed
-        self.total_bars_processed = total_bars_processed
-        self.partitions_created = partitions_created
-        self.completed_at = completed_at
+    def __post_init__(self):
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -84,21 +88,23 @@ class IngestionJobCompleted(DomainEvent):
         }
 
 
+@dataclass(frozen=True)
 class IngestionJobFailed(DomainEvent):
     """Event raised when an ingestion job fails."""
+    job_id: IngestionJobId
+    error_message: str
+    failed_at: datetime
+    symbols_processed: int
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
-    def __init__(
-        self,
-        job_id: IngestionJobId,
-        error_message: str,
-        failed_at: datetime,
-        symbols_processed: int
-    ):
-        super().__init__()
-        self.job_id = job_id
-        self.error_message = error_message
-        self.failed_at = failed_at
-        self.symbols_processed = symbols_processed
+    def __post_init__(self):
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -117,19 +123,22 @@ class IngestionJobFailed(DomainEvent):
         }
 
 
+@dataclass(frozen=True)
 class IngestionJobCancelled(DomainEvent):
     """Event raised when an ingestion job is cancelled."""
+    job_id: IngestionJobId
+    cancelled_at: datetime
+    symbols_processed: int
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
-    def __init__(
-        self,
-        job_id: IngestionJobId,
-        cancelled_at: datetime,
-        symbols_processed: int
-    ):
-        super().__init__()
-        self.job_id = job_id
-        self.cancelled_at = cancelled_at
-        self.symbols_processed = symbols_processed
+    def __post_init__(self):
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -147,23 +156,24 @@ class IngestionJobCancelled(DomainEvent):
         }
 
 
+@dataclass(frozen=True)
 class IngestionBatchProcessed(DomainEvent):
     """Event raised when a batch (symbol) is processed."""
+    job_id: IngestionJobId
+    symbol: Symbol
+    bars_processed: int
+    partition: IngestionPartition
+    processed_at: datetime
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
-    def __init__(
-        self,
-        job_id: IngestionJobId,
-        symbol: Symbol,
-        bars_processed: int,
-        partition: IngestionPartition,
-        processed_at: datetime
-    ):
-        super().__init__()
-        self.job_id = job_id
-        self.symbol = symbol
-        self.bars_processed = bars_processed
-        self.partition = partition
-        self.processed_at = processed_at
+    def __post_init__(self):
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -178,26 +188,28 @@ class IngestionBatchProcessed(DomainEvent):
             "job_id": str(self.job_id),
             "symbol": self.symbol.value,
             "bars_processed": self.bars_processed,
-            "partition": self.partition.get_storage_info(),
+            "partition": str(self.partition),  # Simplified for now
             "processed_at": self.processed_at.isoformat()
         }
 
 
+@dataclass(frozen=True)
 class IngestionCheckpointSaved(DomainEvent):
     """Event raised when an ingestion checkpoint is saved."""
+    job_id: IngestionJobId
+    symbol: Symbol
+    checkpoint_timestamp: int
+    records_processed: int
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
-    def __init__(
-        self,
-        job_id: IngestionJobId,
-        symbol: Symbol,
-        checkpoint_timestamp: int,
-        records_processed: int
-    ):
-        super().__init__()
-        self.job_id = job_id
-        self.symbol = symbol
-        self.checkpoint_timestamp = checkpoint_timestamp
-        self.records_processed = records_processed
+    def __post_init__(self):
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -216,21 +228,23 @@ class IngestionCheckpointSaved(DomainEvent):
         }
 
 
+@dataclass(frozen=True)
 class IngestionRateLimited(DomainEvent):
-    """Event raised when ingestion is rate limited."""
+    """Event raised when an ingestion is rate limited."""
+    job_id: IngestionJobId
+    symbol: Symbol
+    delay_seconds: float
+    reason: str
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
-    def __init__(
-        self,
-        job_id: IngestionJobId,
-        symbol: Symbol,
-        delay_seconds: float,
-        reason: str
-    ):
-        super().__init__()
-        self.job_id = job_id
-        self.symbol = symbol
-        self.delay_seconds = delay_seconds
-        self.reason = reason
+    def __post_init__(self):
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:

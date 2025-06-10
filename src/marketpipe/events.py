@@ -5,10 +5,20 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Callable, Dict, List, Type
 
-
-class DomainEvent:
-    """Base class for all domain events."""
-    pass
+# Import domain events from the domain layer
+from .domain.events import (
+    DomainEvent,
+    BarCollectionStarted,
+    BarCollectionCompleted,
+    ValidationFailed,
+    IngestionJobStarted,
+    IngestionJobCompleted,
+    MarketDataReceived,
+    DataStored,
+    RateLimitExceeded,
+    SymbolActivated,
+    SymbolDeactivated,
+)
 
 
 Subscriber = Callable[[DomainEvent], None]
@@ -31,11 +41,17 @@ class EventBus:
             fn(event)
 
 
-class IngestionJobCompleted(DomainEvent):
-    """Event raised when an ingestion job completes successfully."""
-    
-    def __init__(self, job_id: str):
-        self.job_id = job_id
-
-
-__all__ = ["DomainEvent", "EventBus", "IngestionJobCompleted"] 
+__all__ = [
+    "DomainEvent", 
+    "EventBus", 
+    "BarCollectionStarted",
+    "BarCollectionCompleted",
+    "ValidationFailed",
+    "IngestionJobStarted",
+    "IngestionJobCompleted",
+    "MarketDataReceived",
+    "DataStored",
+    "RateLimitExceeded",
+    "SymbolActivated",
+    "SymbolDeactivated",
+] 

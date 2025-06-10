@@ -14,7 +14,7 @@ from collections import defaultdict
 
 from .entities import OHLCVBar, EntityId
 from .value_objects import Symbol, Timestamp, Price, Volume, TimeRange
-from .events import DomainEvent, BarCollectionCompleted, BarCollectionStarted
+from .events import DomainEvent, BarCollectionCompleted, BarCollectionStarted, MarketDataReceived
 
 
 class SymbolBarsAggregate:
@@ -33,6 +33,10 @@ class SymbolBarsAggregate:
         self._version = 1
         self._is_complete = False
         self._collection_started = False
+        # Running totals for efficient calculations
+        self._running_high: Optional[Price] = None
+        self._running_low: Optional[Price] = None
+        self._running_volume: Volume = Volume(0)
     
     @property
     def symbol(self) -> Symbol:
@@ -79,7 +83,7 @@ class SymbolBarsAggregate:
         self._events.append(event)
     
     def add_bar(self, bar: OHLCVBar) -> None:
-        """Add a bar to the collection with validation.
+        """Add a bar to the collection with validation and event emission.
         
         Args:
             bar: OHLCV bar to add
@@ -115,9 +119,27 @@ class SymbolBarsAggregate:
         if not self._collection_started:
             self.start_collection()
         
-        # Add the bar
+        # Insert bar in order (maintain sorted order by timestamp)
         self._bars[bar.timestamp] = bar
+        
+        # Update running totals for efficient calculations
+        if self._running_high is None or bar.high_price > self._running_high:
+            self._running_high = bar.high_price
+        if self._running_low is None or bar.low_price < self._running_low:
+            self._running_low = bar.low_price
+        self._running_volume = Volume(self._running_volume.value + bar.volume.value)
+        
         self._version += 1
+        
+        # Emit MarketDataReceived event for every bar
+        event = MarketDataReceived(
+            provider_id="unknown",  # Will be set by the caller
+            symbol=self._symbol,
+            timestamp=bar.timestamp,
+            record_count=1,
+            data_feed="unknown"  # Will be set by the caller
+        )
+        self._events.append(event)
     
     def get_bar(self, timestamp: Timestamp) -> Optional[OHLCVBar]:
         """Retrieve a specific bar by timestamp.
@@ -191,8 +213,67 @@ class SymbolBarsAggregate:
         )
         self._events.append(event)
     
+    def close_day(self) -> DailySummary:
+        """Complete the trading day and compute daily summary with VWAP.
+        
+        Returns:
+            DailySummary entity with calculated OHLCV and VWAP data
+            
+        Raises:
+            ValueError: If no bars have been collected
+        """
+        if not self._bars:
+            raise ValueError(f"Cannot close day with no bars for {self._symbol} on {self._trading_date}")
+        
+        # Mark collection as complete
+        self.complete_collection()
+        
+        # Calculate and return daily summary using the calculation service
+        sorted_bars = self.get_all_bars()
+        first_bar = sorted_bars[0]
+        last_bar = sorted_bars[-1]
+        
+        # Calculate VWAP using proper decimal arithmetic
+        from decimal import Decimal
+        total_value = Decimal('0')
+        total_volume = Decimal('0')
+        
+        for bar in sorted_bars:
+            if bar.volume.value > 0:
+                # Use typical price (H+L+C)/3 if VWAP not available
+                if bar.vwap is not None:
+                    price = bar.vwap.value
+                else:
+                    price = (bar.high_price.value + bar.low_price.value + bar.close_price.value) / Decimal('3')
+                
+                volume = Decimal(str(bar.volume.value))
+                total_value += price * volume
+                total_volume += volume
+        
+        # Calculate VWAP
+        daily_vwap = None
+        if total_volume > 0:
+            daily_vwap = Price(total_value / total_volume)
+        
+        # Create and return daily summary
+        daily_summary = DailySummary(
+            symbol=self._symbol,
+            trading_date=self._trading_date,
+            open_price=first_bar.open_price,
+            high_price=self._running_high or first_bar.high_price,
+            low_price=self._running_low or first_bar.low_price,
+            close_price=last_bar.close_price,
+            volume=self._running_volume,
+            vwap=daily_vwap,
+            bar_count=len(sorted_bars),
+            first_bar_time=first_bar.timestamp,
+            last_bar_time=last_bar.timestamp
+        )
+        
+        return daily_summary
+    
     def calculate_daily_summary(self) -> DailySummary:
-        """Calculate daily OHLCV summary from minute bars.
+        """Calculate daily OHLCV summary from minute bars without completing collection.
         
         Returns:
             Daily summary calculated from all bars
@@ -203,37 +284,41 @@ class SymbolBarsAggregate:
         if not self._bars:
             raise ValueError(f"Cannot calculate summary with no bars for {self._symbol}")
         
+        # Calculate summary without marking collection as complete
         sorted_bars = self.get_all_bars()
         first_bar = sorted_bars[0]
         last_bar = sorted_bars[-1]
         
-        # Calculate daily values
-        daily_high = max(bar.high_price for bar in sorted_bars)
-        daily_low = min(bar.low_price for bar in sorted_bars)
-        daily_volume = sum(bar.volume for bar in sorted_bars)
-        
-        # Calculate VWAP if available
-        total_value = Price.zero()
-        total_volume = Volume.zero()
+        # Calculate VWAP using proper decimal arithmetic
+        from decimal import Decimal
+        total_value = Decimal('0')
+        total_volume = Decimal('0')
         
         for bar in sorted_bars:
-            if bar.vwap is not None:
-                value = bar.vwap * bar.volume.value
-                total_value = total_value + value
-                total_volume = total_volume + bar.volume
+            if bar.volume.value > 0:
+                # Use typical price (H+L+C)/3 if VWAP not available
+                if bar.vwap is not None:
+                    price = bar.vwap.value
+                else:
+                    price = (bar.high_price.value + bar.low_price.value + bar.close_price.value) / Decimal('3')
+                
+                volume = Decimal(str(bar.volume.value))
+                total_value += price * volume
+                total_volume += volume
         
+        # Calculate VWAP
         daily_vwap = None
-        if total_volume.value > 0:
-            daily_vwap = total_value / total_volume.value
+        if total_volume > 0:
+            daily_vwap = Price(total_value / total_volume)
         
         return DailySummary(
             symbol=self._symbol,
             trading_date=self._trading_date,
             open_price=first_bar.open_price,
-            high_price=daily_high,
-            low_price=daily_low,
+            high_price=self._running_high or max(bar.high_price for bar in sorted_bars),
+            low_price=self._running_low or min(bar.low_price for bar in sorted_bars),
             close_price=last_bar.close_price,
-            volume=daily_volume,
+            volume=self._running_volume,
             vwap=daily_vwap,
             bar_count=len(sorted_bars),
             first_bar_time=first_bar.timestamp,

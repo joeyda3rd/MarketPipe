@@ -24,11 +24,6 @@ class DomainEvent(ABC):
     already happened and may be of interest to other parts of the system.
     """
     
-    def __init__(self):
-        self.event_id: UUID = uuid4()
-        self.occurred_at: datetime = datetime.now(timezone.utc)
-        self.version: int = 1
-    
     @property
     @abstractmethod
     def event_type(self) -> str:
@@ -39,6 +34,24 @@ class DomainEvent(ABC):
     @abstractmethod
     def aggregate_id(self) -> str:
         """Identifier of the aggregate that generated this event."""
+        pass
+
+    @property
+    @abstractmethod  
+    def event_id(self) -> UUID:
+        """Unique identifier for this event instance."""
+        pass
+        
+    @property
+    @abstractmethod
+    def occurred_at(self) -> datetime:
+        """Timestamp when the event occurred.""" 
+        pass
+        
+    @property
+    @abstractmethod
+    def version(self) -> int:
+        """Event schema version."""
         pass
     
     def to_dict(self) -> Dict[str, Any]:
@@ -150,9 +163,16 @@ class ValidationFailed(DomainEvent):
     error_message: str
     rule_id: Optional[str] = None
     severity: str = "error"
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
     def __post_init__(self):
-        super().__init__()
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -179,9 +199,16 @@ class IngestionJobStarted(DomainEvent):
     job_id: str
     symbol: Symbol
     trading_date: date
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
     def __post_init__(self):
-        super().__init__()
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -209,9 +236,16 @@ class IngestionJobCompleted(DomainEvent):
     success: bool
     error_message: Optional[str] = None
     duration_seconds: Optional[float] = None
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
     def __post_init__(self):
-        super().__init__()
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -241,9 +275,16 @@ class MarketDataReceived(DomainEvent):
     timestamp: Timestamp
     record_count: int
     data_feed: str
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
     def __post_init__(self):
-        super().__init__()
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -251,7 +292,7 @@ class MarketDataReceived(DomainEvent):
     
     @property
     def aggregate_id(self) -> str:
-        return f"{self.provider_id}_{self.symbol}_{self.timestamp.trading_date().isoformat()}"
+        return f"{self.symbol}_{self.timestamp.trading_date().isoformat()}"
     
     def _get_event_data(self) -> Dict[str, Any]:
         return {
@@ -274,9 +315,16 @@ class DataStored(DomainEvent):
     file_size_bytes: int
     storage_format: str = "parquet"
     compression: str = "snappy"
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
     def __post_init__(self):
-        super().__init__()
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -306,9 +354,16 @@ class RateLimitExceeded(DomainEvent):
     current_usage: int
     limit_value: int
     reset_time: datetime
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
     def __post_init__(self):
-        super().__init__()
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -316,7 +371,7 @@ class RateLimitExceeded(DomainEvent):
     
     @property
     def aggregate_id(self) -> str:
-        return f"{self.provider_id}_{self.rate_limit_type}"
+        return self.provider_id
     
     def _get_event_data(self) -> Dict[str, Any]:
         return {
@@ -333,9 +388,16 @@ class SymbolActivated(DomainEvent):
     """Event raised when a symbol is activated in the universe."""
     universe_id: str
     symbol: Symbol
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
     def __post_init__(self):
-        super().__init__()
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -357,9 +419,16 @@ class SymbolDeactivated(DomainEvent):
     """Event raised when a symbol is deactivated in the universe."""
     universe_id: str
     symbol: Symbol
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
     def __post_init__(self):
-        super().__init__()
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
