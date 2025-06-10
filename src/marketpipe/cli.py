@@ -45,12 +45,13 @@ from marketpipe.domain.events import InMemoryEventPublisher
 from marketpipe.config import IngestionJobConfig
 from marketpipe.events import IngestionJobCompleted
 from .metrics_server import run as metrics_server_run
+from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 
 app = typer.Typer(add_completion=False, help="MarketPipe ETL commands")
 
 
 def _build_ingestion_services() -> Tuple[IngestionJobService, IngestionCoordinatorService]:
-    """Build and wire the DDD ingestion services."""
+    """Build and wire the DDD ingestion services with shared storage engine."""
     # Get configuration from environment
     api_key = os.getenv("ALPACA_KEY")
     api_secret = os.getenv("ALPACA_SECRET")
@@ -63,6 +64,9 @@ def _build_ingestion_services() -> Tuple[IngestionJobService, IngestionCoordinat
     # Create data directory if it doesn't exist
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
+    
+    # Shared storage engine for all contexts
+    storage_engine = ParquetStorageEngine(data_dir / "raw")
     
     # Infrastructure setup
     market_data_provider = AlpacaMarketDataAdapter(
@@ -78,7 +82,6 @@ def _build_ingestion_services() -> Tuple[IngestionJobService, IngestionCoordinat
     job_repo = SqliteIngestionJobRepository(str(data_dir / "ingestion_jobs.db"))
     checkpoint_repo = SqliteCheckpointRepository(core_db_path)
     metrics_repo = SqliteMetricsRepository(str(data_dir / "metrics.db"))
-    data_storage = ParquetDataStorage(str(data_dir / "raw"))
     
     # Domain repositories
     symbol_bars_repo = SqliteSymbolBarsRepository(core_db_path)
@@ -106,7 +109,7 @@ def _build_ingestion_services() -> Tuple[IngestionJobService, IngestionCoordinat
         metrics_repository=metrics_repo,
         market_data_provider=market_data_provider,
         data_validator=None,  # TODO: Wire up validation
-        data_storage=data_storage,
+        data_storage=storage_engine,  # Use the new storage engine
         event_publisher=event_publisher
     )
     
