@@ -15,6 +15,16 @@ from .entities import OHLCVBar, EntityId
 from .value_objects import Symbol, Timestamp, TimeRange
 from .aggregates import SymbolBarsAggregate, UniverseAggregate, DailySummary
 
+# Import concrete implementations (only in type checking to keep interfaces clean)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..infrastructure.repositories.sqlite_domain import (
+        SqliteSymbolBarsRepository,
+        SqliteOHLCVRepository,
+        SqliteCheckpointRepository,
+    )
+
 
 class ISymbolBarsRepository(ABC):
     """Repository interface for symbol bars aggregates.
@@ -38,7 +48,7 @@ class ISymbolBarsRepository(ABC):
         Returns:
             SymbolBarsAggregate if found, None otherwise
         """
-        pass
+        ...
     
     @abstractmethod
     async def save(self, aggregate: SymbolBarsAggregate) -> None:
@@ -50,7 +60,7 @@ class ISymbolBarsRepository(ABC):
         Raises:
             ConcurrencyError: If aggregate has been modified by another process
         """
-        pass
+        ...
     
     @abstractmethod
     async def find_symbols_with_data(
@@ -67,7 +77,7 @@ class ISymbolBarsRepository(ABC):
         Returns:
             List of symbols that have data in the date range
         """
-        pass
+        ...
     
     @abstractmethod
     async def get_completion_status(
@@ -84,7 +94,7 @@ class ISymbolBarsRepository(ABC):
         Returns:
             Nested dictionary: {symbol: {date: is_complete}}
         """
-        pass
+        ...
     
     @abstractmethod
     async def delete(self, symbol: Symbol, trading_date: date) -> bool:
@@ -97,7 +107,7 @@ class ISymbolBarsRepository(ABC):
         Returns:
             True if aggregate was deleted, False if not found
         """
-        pass
+        ...
 
 
 class IOHLCVRepository(ABC):
@@ -123,7 +133,7 @@ class IOHLCVRepository(ABC):
         Yields:
             OHLCVBar instances in chronological order
         """
-        pass
+        ...
     
     @abstractmethod
     async def get_bars_for_symbols(
@@ -140,7 +150,7 @@ class IOHLCVRepository(ABC):
         Yields:
             OHLCVBar instances sorted by timestamp then symbol
         """
-        pass
+        ...
     
     @abstractmethod
     async def save_bars(self, bars: List[OHLCVBar]) -> None:
@@ -153,7 +163,7 @@ class IOHLCVRepository(ABC):
             ValidationError: If any bars are invalid
             DuplicateKeyError: If bars with same symbol/timestamp already exist
         """
-        pass
+        ...
     
     @abstractmethod
     async def exists(self, symbol: Symbol, timestamp: Timestamp) -> bool:
@@ -166,7 +176,7 @@ class IOHLCVRepository(ABC):
         Returns:
             True if bar exists
         """
-        pass
+        ...
     
     @abstractmethod
     async def count_bars(
@@ -183,7 +193,7 @@ class IOHLCVRepository(ABC):
         Returns:
             Number of bars
         """
-        pass
+        ...
     
     @abstractmethod
     async def get_latest_timestamp(self, symbol: Symbol) -> Optional[Timestamp]:
@@ -195,7 +205,7 @@ class IOHLCVRepository(ABC):
         Returns:
             Latest timestamp if data exists, None otherwise
         """
-        pass
+        ...
     
     @abstractmethod
     async def delete_bars(
@@ -212,7 +222,7 @@ class IOHLCVRepository(ABC):
         Returns:
             Number of bars deleted
         """
-        pass
+        ...
 
 
 class IUniverseRepository(ABC):
@@ -231,7 +241,7 @@ class IUniverseRepository(ABC):
         Returns:
             UniverseAggregate if found, None otherwise
         """
-        pass
+        ...
     
     @abstractmethod
     async def save(self, universe: UniverseAggregate) -> None:
@@ -240,7 +250,7 @@ class IUniverseRepository(ABC):
         Args:
             universe: The universe aggregate to save
         """
-        pass
+        ...
     
     @abstractmethod
     async def get_default_universe(self) -> UniverseAggregate:
@@ -249,7 +259,7 @@ class IUniverseRepository(ABC):
         Returns:
             The default universe aggregate
         """
-        pass
+        ...
     
     @abstractmethod
     async def list_universes(self) -> List[str]:
@@ -258,7 +268,7 @@ class IUniverseRepository(ABC):
         Returns:
             List of universe identifiers
         """
-        pass
+        ...
 
 
 class IDailySummaryRepository(ABC):
@@ -282,7 +292,7 @@ class IDailySummaryRepository(ABC):
         Returns:
             DailySummary if available, None otherwise
         """
-        pass
+        ...
     
     @abstractmethod
     async def get_summaries(
@@ -301,7 +311,7 @@ class IDailySummaryRepository(ABC):
         Returns:
             List of daily summaries sorted by trading date
         """
-        pass
+        ...
     
     @abstractmethod
     async def save_summary(self, summary: DailySummary) -> None:
@@ -310,7 +320,7 @@ class IDailySummaryRepository(ABC):
         Args:
             summary: The daily summary to save
         """
-        pass
+        ...
     
     @abstractmethod
     async def save_summaries(self, summaries: List[DailySummary]) -> None:
@@ -319,7 +329,7 @@ class IDailySummaryRepository(ABC):
         Args:
             summaries: List of daily summaries to save
         """
-        pass
+        ...
     
     @abstractmethod
     async def delete_summary(self, symbol: Symbol, trading_date: date) -> bool:
@@ -332,7 +342,7 @@ class IDailySummaryRepository(ABC):
         Returns:
             True if summary was deleted, False if not found
         """
-        pass
+        ...
 
 
 class ICheckpointRepository(ABC):
@@ -353,7 +363,7 @@ class ICheckpointRepository(ABC):
             symbol: The financial instrument symbol
             checkpoint_data: Checkpoint state data
         """
-        pass
+        ...
     
     @abstractmethod
     async def get_checkpoint(
@@ -368,7 +378,7 @@ class ICheckpointRepository(ABC):
         Returns:
             Checkpoint data if exists, None otherwise
         """
-        pass
+        ...
     
     @abstractmethod
     async def delete_checkpoint(self, symbol: Symbol) -> bool:
@@ -380,7 +390,7 @@ class ICheckpointRepository(ABC):
         Returns:
             True if checkpoint was deleted, False if not found
         """
-        pass
+        ...
     
     @abstractmethod
     async def list_checkpoints(self) -> List[Symbol]:
@@ -389,7 +399,7 @@ class ICheckpointRepository(ABC):
         Returns:
             List of symbols that have checkpoints
         """
-        pass
+        ...
 
 
 class IMarketDataProviderRepository(ABC):
@@ -411,7 +421,7 @@ class IMarketDataProviderRepository(ABC):
         Returns:
             Provider configuration if found, None otherwise
         """
-        pass
+        ...
     
     @abstractmethod
     async def save_provider_config(
@@ -425,7 +435,7 @@ class IMarketDataProviderRepository(ABC):
             provider_id: Unique identifier for the provider
             config: Provider configuration data
         """
-        pass
+        ...
     
     @abstractmethod
     async def list_providers(self) -> List[str]:
@@ -434,7 +444,7 @@ class IMarketDataProviderRepository(ABC):
         Returns:
             List of provider identifiers
         """
-        pass
+        ...
     
     @abstractmethod
     async def is_provider_available(self, provider_id: str) -> bool:
@@ -446,30 +456,30 @@ class IMarketDataProviderRepository(ABC):
         Returns:
             True if provider is available
         """
-        pass
+        ...
 
 
 # Repository exceptions
 class RepositoryError(Exception):
     """Base exception for repository operations."""
-    pass
+    ...
 
 
 class ConcurrencyError(RepositoryError):
     """Raised when optimistic concurrency control fails."""
-    pass
+    ...
 
 
 class DuplicateKeyError(RepositoryError):
     """Raised when attempting to save data with duplicate key."""
-    pass
+    ...
 
 
 class ValidationError(RepositoryError):
     """Raised when data fails repository validation."""
-    pass
+    ...
 
 
 class NotFoundError(RepositoryError):
     """Raised when requested data is not found."""
-    pass
+    ...

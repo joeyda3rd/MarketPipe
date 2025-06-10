@@ -81,9 +81,16 @@ class BarCollectionStarted(DomainEvent):
     """Event raised when bar collection begins for a symbol/date."""
     symbol: Symbol
     trading_date: date
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
     def __post_init__(self):
-        super().__init__()
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
@@ -107,9 +114,16 @@ class BarCollectionCompleted(DomainEvent):
     trading_date: date
     bar_count: int
     has_gaps: bool = False
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
     
     def __post_init__(self):
-        super().__init__()
+        # Use object.__setattr__ for frozen dataclasses
+        if self.event_id is None:
+            object.__setattr__(self, 'event_id', uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, 'occurred_at', datetime.now(timezone.utc))
     
     @property
     def event_type(self) -> str:
