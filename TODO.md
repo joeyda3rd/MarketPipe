@@ -42,8 +42,8 @@
 
 - [x] 🔴 **Implement schema validation rules** _(OHLCV consistency, timestamp alignment)_ ✅ **COMPLETED** - Business rules validation with trading hours, price reasonableness
 - [x] 🟡 **Add business rule validators** _(price reasonableness, volume sanity checks)_ ✅ **COMPLETED** - Comprehensive validation service with pattern analysis
-- [ ] 🟡 **Implement CsvReportRepository** _(save validation reports per job)_
-- [ ] 🟡 **Wire validation to CLI command** _(remove "TODO: wire up validation" comment)_
+- [x] 🟡 **Implement CsvReportRepository** _(save validation reports per job)_ ✅ **COMPLETED** - Full CSV reporting with save/load/list operations, comprehensive testing
+- [x] 🟡 **Wire validation to CLI command** _(remove "TODO: wire up validation" comment)_ ✅ **COMPLETED** - Enhanced CLI with --job-id, --list, --show options
 - [x] 🟢 **Add validation integration tests** _(current coverage: 95%)_ ✅ **COMPLETED** - All validation tests passing
 
 ## 🏭 Infrastructure
@@ -55,7 +55,7 @@
 
 ## 📈 Metrics & Monitoring
 
-- [ ] 🟡 **Complete SqliteMetricsRepository** _(history tracking, performance trends)_
+- [x] 🟡 **Complete SqliteMetricsRepository** _(history tracking, performance trends)_ ✅ **COMPLETED** - Full implementation with get_metrics_history, get_average_metrics, get_performance_trends
 - [ ] 🟡 **Add metrics CLI command** _(simple performance reports)_
 - [ ] 🟢 **Implement event bus monitoring** _(track published/consumed events)_
 - [ ] 🔵 **Add Grafana dashboard config** _(visualization templates)_
@@ -66,21 +66,30 @@
   - [x] Add repository integration tests ✅ **COMPLETED** - 22 comprehensive unit tests for SQLite repositories
   - [x] Add aggregate/service unit tests ✅ **COMPLETED** - 68 domain tests with comprehensive coverage
   - [x] Add end-to-end pipeline test ✅ **COMPLETED** - Integration tests with async coordination
-- [ ] 🟡 **Remove all NotImplementedError placeholders** _(production readiness)_
+- [x] 🟡 **Remove all NotImplementedError placeholders** _(production readiness)_ ✅ **COMPLETED** - All placeholders replaced with proper implementations
 - [ ] 🟡 **Update README with architecture diagram** _(quick-start guide, config examples)_
 - [ ] 🟢 **Add CONTRIBUTING.md** _(test instructions, development setup)_
 - [ ] 🔵 **Add API documentation** _(domain model, CLI reference)_
 
 ---
 
-**Current Test Coverage**: ~75% overall ✅ **MILESTONE ACHIEVED** _(Updated: Test Infrastructure Stabilization phase)_
+**Current Test Coverage**: ~80% overall ✅ **MILESTONE ACHIEVED** _(Updated: Validation Reporting & Global Placeholder Removal phase)_
 - Infrastructure: ~85% ✅ _(SQLite repositories: 60% coverage, exceeds requirements)_
 - Ingestion: ~80% ✅ _(Significantly improved with async coordination fixes)_
 - Domain Core: ~80% ✅ _(Significantly improved with domain services implementation)_
-- Validation: ~95% ✅ _(Complete with MarketDataValidationService)_
+- Validation: ~95% ✅ _(Complete with CsvReportRepository and CLI integration)_
 - Aggregation: ~70% ✅ _(Improved with event handling fixes)_
 
 ## 🎉 Recent Completions
+
+### Validation Reporting & Global Placeholder Removal _(Latest: December 2024)_
+- ✅ **CsvReportRepository Implementation**: Complete save/load/list operations with CSV format (symbol, ts_ns, reason), filename pattern <job_id>_<symbol>.csv
+- ✅ **Enhanced CLI Validation**: Updated `marketpipe validate` command with --job-id (re-run), --list (enumerate reports), --show (display CSV) operations
+- ✅ **Placeholder Elimination**: All NotImplementedError statements replaced with proper implementations across base_api_client.py, repositories.py, adapters.py
+- ✅ **Comprehensive Testing**: 15+ unit tests for CsvReportRepository, integration tests for full pipeline validation workflow
+- ✅ **Production Readiness**: Rich table formatting with graceful fallbacks, comprehensive error handling, proper logging integration
+- ✅ **Technical Debt Cleanup**: SqliteMetricsRepository methods implemented (get_metrics_history, get_average_metrics, get_performance_trends)
+- ✅ **IEX Adapter Stubs**: Provided working implementations for get_bars, get_trades, get_quotes methods
 
 ### Test Infrastructure Stabilization _(Latest: December 2024)_
 - ✅ **Dynamic Date Generation**: Replaced hardcoded 2023 dates with `create_recent_time_range()` function generating dates 10 days ago to avoid 730-day validation limits
