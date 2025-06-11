@@ -3,9 +3,8 @@ from __future__ import annotations
 
 import asyncio
 import pyarrow.parquet as pq
-from datetime import datetime, timezone
+from datetime import timezone
 
-import pytest
 
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage

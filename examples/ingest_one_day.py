@@ -12,16 +12,18 @@ CONFIG = HERE.parent / "config" / "example_config.yaml"
 
 
 def main() -> None:
-    subprocess.run([
-        "python",
-        "-m",
-        "marketpipe",
-        "ingest",
-        "--config",
-        str(CONFIG),
-    ], check=True)
+    subprocess.run(
+        [
+            "python",
+            "-m",
+            "marketpipe",
+            "ingest",
+            "--config",
+            str(CONFIG),
+        ],
+        check=True,
+    )
 
 
 if __name__ == "__main__":
     main()
-

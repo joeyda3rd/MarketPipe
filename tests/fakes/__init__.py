@@ -6,7 +6,7 @@ from __future__ import annotations
 from .repositories import (
     FakeIngestionJobRepository,
     FakeIngestionCheckpointRepository,
-    FakeIngestionMetricsRepository
+    FakeIngestionMetricsRepository,
 )
 from .adapters import FakeMarketDataAdapter
 from .events import FakeEventPublisher
@@ -14,7 +14,7 @@ from .validators import FakeDataValidator
 
 __all__ = [
     "FakeIngestionJobRepository",
-    "FakeIngestionCheckpointRepository", 
+    "FakeIngestionCheckpointRepository",
     "FakeIngestionMetricsRepository",
     "FakeMarketDataAdapter",
     "FakeEventPublisher",

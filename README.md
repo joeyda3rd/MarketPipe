@@ -10,42 +10,82 @@ DuckDB/Parquet storage.  The project is still in early scaffolding.
 
 ```mermaid
 flowchart TD
-    subgraph Universe
-        U0["Weekly Universe Refresh (Cboe + OCC scrape)"] --> U1["Filtered Tickers (universe-YYYY-MM-DD.csv)"]
+    %% ---------- Provider layer ----------
+    subgraph "Provider Registry"
+        direction LR
+        REG["Registry<br/>(entry_points)"]:::adapter
+        REG -. registers .-> PAD["Adapters:<br/>• Alpaca<br/>• Finnhub<br/>• Polygon<br/>• …"]:::adapter
     end
-    subgraph DailyPipeline
-        subgraph Ingestion
-            I0["Daily Ingest (1-min OHLCV, Finnhub API)"] --> I1["Raw Parquet Storage: frame=1m/symbol/date"]
-            BF["Backfill Historical OHLCV (--start, --end)"] --> I1
+
+    %% ---------- Universe ----------
+    subgraph "Universe"
+        UB["Universe Builder<br/>(filters.yml)"]:::io --> UCSV["universe-YYYY-MM-DD.csv"]
+    end
+
+    %% ---------- Daily pipeline (single row) ----------
+    subgraph "DailyPipeline"
+        direction LR          %% keep the three stages side-by-side
+
+        %% Ingestion
+        subgraph "Ingestion"
+            direction TB
+            ING["mp ingest-ohlcv --provider &lt;id&gt;"]:::io --> RAW["Raw 1 m Parquet"]
+            BF["mp backfill-ohlcv --provider &lt;id&gt;"]:::io --> RAW
         end
 
-        subgraph Aggregation
-            A0["Aggregate to 5m, 15m, 1h, 1d (DuckDB SQL)"] --> A1["Write Aggregated Parquet: frame=Xm/symbol/date"]
+        %% Aggregation
+        subgraph "Aggregation"
+            direction TB
+            AGG["mp aggregate-ohlcv"] --> AGGPK["Parquet 5 m / 15 m / 1 h / 1 d"]
         end
 
-        subgraph Validation
-            V0["Validate 1d Close vs Polygon API"] --> V1["Validation Report CSV"]
-            V1 --> QA["Emit QA Metrics"]
+        %% Validation
+        subgraph "Validation"
+            direction TB
+            VAL["mp validate-ohlcv --provider &lt;id&gt;"]:::io --> VCSV["Validation report"]
+            VCSV --> QA["Emit QA metrics"]
         end
     end
 
-    subgraph Loader
-        L0["load_ohlcv()"]
-        L0 --> DB0["DuckDB parquet_scan"]
-        DB0 --> DF["Filtered DataFrame (timestamp, symbol)"]
+    %% ---------- Loader (dropped one row) ----------
+    subgraph "Loader"
+        direction TB
+        LD["load_ohlcv()"] --> SCAN["DuckDB parquet_scan"] --> DF["DataFrame"]
     end
 
-    subgraph Schedule
-        CRON1["18:10 ET → Ingest"] --> I0
-        CRON2["18:20 ET → Aggregate"] --> A0
-        CRON3["18:30 ET → Validate"] --> V0
-        CRON4["Thu 20:00 ET → Universe Refresh"] --> U0
+    %% invisible spacer to steer arrow around Provider Registry
+    SPACER(( )):::invis
+
+    %% ---------- Scheduler ----------
+    subgraph "Scheduler (crontab)"
+        CR1["18:10 ET"] --> ING
+        CR2["18:20 ET"] --> AGG
+        CR3["18:30 ET"] --> VAL
+        CR4["Thu 20:00 ET"] --> UB
     end
 
-    I1 --> A0
-    A1 --> V0
-    DF --> Quant["Signal/Backtest Consumers"]
-    QA --> Quant
+    %% ---------- Flow arrows ----------
+    UCSV --> ING
+    UCSV --> BF
+    REG  --> ING
+    REG  --> BF
+    REG  --> VAL
+    RAW  --> AGG
+    AGGPK --> VAL
+    QA   --> MON["Prometheus / Grafana"]
+
+    %% bend DataFrame → Quant around Provider Registry
+    DF --> SPACER
+    SPACER --> QUANT["Quant / Backtest"]
+
+    %% ---------- Styles ----------
+    classDef io      fill:#ffeecc,stroke:#d88200;
+    classDef adapter fill:#d0eaff,stroke:#0077cc;
+    classDef invis   fill:#ffffff00,stroke:#ffffff00;   %% transparent node
+
+    class ING,BF,UB,VAL io;
+    class REG,PAD adapter;
+
 ```
 
 ## Installation
@@ -56,44 +96,57 @@ pip install -e .
 
 ## Usage
 
-### Running an ingestion job
+### Available Providers
 
-MarketPipe supports two ways to configure ingestion jobs:
-
-#### Option 1: Using YAML configuration file
+First, check what providers are available:
 
 ```bash
-# Basic usage with config file
-marketpipe ingest --config examples/config/ingestion_example.yaml
-
-# Override specific settings from config file
-marketpipe ingest --config examples/config/ingestion_example.yaml --batch-size 500 --workers 8
+# List all registered providers
+marketpipe providers
 ```
 
-#### Option 2: Using direct CLI flags
+### Running an ingestion job
+
+MarketPipe supports direct CLI flag usage with multiple providers:
 
 ```bash
-# Direct flag usage
-marketpipe ingest --symbols AAPL,MSFT,NVDA --start 2025-01-01 --end 2025-01-07 --batch-size 1000
+# Using fake provider (generates synthetic data)
+marketpipe ingest --provider fake --symbols TEST --start 2024-01-01 --end 2024-01-02 --batch-size 10
+
+# Using Alpaca provider (requires ALPACA_KEY and ALPACA_SECRET env vars)
+marketpipe ingest --provider alpaca --symbols AAPL,MSFT --start 2024-01-01 --end 2024-01-02 --batch-size 1000
+
+# Using IEX provider (requires IEX_TOKEN env var)
+marketpipe ingest --provider iex --symbols AAPL --start 2024-01-01 --end 2024-01-02 --batch-size 500
 ```
 
 #### Configuration options
 
-- `--config`: Path to YAML configuration file
+- `--provider`: Market data provider (`fake`, `alpaca`, `iex`)
 - `--symbols`: Comma-separated list of stock symbols (e.g., AAPL,MSFT)  
 - `--start`: Start date in YYYY-MM-DD format
 - `--end`: End date in YYYY-MM-DD format
 - `--batch-size`: Number of bars per API request (default: 1000)
 - `--output`: Output directory for data files (default: ./data)
 - `--workers`: Number of worker threads (default: 4)
-- `--provider`: Market data provider (default: alpaca)
-- `--feed-type`: Data feed type - 'iex' for free, 'sip' for paid (default: iex)
 
-### Starting metrics server
+### Other Commands
 
 ```bash
+# Validate ingested data
+marketpipe validate
+
+# Run ad-hoc queries on stored data
+marketpipe query
+
+# Aggregate data to different timeframes
+marketpipe aggregate
+
 # Start Prometheus metrics server
 marketpipe metrics --port 8000
+
+# Apply database migrations
+marketpipe migrate
 ```
 
 ### General help

@@ -9,4 +9,4 @@ from __future__ import annotations
 
 from . import storage
 
-__all__ = ["storage"] 
+__all__ = ["storage"]

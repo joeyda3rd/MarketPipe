@@ -1,2 +1,2 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Validation domain layer.""" 
+"""Validation domain layer."""

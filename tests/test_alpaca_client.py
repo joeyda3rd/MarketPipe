@@ -4,7 +4,6 @@
 import types
 
 import httpx
-import pytest
 import asyncio
 
 from marketpipe.ingestion.infrastructure.alpaca_client import AlpacaClient
@@ -16,13 +15,29 @@ def test_legacy_alpaca_client_handles_symbol_data_pagination(monkeypatch):
     pages = [
         {
             "bars": [
-                {"S": "AAPL", "t": "2023-01-02T09:30:00", "o": 1, "h": 2, "l": 3, "c": 4, "v": 5}
+                {
+                    "S": "AAPL",
+                    "t": "2023-01-02T09:30:00",
+                    "o": 1,
+                    "h": 2,
+                    "l": 3,
+                    "c": 4,
+                    "v": 5,
+                }
             ],
             "next_page_token": "abc",
         },
         {
             "bars": [
-                {"S": "AAPL", "t": "2023-01-02T09:31:00", "o": 1, "h": 2, "l": 3, "c": 4, "v": 5}
+                {
+                    "S": "AAPL",
+                    "t": "2023-01-02T09:31:00",
+                    "o": 1,
+                    "h": 2,
+                    "l": 3,
+                    "c": 4,
+                    "v": 5,
+                }
             ]
         },
     ]
@@ -46,14 +61,35 @@ def test_legacy_alpaca_client_handles_symbol_data_pagination(monkeypatch):
     assert headers_seen[0]["APCA-API-KEY-ID"] == "id"
     assert all(r["schema_version"] == 1 for r in rows)
 
+
 def test_legacy_alpaca_client_supports_async_symbol_data_retrieval(monkeypatch):
     pages = [
         {
-            "bars": [{"S": "AAPL", "t": "2023-01-02T09:30:00", "o": 1, "h": 2, "l": 3, "c": 4, "v": 5}],
+            "bars": [
+                {
+                    "S": "AAPL",
+                    "t": "2023-01-02T09:30:00",
+                    "o": 1,
+                    "h": 2,
+                    "l": 3,
+                    "c": 4,
+                    "v": 5,
+                }
+            ],
             "next_page_token": "abc",
         },
         {
-            "bars": [{"S": "AAPL", "t": "2023-01-02T09:31:00", "o": 1, "h": 2, "l": 3, "c": 4, "v": 5}]
+            "bars": [
+                {
+                    "S": "AAPL",
+                    "t": "2023-01-02T09:31:00",
+                    "o": 1,
+                    "h": 2,
+                    "l": 3,
+                    "c": 4,
+                    "v": 5,
+                }
+            ]
         },
     ]
     headers_seen = []
@@ -61,10 +97,13 @@ def test_legacy_alpaca_client_supports_async_symbol_data_retrieval(monkeypatch):
     class DummyAsyncClient:
         def __init__(self, *a, **kw):
             pass
+
         async def __aenter__(self):
             return self
+
         async def __aexit__(self, exc_type, exc, tb):
             pass
+
         async def get(self, url, params=None, headers=None):
             headers_seen.append(headers)
             body = pages.pop(0)

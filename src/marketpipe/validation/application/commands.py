@@ -9,4 +9,5 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class ValidateJobCommand:
     """Command to validate an ingestion job."""
-    job_id: str 
+
+    job_id: str

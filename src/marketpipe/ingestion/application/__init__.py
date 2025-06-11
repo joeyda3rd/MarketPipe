@@ -13,7 +13,7 @@ __all__ = [
     "IngestionJobService",
     # Commands
     "CreateIngestionJobCommand",
-    "StartJobCommand", 
+    "StartJobCommand",
     "CancelJobCommand",
     # Queries
     "GetJobStatusQuery",

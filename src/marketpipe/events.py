@@ -27,7 +27,7 @@ Subscriber = Callable[[DomainEvent], None]
 
 class EventBus:
     """Simple in-memory event bus for domain events."""
-    
+
     _subs: Dict[Type[DomainEvent], List[Subscriber]] = defaultdict(list)
 
     @classmethod
@@ -43,8 +43,8 @@ class EventBus:
 
 
 __all__ = [
-    "DomainEvent", 
-    "EventBus", 
+    "DomainEvent",
+    "EventBus",
     "BarCollectionStarted",
     "BarCollectionCompleted",
     "ValidationFailed",
@@ -55,4 +55,4 @@ __all__ = [
     "RateLimitExceeded",
     "SymbolActivated",
     "SymbolDeactivated",
-] 
+]

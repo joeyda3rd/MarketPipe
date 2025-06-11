@@ -10,14 +10,18 @@ from marketpipe.ingestion.infrastructure.models import ClientConfig
 
 class DummyMarketDataAuth(AuthStrategy):
     """Dummy authentication strategy for testing."""
+
     def apply(self, headers: dict, params: dict) -> None:
         pass
 
 
 def test_legacy_abstract_base_client_enforces_complete_implementation():
     """Test that legacy abstract base client enforces complete implementation."""
+
     class IncompleteMarketDataClient(BaseApiClient):
-        def build_request_params(self, symbol: str, start_ts: int, end_ts: int, cursor=None):
+        def build_request_params(
+            self, symbol: str, start_ts: int, end_ts: int, cursor=None
+        ):
             return {}
 
         def endpoint_path(self) -> str:
@@ -27,7 +31,10 @@ def test_legacy_abstract_base_client_enforces_complete_implementation():
             return None
 
     with pytest.raises(TypeError):
-        IncompleteMarketDataClient(config=ClientConfig(api_key="k", base_url="http://x"), auth=DummyMarketDataAuth())
+        IncompleteMarketDataClient(
+            config=ClientConfig(api_key="k", base_url="http://x"),
+            auth=DummyMarketDataAuth(),
+        )
 
 
 def test_legacy_client_config_validates_required_parameters():
@@ -44,7 +51,9 @@ def test_legacy_base_client_supports_symbol_data_pagination():
             super().__init__(*args, **kwargs)
             self.calls = 0
 
-        def build_request_params(self, symbol: str, start_ts: int, end_ts: int, cursor=None):
+        def build_request_params(
+            self, symbol: str, start_ts: int, end_ts: int, cursor=None
+        ):
             return {}
 
         def endpoint_path(self) -> str:
@@ -64,7 +73,9 @@ def test_legacy_base_client_supports_symbol_data_pagination():
             self.calls += 1
             return result
 
-    client = PagingClient(config=ClientConfig(api_key="t", base_url="http://x"), auth=DummyMarketDataAuth())
+    client = PagingClient(
+        config=ClientConfig(api_key="t", base_url="http://x"),
+        auth=DummyMarketDataAuth(),
+    )
     pagination_results = list(client.paginate("AAPL", 1, 2))
     assert len(pagination_results) == 3
-

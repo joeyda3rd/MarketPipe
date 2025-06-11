@@ -22,9 +22,63 @@ dependencies = [
     "python-dotenv"
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.11.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.11.0",
+]
+
 [project.scripts]
 marketpipe = "marketpipe.cli:app"
 
+[project.entry-points."marketpipe.providers"]
+alpaca = "marketpipe.ingestion.infrastructure.adapters:AlpacaMarketDataAdapter"
+iex = "marketpipe.ingestion.infrastructure.iex_adapter:IEXMarketDataAdapter"
+fake = "marketpipe.ingestion.infrastructure.fake_adapter:FakeMarketDataAdapter"
+
 [tool.setuptools]
 license-files = ["LICENSE"]
+
+[tool.coverage.run]
+source = ["src/marketpipe"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "examples/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+    "\\.\\.\\.",  # Ellipsis statements
+]
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from marketpipe.events import EventBus, IngestionJobCompleted
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
-from marketpipe.domain.value_objects import Symbol, TimeRange
+from marketpipe.domain.value_objects import Symbol
 from marketpipe.domain.entities import OHLCVBar, EntityId
 from marketpipe.domain.value_objects import Price, Volume, Timestamp
 from ..domain.services import ValidationDomainService
@@ -14,7 +14,7 @@ from ..infrastructure.repositories import CsvReportRepository
 
 class ValidationRunnerService:
     """Application service for running validation on ingested data."""
-    
+
     def __init__(self, storage_engine, validator, reporter):
         self._storage_engine = storage_engine
         self._validator = validator
@@ -25,63 +25,73 @@ class ValidationRunnerService:
         try:
             # Record validation start metrics
             from marketpipe.metrics import record_metric
+
             record_metric("validation_jobs_started", 1)
-            
+
             # Load DataFrames from storage engine
             symbol_dataframes = self._storage_engine.load_job_bars(event.job_id)
-            
+
             total_errors = 0
             total_bars_validated = 0
             symbols_processed = 0
-            
+
             for symbol_name, df in symbol_dataframes.items():
                 try:
                     # Convert DataFrame to domain objects
                     bars = self._convert_dataframe_to_bars(df, symbol_name)
                     total_bars_validated += len(bars)
-                    
+
                     # Validate using domain service
                     result = self._validator.validate_bars(symbol_name, bars)
-                    
+
                     # Record validation metrics
                     error_count = len(result.errors)
                     total_errors += error_count
-                    
+
                     record_metric("validation_bars_processed", len(bars))
                     record_metric(f"validation_bars_{symbol_name}", len(bars))
-                    
+
                     if error_count > 0:
                         record_metric("validation_errors_found", error_count)
                         record_metric(f"validation_errors_{symbol_name}", error_count)
-                        print(f"WARN Validation found {error_count} errors for {symbol_name}")
+                        print(
+                            f"WARN Validation found {error_count} errors for {symbol_name}"
+                        )
                     else:
                         record_metric("validation_success", 1)
                         record_metric(f"validation_success_{symbol_name}", 1)
-                    
+
                     # Save validation report with job_id
                     report_path = self._reporter.save(event.job_id, result)
                     print(f"INFO Validation report written: {report_path}")
-                    
+
                     symbols_processed += 1
-                    
+
                 except Exception as symbol_error:
                     # Record symbol-specific validation failure
                     record_metric("validation_symbol_failures", 1)
                     record_metric(f"validation_failure_{symbol_name}", 1)
-                    print(f"ERROR Failed to validate symbol {symbol_name}: {symbol_error}")
-            
+                    print(
+                        f"ERROR Failed to validate symbol {symbol_name}: {symbol_error}"
+                    )
+
             # Record overall job validation metrics
             if total_errors == 0:
                 record_metric("validation_jobs_success", 1)
-                print(f"INFO Validation completed successfully for job {event.job_id}: {symbols_processed} symbols, {total_bars_validated} bars")
+                print(
+                    f"INFO Validation completed successfully for job {event.job_id}: {symbols_processed} symbols, {total_bars_validated} bars"
+                )
             else:
                 record_metric("validation_jobs_with_errors", 1)
                 record_metric("validation_total_errors", total_errors)
-                print(f"WARN Validation completed with {total_errors} total errors for job {event.job_id}")
-                
+                print(
+                    f"WARN Validation completed with {total_errors} total errors for job {event.job_id}"
+                )
+
         except Exception as e:
             # Record overall validation failure
             from marketpipe.metrics import record_metric
+
             record_metric("validation_jobs_failed", 1)
             print(f"ERROR Validation failed for job {event.job_id}: {e}")
             raise
@@ -90,24 +100,24 @@ class ValidationRunnerService:
         """Convert DataFrame to OHLCVBar domain objects."""
         bars = []
         symbol = Symbol.from_string(symbol_name)
-        
+
         for _, row in df.iterrows():
             try:
                 bar = OHLCVBar(
                     id=EntityId.generate(),
                     symbol=symbol,
-                    timestamp=Timestamp.from_nanoseconds(int(row['ts_ns'])),
-                    open_price=Price.from_float(float(row['open'])),
-                    high_price=Price.from_float(float(row['high'])),
-                    low_price=Price.from_float(float(row['low'])),
-                    close_price=Price.from_float(float(row['close'])),
-                    volume=Volume(int(row['volume']))
+                    timestamp=Timestamp.from_nanoseconds(int(row["ts_ns"])),
+                    open_price=Price.from_float(float(row["open"])),
+                    high_price=Price.from_float(float(row["high"])),
+                    low_price=Price.from_float(float(row["low"])),
+                    close_price=Price.from_float(float(row["close"])),
+                    volume=Volume(int(row["volume"])),
                 )
                 bars.append(bar)
-            except Exception as e:
+            except Exception:
                 # Skip invalid rows
                 continue
-        
+
         return bars
 
     # Wiring helpers
@@ -124,4 +134,4 @@ class ValidationRunnerService:
     def register(cls):
         """Register service to listen for ingestion completion events."""
         svc = cls.build_default()
-        EventBus.subscribe(IngestionJobCompleted, svc.handle_ingestion_completed) 
+        EventBus.subscribe(IngestionJobCompleted, svc.handle_ingestion_completed)
