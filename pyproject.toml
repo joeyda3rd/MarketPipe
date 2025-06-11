@@ -41,6 +41,7 @@ test = [
 ]
 
 [project.scripts]
+mp = "marketpipe.cli:app"
 marketpipe = "marketpipe.cli:app"
 
 [project.entry-points."marketpipe.providers"]
