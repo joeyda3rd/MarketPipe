@@ -11,8 +11,9 @@ except ImportError:
     print("❌ python-dotenv is required. Install with: pip install python-dotenv")
     exit(1)
 
-from marketpipe.ingestion.connectors import ClientConfig, RateLimiter, HeaderTokenAuth
+from marketpipe.ingestion.connectors import ClientConfig, HeaderTokenAuth
 from marketpipe.ingestion.connectors.alpaca_client import AlpacaClient
+from marketpipe.ingestion.infrastructure.rate_limit import create_rate_limiter_from_config
 
 # Check for required credentials in .env file
 try:
@@ -36,7 +37,10 @@ cfg = ClientConfig(
 )
 
 auth = HeaderTokenAuth(key, secret)
-limiter = RateLimiter()
+limiter = create_rate_limiter_from_config(
+    rate_limit_per_min=200,
+    provider_name="alpaca"
+)
 client = AlpacaClient(config=cfg, auth=auth, rate_limiter=limiter, feed="iex")
 
 start = int((dt.datetime.utcnow() - dt.timedelta(days=1)).timestamp() * 1000)

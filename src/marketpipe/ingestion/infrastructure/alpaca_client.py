@@ -111,6 +111,18 @@ class AlpacaClient(BaseApiClient):
             if not self.should_retry(r.status_code, response_json):
                 return response_json
 
+            # Handle Retry-After header for 429 responses
+            if r.status_code == 429 and self.rate_limiter:
+                retry_after = r.headers.get("Retry-After")
+                if retry_after:
+                    try:
+                        retry_seconds = int(retry_after)
+                        self.log.warning(f"Rate limited, respecting Retry-After: {retry_seconds}s")
+                        self.rate_limiter.notify_retry_after(retry_seconds)
+                        continue  # Try again after retry-after period
+                    except (ValueError, TypeError):
+                        self.log.warning(f"Invalid Retry-After header: {retry_after}")
+
             retries += 1
             if retries > self.config.max_retries:
                 raise RuntimeError(f"Alpaca request exceeded retry limit: {r.text}")
@@ -167,6 +179,18 @@ class AlpacaClient(BaseApiClient):
 
                 if not self.should_retry(r.status_code, response_json):
                     return response_json
+
+                # Handle Retry-After header for 429 responses
+                if r.status_code == 429 and self.rate_limiter:
+                    retry_after = r.headers.get("Retry-After")
+                    if retry_after:
+                        try:
+                            retry_seconds = int(retry_after)
+                            self.log.warning(f"Rate limited, respecting Retry-After: {retry_seconds}s")
+                            await self.rate_limiter.notify_retry_after_async(retry_seconds)
+                            continue  # Try again after retry-after period
+                        except (ValueError, TypeError):
+                            self.log.warning(f"Invalid Retry-After header: {retry_after}")
 
                 retries += 1
                 if retries > self.config.max_retries:

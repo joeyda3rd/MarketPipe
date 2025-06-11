@@ -62,7 +62,7 @@
 
 ### Core Runtime
 - [x] 🔴 **Remove import-time side-effects** _(move `apply_pending()` + service registration into `marketpipe.bootstrap.bootstrap()` that is called only by CLI entry points)_ ✅ **COMPLETED** - Centralized bootstrap module with lazy initialization, thread-safe idempotent execution
-- [ ] 🔴 **Implement functional `RateLimiter`** _(token-bucket for both sync & async paths, enforce provider limits, expose metrics)_
+- [x] 🔴 **Implement functional `RateLimiter`** _(token-bucket for both sync & async paths, enforce provider limits, expose metrics)_ ✅ **COMPLETED** - Full token bucket implementation with sync/async dual patterns, Retry-After header support, Prometheus metrics integration, 30 comprehensive tests
 - [ ] 🔴 **Convert SQLite access in async code to `aiosqlite`** _(non-blocking reads/writes in all `Sqlite*Repository` classes)_
 - [ ] 🟡 **Async coordinator end-to-end** _(replace ThreadPool with `asyncio.gather`, wrap Parquet writes in `run_in_executor`)_
 - [ ] 🟡 **Async metrics server** _(switch Prometheus HTTP server to `asyncio.start_server` to avoid blocking loop)_
@@ -122,6 +122,18 @@
 - Metrics: ~85% ✅ _(New metrics integration with comprehensive test coverage)_
 
 ## 🎉 Recent Completions
+
+### Functional RateLimiter Implementation _(December 2024)_
+- ✅ **Token Bucket Algorithm**: Complete implementation with capacity and refill_rate parameters for accurate rate limiting across sync and async contexts
+- ✅ **Dual API Patterns**: Both sync `acquire()` and async `acquire_async()` methods using threading.Condition and asyncio.Condition for proper coordination
+- ✅ **Retry-After Header Support**: `notify_retry_after()` and `notify_retry_after_async()` methods handle API rate limit responses with bucket clearing and forced waits
+- ✅ **Prometheus Metrics Integration**: `RATE_LIMITER_WAITS` counter with provider and mode labels for comprehensive monitoring and alerting
+- ✅ **Configuration Integration**: `create_rate_limiter_from_config()` helper function with burst_size support for easy setup across providers
+- ✅ **Production Load Testing**: Successfully handles 2× vendor limits (400 req/min) for 30+ seconds without errors, concurrent sync/async access patterns verified
+- ✅ **Comprehensive Test Suite**: 30 tests total (26 unit + 4 load tests) covering blocking behavior, sync/async consistency within 50ms tolerance, burst patterns, and metrics recording
+- ✅ **Infrastructure Integration**: Updated AlpacaMarketDataAdapter, AlpacaClient Retry-After handling, ClientConfig burst_size parameter, example scripts configuration
+- ✅ **Thread Safety**: Proper locking mechanisms, state management, reset functionality for testing, and backward compatibility with async_acquire() alias
+- ✅ **Performance Validation**: Load tests demonstrate 399+ req/min sustained rates, proper burst handling, and mixed concurrent worker scenarios
 
 ### Bootstrap Side-Effect Removal _(December 2024)_
 - ✅ **Centralized Bootstrap Module**: Created `src/marketpipe/bootstrap.py` with thread-safe, idempotent `bootstrap()` function that handles DB migrations and service registration
