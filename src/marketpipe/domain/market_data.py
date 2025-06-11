@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from .value_objects import Symbol, TimeRange
 from .entities import OHLCVBar
@@ -27,7 +26,7 @@ class ProviderMetadata:
     supports_real_time: bool
     supports_historical: bool
     rate_limit_per_minute: Optional[int]
-    minimum_time_resolution: str              # e.g. "1m"
+    minimum_time_resolution: str  # e.g. "1m"
     maximum_history_days: Optional[int]
 
 
@@ -44,15 +43,15 @@ class IMarketDataProvider(ABC):
     ) -> List[OHLCVBar]:
         """
         Fetch OHLCV bars for a symbol within a time range.
-        
+
         Args:
             symbol: The financial symbol to fetch
             time_range: Time range to fetch data for
             max_bars: Maximum number of bars to fetch
-            
+
         Returns:
             List of domain OHLCV bar entities
-            
+
         Raises:
             MarketDataUnavailableError: When provider cannot fulfill request
             InvalidSymbolError: When symbol is not supported
@@ -63,7 +62,7 @@ class IMarketDataProvider(ABC):
     async def get_supported_symbols(self) -> List[Symbol]:
         """
         Get list of symbols supported by this provider.
-        
+
         Returns:
             List of supported symbols
         """
@@ -73,7 +72,7 @@ class IMarketDataProvider(ABC):
     async def is_available(self) -> bool:
         """
         Test if the provider is currently available.
-        
+
         Returns:
             True if provider is available, False otherwise
         """
@@ -83,8 +82,8 @@ class IMarketDataProvider(ABC):
     def get_provider_metadata(self) -> ProviderMetadata:
         """
         Get metadata about this provider's capabilities.
-        
+
         Returns:
             Provider metadata including capabilities and limits
         """
-        ... 
+        ...

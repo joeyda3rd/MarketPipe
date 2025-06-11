@@ -23,4 +23,4 @@ class AggregationDomainService:
         FROM {src_table}
         GROUP BY symbol, floor(ts_ns/{window_ns})
         ORDER BY symbol, ts_ns
-        """ 
+        """

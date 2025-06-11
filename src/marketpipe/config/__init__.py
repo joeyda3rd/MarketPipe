@@ -3,4 +3,4 @@
 
 from .ingestion import IngestionJobConfig
 
-__all__ = ["IngestionJobConfig"] 
+__all__ = ["IngestionJobConfig"]

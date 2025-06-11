@@ -4,7 +4,11 @@
 from __future__ import annotations
 
 from .entities import IngestionJob, IngestionJobId, ProcessingState
-from .value_objects import IngestionConfiguration, IngestionPartition, BatchConfiguration
+from .value_objects import (
+    IngestionConfiguration,
+    IngestionPartition,
+    BatchConfiguration,
+)
 from .events import IngestionJobStarted, IngestionJobCompleted, IngestionBatchProcessed
 from .repositories import IIngestionJobRepository, IIngestionCheckpointRepository
 from .services import IngestionDomainService
@@ -13,7 +17,7 @@ from .storage import IDataStorage
 __all__ = [
     # Entities
     "IngestionJob",
-    "IngestionJobId", 
+    "IngestionJobId",
     "ProcessingState",
     # Value Objects
     "IngestionConfiguration",
@@ -22,7 +26,7 @@ __all__ = [
     "IDataStorage",
     # Events
     "IngestionJobStarted",
-    "IngestionJobCompleted", 
+    "IngestionJobCompleted",
     "IngestionBatchProcessed",
     # Repositories
     "IIngestionJobRepository",

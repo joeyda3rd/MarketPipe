@@ -13,9 +13,7 @@ class IDataStorage(ABC):
 
     @abstractmethod
     async def store_bars(
-        self,
-        bars: List[OHLCVBar],
-        config: IngestionConfiguration
+        self, bars: List[OHLCVBar], config: IngestionConfiguration
     ) -> IngestionPartition:
         """Persist bars and return information about the created partition."""
         pass

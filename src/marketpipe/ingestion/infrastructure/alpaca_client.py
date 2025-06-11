@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import json
-import logging
 import random
 import time
 from typing import Any, Dict, List, Mapping, Optional
@@ -14,9 +13,6 @@ import httpx
 from marketpipe.metrics import REQUESTS, ERRORS, LATENCY
 
 from .base_api_client import BaseApiClient
-from .models import ClientConfig
-from .rate_limit import RateLimiter
-from .auth import HeaderTokenAuth
 
 
 ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
@@ -29,7 +25,7 @@ class AlpacaClient(BaseApiClient):
 
     def __init__(self, *args, feed: str = "iex", **kwargs):
         """Initialize AlpacaClient with feed option.
-        
+
         Args:
             feed: Data feed to use ("iex" for free tier, "sip" for paid tier)
         """
@@ -88,24 +84,30 @@ class AlpacaClient(BaseApiClient):
             REQUESTS.labels("alpaca").inc()
             if r.status_code >= 400:
                 ERRORS.labels("alpaca", str(r.status_code)).inc()
-            
+
             # Handle JSON parsing safely
             try:
                 response_json = r.json()
             except (json.JSONDecodeError, ValueError) as e:
                 # If JSON parsing fails, check if we should retry based on status code only
-                self.log.warning(f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}")
+                self.log.warning(
+                    f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}"
+                )
                 if self.should_retry(r.status_code, {}):
                     retries += 1
                     if retries > self.config.max_retries:
-                        raise RuntimeError(f"Alpaca request exceeded retry limit: {r.text}")
+                        raise RuntimeError(
+                            f"Alpaca request exceeded retry limit: {r.text}"
+                        )
                     sleep = self._backoff(retries)
                     self.log.warning("Retry %d sleeping %.2fs", retries, sleep)
                     time.sleep(sleep)
                     continue
                 else:
-                    raise RuntimeError(f"Failed to parse Alpaca API response as JSON: {r.text}")
-            
+                    raise RuntimeError(
+                        f"Failed to parse Alpaca API response as JSON: {r.text}"
+                    )
+
             if not self.should_retry(r.status_code, response_json):
                 return response_json
 
@@ -139,24 +141,30 @@ class AlpacaClient(BaseApiClient):
                 REQUESTS.labels("alpaca").inc()
                 if r.status_code >= 400:
                     ERRORS.labels("alpaca", str(r.status_code)).inc()
-                
+
                 # Handle JSON parsing safely
                 try:
                     response_json = r.json()
                 except (json.JSONDecodeError, ValueError) as e:
                     # If JSON parsing fails, check if we should retry based on status code only
-                    self.log.warning(f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}")
+                    self.log.warning(
+                        f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}"
+                    )
                     if self.should_retry(r.status_code, {}):
                         retries += 1
                         if retries > self.config.max_retries:
                             raise RuntimeError("Alpaca async retry limit hit")
                         sleep = self._backoff(retries)
-                        self.log.warning("Async retry %d sleeping %.2fs", retries, sleep)
+                        self.log.warning(
+                            "Async retry %d sleeping %.2fs", retries, sleep
+                        )
                         await asyncio.sleep(sleep)
                         continue
                     else:
-                        raise RuntimeError(f"Failed to parse Alpaca API response as JSON: {r.text}")
-                
+                        raise RuntimeError(
+                            f"Failed to parse Alpaca API response as JSON: {r.text}"
+                        )
+
                 if not self.should_retry(r.status_code, response_json):
                     return response_json
 
@@ -181,7 +189,12 @@ class AlpacaClient(BaseApiClient):
                     {
                         "symbol": symbol,
                         "t": bar["t"],
-                        "timestamp": int(dt.datetime.fromisoformat(bar["t"].replace("Z", "+00:00")).timestamp() * 1_000_000_000),
+                        "timestamp": int(
+                            dt.datetime.fromisoformat(
+                                bar["t"].replace("Z", "+00:00")
+                            ).timestamp()
+                            * 1_000_000_000
+                        ),
                         "date": dt.date.fromisoformat(bar["t"][:10]),
                         "open": bar["o"],
                         "high": bar["h"],
@@ -207,7 +220,12 @@ class AlpacaClient(BaseApiClient):
                         {
                             "symbol": symbol,
                             "t": bar["t"],
-                            "timestamp": int(dt.datetime.fromisoformat(bar["t"].replace("Z", "+00:00")).timestamp() * 1_000_000_000),
+                            "timestamp": int(
+                                dt.datetime.fromisoformat(
+                                    bar["t"].replace("Z", "+00:00")
+                                ).timestamp()
+                                * 1_000_000_000
+                            ),
                             "date": dt.date.fromisoformat(bar["t"][:10]),
                             "open": bar["o"],
                             "high": bar["h"],
@@ -237,9 +255,8 @@ class AlpacaClient(BaseApiClient):
 
     @staticmethod
     def _backoff(attempt: int) -> float:
-        base = 1.5 ** attempt
+        base = 1.5**attempt
         return base + random.uniform(0, 0.2 * base)
 
 
 __all__ = ["AlpacaClient"]
-

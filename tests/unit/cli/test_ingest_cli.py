@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import patch, AsyncMock
 from typer.testing import CliRunner
 
@@ -18,7 +17,7 @@ def test_ingest_cli_smoke():
         # Mock the services
         mock_job_service = AsyncMock()
         mock_coordinator_service = AsyncMock()
-        
+
         mock_job_service.create_job.return_value = "job-123"
         mock_coordinator_service.execute_job.return_value = {
             "symbols_processed": 1,
@@ -26,17 +25,23 @@ def test_ingest_cli_smoke():
             "files_created": 1,
             "processing_time_seconds": 5.0,
         }
-        
+
         mock_build.return_value = (mock_job_service, mock_coordinator_service)
-        
+
         # Run the CLI command
-        result = runner.invoke(app, [
-            "ingest",
-            "--symbols", "AAPL",
-            "--start", "2025-01-01",
-            "--end", "2025-01-02"
-        ])
-        
+        result = runner.invoke(
+            app,
+            [
+                "ingest",
+                "--symbols",
+                "AAPL",
+                "--start",
+                "2025-01-01",
+                "--end",
+                "2025-01-02",
+            ],
+        )
+
         # Verify the command succeeded
         assert result.exit_code == 0
         assert "job-123" in result.stdout
@@ -50,7 +55,7 @@ def test_ingest_cli_with_multiple_symbols():
         # Mock the services
         mock_job_service = AsyncMock()
         mock_coordinator_service = AsyncMock()
-        
+
         mock_job_service.create_job.return_value = "job-456"
         mock_coordinator_service.execute_job.return_value = {
             "symbols_processed": 3,
@@ -58,19 +63,27 @@ def test_ingest_cli_with_multiple_symbols():
             "files_created": 3,
             "processing_time_seconds": 15.0,
         }
-        
+
         mock_build.return_value = (mock_job_service, mock_coordinator_service)
-        
+
         # Run the CLI command with multiple symbols
-        result = runner.invoke(app, [
-            "ingest",
-            "--symbols", "AAPL,GOOGL,MSFT",
-            "--start", "2025-01-01",
-            "--end", "2025-01-02",
-            "--batch-size", "500",
-            "--workers", "2"
-        ])
-        
+        result = runner.invoke(
+            app,
+            [
+                "ingest",
+                "--symbols",
+                "AAPL,GOOGL,MSFT",
+                "--start",
+                "2025-01-01",
+                "--end",
+                "2025-01-02",
+                "--batch-size",
+                "500",
+                "--workers",
+                "2",
+            ],
+        )
+
         # Verify the command succeeded
         assert result.exit_code == 0
         assert "job-456" in result.stdout
@@ -83,19 +96,25 @@ def test_ingest_cli_handles_service_errors():
         # Mock the services to raise an error
         mock_job_service = AsyncMock()
         mock_coordinator_service = AsyncMock()
-        
+
         mock_job_service.create_job.side_effect = ValueError("Invalid symbols")
-        
+
         mock_build.return_value = (mock_job_service, mock_coordinator_service)
-        
+
         # Run the CLI command
-        result = runner.invoke(app, [
-            "ingest",
-            "--symbols", "INVALID",
-            "--start", "2025-01-01",
-            "--end", "2025-01-02"
-        ])
-        
+        result = runner.invoke(
+            app,
+            [
+                "ingest",
+                "--symbols",
+                "INVALID",
+                "--start",
+                "2025-01-01",
+                "--end",
+                "2025-01-02",
+            ],
+        )
+
         # Verify the command failed gracefully
         assert result.exit_code == 1
         assert "Configuration error" in result.stdout
@@ -105,13 +124,19 @@ def test_ingest_cli_handles_missing_credentials():
     """Test that the CLI handles missing credentials gracefully."""
     with patch.dict("os.environ", {}, clear=True):
         # Run the CLI command without credentials
-        result = runner.invoke(app, [
-            "ingest",
-            "--symbols", "AAPL",
-            "--start", "2025-01-01",
-            "--end", "2025-01-02"
-        ])
-        
+        result = runner.invoke(
+            app,
+            [
+                "ingest",
+                "--symbols",
+                "AAPL",
+                "--start",
+                "2025-01-01",
+                "--end",
+                "2025-01-02",
+            ],
+        )
+
         # Verify the command failed gracefully
         assert result.exit_code == 1
-        assert "Alpaca credentials not found" in result.stdout 
+        assert "Alpaca credentials not found" in result.stdout

@@ -6,6 +6,7 @@ import datetime as dt
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     print("❌ python-dotenv is required. Install with: pip install python-dotenv")
@@ -18,20 +19,17 @@ from marketpipe.ingestion.connectors.alpaca_client import AlpacaClient
 async def test_credentials(key: str, secret: str) -> bool:
     """Test if credentials work with Alpaca Trading API"""
     import httpx
-    
-    headers = {
-        "APCA-API-KEY-ID": key,
-        "APCA-API-SECRET-KEY": secret
-    }
-    
+
+    headers = {"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret}
+
     # Test different endpoints to see which work
     endpoints_to_test = [
         ("Paper Trading API", "https://paper-api.alpaca.markets/v2/account"),
         ("Live Trading API", "https://api.alpaca.markets/v2/account"),
     ]
-    
+
     print("🔍 Testing credentials against different endpoints...")
-    
+
     for name, url in endpoints_to_test:
         try:
             print(f"🌐 Testing {name}: {url}")
@@ -46,7 +44,7 @@ async def test_credentials(key: str, secret: str) -> bool:
                     print(f"⚠️  {name}: HTTP {response.status_code}")
         except Exception as e:
             print(f"❌ {name}: Connection error - {e}")
-    
+
     return False
 
 
@@ -55,7 +53,9 @@ async def main() -> None:
     try:
         key = os.environ["ALPACA_KEY"]
         secret = os.environ["ALPACA_SECRET"]
-        print(f"📋 Loaded credentials from .env file - Key: {key[:8]}..., Secret: {secret[:8]}...")
+        print(
+            f"📋 Loaded credentials from .env file - Key: {key[:8]}..., Secret: {secret[:8]}..."
+        )
     except KeyError as e:
         print(f"❌ Missing required credential in .env file: {e}")
         print("\nTo run this demo, create a .env file in the project root with:")
@@ -66,7 +66,7 @@ async def main() -> None:
 
     # Test credentials first
     credentials_valid = await test_credentials(key, secret)
-    
+
     if not credentials_valid:
         print("\n❌ Credentials don't work with Trading API endpoints.")
         print("\nPossible issues:")
@@ -108,25 +108,29 @@ async def main() -> None:
     # Show the authentication headers that will be sent
     auth_headers = {}
     auth.apply(auth_headers, {})  # auth.apply modifies the headers dict in-place
-    print(f"🔐 Authentication headers:")
+    print("🔐 Authentication headers:")
     for header_name, header_value in auth_headers.items():
         # Show first 8 chars of values for security
-        display_value = f"{header_value[:8]}..." if len(header_value) > 8 else header_value
+        display_value = (
+            f"{header_value[:8]}..." if len(header_value) > 8 else header_value
+        )
         print(f"   {header_name}: {display_value}")
 
     try:
-        print(f"\n🔄 Fetching AAPL data from {dt.datetime.utcfromtimestamp(start/1000)} to {dt.datetime.utcfromtimestamp(end/1000)}...")
+        print(
+            f"\n🔄 Fetching AAPL data from {dt.datetime.utcfromtimestamp(start/1000)} to {dt.datetime.utcfromtimestamp(end/1000)}..."
+        )
         rows = await client.async_fetch_batch("AAPL", start, end)
         print(f"✅ Successfully fetched {len(rows)} rows")
-        
+
         if rows:
             print(f"📊 Sample data: {rows[0]}")
         else:
             print("📭 No data returned (this is normal for weekends/holidays)")
-            
+
     except Exception as e:
         print(f"❌ Market Data API Error: {e}")
-        
+
         if "403 Forbidden" in str(e):
             print("\n💡 403 Forbidden from Market Data API suggests:")
             print("1. 📊 No Market Data subscription (required for historical data)")
@@ -136,7 +140,7 @@ async def main() -> None:
             print("- Visit https://alpaca.markets/ and check your plan")
             print("- Consider upgrading to AlgoTrader Plus for full market data")
             print("- For testing, you can use free IEX data (limited)")
-        
+
         return
 
 

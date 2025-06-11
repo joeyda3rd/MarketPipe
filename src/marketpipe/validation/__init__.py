@@ -3,4 +3,4 @@
 
 from .application.services import ValidationRunnerService
 
-__all__ = ["ValidationRunnerService"] 
+__all__ = ["ValidationRunnerService"]
