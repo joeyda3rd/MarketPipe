@@ -169,29 +169,29 @@ class TestCliCommandBootstrap:
         """Test that ingest command calls bootstrap."""
         from typer.testing import CliRunner
         from marketpipe.cli import app
-        
+
         with patch.dict(os.environ, {"MP_DB": str(tmp_path / "test_core.db")}):
             reset_bootstrap_state()
-            
+
             runner = CliRunner()
-            
-            # Mock all bootstrap dependencies and command execution
-            with patch("marketpipe.migrations.apply_pending") as mock_apply, \
-                 patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg, \
-                 patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg, \
-                 patch("marketpipe.cli._ingest_impl", side_effect=Exception("Expected test error")):
-                
-                # Command should fail due to missing parameters, but bootstrap should be called
-                result = runner.invoke(app, ["ohlcv", "ingest"])
-                
-                # Command fails due to missing required params or our mock exception
+
+            # Mock bootstrap itself and _ingest_impl to prevent actual execution
+            with patch("marketpipe.bootstrap.bootstrap") as mock_bootstrap, \
+                 patch("marketpipe.cli._build_ingestion_services") as mock_build_services, \
+                 patch("marketpipe.cli.asyncio.run") as mock_async_run:
+
+                # Mock the services to avoid complex setup
+                mock_build_services.return_value = (MagicMock(), MagicMock())
+                mock_async_run.side_effect = Exception("Expected test error")
+
+                # Provide minimum required parameters so command reaches _ingest_impl
+                result = runner.invoke(app, ["ohlcv", "ingest", "--symbols", "AAPL", "--start", "2024-01-01", "--end", "2024-01-02"])
+
+                # Command should fail due to our mock exception
                 assert result.exit_code != 0
-                
+
                 # But bootstrap should have been called
-                assert is_bootstrapped()
-                mock_apply.assert_called_once()
-                mock_val_reg.assert_called_once()
-                mock_agg_reg.assert_called_once()
+                mock_bootstrap.assert_called_once()
 
     def test_validate_command_calls_bootstrap(self, tmp_path):
         """Test that validate command calls bootstrap."""
