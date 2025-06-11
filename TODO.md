@@ -63,7 +63,7 @@
 ### Core Runtime
 - [x] 🔴 **Remove import-time side-effects** _(move `apply_pending()` + service registration into `marketpipe.bootstrap.bootstrap()` that is called only by CLI entry points)_ ✅ **COMPLETED** - Centralized bootstrap module with lazy initialization, thread-safe idempotent execution
 - [x] 🔴 **Implement functional `RateLimiter`** _(token-bucket for both sync & async paths, enforce provider limits, expose metrics)_ ✅ **COMPLETED** - Full token bucket implementation with sync/async dual patterns, Retry-After header support, Prometheus metrics integration, 30 comprehensive tests
-- [ ] 🔴 **Convert SQLite access in async code to `aiosqlite`** _(non-blocking reads/writes in all `Sqlite*Repository` classes)_
+- [x] ✅ **Convert SQLite access in async code to `aiosqlite`** _(non-blocking reads/writes in all `Sqlite*Repository` classes)_
 - [ ] 🟡 **Async coordinator end-to-end** _(replace ThreadPool with `asyncio.gather`, wrap Parquet writes in `run_in_executor`)_
 - [ ] 🟡 **Async metrics server** _(switch Prometheus HTTP server to `asyncio.start_server` to avoid blocking loop)_
 - [ ] 🟢 **Secrets-masking utility** _(helper `mask(secret) -> str` and use everywhere API keys are logged)_

@@ -65,7 +65,7 @@ async def test_sqlite_metrics_repository_record_and_retrieve(metrics_repo):
 async def test_sqlite_metrics_repository_list_metrics(metrics_repo):
     """Test listing available metrics."""
     # Initially empty
-    metrics = metrics_repo.list_metric_names()
+    metrics = await metrics_repo.list_metric_names()
     assert metrics == []
 
     # Add some metrics
@@ -74,7 +74,7 @@ async def test_sqlite_metrics_repository_list_metrics(metrics_repo):
     await metrics_repo.record("metric_a", 3.0)  # Duplicate name
 
     # Should list unique metric names
-    metrics = metrics_repo.list_metric_names()
+    metrics = await metrics_repo.list_metric_names()
     assert set(metrics) == {"metric_a", "metric_b"}
 
 
@@ -152,7 +152,7 @@ def test_record_metric_function_updates_prometheus_and_sqlite(temp_db):
 async def test_metrics_repository_handles_empty_database(metrics_repo):
     """Test repository behavior with empty database."""
     # Should handle empty database gracefully
-    assert metrics_repo.list_metric_names() == []
+    assert await metrics_repo.list_metric_names() == []
 
     empty_history = await metrics_repo.get_metrics_history("nonexistent")
     assert empty_history == []

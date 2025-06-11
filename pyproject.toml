@@ -19,7 +19,8 @@ dependencies = [
     "pyyaml",
     "httpx",
     "prometheus_client",
-    "python-dotenv"
+    "python-dotenv",
+    "aiosqlite>=0.19"
 ]
 
 [project.optional-dependencies]
