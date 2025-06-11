@@ -50,8 +50,8 @@
 
 - [x] 🔴 **Implement concrete repository classes** _(replace 45 pass statements in domain/repositories.py)_ ✅ **COMPLETED** - All domain repository interfaces implemented, pass statements replaced with ellipsis
 - [x] 🟡 **Complete ParquetStorageEngine** _(partitioned writes, concurrent reads)_ ✅ **COMPLETED** - Thread-safe engine with file locking, job management, 89% test coverage
-- [ ] 🟡 **Add SQLite migration system** _(schema versioning, upgrade paths)_
-- [ ] 🟢 **Implement connection pooling** _(SQLite WAL mode, concurrent access)_
+- [x] 🟡 **Add SQLite migration system** _(schema versioning, upgrade paths)_ ✅ **COMPLETED** - Auto-migration system with version tracking, idempotent execution, CLI integration
+- [x] 🟢 **Implement connection pooling** _(SQLite WAL mode, concurrent access)_ ✅ **COMPLETED** - Thread-safe connection pool with WAL mode, optimal settings, comprehensive testing
 
 ## 📈 Metrics & Monitoring
 
@@ -83,7 +83,15 @@
 
 ## 🎉 Recent Completions
 
-### Metrics & Monitoring Integration _(Latest: December 2024)_
+### SQLite Migrations + Connection Pooling _(December 2024)_
+- ✅ **Migration Framework**: Complete auto-migration system with `apply_pending()` function that tracks applied migrations in `schema_version` table, scans `versions/*.sql` files lexicographically, applies pending migrations in transactions with rollback on failure
+- ✅ **Core Schema Management**: Initial migration (`001_core_schema.sql`) creates all core tables (symbol_bars_aggregates, ohlcv_bars, checkpoints, metrics) with basic indexes, optimization migration (`002_metrics_index.sql`) drops old metrics indexes and creates composite `idx_metrics_name_ts` index
+- ✅ **Connection Pooling System**: Thread-safe global connection pool using `threading.Lock()` and `_pools` dictionary keyed by database path, `_init_conn()` function configuring connections with WAL mode, 3-second busy timeout, NORMAL synchronous mode, 10000 cache size, and MEMORY temp store
+- ✅ **Repository Integration**: All SQLite repositories (SqliteSymbolBarsRepository, SqliteOHLCVRepository, SqliteCheckpointRepository, SqliteMetricsRepository) updated to use connection pooling and apply migrations on initialization
+- ✅ **CLI Integration**: Auto-migration on CLI import and dedicated `migrate` command with `--path` option for manual migration execution, graceful error handling and user feedback
+- ✅ **Comprehensive Testing**: Migration tests (9 tests covering idempotent application, schema creation, failure rollback, concurrent access) and pooling tests (11 tests covering connection reuse, configuration, concurrent access, statistics), all tests passing with proper cleanup
+
+### Metrics & Monitoring Integration _(December 2024)_
 - ✅ **Enhanced SqliteMetricsRepository**: Complete async/sync implementation with get_metrics_history(), get_average_metrics(), get_performance_trends() methods
 - ✅ **Event-Driven Metrics Collection**: Automatic metrics recording via domain event handlers for IngestionJobCompleted, ValidationFailed, ValidationCompleted, AggregationCompleted, AggregationFailed events
 - ✅ **Enhanced CLI Metrics Command**: Added --metric, --since, --avg, --plot, --list options with ASCII sparklines and performance reporting

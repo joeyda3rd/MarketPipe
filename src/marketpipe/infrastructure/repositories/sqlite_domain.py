@@ -33,6 +33,8 @@ from marketpipe.domain.repositories import (
 from marketpipe.domain.entities import OHLCVBar, EntityId
 from marketpipe.domain.value_objects import Symbol, Timestamp, Price, Volume, TimeRange
 from marketpipe.domain.aggregates import SymbolBarsAggregate
+from marketpipe.infrastructure.sqlite_pool import connection
+from marketpipe.migrations import apply_pending
 
 
 class SqliteSymbolBarsRepository(ISymbolBarsRepository):
@@ -43,34 +45,10 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
     """
     
     def __init__(self, db_path: str = "data/db/core.db"):
-        self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._ensure_tables()
-    
-    def _ensure_tables(self) -> None:
-        """Create tables if they don't exist."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS symbol_bars_aggregates (
-                    symbol TEXT NOT NULL,
-                    trading_date TEXT NOT NULL,
-                    version INTEGER NOT NULL DEFAULT 1,
-                    is_complete BOOLEAN NOT NULL DEFAULT 0,
-                    collection_started BOOLEAN NOT NULL DEFAULT 0,
-                    bar_count INTEGER NOT NULL DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (symbol, trading_date)
-                )
-            """)
-            
-            # Index for querying by date range
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_symbol_bars_date 
-                ON symbol_bars_aggregates(trading_date)
-            """)
-            
-            conn.commit()
+        self._db_path = Path(db_path)
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Apply migrations on first use
+        apply_pending(self._db_path)
     
     async def get_by_symbol_and_date(
         self,
@@ -92,7 +70,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
         trading_date: date
     ) -> Optional[SymbolBarsAggregate]:
         """Synchronous implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
                 SELECT symbol, trading_date, version, is_complete, collection_started, bar_count
@@ -118,7 +96,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
         trading_date: date
     ) -> Optional[SymbolBarsAggregate]:
         """Asynchronous implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             conn.row_factory = aiosqlite.Row
             cursor = await conn.execute("""
                 SELECT symbol, trading_date, version, is_complete, collection_started, bar_count
@@ -159,7 +137,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
     
     def _sync_save(self, aggregate: SymbolBarsAggregate) -> None:
         """Synchronous save implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             # Check for concurrency conflicts
             cursor = conn.execute("""
                 SELECT version FROM symbol_bars_aggregates
@@ -191,7 +169,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
     
     async def _async_save(self, aggregate: SymbolBarsAggregate) -> None:
         """Asynchronous save implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             # Check for concurrency conflicts
             cursor = await conn.execute("""
                 SELECT version FROM symbol_bars_aggregates
@@ -241,7 +219,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
         end_date: date
     ) -> List[Symbol]:
         """Synchronous implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             cursor = conn.execute("""
                 SELECT DISTINCT symbol
                 FROM symbol_bars_aggregates
@@ -257,7 +235,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
         end_date: date
     ) -> List[Symbol]:
         """Asynchronous implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             cursor = await conn.execute("""
                 SELECT DISTINCT symbol
                 FROM symbol_bars_aggregates
@@ -290,7 +268,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
         """Synchronous implementation."""
         result = {}
         
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             symbol_placeholders = ','.join('?' * len(symbols))
             date_placeholders = ','.join('?' * len(trading_dates))
             
@@ -322,7 +300,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
         """Asynchronous implementation."""
         result = {}
         
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             symbol_placeholders = ','.join('?' * len(symbols))
             date_placeholders = ','.join('?' * len(trading_dates))
             
@@ -359,7 +337,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
     
     def _sync_delete(self, symbol: Symbol, trading_date: date) -> bool:
         """Synchronous delete implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             cursor = conn.execute("""
                 DELETE FROM symbol_bars_aggregates
                 WHERE symbol = ? AND trading_date = ?
@@ -370,7 +348,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
     
     async def _async_delete(self, symbol: Symbol, trading_date: date) -> bool:
         """Asynchronous delete implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             cursor = await conn.execute("""
                 DELETE FROM symbol_bars_aggregates
                 WHERE symbol = ? AND trading_date = ?
@@ -387,43 +365,10 @@ class SqliteOHLCVRepository(IOHLCVRepository):
     """
     
     def __init__(self, db_path: str = "data/db/core.db"):
-        self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._ensure_tables()
-    
-    def _ensure_tables(self) -> None:
-        """Create tables if they don't exist."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS ohlcv_bars (
-                    id TEXT PRIMARY KEY,
-                    symbol TEXT NOT NULL,
-                    timestamp_ns INTEGER NOT NULL,
-                    trading_date TEXT NOT NULL,
-                    open_price REAL NOT NULL,
-                    high_price REAL NOT NULL,
-                    low_price REAL NOT NULL,
-                    close_price REAL NOT NULL,
-                    volume INTEGER NOT NULL,
-                    trade_count INTEGER,
-                    vwap REAL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(symbol, timestamp_ns)
-                )
-            """)
-            
-            # Indexes for efficient querying
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_timestamp 
-                ON ohlcv_bars(symbol, timestamp_ns)
-            """)
-            
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_ohlcv_trading_date 
-                ON ohlcv_bars(trading_date)
-            """)
-            
-            conn.commit()
+        self._db_path = Path(db_path)
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Apply migrations on first use
+        apply_pending(self._db_path)
     
     async def get_bars_for_symbol(
         self,
@@ -448,7 +393,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
     ) -> List[OHLCVBar]:
         """Synchronous implementation."""
         bars = []
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
                 SELECT id, symbol, timestamp_ns, open_price, high_price, low_price, 
@@ -474,7 +419,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
         time_range: TimeRange
     ) -> AsyncIterator[OHLCVBar]:
         """Asynchronous implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             conn.row_factory = aiosqlite.Row
             cursor = await conn.execute("""
                 SELECT id, symbol, timestamp_ns, open_price, high_price, low_price, 
@@ -515,7 +460,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
     ) -> List[OHLCVBar]:
         """Synchronous implementation."""
         bars = []
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             conn.row_factory = sqlite3.Row
             symbol_placeholders = ','.join('?' * len(symbols))
             
@@ -543,7 +488,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
         time_range: TimeRange
     ) -> AsyncIterator[OHLCVBar]:
         """Asynchronous implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             conn.row_factory = aiosqlite.Row
             symbol_placeholders = ','.join('?' * len(symbols))
             
@@ -596,7 +541,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
     
     def _sync_save_bars(self, bars: List[OHLCVBar]) -> None:
         """Synchronous save implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             for bar in bars:
                 conn.execute("""
                     INSERT INTO ohlcv_bars 
@@ -621,7 +566,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
     
     async def _async_save_bars(self, bars: List[OHLCVBar]) -> None:
         """Asynchronous save implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             for bar in bars:
                 await conn.execute("""
                     INSERT INTO ohlcv_bars 
@@ -656,7 +601,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
     
     def _sync_exists(self, symbol: Symbol, timestamp: Timestamp) -> bool:
         """Synchronous exists check."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             cursor = conn.execute("""
                 SELECT 1 FROM ohlcv_bars
                 WHERE symbol = ? AND timestamp_ns = ?
@@ -666,7 +611,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
     
     async def _async_exists(self, symbol: Symbol, timestamp: Timestamp) -> bool:
         """Asynchronous exists check."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             cursor = await conn.execute("""
                 SELECT 1 FROM ohlcv_bars
                 WHERE symbol = ? AND timestamp_ns = ?
@@ -695,7 +640,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
         time_range: Optional[TimeRange] = None
     ) -> int:
         """Synchronous count implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             if time_range:
                 cursor = conn.execute("""
                     SELECT COUNT(*) FROM ohlcv_bars
@@ -719,7 +664,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
         time_range: Optional[TimeRange] = None
     ) -> int:
         """Asynchronous count implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             if time_range:
                 cursor = await conn.execute("""
                     SELECT COUNT(*) FROM ohlcv_bars
@@ -750,7 +695,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
     
     def _sync_get_latest_timestamp(self, symbol: Symbol) -> Optional[Timestamp]:
         """Synchronous implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             cursor = conn.execute("""
                 SELECT MAX(timestamp_ns) FROM ohlcv_bars
                 WHERE symbol = ?
@@ -761,7 +706,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
     
     async def _async_get_latest_timestamp(self, symbol: Symbol) -> Optional[Timestamp]:
         """Asynchronous implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             cursor = await conn.execute("""
                 SELECT MAX(timestamp_ns) FROM ohlcv_bars
                 WHERE symbol = ?
@@ -791,7 +736,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
         time_range: Optional[TimeRange] = None
     ) -> int:
         """Synchronous delete implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             if time_range:
                 cursor = conn.execute("""
                     DELETE FROM ohlcv_bars
@@ -815,7 +760,7 @@ class SqliteOHLCVRepository(IOHLCVRepository):
         time_range: Optional[TimeRange] = None
     ) -> int:
         """Asynchronous delete implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             if time_range:
                 cursor = await conn.execute("""
                     DELETE FROM ohlcv_bars
@@ -841,23 +786,10 @@ class SqliteCheckpointRepository(ICheckpointRepository):
     """
     
     def __init__(self, db_path: str = "data/db/core.db"):
-        self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._ensure_tables()
-    
-    def _ensure_tables(self) -> None:
-        """Create tables if they don't exist."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS checkpoints (
-                    symbol TEXT PRIMARY KEY,
-                    checkpoint_data TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            conn.commit()
+        self._db_path = Path(db_path)
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Apply migrations on first use
+        apply_pending(self._db_path)
     
     async def save_checkpoint(
         self,
@@ -879,7 +811,7 @@ class SqliteCheckpointRepository(ICheckpointRepository):
         checkpoint_data: Dict[str, Any]
     ) -> None:
         """Synchronous save implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             json_data = json.dumps(checkpoint_data)
             conn.execute("""
                 INSERT OR REPLACE INTO checkpoints 
@@ -895,7 +827,7 @@ class SqliteCheckpointRepository(ICheckpointRepository):
         checkpoint_data: Dict[str, Any]
     ) -> None:
         """Asynchronous save implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             json_data = json.dumps(checkpoint_data)
             await conn.execute("""
                 INSERT OR REPLACE INTO checkpoints 
@@ -920,7 +852,7 @@ class SqliteCheckpointRepository(ICheckpointRepository):
     
     def _sync_get_checkpoint(self, symbol: Symbol) -> Optional[Dict[str, Any]]:
         """Synchronous get implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             cursor = conn.execute("""
                 SELECT checkpoint_data FROM checkpoints
                 WHERE symbol = ?
@@ -933,7 +865,7 @@ class SqliteCheckpointRepository(ICheckpointRepository):
     
     async def _async_get_checkpoint(self, symbol: Symbol) -> Optional[Dict[str, Any]]:
         """Asynchronous get implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             cursor = await conn.execute("""
                 SELECT checkpoint_data FROM checkpoints
                 WHERE symbol = ?
@@ -956,7 +888,7 @@ class SqliteCheckpointRepository(ICheckpointRepository):
     
     def _sync_delete_checkpoint(self, symbol: Symbol) -> bool:
         """Synchronous delete implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             cursor = conn.execute("""
                 DELETE FROM checkpoints WHERE symbol = ?
             """, (symbol.value,))
@@ -966,7 +898,7 @@ class SqliteCheckpointRepository(ICheckpointRepository):
     
     async def _async_delete_checkpoint(self, symbol: Symbol) -> bool:
         """Asynchronous delete implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             cursor = await conn.execute("""
                 DELETE FROM checkpoints WHERE symbol = ?
             """, (symbol.value,))
@@ -986,7 +918,7 @@ class SqliteCheckpointRepository(ICheckpointRepository):
     
     def _sync_list_checkpoints(self) -> List[Symbol]:
         """Synchronous list implementation."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             cursor = conn.execute("""
                 SELECT symbol FROM checkpoints ORDER BY symbol
             """)
@@ -995,7 +927,7 @@ class SqliteCheckpointRepository(ICheckpointRepository):
     
     async def _async_list_checkpoints(self) -> List[Symbol]:
         """Asynchronous list implementation."""
-        async with aiosqlite.connect(self.db_path) as conn:
+        async with aiosqlite.connect(self._db_path) as conn:
             cursor = await conn.execute("""
                 SELECT symbol FROM checkpoints ORDER BY symbol
             """)

@@ -11,6 +11,11 @@ from pathlib import Path
 
 import typer
 
+# Auto-apply migrations on import
+from marketpipe.migrations import apply_pending
+from pathlib import Path
+apply_pending(Path("data/db/core.db"))
+
 from marketpipe.validation import ValidationRunnerService
 ValidationRunnerService.register()
 
@@ -632,6 +637,24 @@ def _create_sparkline(values: List[float]) -> str:
         normalized.append(chars[char_index])
     
     return "".join(normalized)
+
+
+@app.command()
+def migrate(
+    path: Path = typer.Option(
+        Path("data/db/core.db"), 
+        "--path", 
+        "-p", 
+        help="Database path to migrate"
+    )
+):
+    """Apply any pending SQLite migrations."""
+    try:
+        apply_pending(path)
+        typer.echo("✅ Migrations up-to-date")
+    except Exception as e:
+        typer.echo(f"❌ Migration failed: {e}", err=True)
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

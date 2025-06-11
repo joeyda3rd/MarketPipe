@@ -11,6 +11,9 @@ import os
 
 from prometheus_client import Counter, Histogram, Gauge, Summary
 
+from marketpipe.infrastructure.sqlite_pool import connection
+from marketpipe.migrations import apply_pending
+
 # Existing metrics
 REQUESTS = Counter("mp_requests_total", "API requests", ["source"])
 ERRORS = Counter("mp_errors_total", "Errors", ["source", "code"])
@@ -57,35 +60,10 @@ class SqliteMetricsRepository:
         if db_path is None:
             db_path = os.environ.get('METRICS_DB_PATH', "data/db/core.db")
         
-        self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._ensure_tables()
-    
-    def _ensure_tables(self) -> None:
-        """Create metrics table if it doesn't exist."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS metrics (
-                    ts INTEGER NOT NULL,
-                    name TEXT NOT NULL,
-                    value REAL NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Index for efficient time-based queries
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_metrics_ts_name 
-                ON metrics(ts, name)
-            """)
-            
-            # Index for metric name queries
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_metrics_name 
-                ON metrics(name)
-            """)
-            
-            conn.commit()
+        self._db_path = Path(db_path)
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Apply migrations on first use
+        apply_pending(self._db_path)
     
     async def record(self, name: str, value: float) -> None:
         """Record a metric data point."""
@@ -93,7 +71,7 @@ class SqliteMetricsRepository:
         
         # Use asyncio to avoid blocking if possible
         def _record():
-            with sqlite3.connect(self.db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.execute(
                     "INSERT INTO metrics (ts, name, value) VALUES (?, ?, ?)",
                     (timestamp, name, value)
@@ -114,7 +92,7 @@ class SqliteMetricsRepository:
     ) -> List[MetricPoint]:
         """Get metric history, optionally filtered by time."""
         def _query():
-            with sqlite3.connect(self.db_path) as conn:
+            with connection(self._db_path) as conn:
                 if since:
                     since_ts = int(since.timestamp())
                     cursor = conn.execute("""
@@ -154,7 +132,7 @@ class SqliteMetricsRepository:
         since = datetime.now().timestamp() - (window_minutes * 60)
         
         def _query():
-            with sqlite3.connect(self.db_path) as conn:
+            with connection(self._db_path) as conn:
                 cursor = conn.execute("""
                     SELECT AVG(value) FROM metrics 
                     WHERE name = ? AND ts >= ?
@@ -180,7 +158,7 @@ class SqliteMetricsRepository:
         
         def _query():
             trends = []
-            with sqlite3.connect(self.db_path) as conn:
+            with connection(self._db_path) as conn:
                 for i in range(buckets):
                     bucket_start_ts = now.timestamp() - ((buckets - i) * bucket_size_minutes * 60)
                     bucket_end_ts = now.timestamp() - ((buckets - i - 1) * bucket_size_minutes * 60)
@@ -209,7 +187,7 @@ class SqliteMetricsRepository:
     
     def list_metric_names(self) -> List[str]:
         """List all available metric names."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connection(self._db_path) as conn:
             cursor = conn.execute("SELECT DISTINCT name FROM metrics ORDER BY name")
             return [row[0] for row in cursor.fetchall()]
 
