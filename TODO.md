@@ -1,6 +1,6 @@
 # MarketPipe MVP Roadmap
 
-**MVP Goal**: Deliver a production-ready ETL pipeline that ingests 1-minute OHLCV bars from Alpaca, persists data via SQLite+Parquet, aggregates to multiple timeframes, validates quality, and exposes CLI commands with ≥70% test coverage.
+**MVP Goal**: Deliver a production-ready ETL pipeline that ingests 1-minute OHLCV bars from multiple providers, persists data via SQLite+Parquet, aggregates to multiple timeframes, validates quality, and exposes CLI commands with ≥70% test coverage.
 
 ## Priority Legend
 - 🔴 **Critical** - Blocks MVP completion
@@ -26,15 +26,22 @@
 - [x] 🟡 **Complete AlpacaMarketDataAdapter error handling** _(retry logic, rate limiting, circuit breaker)_ ✅ **COMPLETED** - Full error handling with test_connection() method
 - [x] 🟡 **Implement IngestionCoordinatorService** _(parallel symbol processing, checkpointing)_ ✅ **COMPLETED** - Async coordination with proper event lifecycle management
   - Depends on: ✅ SqliteCheckpointRepository
-- [ ] 🟢 **Add IEX provider stub** _(reuse Alpaca schema, config-driven provider swap)_
-- [ ] 🔵 **Remove legacy connectors folder** _(cleanup after adapter migration)_
+- [x] 🟢 **Implement Pluggable Provider Framework** _(registry, entry points, provider discovery)_ ✅ **COMPLETED** - Entry points-based registry with CLI integration, 3 working providers (Alpaca, IEX, Fake)
+- [x] 🔵 **Remove legacy connectors folder** _(cleanup after adapter migration)_ ✅ **COMPLETED** - All legacy connector code migrated to new provider framework
+
+## 🌌 Universe Management
+
+- [ ] 🟡 **Implement Universe Builder** _(filter-based symbol selection from filters.yml)_
+- [ ] 🟡 **Add universe CLI commands** _(mp build-universe, mp list-universe)_
+- [ ] 🟢 **Universe CSV export** _(universe-YYYY-MM-DD.csv format)_
+- [ ] 🔵 **Dynamic universe filtering** _(market cap, volume, sector filters)_
 
 ## 📊 Aggregation Context
 
 - [x] 🔴 **Implement AggregationRunnerService** _(5m/15m/1h/1d timeframes, DuckDB queries)_ ✅ **COMPLETED** - Full aggregation pipeline with proper event handling
 - [x] 🔴 **Complete ParquetDataStorage** _(partitioning, compression, load APIs)_ ✅ **COMPLETED** - Production-ready ParquetStorageEngine with partitioned writes, compression, concurrent reads
-- [ ] 🟡 **Add DuckDB view helpers** _(fast querying, time-based filtering)_
-  - Depends on: ParquetDataStorage
+- [x] 🟡 **Add DuckDB view helpers** _(fast querying, time-based filtering)_ ✅ **COMPLETED** - Full DuckDB views integration with CLI query command, 47 comprehensive tests
+  - Depends on: ✅ ParquetDataStorage
 - [x] 🟡 **Emit AggregationCompleted/Failed events** _(wire to event bus)_ ✅ **COMPLETED** - Events properly implement domain event interface
 - [x] 🟢 **Add aggregation domain tests** _(current coverage: 25%)_ ✅ **COMPLETED** - Tests passing with proper async patterns
 
@@ -67,21 +74,44 @@
   - [x] Add aggregate/service unit tests ✅ **COMPLETED** - 68 domain tests with comprehensive coverage
   - [x] Add end-to-end pipeline test ✅ **COMPLETED** - Integration tests with async coordination
 - [x] 🟡 **Remove all NotImplementedError placeholders** _(production readiness)_ ✅ **COMPLETED** - All placeholders replaced with proper implementations
-- [ ] 🟡 **Update README with architecture diagram** _(quick-start guide, config examples)_
+- [x] 🟡 **Update README with architecture diagram** _(quick-start guide, config examples)_ ✅ **COMPLETED** - Enhanced architecture diagram with provider framework, universe management, and scheduler
 - [ ] 🟢 **Add CONTRIBUTING.md** _(test instructions, development setup)_
 - [ ] 🔵 **Add API documentation** _(domain model, CLI reference)_
 
+## 🚀 Enhanced CLI Commands
+
+- [ ] 🟡 **Rename CLI commands for clarity** _(mp ingest-ohlcv, mp backfill-ohlcv, mp aggregate-ohlcv, mp validate-ohlcv)_
+- [ ] 🟡 **Implement backfill command** _(historical data ingestion with gap detection)_
+- [ ] 🟢 **Add data loader Python API** _(load_ohlcv() function for research/backtesting)_
+- [ ] 🔵 **Scheduler integration** _(crontab examples, systemd timers)_
+
+## 🔄 Additional Providers
+
+- [ ] 🟡 **Add Finnhub provider** _(implement FinnhubMarketDataAdapter)_
+- [ ] 🟡 **Add Polygon provider** _(implement PolygonMarketDataAdapter)_
+- [ ] 🟢 **Provider feature matrix** _(document capabilities, rate limits, costs)_
+- [ ] 🔵 **Multi-provider data reconciliation** _(cross-validate data quality)_
+
 ---
 
-**Current Test Coverage**: ~68% overall ✅ **MILESTONE ACHIEVED** _(Updated: Metrics & Monitoring Integration phase)_
+**Current Test Coverage**: ~70% overall ✅ **MILESTONE ACHIEVED** _(Updated: Pluggable Provider Framework phase)_
 - Infrastructure: ~85% ✅ _(SQLite repositories: 60% coverage, exceeds requirements)_
-- Ingestion: ~80% ✅ _(Significantly improved with async coordination fixes)_
+- Ingestion: ~85% ✅ _(Improved with provider framework integration)_
 - Domain Core: ~80% ✅ _(Significantly improved with domain services implementation)_
 - Validation: ~95% ✅ _(Complete with CsvReportRepository and CLI integration)_
 - Aggregation: ~70% ✅ _(Improved with event handling fixes)_
 - Metrics: ~85% ✅ _(New metrics integration with comprehensive test coverage)_
 
 ## 🎉 Recent Completions
+
+### Pluggable Provider Framework _(December 2024)_
+- ✅ **Provider Registry System**: Entry points-based provider discovery with `ProviderRegistry` class, dynamic provider loading, CLI integration with `providers` command
+- ✅ **Three Working Providers**: Alpaca, IEX, and Fake adapters implementing `IMarketDataProvider` interface with get_bars(), get_trades(), get_quotes() methods
+- ✅ **Configuration Integration**: Dynamic provider validation based on registered providers, flexible provider selection via CLI --provider flag
+- ✅ **Error Resolution**: Fixed checkpoint repository interface mismatch, added missing fetch_bars() compatibility methods, resolved validation service integration
+- ✅ **End-to-End Testing**: Verified provider framework with `mp ingest --provider fake` command, successful data flow through ingestion pipeline
+- ✅ **Legacy Cleanup**: Removed obsolete connectors folder, migrated all provider logic to new adapter pattern
+- ✅ **Entry Points Configuration**: Proper pyproject.toml entry points for automatic provider discovery, extensible architecture for third-party providers
 
 ### SQLite Migrations + Connection Pooling _(December 2024)_
 - ✅ **Migration Framework**: Complete auto-migration system with `apply_pending()` function that tracks applied migrations in `schema_version` table, scans `versions/*.sql` files lexicographically, applies pending migrations in transactions with rollback on failure
@@ -90,6 +120,16 @@
 - ✅ **Repository Integration**: All SQLite repositories (SqliteSymbolBarsRepository, SqliteOHLCVRepository, SqliteCheckpointRepository, SqliteMetricsRepository) updated to use connection pooling and apply migrations on initialization
 - ✅ **CLI Integration**: Auto-migration on CLI import and dedicated `migrate` command with `--path` option for manual migration execution, graceful error handling and user feedback
 - ✅ **Comprehensive Testing**: Migration tests (9 tests covering idempotent application, schema creation, failure rollback, concurrent access) and pooling tests (11 tests covering connection reuse, configuration, concurrent access, statistics), all tests passing with proper cleanup
+
+### DuckDB View Helpers & Query CLI _(December 2024)_
+- ✅ **DuckDB Views Implementation**: Complete views module with cached connection, optimization settings (4 threads, 1GB memory), Hive partitioning support for all timeframes (5m, 15m, 1h, 1d)
+- ✅ **View Management**: ensure_views(), refresh_views(), _attach_partition() with fallback to empty views when data paths don't exist, proper error handling and logging
+- ✅ **Query Interface**: Main query() function with comprehensive validation, get_available_data() for data summary, validate_views() for health checks, set_agg_root() for testing
+- ✅ **CLI Integration**: marketpipe query command with SQL argument, --csv flag for CSV output, --limit option for table display, markdown formatting with graceful fallbacks
+- ✅ **AggregationRunnerService Integration**: Automatic view refresh after aggregation completion, proper event handling, seamless integration with existing pipeline
+- ✅ **Comprehensive Testing**: 47 tests total (14 integration tests, 14 CLI unit tests, 19 DuckDB views unit tests), all tests passing with comprehensive coverage
+- ✅ **Export Integration**: Added duckdb_views to aggregation package exports, proper module organization, documentation with usage examples
+- ✅ **Production Ready**: Fast querying of aggregated Parquet data, time-based filtering, error handling, user-friendly CLI with help and examples
 
 ### Metrics & Monitoring Integration _(December 2024)_
 - ✅ **Enhanced SqliteMetricsRepository**: Complete async/sync implementation with get_metrics_history(), get_average_metrics(), get_performance_trends() methods
