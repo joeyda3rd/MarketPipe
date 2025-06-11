@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import json
-import sqlite3
+import aiosqlite
 from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -18,18 +18,21 @@ from ..domain.repositories import (
 )
 from ..domain.value_objects import IngestionCheckpoint, ProcessingMetrics
 from marketpipe.domain.value_objects import Symbol
-from marketpipe.infrastructure.sqlite_pool import connection
+from marketpipe.infrastructure.sqlite_async_mixin import SqliteAsyncMixin
 
 
-class SqliteIngestionJobRepository(IIngestionJobRepository):
+class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
     """SQLite implementation of ingestion job repository."""
 
     def __init__(self, db_path: Optional[Path] = None):
         self._db_path = db_path or Path("ingestion_jobs.db")
+        self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
 
     def _init_database(self) -> None:
         """Initialize the database schema."""
+        # For now, keep the sync initialization but use the connection pool
+        from marketpipe.infrastructure.sqlite_pool import connection
         with connection(self._db_path) as conn:
             conn.execute(
                 """
@@ -63,8 +66,8 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
             job_data = self._serialize_job(job)
             now = datetime.now()
 
-            with connection(self._db_path) as conn:
-                conn.execute(
+            async with self._conn() as db:
+                await db.execute(
                     """
                     INSERT OR REPLACE INTO ingestion_jobs 
                     (job_id, job_data, state, created_at, updated_at)
@@ -72,9 +75,9 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
                 """,
                     (str(job.job_id), job_data, job.state.value, job.created_at, now),
                 )
-                conn.commit()
+                await db.commit()
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(
                 f"Failed to save job {job.job_id}: {e}"
             ) from e
@@ -82,36 +85,36 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
     async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
         """Retrieve an ingestion job by its ID."""
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
                     "SELECT job_data FROM ingestion_jobs WHERE job_id = ?",
                     (str(job_id),),
                 )
-                row = cursor.fetchone()
+                row = await cursor.fetchone()
 
                 if row is None:
                     return None
 
                 return self._deserialize_job(row["job_data"])
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get job {job_id}: {e}") from e
 
     async def get_by_state(self, state: ProcessingState) -> List[IngestionJob]:
         """Get all jobs in a specific state."""
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
                     "SELECT job_data FROM ingestion_jobs WHERE state = ? ORDER BY created_at DESC",
                     (state.value,),
                 )
-                rows = cursor.fetchall()
+                rows = await cursor.fetchall()
 
                 return [self._deserialize_job(row["job_data"]) for row in rows]
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(
                 f"Failed to get jobs by state {state}: {e}"
             ) from e
@@ -124,18 +127,18 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
         ]
 
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
                 placeholders = ",".join("?" * len(active_states))
-                cursor = conn.execute(
+                cursor = await db.execute(
                     f"SELECT job_data FROM ingestion_jobs WHERE state IN ({placeholders}) ORDER BY created_at",
                     active_states,
                 )
-                rows = cursor.fetchall()
+                rows = await cursor.fetchall()
 
                 return [self._deserialize_job(row["job_data"]) for row in rows]
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get active jobs: {e}") from e
 
     async def get_jobs_by_date_range(
@@ -143,9 +146,9 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
     ) -> List[IngestionJob]:
         """Get jobs created within a date range."""
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
                     """
                     SELECT job_data FROM ingestion_jobs 
                     WHERE created_at BETWEEN ? AND ? 
@@ -153,11 +156,11 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
                 """,
                     (start_date, end_date),
                 )
-                rows = cursor.fetchall()
+                rows = await cursor.fetchall()
 
                 return [self._deserialize_job(row["job_data"]) for row in rows]
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(
                 f"Failed to get jobs by date range: {e}"
             ) from e
@@ -165,123 +168,129 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
     async def delete(self, job_id: IngestionJobId) -> bool:
         """Delete an ingestion job."""
         try:
-            with connection(self._db_path) as conn:
-                cursor = conn.execute(
+            async with self._conn() as db:
+                cursor = await db.execute(
                     "DELETE FROM ingestion_jobs WHERE job_id = ?", (str(job_id),)
                 )
-                conn.commit()
+                await db.commit()
                 return cursor.rowcount > 0
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to delete job {job_id}: {e}") from e
 
     async def get_job_history(self, limit: int = 100) -> List[IngestionJob]:
         """Get recent job history."""
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
                     "SELECT job_data FROM ingestion_jobs ORDER BY created_at DESC LIMIT ?",
                     (limit,),
                 )
-                rows = cursor.fetchall()
+                rows = await cursor.fetchall()
 
                 return [self._deserialize_job(row["job_data"]) for row in rows]
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get job history: {e}") from e
 
     async def count_jobs_by_state(self) -> Dict[ProcessingState, int]:
         """Count jobs grouped by their processing state."""
         try:
-            with connection(self._db_path) as conn:
-                cursor = conn.execute(
+            async with self._conn() as db:
+                cursor = await db.execute(
                     "SELECT state, COUNT(*) as count FROM ingestion_jobs GROUP BY state"
                 )
-                rows = cursor.fetchall()
+                rows = await cursor.fetchall()
 
-                counts = {}
+                result = {}
                 for row in rows:
                     state = ProcessingState(row[0])
-                    counts[state] = row[1]
+                    count = row[1]
+                    result[state] = count
 
-                # Ensure all states are represented
-                for state in ProcessingState:
-                    if state not in counts:
-                        counts[state] = 0
+                return result
 
-                return counts
-
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to count jobs by state: {e}") from e
 
     def _serialize_job(self, job: IngestionJob) -> str:
-        """Serialize job to JSON for storage."""
-        # This is a simplified serialization - in production you'd want
-        # a more robust serialization strategy
+        """Serialize an IngestionJob to JSON string."""
         job_dict = {
             "job_id": str(job.job_id),
-            "symbols": [symbol.value for symbol in job.symbols],
-            "time_range": {
-                "start": job.time_range.start.value.isoformat(),
-                "end": job.time_range.end.value.isoformat(),
-            },
-            "configuration": job.configuration.to_dict(),
+            "symbols": [str(symbol) for symbol in job.symbols],
+            "start_timestamp": job.start_timestamp,
+            "end_timestamp": job.end_timestamp,
+            "provider": job.provider,
+            "feed": job.feed,
             "state": job.state.value,
             "created_at": job.created_at.isoformat(),
             "started_at": job.started_at.isoformat() if job.started_at else None,
             "completed_at": job.completed_at.isoformat() if job.completed_at else None,
-            "failed_at": job.failed_at.isoformat() if job.failed_at else None,
+            "processed_symbols": list(job.processed_symbols),
             "error_message": job.error_message,
-            "processed_symbols": [symbol.value for symbol in job.processed_symbols],
-            "total_bars_processed": job.total_bars_processed,
         }
         return json.dumps(job_dict)
 
     def _deserialize_job(self, job_data: str) -> IngestionJob:
-        """Deserialize job from JSON storage."""
-        # This is a simplified deserialization - in production you'd want
-        # proper reconstruction of the domain entity
+        """Deserialize JSON string to IngestionJob."""
         job_dict = json.loads(job_data)
 
-        # For this example, we're returning a simplified job reconstruction
-        # In reality, you'd fully reconstruct the IngestionJob entity
-        from ..domain.value_objects import IngestionConfiguration
-        from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
-
-        job_id = IngestionJobId.from_string(job_dict["job_id"])
-        symbols = [Symbol(symbol_str) for symbol_str in job_dict["symbols"]]
-
-        time_range = TimeRange(
-            start=Timestamp.from_iso(job_dict["time_range"]["start"]),
-            end=Timestamp.from_iso(job_dict["time_range"]["end"]),
+        # Parse datetimes
+        created_at = datetime.fromisoformat(job_dict["created_at"])
+        started_at = (
+            datetime.fromisoformat(job_dict["started_at"])
+            if job_dict["started_at"]
+            else None
+        )
+        completed_at = (
+            datetime.fromisoformat(job_dict["completed_at"])
+            if job_dict["completed_at"]
+            else None
         )
 
-        config = IngestionConfiguration.from_dict(job_dict["configuration"])
+        # Create job
+        job = IngestionJob(
+            job_id=IngestionJobId.from_string(job_dict["job_id"]),
+            symbols=[Symbol(s) for s in job_dict["symbols"]],
+            start_timestamp=job_dict["start_timestamp"],
+            end_timestamp=job_dict["end_timestamp"],
+            provider=job_dict["provider"],
+            feed=job_dict["feed"],
+        )
 
-        # Create job and restore state
-        job = IngestionJob(job_id, config, symbols, time_range)
+        # Restore state
+        job._state = ProcessingState(job_dict["state"])
+        job._created_at = created_at
+        job._started_at = started_at
+        job._completed_at = completed_at
+        job._processed_symbols = set(job_dict["processed_symbols"])
+        job._error_message = job_dict["error_message"]
 
-        # Restore the job state from serialized data
-        saved_state = ProcessingState(job_dict["state"])
-        if saved_state == ProcessingState.IN_PROGRESS:
-            # Force the job to start state to restore IN_PROGRESS
-            if job.can_start:
-                job.start()
-        elif saved_state == ProcessingState.COMPLETED:
-            # Need to start first, then complete
-            if job.can_start:
-                job.start()
-            if job.can_complete:
-                job.complete()
-        elif saved_state == ProcessingState.FAILED:
-            # Restore failed state
-            error_msg = job_dict.get("error_message", "Unknown error")
-            if job.can_fail:
-                job.fail(error_msg)
-        elif saved_state == ProcessingState.CANCELLED:
-            # Restore cancelled state
-            if job.can_cancel:
+        # Handle state transitions that might require calling internal methods
+        if job.state == ProcessingState.IN_PROGRESS and not job.started_at:
+            # If job is marked as in progress but doesn't have started_at,
+            # it means we're restoring state, so we should restore it properly
+            job._started_at = started_at or datetime.now()
+
+        if job.state in [ProcessingState.COMPLETED, ProcessingState.FAILED]:
+            if job.state == ProcessingState.FAILED and job_dict["error_message"]:
+                # If job failed with an error, restore that
+                job._error_message = job_dict["error_message"]
+            if not job.completed_at:
+                # If job is marked complete but no completion time, set it now
+                job._completed_at = completed_at or datetime.now()
+
+        # Note: We don't call job.start(), job.complete(), etc. here because
+        # those methods change state and emit events. We're just restoring
+        # the serialized state.
+
+        # Handle any state inconsistencies
+        if job.state == ProcessingState.CANCELLED:
+            if job.completed_at is None:
+                job._completed_at = datetime.now()
+            # For cancelled jobs, we may need to clean up
+            if hasattr(job, "cancel"):
                 job.cancel()
 
         # TODO: Restore other state like processed_symbols, timestamps, etc.
@@ -290,15 +299,18 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
         return job
 
 
-class SqliteCheckpointRepository(IIngestionCheckpointRepository):
+class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepository):
     """SQLite implementation of checkpoint repository."""
 
     def __init__(self, db_path: Optional[Path] = None):
         self._db_path = db_path or Path("ingestion_checkpoints.db")
+        self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
 
     def _init_database(self) -> None:
         """Initialize the database schema."""
+        # For now, keep the sync initialization but use the connection pool
+        from marketpipe.infrastructure.sqlite_pool import connection
         with connection(self._db_path) as conn:
             conn.execute(
                 """
@@ -325,8 +337,8 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     ) -> None:
         """Save a checkpoint for a specific job and symbol."""
         try:
-            with connection(self._db_path) as conn:
-                conn.execute(
+            async with self._conn() as db:
+                await db.execute(
                     """
                     INSERT OR REPLACE INTO ingestion_checkpoints 
                     (job_id, symbol, last_processed_timestamp, records_processed, updated_at)
@@ -340,9 +352,9 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
                         checkpoint.updated_at,
                     ),
                 )
-                conn.commit()
+                await db.commit()
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to save checkpoint: {e}") from e
 
     async def get_checkpoint(
@@ -350,9 +362,9 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     ) -> Optional[IngestionCheckpoint]:
         """Get the latest checkpoint for a job and symbol."""
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
                     """
                     SELECT last_processed_timestamp, records_processed, updated_at
                     FROM ingestion_checkpoints 
@@ -361,7 +373,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
                     (str(job_id), symbol.value),
                 )
 
-                row = cursor.fetchone()
+                row = await cursor.fetchone()
                 if row is None:
                     return None
 
@@ -372,7 +384,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
                     updated_at=datetime.fromisoformat(row["updated_at"]),
                 )
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get checkpoint: {e}") from e
 
     async def get_all_checkpoints(
@@ -380,9 +392,9 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     ) -> List[IngestionCheckpoint]:
         """Get all checkpoints for a specific job."""
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
                     """
                     SELECT symbol, last_processed_timestamp, records_processed, updated_at
                     FROM ingestion_checkpoints 
@@ -391,7 +403,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
                     (str(job_id),),
                 )
 
-                rows = cursor.fetchall()
+                rows = await cursor.fetchall()
                 checkpoints = []
 
                 for row in rows:
@@ -405,7 +417,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
 
                 return checkpoints
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(
                 f"Failed to get checkpoints for job {job_id}: {e}"
             ) from e
@@ -413,13 +425,13 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     async def delete_checkpoints(self, job_id: IngestionJobId) -> None:
         """Delete all checkpoints for a specific job."""
         try:
-            with connection(self._db_path) as conn:
-                conn.execute(
+            async with self._conn() as db:
+                await db.execute(
                     "DELETE FROM ingestion_checkpoints WHERE job_id = ?", (str(job_id),)
                 )
-                conn.commit()
+                await db.commit()
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(
                 f"Failed to delete checkpoints for job {job_id}: {e}"
             ) from e
@@ -429,9 +441,9 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     ) -> Optional[IngestionCheckpoint]:
         """Get the most recent checkpoint for a symbol across all jobs."""
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
                     """
                     SELECT symbol, last_processed_timestamp, records_processed, updated_at
                     FROM ingestion_checkpoints 
@@ -442,7 +454,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
                     (symbol.value,),
                 )
 
-                row = cursor.fetchone()
+                row = await cursor.fetchone()
                 if row is None:
                     return None
 
@@ -453,7 +465,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
                     updated_at=datetime.fromisoformat(row["updated_at"]),
                 )
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(
                 f"Failed to get global checkpoint for {symbol}: {e}"
             ) from e
@@ -461,36 +473,46 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     async def cleanup_old_checkpoints(self, older_than: datetime) -> int:
         """Remove checkpoints older than the specified date."""
         try:
-            with connection(self._db_path) as conn:
-                cursor = conn.execute(
+            async with self._conn() as db:
+                cursor = await db.execute(
                     "DELETE FROM ingestion_checkpoints WHERE updated_at < ?",
                     (older_than,),
                 )
-                conn.commit()
+                await db.commit()
                 return cursor.rowcount
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(
                 f"Failed to cleanup old checkpoints: {e}"
             ) from e
 
 
-class SqliteMetricsRepository(IIngestionMetricsRepository):
+class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
     """SQLite implementation of metrics repository."""
 
     def __init__(self, db_path: Optional[Path] = None):
         self._db_path = db_path or Path("ingestion_metrics.db")
+        self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
 
     def _init_database(self) -> None:
         """Initialize the database schema."""
+        # For now, keep the sync initialization but use the connection pool
+        from marketpipe.infrastructure.sqlite_pool import connection
         with connection(self._db_path) as conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS ingestion_metrics (
-                    job_id TEXT PRIMARY KEY,
-                    metrics_data TEXT NOT NULL,
-                    created_at TIMESTAMP NOT NULL
+                    job_id TEXT NOT NULL,
+                    start_timestamp INTEGER NOT NULL,
+                    end_timestamp INTEGER NOT NULL,
+                    total_records INTEGER NOT NULL,
+                    processed_records INTEGER NOT NULL,
+                    failed_records INTEGER NOT NULL,
+                    processing_time_seconds REAL NOT NULL,
+                    throughput_records_per_second REAL NOT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    PRIMARY KEY (job_id)
                 )
             """
             )
@@ -500,67 +522,77 @@ class SqliteMetricsRepository(IIngestionMetricsRepository):
     ) -> None:
         """Save processing metrics for a job."""
         try:
-            metrics_data = json.dumps(metrics.to_dict())
-
-            with connection(self._db_path) as conn:
-                conn.execute(
+            async with self._conn() as db:
+                await db.execute(
                     """
                     INSERT OR REPLACE INTO ingestion_metrics 
-                    (job_id, metrics_data, created_at)
-                    VALUES (?, ?, ?)
+                    (job_id, start_timestamp, end_timestamp, total_records, 
+                     processed_records, failed_records, processing_time_seconds, 
+                     throughput_records_per_second, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                    (str(job_id), metrics_data, datetime.now()),
+                    (
+                        str(job_id),
+                        metrics.start_timestamp,
+                        metrics.end_timestamp,
+                        metrics.total_records,
+                        metrics.processed_records,
+                        metrics.failed_records,
+                        metrics.processing_time_seconds,
+                        metrics.throughput_records_per_second,
+                        datetime.now(),
+                    ),
                 )
-                conn.commit()
+                await db.commit()
 
-        except sqlite3.Error as e:
-            raise IngestionRepositoryError(
-                f"Failed to save metrics for job {job_id}: {e}"
-            ) from e
+        except aiosqlite.Error as e:
+            raise IngestionRepositoryError(f"Failed to save metrics: {e}") from e
 
     async def get_metrics(self, job_id: IngestionJobId) -> Optional[ProcessingMetrics]:
-        """Get metrics for a specific job."""
+        """Get processing metrics for a specific job."""
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
-                    "SELECT metrics_data FROM ingestion_metrics WHERE job_id = ?",
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
+                    """
+                    SELECT start_timestamp, end_timestamp, total_records, 
+                           processed_records, failed_records, processing_time_seconds, 
+                           throughput_records_per_second
+                    FROM ingestion_metrics 
+                    WHERE job_id = ?
+                """,
                     (str(job_id),),
                 )
-                row = cursor.fetchone()
 
+                row = await cursor.fetchone()
                 if row is None:
                     return None
 
-                metrics_dict = json.loads(row["metrics_data"])
                 return ProcessingMetrics(
-                    symbols_processed=metrics_dict["symbols_processed"],
-                    symbols_failed=metrics_dict["symbols_failed"],
-                    total_bars_ingested=metrics_dict["total_bars_ingested"],
-                    total_processing_time_seconds=metrics_dict[
-                        "total_processing_time_seconds"
-                    ],
-                    average_processing_time_per_symbol=metrics_dict[
-                        "average_processing_time_per_symbol"
-                    ],
-                    peak_memory_usage_mb=metrics_dict.get("peak_memory_usage_mb"),
+                    start_timestamp=row["start_timestamp"],
+                    end_timestamp=row["end_timestamp"],
+                    total_records=row["total_records"],
+                    processed_records=row["processed_records"],
+                    failed_records=row["failed_records"],
+                    processing_time_seconds=row["processing_time_seconds"],
+                    throughput_records_per_second=row["throughput_records_per_second"],
                 )
 
-        except sqlite3.Error as e:
-            raise IngestionRepositoryError(
-                f"Failed to get metrics for job {job_id}: {e}"
-            ) from e
+        except aiosqlite.Error as e:
+            raise IngestionRepositoryError(f"Failed to get metrics: {e}") from e
 
     async def get_metrics_history(
         self, start_date: datetime, end_date: datetime
     ) -> List[tuple[IngestionJobId, ProcessingMetrics]]:
-        """Get metrics for jobs within a date range."""
+        """Get metrics history within a date range."""
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
                     """
-                    SELECT job_id, metrics_data
+                    SELECT job_id, start_timestamp, end_timestamp, total_records, 
+                           processed_records, failed_records, processing_time_seconds, 
+                           throughput_records_per_second
                     FROM ingestion_metrics 
                     WHERE created_at BETWEEN ? AND ?
                     ORDER BY created_at DESC
@@ -568,126 +600,91 @@ class SqliteMetricsRepository(IIngestionMetricsRepository):
                     (start_date, end_date),
                 )
 
-                results = []
-                for row in cursor.fetchall():
-                    job_id = IngestionJobId(row["job_id"])
-                    metrics_dict = json.loads(row["metrics_data"])
+                rows = await cursor.fetchall()
+                result = []
+
+                for row in rows:
+                    job_id = IngestionJobId.from_string(row["job_id"])
                     metrics = ProcessingMetrics(
-                        symbols_processed=metrics_dict["symbols_processed"],
-                        symbols_failed=metrics_dict["symbols_failed"],
-                        total_bars_ingested=metrics_dict["total_bars_ingested"],
-                        total_processing_time_seconds=metrics_dict[
-                            "total_processing_time_seconds"
-                        ],
-                        average_processing_time_per_symbol=metrics_dict[
-                            "average_processing_time_per_symbol"
-                        ],
-                        peak_memory_usage_mb=metrics_dict.get("peak_memory_usage_mb"),
+                        start_timestamp=row["start_timestamp"],
+                        end_timestamp=row["end_timestamp"],
+                        total_records=row["total_records"],
+                        processed_records=row["processed_records"],
+                        failed_records=row["failed_records"],
+                        processing_time_seconds=row["processing_time_seconds"],
+                        throughput_records_per_second=row["throughput_records_per_second"],
                     )
-                    results.append((job_id, metrics))
+                    result.append((job_id, metrics))
 
-                return results
+                return result
 
-        except sqlite3.Error as e:
+        except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get metrics history: {e}") from e
 
     async def get_average_metrics(
         self, start_date: datetime, end_date: datetime
     ) -> Optional[ProcessingMetrics]:
-        """Calculate average metrics across jobs in a date range."""
+        """Get average processing metrics over a date range."""
         try:
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
+            async with self._conn() as db:
+                cursor = await db.execute(
                     """
-                    SELECT metrics_data
+                    SELECT 
+                        AVG(start_timestamp) as avg_start_timestamp,
+                        AVG(end_timestamp) as avg_end_timestamp,
+                        AVG(total_records) as avg_total_records,
+                        AVG(processed_records) as avg_processed_records,
+                        AVG(failed_records) as avg_failed_records,
+                        AVG(processing_time_seconds) as avg_processing_time_seconds,
+                        AVG(throughput_records_per_second) as avg_throughput_records_per_second
                     FROM ingestion_metrics 
                     WHERE created_at BETWEEN ? AND ?
                 """,
                     (start_date, end_date),
                 )
 
-                all_metrics = []
-                for row in cursor.fetchall():
-                    metrics_dict = json.loads(row["metrics_data"])
-                    all_metrics.append(metrics_dict)
-
-                if not all_metrics:
+                row = await cursor.fetchone()
+                if row is None or row[0] is None:
                     return None
 
-                # Calculate averages
-                avg_symbols_processed = sum(
-                    m["symbols_processed"] for m in all_metrics
-                ) / len(all_metrics)
-                avg_symbols_failed = sum(
-                    m["symbols_failed"] for m in all_metrics
-                ) / len(all_metrics)
-                avg_bars_ingested = sum(
-                    m["total_bars_ingested"] for m in all_metrics
-                ) / len(all_metrics)
-                avg_processing_time = sum(
-                    m["total_processing_time_seconds"] for m in all_metrics
-                ) / len(all_metrics)
-                avg_time_per_symbol = sum(
-                    m["average_processing_time_per_symbol"] for m in all_metrics
-                ) / len(all_metrics)
-
-                # Average memory usage (only for jobs that have it)
-                memory_values = [
-                    m.get("peak_memory_usage_mb")
-                    for m in all_metrics
-                    if m.get("peak_memory_usage_mb") is not None
-                ]
-                avg_memory = (
-                    sum(memory_values) / len(memory_values) if memory_values else None
-                )
-
                 return ProcessingMetrics(
-                    symbols_processed=int(avg_symbols_processed),
-                    symbols_failed=int(avg_symbols_failed),
-                    total_bars_ingested=int(avg_bars_ingested),
-                    total_processing_time_seconds=avg_processing_time,
-                    average_processing_time_per_symbol=avg_time_per_symbol,
-                    peak_memory_usage_mb=avg_memory,
+                    start_timestamp=int(row[0]),
+                    end_timestamp=int(row[1]),
+                    total_records=int(row[2]),
+                    processed_records=int(row[3]),
+                    failed_records=int(row[4]),
+                    processing_time_seconds=float(row[5]),
+                    throughput_records_per_second=float(row[6]),
                 )
 
-        except sqlite3.Error as e:
-            raise IngestionRepositoryError(
-                f"Failed to calculate average metrics: {e}"
-            ) from e
+        except aiosqlite.Error as e:
+            raise IngestionRepositoryError(f"Failed to get average metrics: {e}") from e
 
     async def get_performance_trends(
         self, days: int = 30
     ) -> List[tuple[datetime, float]]:
-        """Get daily average processing performance over time."""
+        """Get performance trends over time."""
         try:
-            # Calculate start date
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=days)
+            start_date = datetime.now() - timedelta(days=days)
 
-            with connection(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
                     """
-                    SELECT DATE(created_at) as date, 
-                           AVG(json_extract(metrics_data, '$.total_processing_time_seconds')) as avg_time
+                    SELECT DATE(created_at) as day, AVG(throughput_records_per_second) as avg_throughput
                     FROM ingestion_metrics 
-                    WHERE created_at BETWEEN ? AND ?
+                    WHERE created_at >= ?
                     GROUP BY DATE(created_at)
-                    ORDER BY date
+                    ORDER BY day
                 """,
-                    (start_date, end_date),
+                    (start_date,),
                 )
 
-                trends = []
-                for row in cursor.fetchall():
-                    date_obj = datetime.fromisoformat(row["date"])
-                    avg_time = float(row["avg_time"]) if row["avg_time"] else 0.0
-                    trends.append((date_obj, avg_time))
+                rows = await cursor.fetchall()
+                return [
+                    (datetime.fromisoformat(row["day"]), float(row["avg_throughput"]))
+                    for row in rows
+                ]
 
-                return trends
-
-        except sqlite3.Error as e:
-            raise IngestionRepositoryError(
-                f"Failed to get performance trends: {e}"
-            ) from e
+        except aiosqlite.Error as e:
+            raise IngestionRepositoryError(f"Failed to get performance trends: {e}") from e

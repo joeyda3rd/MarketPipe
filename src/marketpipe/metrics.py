@@ -9,8 +9,10 @@ import asyncio
 import os
 
 from prometheus_client import Counter, Histogram, Gauge, Summary
+import aiosqlite
 
 from marketpipe.infrastructure.sqlite_pool import connection
+from marketpipe.infrastructure.sqlite_async_mixin import SqliteAsyncMixin
 from marketpipe.migrations import apply_pending
 
 # Existing metrics
@@ -70,7 +72,7 @@ class TrendPoint:
     sample_count: int
 
 
-class SqliteMetricsRepository:
+class SqliteMetricsRepository(SqliteAsyncMixin):
     """SQLite-based repository for storing and querying metric history."""
 
     def __init__(self, db_path: Optional[str] = None):
@@ -80,6 +82,7 @@ class SqliteMetricsRepository:
 
         self._db_path = Path(db_path)
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = str(self._db_path)  # For async connection helper
         # Apply migrations on first use
         apply_pending(self._db_path)
 
@@ -87,84 +90,64 @@ class SqliteMetricsRepository:
         """Record a metric data point."""
         timestamp = int(datetime.now().timestamp())
 
-        # Use asyncio to avoid blocking if possible
-        def _record():
-            with connection(self._db_path) as conn:
-                conn.execute(
-                    "INSERT INTO metrics (ts, name, value) VALUES (?, ?, ?)",
-                    (timestamp, name, value),
-                )
-                conn.commit()
-
-        # Run in thread pool if we're in async context
-        if asyncio.get_event_loop().is_running():
-            await asyncio.get_event_loop().run_in_executor(None, _record)
-        else:
-            _record()
+        async with self._conn() as db:
+            await db.execute(
+                "INSERT INTO metrics (ts, name, value) VALUES (?, ?, ?)",
+                (timestamp, name, value),
+            )
+            await db.commit()
 
     async def get_metrics_history(
         self, metric: str, *, since: Optional[datetime] = None
     ) -> List[MetricPoint]:
         """Get metric history, optionally filtered by time."""
+        async with self._conn() as db:
+            if since:
+                since_ts = int(since.timestamp())
+                cursor = await db.execute(
+                    """
+                    SELECT ts, name, value FROM metrics 
+                    WHERE name = ? AND ts >= ?
+                    ORDER BY ts
+                """,
+                    (metric, since_ts),
+                )
+            else:
+                cursor = await db.execute(
+                    """
+                    SELECT ts, name, value FROM metrics 
+                    WHERE name = ?
+                    ORDER BY ts
+                """,
+                    (metric,),
+                )
 
-        def _query():
-            with connection(self._db_path) as conn:
-                if since:
-                    since_ts = int(since.timestamp())
-                    cursor = conn.execute(
-                        """
-                        SELECT ts, name, value FROM metrics 
-                        WHERE name = ? AND ts >= ?
-                        ORDER BY ts
-                    """,
-                        (metric, since_ts),
-                    )
-                else:
-                    cursor = conn.execute(
-                        """
-                        SELECT ts, name, value FROM metrics 
-                        WHERE name = ?
-                        ORDER BY ts
-                    """,
-                        (metric,),
-                    )
-
-                return [
-                    MetricPoint(
-                        timestamp=datetime.fromtimestamp(row[0]),
-                        metric=row[1],
-                        value=row[2],
-                    )
-                    for row in cursor.fetchall()
-                ]
-
-        # Run in thread pool if we're in async context
-        if asyncio.get_event_loop().is_running():
-            return await asyncio.get_event_loop().run_in_executor(None, _query)
-        else:
-            return _query()
+            rows = await cursor.fetchall()
+            return [
+                MetricPoint(
+                    timestamp=datetime.fromtimestamp(row[0]),
+                    metric=row[1],
+                    value=row[2],
+                )
+                for row in rows
+            ]
 
     async def get_average_metrics(self, metric: str, *, window_minutes: int) -> float:
         """Get average metric value over a time window."""
         since = datetime.now().timestamp() - (window_minutes * 60)
 
-        def _query():
-            with connection(self._db_path) as conn:
-                cursor = conn.execute(
-                    """
-                    SELECT AVG(value) FROM metrics 
-                    WHERE name = ? AND ts >= ?
-                """,
-                    (metric, since),
-                )
+        async with self._conn() as db:
+            cursor = await db.execute(
+                """
+                SELECT AVG(value) FROM metrics 
+                WHERE name = ? AND ts >= ?
+            """,
+                (metric, since),
+            )
 
-                result = cursor.fetchone()[0]
-                return result if result is not None else 0.0
-
-        if asyncio.get_event_loop().is_running():
-            return await asyncio.get_event_loop().run_in_executor(None, _query)
-        else:
-            return _query()
+            row = await cursor.fetchone()
+            result = row[0] if row else None
+            return result if result is not None else 0.0
 
     async def get_performance_trends(
         self, metric: str, *, buckets: int = 24
@@ -172,48 +155,44 @@ class SqliteMetricsRepository:
         """Get performance trends over time divided into buckets."""
         now = datetime.now()
         bucket_size_minutes = (24 * 60) // buckets  # Distribute 24 hours across buckets
+        trends = []
 
-        def _query():
-            trends = []
-            with connection(self._db_path) as conn:
-                for i in range(buckets):
-                    bucket_start_ts = now.timestamp() - (
-                        (buckets - i) * bucket_size_minutes * 60
-                    )
-                    bucket_end_ts = now.timestamp() - (
-                        (buckets - i - 1) * bucket_size_minutes * 60
-                    )
+        async with self._conn() as db:
+            for i in range(buckets):
+                bucket_start_ts = now.timestamp() - (
+                    (buckets - i) * bucket_size_minutes * 60
+                )
+                bucket_end_ts = now.timestamp() - (
+                    (buckets - i - 1) * bucket_size_minutes * 60
+                )
 
-                    cursor = conn.execute(
-                        """
-                        SELECT AVG(value), COUNT(*) FROM metrics 
-                        WHERE name = ? AND ts >= ? AND ts < ?
-                    """,
-                        (metric, bucket_start_ts, bucket_end_ts),
-                    )
+                cursor = await db.execute(
+                    """
+                    SELECT AVG(value), COUNT(*) FROM metrics 
+                    WHERE name = ? AND ts >= ? AND ts < ?
+                """,
+                    (metric, bucket_start_ts, bucket_end_ts),
+                )
 
-                    avg_value, count = cursor.fetchone()
+                row = await cursor.fetchone()
+                avg_value, count = row if row else (None, 0)
 
-                    trend_point = TrendPoint(
-                        bucket_start=datetime.fromtimestamp(bucket_start_ts),
-                        bucket_end=datetime.fromtimestamp(bucket_end_ts),
-                        average_value=avg_value if avg_value is not None else 0.0,
-                        sample_count=count or 0,
-                    )
-                    trends.append(trend_point)
+                trend_point = TrendPoint(
+                    bucket_start=datetime.fromtimestamp(bucket_start_ts),
+                    bucket_end=datetime.fromtimestamp(bucket_end_ts),
+                    average_value=avg_value if avg_value is not None else 0.0,
+                    sample_count=count or 0,
+                )
+                trends.append(trend_point)
 
-            return trends
+        return trends
 
-        if asyncio.get_event_loop().is_running():
-            return await asyncio.get_event_loop().run_in_executor(None, _query)
-        else:
-            return _query()
-
-    def list_metric_names(self) -> List[str]:
+    async def list_metric_names(self) -> List[str]:
         """List all available metric names."""
-        with connection(self._db_path) as conn:
-            cursor = conn.execute("SELECT DISTINCT name FROM metrics ORDER BY name")
-            return [row[0] for row in cursor.fetchall()]
+        async with self._conn() as db:
+            cursor = await db.execute("SELECT DISTINCT name FROM metrics ORDER BY name")
+            rows = await cursor.fetchall()
+            return [row[0] for row in rows]
 
 
 # Global repository instance for record_metric function
