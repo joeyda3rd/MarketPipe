@@ -16,7 +16,7 @@ from marketpipe.domain.market_data import (
 from .alpaca_client import AlpacaClient
 from .models import ClientConfig
 from .auth import HeaderTokenAuth
-from .rate_limit import RateLimiter
+from .rate_limit import RateLimiter, create_rate_limiter_from_config
 from .provider_registry import provider
 
 
@@ -47,7 +47,10 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
             api_key=api_key, base_url=base_url, rate_limit_per_min=rate_limit_per_min
         )
         self._auth = HeaderTokenAuth(api_key, api_secret)
-        self._rate_limiter = RateLimiter()
+        self._rate_limiter = create_rate_limiter_from_config(
+            rate_limit_per_min=rate_limit_per_min,
+            provider_name="alpaca"
+        )
 
         self._alpaca_client = AlpacaClient(
             config=self._client_config,

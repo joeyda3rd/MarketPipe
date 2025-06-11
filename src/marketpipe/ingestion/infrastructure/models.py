@@ -14,8 +14,8 @@ class ClientConfig(BaseModel):
     base_url: str
     timeout: float = 30.0
     max_retries: int = 3
-    rate_limit_per_min: int | None = None
-    burst_size: int | None = None
+    rate_limit_per_min: int | None = Field(None, description="Rate limit in requests per minute")
+    burst_size: int | None = Field(None, description="Maximum burst size (defaults to rate_limit_per_min)")
     user_agent: str = "MarketPipe/0.1"
 
 

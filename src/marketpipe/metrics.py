@@ -31,6 +31,9 @@ PROCESSING_TIME = Summary(
     "mp_processing_time_seconds", "Processing time", ["operation"]
 )
 
+# Rate limiter metrics (imported from rate_limit module)
+from marketpipe.ingestion.infrastructure.rate_limit import RATE_LIMITER_WAITS
+
 __all__ = [
     "REQUESTS",
     "ERRORS",
@@ -40,6 +43,7 @@ __all__ = [
     "VALIDATION_ERRORS",
     "AGG_ROWS",
     "PROCESSING_TIME",
+    "RATE_LIMITER_WAITS",
     "record_metric",
     "MetricPoint",
     "TrendPoint",
