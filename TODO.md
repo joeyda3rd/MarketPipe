@@ -60,11 +60,26 @@
 - [x] 🟡 **Add SQLite migration system** _(schema versioning, upgrade paths)_ ✅ **COMPLETED** - Auto-migration system with version tracking, idempotent execution, CLI integration
 - [x] 🟢 **Implement connection pooling** _(SQLite WAL mode, concurrent access)_ ✅ **COMPLETED** - Thread-safe connection pool with WAL mode, optimal settings, comprehensive testing
 
+### Core Runtime
+- [x] 🔴 **Remove import-time side-effects** _(move `apply_pending()` + service registration into `marketpipe.bootstrap.bootstrap()` that is called only by CLI entry points)_ ✅ **COMPLETED** - Centralized bootstrap module with lazy initialization, thread-safe idempotent execution
+- [ ] 🔴 **Implement functional `RateLimiter`** _(token-bucket for both sync & async paths, enforce provider limits, expose metrics)_
+- [ ] 🔴 **Convert SQLite access in async code to `aiosqlite`** _(non-blocking reads/writes in all `Sqlite*Repository` classes)_
+- [ ] 🟡 **Async coordinator end-to-end** _(replace ThreadPool with `asyncio.gather`, wrap Parquet writes in `run_in_executor`)_
+- [ ] 🟡 **Async metrics server** _(switch Prometheus HTTP server to `asyncio.start_server` to avoid blocking loop)_
+- [ ] 🟢 **Secrets-masking utility** _(helper `mask(secret) -> str` and use everywhere API keys are logged)_
+- [ ] 🟢 **Config versioning key** _(add `config_version` to YAML; validation warns on unknown version)_
+
+## 🏗️ Database & Migrations
+
+- [ ] 🟡 **Adopt Alembic for migrations (SQLite + Postgres)** _(scaffold `alembic.ini`, port existing SQL files to `versions/`, CI runs `alembic upgrade head`)_
+- [ ] 🟡 **Feature-flagged Postgres support** _(implement `PostgresIngestionJobRepository` with `asyncpg`, activated when `DATABASE_URL` is set)_
+
 ## 📈 Metrics & Monitoring
 
 - [x] 🟡 **Complete SqliteMetricsRepository** _(history tracking, performance trends)_ ✅ **COMPLETED** - Full implementation with get_metrics_history, get_average_metrics, get_performance_trends
 - [x] 🟡 **Add metrics CLI command** _(simple performance reports)_ ✅ **COMPLETED** - Enhanced CLI with --metric, --since, --avg, --plot, --list options
 - [x] 🟢 **Implement event bus monitoring** _(track published/consumed events)_ ✅ **COMPLETED** - Event-driven metrics collection via domain event handlers
+- [ ] 🟢 **Add `provider` and `feed` labels to Parquet-write & retention metrics** _(improves multi-provider visibility)_
 - [ ] 🔵 **Add Grafana dashboard config** _(visualization templates)_
 
 ## 🧑‍💻 Developer Experience
@@ -76,12 +91,16 @@
 - [x] 🟡 **Remove all NotImplementedError placeholders** _(production readiness)_ ✅ **COMPLETED** - All placeholders replaced with proper implementations
 - [x] 🟡 **Update README with architecture diagram** _(quick-start guide, config examples)_ ✅ **COMPLETED** - Enhanced architecture diagram with provider framework, universe management, and scheduler
 - [ ] 🟢 **Add CONTRIBUTING.md** _(test instructions, development setup)_
+- [ ] 🟢 **Enable Ruff + pre-commit hooks** _(style, unused-import, and mypy checks run in CI; fail build on drift)_
+- [ ] 🟢 **Update CI quality gates after CLI refactor** _(extend pytest glob, keep coverage ≥70 %)_
 - [ ] 🔵 **Add API documentation** _(domain model, CLI reference)_
 
 ## 🚀 Enhanced CLI Commands
 
-- [ ] 🟡 **Rename CLI commands for clarity** _(mp ingest-ohlcv, mp backfill-ohlcv, mp aggregate-ohlcv, mp validate-ohlcv)_
+- [x] 🟡 **Rename CLI commands for clarity** _(mp ingest-ohlcv, mp backfill-ohlcv, mp aggregate-ohlcv, mp validate-ohlcv)_ ✅ **COMPLETED** - CLI commands renamed with OHLCV sub-app, convenience commands, and deprecation warnings
 - [ ] 🟡 **Implement backfill command** _(historical data ingestion with gap detection)_
+- [ ] 🟡 **Split monolithic CLI into sub-modules** _(create `marketpipe.cli.ingest`, `.validate`, `.aggregate`, `.query`, register with root Typer app)_
+- [ ] 🟡 **Add `prune` commands & retention scripts** _( `mp prune parquet --older-than 5y`, `mp prune sqlite --older-than 18m`; sample cron/systemd units; update metrics)_
 - [ ] 🟢 **Add data loader Python API** _(load_ohlcv() function for research/backtesting)_
 - [ ] 🔵 **Scheduler integration** _(crontab examples, systemd timers)_
 
@@ -103,6 +122,26 @@
 - Metrics: ~85% ✅ _(New metrics integration with comprehensive test coverage)_
 
 ## 🎉 Recent Completions
+
+### Bootstrap Side-Effect Removal _(December 2024)_
+- ✅ **Centralized Bootstrap Module**: Created `src/marketpipe/bootstrap.py` with thread-safe, idempotent `bootstrap()` function that handles DB migrations and service registration
+- ✅ **Import-Time Side-Effect Elimination**: Removed `apply_pending()` and service registration calls from CLI module imports, preventing unwanted database operations during help commands
+- ✅ **Lazy Initialization Pattern**: Bootstrap only executes when CLI commands run, not when modules are imported, enabling clean help text and testing scenarios
+- ✅ **Thread Safety**: Implemented `_BOOTSTRAP_LOCK` and `_BOOTSTRAPPED` flag to ensure bootstrap runs exactly once in concurrent environments
+- ✅ **Environment Configuration**: Added `MP_DB` environment variable support (default: "data/db/core.db") for flexible database path configuration
+- ✅ **Comprehensive Test Suite**: 13 tests covering import behavior, help commands, CLI command bootstrap calls, error handling, and concurrent access patterns
+- ✅ **Clean Help Commands**: `marketpipe --help` and subcommand help now work without creating database files or triggering side effects
+- ✅ **Backward Compatibility**: All existing command functionality preserved while fixing underlying architectural issues
+- ✅ **Testing Utilities**: Added `is_bootstrapped()`, `reset_bootstrap_state()` helper functions for reliable test state management
+
+### CLI Command Renaming _(December 2024)_
+- ✅ **OHLCV Sub-App Structure**: Created `marketpipe ohlcv` sub-app with `ingest`, `validate`, and `aggregate` commands for clear organization of OHLCV pipeline operations
+- ✅ **Convenience Commands**: Added top-level `ingest-ohlcv`, `validate-ohlcv`, and `aggregate-ohlcv` commands for quick access without sub-app navigation
+- ✅ **Deprecation System**: Implemented proper deprecation warnings for old commands (`ingest`, `validate`, `aggregate`) with clear migration guidance
+- ✅ **Backward Compatibility**: All existing command signatures preserved, ensuring no breaking changes for current users while guiding toward new patterns
+- ✅ **Comprehensive Testing**: 7 test cases covering deprecation warnings, new command existence, sub-app functionality, and signature compatibility
+- ✅ **Enhanced Help System**: Updated help text to clearly indicate deprecated commands and provide migration instructions
+- ✅ **Implementation Shared**: Extracted common functionality into `_ingest_impl()`, `_validate_impl()`, and `_aggregate_impl()` to avoid code duplication
 
 ### Pluggable Provider Framework _(December 2024)_
 - ✅ **Provider Registry System**: Entry points-based provider discovery with `ProviderRegistry` class, dynamic provider loading, CLI integration with `providers` command

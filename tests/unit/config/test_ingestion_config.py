@@ -10,10 +10,21 @@ from pathlib import Path
 import pytest
 
 from marketpipe.config import IngestionJobConfig
+from marketpipe.ingestion.infrastructure.provider_registry import (
+    register,
+    is_registered,
+)
+
+# Ensure polygon provider is available for config tests
+try:
+    from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
+    if not is_registered("polygon"):
+        register("polygon", FakeMarketDataAdapter)
+except Exception:
+    pass
 
 
 class TestIngestionJobConfig:
-    """Test cases for IngestionJobConfig."""
 
     def test_valid_config_creation(self):
         """Test creating a valid config object."""

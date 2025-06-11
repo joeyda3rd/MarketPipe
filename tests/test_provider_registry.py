@@ -183,18 +183,35 @@ class TestProviderRegistry:
 class TestBuiltinProviders:
     """Test that built-in providers are registered."""
 
+    def setup_method(self):
+        """Setup for each test - register built-in providers."""
+        clear_registry()
+        
+        # Manually register built-in providers for testing
+        from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
+        from marketpipe.ingestion.infrastructure.adapters import AlpacaMarketDataAdapter
+        from marketpipe.ingestion.infrastructure.iex_adapter import IEXMarketDataAdapter
+        
+        register("fake", FakeMarketDataAdapter)
+        register("alpaca", AlpacaMarketDataAdapter)
+        register("iex", IEXMarketDataAdapter)
+
+    def teardown_method(self):
+        """Cleanup after each test."""
+        clear_registry()
+
     def test_alpaca_provider_registered(self):
-        """Test that Alpaca provider is auto-registered."""
+        """Test that Alpaca provider is registered."""
         providers = list_providers()
         assert "alpaca" in providers
 
     def test_iex_provider_registered(self):
-        """Test that IEX provider is auto-registered."""
+        """Test that IEX provider is registered."""
         providers = list_providers()
         assert "iex" in providers
 
     def test_fake_provider_registered(self):
-        """Test that fake provider is auto-registered."""
+        """Test that fake provider is registered."""
         providers = list_providers()
         assert "fake" in providers
 
