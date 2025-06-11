@@ -32,30 +32,31 @@ workers: 8
             temp_path = f.name
 
         try:
-            with patch("marketpipe.cli._build_ingestion_services") as mock_build:
-                # Mock the services
-                mock_job_service = AsyncMock()
-                mock_coordinator_service = AsyncMock()
-                mock_build.return_value = (mock_job_service, mock_coordinator_service)
+            with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
+                with patch("marketpipe.cli._build_ingestion_services") as mock_build:
+                    # Mock the services
+                    mock_job_service = AsyncMock()
+                    mock_coordinator_service = AsyncMock()
+                    mock_build.return_value = (mock_job_service, mock_coordinator_service)
 
-                # Mock async functions
-                mock_job_service.create_job.return_value = "test-job-123"
-                mock_coordinator_service.execute_job.return_value = {
-                    "symbols_processed": 2,
-                    "total_bars": 1000,
-                    "files_created": 2,
-                    "processing_time_seconds": 1.5,
-                }
+                    # Mock async functions
+                    mock_job_service.create_job.return_value = "test-job-123"
+                    mock_coordinator_service.execute_job.return_value = {
+                        "symbols_processed": 2,
+                        "total_bars": 1000,
+                        "files_created": 2,
+                        "processing_time_seconds": 1.5,
+                    }
 
-                # Run the CLI command
-                result = runner.invoke(app, ["ingest", "--config", temp_path])
+                    # Run the CLI command using new command name
+                    result = runner.invoke(app, ["ingest-ohlcv", "--config", temp_path])
 
-                # Check that the command succeeded
-                assert result.exit_code == 0
-                assert "Loading configuration from:" in result.stdout
-                assert "Creating ingestion job for 2 symbols" in result.stdout
-                assert "Batch size: 1500" in result.stdout
-                assert "Workers: 8" in result.stdout
+                    # Check that the command succeeded
+                    assert result.exit_code == 0
+                    assert "Loading configuration from:" in result.stdout
+                    assert "Creating ingestion job for 2 symbols" in result.stdout
+                    assert "Batch size: 1500" in result.stdout
+                    assert "Workers: 8" in result.stdout
         finally:
             Path(temp_path).unlink()
 
@@ -74,36 +75,37 @@ workers: 4
             temp_path = f.name
 
         try:
-            with patch("marketpipe.cli._build_ingestion_services") as mock_build:
-                # Mock the services
-                mock_job_service = AsyncMock()
-                mock_coordinator_service = AsyncMock()
-                mock_build.return_value = (mock_job_service, mock_coordinator_service)
+            with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
+                with patch("marketpipe.cli._build_ingestion_services") as mock_build:
+                    # Mock the services
+                    mock_job_service = AsyncMock()
+                    mock_coordinator_service = AsyncMock()
+                    mock_build.return_value = (mock_job_service, mock_coordinator_service)
 
-                # Mock async functions
-                mock_job_service.create_job.return_value = "test-job-123"
-                mock_coordinator_service.execute_job.return_value = {
-                    "symbols_processed": 1,
-                    "total_bars": 500,
-                    "files_created": 1,
-                    "processing_time_seconds": 0.8,
-                }
+                    # Mock async functions
+                    mock_job_service.create_job.return_value = "test-job-123"
+                    mock_coordinator_service.execute_job.return_value = {
+                        "symbols_processed": 1,
+                        "total_bars": 500,
+                        "files_created": 1,
+                        "processing_time_seconds": 0.8,
+                    }
 
-                # Run the CLI command with overrides
-                result = runner.invoke(
-                    app,
-                    [
-                        "ingest",
-                        "--config",
-                        temp_path,
-                        "--batch-size",
-                        "2000",
-                        "--workers",
-                        "12",
-                        "--symbols",
-                        "NVDA,GOOGL",
-                    ],
-                )
+                    # Run the CLI command with overrides using new command name
+                    result = runner.invoke(
+                        app,
+                        [
+                            "ingest-ohlcv",
+                            "--config",
+                            temp_path,
+                            "--batch-size",
+                            "2000",
+                            "--workers",
+                            "12",
+                            "--symbols",
+                            "NVDA,GOOGL",
+                        ],
+                    )
 
                 # Check that the command succeeded
                 assert result.exit_code == 0
@@ -117,38 +119,39 @@ workers: 4
 
     def test_direct_flags_without_config(self):
         """Test using direct CLI flags without config file."""
-        with patch("marketpipe.cli._build_ingestion_services") as mock_build:
-            # Mock the services
-            mock_job_service = AsyncMock()
-            mock_coordinator_service = AsyncMock()
-            mock_build.return_value = (mock_job_service, mock_coordinator_service)
+        with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
+            with patch("marketpipe.cli._build_ingestion_services") as mock_build:
+                # Mock the services
+                mock_job_service = AsyncMock()
+                mock_coordinator_service = AsyncMock()
+                mock_build.return_value = (mock_job_service, mock_coordinator_service)
 
-            # Mock async functions
-            mock_job_service.create_job.return_value = "test-job-456"
-            mock_coordinator_service.execute_job.return_value = {
-                "symbols_processed": 3,
-                "total_bars": 1500,
-                "files_created": 3,
-                "processing_time_seconds": 2.1,
-            }
+                # Mock async functions
+                mock_job_service.create_job.return_value = "test-job-456"
+                mock_coordinator_service.execute_job.return_value = {
+                    "symbols_processed": 3,
+                    "total_bars": 1500,
+                    "files_created": 3,
+                    "processing_time_seconds": 2.1,
+                }
 
-            # Run the CLI command with direct flags
-            result = runner.invoke(
-                app,
-                [
-                    "ingest",
-                    "--symbols",
-                    "AAPL,MSFT,NVDA",
-                    "--start",
-                    "2025-02-01",
-                    "--end",
-                    "2025-02-07",
-                    "--batch-size",
-                    "750",
-                    "--workers",
-                    "6",
-                ],
-            )
+                # Run the CLI command with direct flags using new command name
+                result = runner.invoke(
+                    app,
+                    [
+                        "ingest-ohlcv",
+                        "--symbols",
+                        "AAPL,MSFT,NVDA",
+                        "--start",
+                        "2025-02-01",
+                        "--end",
+                        "2025-02-07",
+                        "--batch-size",
+                        "750",
+                        "--workers",
+                        "6",
+                    ],
+                )
 
             # Check that the command succeeded
             assert result.exit_code == 0
@@ -161,7 +164,7 @@ workers: 4
 
     def test_missing_required_flags_error(self):
         """Test that missing required flags produces proper error."""
-        result = runner.invoke(app, ["ingest"])
+        result = runner.invoke(app, ["ingest-ohlcv"])
 
         assert result.exit_code == 1
         assert (
@@ -175,7 +178,7 @@ workers: 4
         result = runner.invoke(
             app,
             [
-                "ingest",
+                "ingest-ohlcv",
                 "--symbols",
                 "AAPL,MSFT",
                 # Missing --start and --end
@@ -204,23 +207,24 @@ output-path: ./test_output
             temp_path = f.name
 
         try:
-            with patch("marketpipe.cli._build_ingestion_services") as mock_build:
-                # Mock the services
-                mock_job_service = AsyncMock()
-                mock_coordinator_service = AsyncMock()
-                mock_build.return_value = (mock_job_service, mock_coordinator_service)
+            with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
+                with patch("marketpipe.cli._build_ingestion_services") as mock_build:
+                    # Mock the services
+                    mock_job_service = AsyncMock()
+                    mock_coordinator_service = AsyncMock()
+                    mock_build.return_value = (mock_job_service, mock_coordinator_service)
 
-                # Mock async functions
-                mock_job_service.create_job.return_value = "test-job-789"
-                mock_coordinator_service.execute_job.return_value = {
-                    "symbols_processed": 1,
-                    "total_bars": 400,
-                    "files_created": 1,
-                    "processing_time_seconds": 0.5,
-                }
+                    # Mock async functions
+                    mock_job_service.create_job.return_value = "test-job-789"
+                    mock_coordinator_service.execute_job.return_value = {
+                        "symbols_processed": 1,
+                        "total_bars": 400,
+                        "files_created": 1,
+                        "processing_time_seconds": 0.5,
+                    }
 
-                # Run the CLI command
-                result = runner.invoke(app, ["ingest", "--config", temp_path])
+                    # Run the CLI command using new command name
+                    result = runner.invoke(app, ["ingest-ohlcv", "--config", temp_path])
 
                 # Check that the command succeeded and kebab-case was parsed
                 assert result.exit_code == 0
@@ -232,7 +236,7 @@ output-path: ./test_output
 
     def test_invalid_config_file_error(self):
         """Test that invalid config file produces proper error."""
-        result = runner.invoke(app, ["ingest", "--config", "/nonexistent/config.yaml"])
+        result = runner.invoke(app, ["ingest-ohlcv", "--config", "/nonexistent/config.yaml"])
 
         assert result.exit_code == 2  # Typer returns 2 for file not found
         assert "not exist" in result.stdout  # The message is split across lines
@@ -250,7 +254,7 @@ end: 2025-01-07
             temp_path = f.name
 
         try:
-            result = runner.invoke(app, ["ingest", "--config", temp_path])
+            result = runner.invoke(app, ["ingest-ohlcv", "--config", temp_path])
 
             assert result.exit_code == 1
             assert "Configuration error:" in result.stdout

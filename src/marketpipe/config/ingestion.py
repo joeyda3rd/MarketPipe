@@ -77,9 +77,15 @@ class IngestionJobConfig(BaseModel):
             )
 
             valid_providers = set(list_providers())
+            
+            # If no providers are registered (e.g., in test environment),
+            # fall back to known providers
+            if not valid_providers:
+                valid_providers = {"alpaca", "iex", "fake", "polygon"}
+                
         except ImportError:
             # Fallback for cases where registry isn't available
-            valid_providers = {"alpaca", "iex", "fake"}
+            valid_providers = {"alpaca", "iex", "fake", "polygon"}
 
         if v.lower() not in valid_providers:
             raise ValueError(

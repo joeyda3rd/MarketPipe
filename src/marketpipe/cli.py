@@ -11,19 +11,8 @@ from pathlib import Path
 
 import typer
 
-# Auto-apply migrations on import
-from marketpipe.migrations import apply_pending
-
-apply_pending(Path("data/db/core.db"))
-
-from marketpipe.validation import ValidationRunnerService
+# Import order: Remove import-time side-effects, these are now in bootstrap.py
 from marketpipe.validation.domain.services import ValidationDomainService
-
-ValidationRunnerService.register()
-
-from marketpipe.aggregation import AggregationRunnerService
-
-AggregationRunnerService.register()
 
 from marketpipe.domain.value_objects import Symbol, TimeRange
 from marketpipe.ingestion.application.services import (
@@ -57,6 +46,10 @@ from .metrics_server import run as metrics_server_run
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 
 app = typer.Typer(add_completion=False, help="MarketPipe ETL commands")
+
+# Create OHLCV sub-app for pipeline commands
+ohlcv_app = typer.Typer(name="ohlcv", help="OHLCV pipeline commands", add_completion=False)
+app.add_typer(ohlcv_app)
 
 
 def _build_ingestion_services(
@@ -157,46 +150,24 @@ def _build_ingestion_services(
     return job_service, coordinator_service
 
 
-@app.command()
-def ingest(
+def _ingest_impl(
     # Config file option
-    config: Path = typer.Option(
-        None,
-        "--config",
-        "-c",
-        help="Path to YAML configuration file",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-    ),
+    config: Path = None,
     # Direct flag options (optional when using config)
-    symbols: str = typer.Option(
-        None, "--symbols", "-s", help="Comma-separated tickers, e.g. AAPL,MSFT"
-    ),
-    start: str = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
-    end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
+    symbols: str = None,
+    start: str = None,
+    end: str = None,
     # Override options (work with both config and direct flags)
-    batch_size: int = typer.Option(
-        None, "--batch-size", help="Bars per request (overrides config)"
-    ),
-    output_path: str = typer.Option(
-        None, "--output", help="Output directory (overrides config)"
-    ),
-    workers: int = typer.Option(
-        None, "--workers", help="Number of worker threads (overrides config)"
-    ),
-    provider: str = typer.Option(
-        None, "--provider", help="Market data provider (overrides config)"
-    ),
-    feed_type: str = typer.Option(
-        None, "--feed-type", help="Data feed type (overrides config)"
-    ),
+    batch_size: int = None,
+    output_path: str = None,
+    workers: int = None,
+    provider: str = None,
+    feed_type: str = None,
 ):
-    """Start a new ingestion job and run it synchronously.
-
-    Either use --config to load from YAML file, or specify --symbols, --start, and --end directly.
-    CLI flags override config file values when both are provided.
-    """
+    """Implementation of the ingest functionality."""
+    from marketpipe.bootstrap import bootstrap
+    bootstrap()
+    
     try:
         # Determine configuration source and validate mutual exclusivity
         if config is not None:
@@ -350,19 +321,149 @@ def ingest(
         raise typer.Exit(1)
 
 
-@app.command()
-def validate(
-    job_id: str = typer.Option(None, "--job-id", help="Re-run validation for job"),
-    list_reports: bool = typer.Option(False, "--list", help="List available reports"),
-    show: Path = typer.Option(None, "--show", help="Show a report CSV"),
+# OHLCV-specific commands in sub-app
+@ohlcv_app.command(name="ingest")
+def ingest_ohlcv(
+    # Config file option
+    config: Path = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="Path to YAML configuration file",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+    ),
+    # Direct flag options (optional when using config)
+    symbols: str = typer.Option(
+        None, "--symbols", "-s", help="Comma-separated tickers, e.g. AAPL,MSFT"
+    ),
+    start: str = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
+    end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
+    # Override options (work with both config and direct flags)
+    batch_size: int = typer.Option(
+        None, "--batch-size", help="Bars per request (overrides config)"
+    ),
+    output_path: str = typer.Option(
+        None, "--output", help="Output directory (overrides config)"
+    ),
+    workers: int = typer.Option(
+        None, "--workers", help="Number of worker threads (overrides config)"
+    ),
+    provider: str = typer.Option(
+        None, "--provider", help="Market data provider (overrides config)"
+    ),
+    feed_type: str = typer.Option(
+        None, "--feed-type", help="Data feed type (overrides config)"
+    ),
 ):
-    """Validate ingested data and manage validation reports.
+    """Start a new OHLCV ingestion job and run it synchronously.
 
-    Examples:
-        marketpipe validate --job-id abc123        # Re-run validation
-        marketpipe validate --list                 # List all reports
-        marketpipe validate --show path/to/report.csv  # Show specific report
+    Either use --config to load from YAML file, or specify --symbols, --start, and --end directly.
+    CLI flags override config file values when both are provided.
     """
+    _ingest_impl(config, symbols, start, end, batch_size, output_path, workers, provider, feed_type)
+
+
+# Top-level convenience commands with deprecation warnings
+@app.command(name="ingest-ohlcv")
+def ingest_ohlcv_convenience(
+    # Config file option
+    config: Path = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="Path to YAML configuration file",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+    ),
+    # Direct flag options (optional when using config)
+    symbols: str = typer.Option(
+        None, "--symbols", "-s", help="Comma-separated tickers, e.g. AAPL,MSFT"
+    ),
+    start: str = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
+    end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
+    # Override options (work with both config and direct flags)
+    batch_size: int = typer.Option(
+        None, "--batch-size", help="Bars per request (overrides config)"
+    ),
+    output_path: str = typer.Option(
+        None, "--output", help="Output directory (overrides config)"
+    ),
+    workers: int = typer.Option(
+        None, "--workers", help="Number of worker threads (overrides config)"
+    ),
+    provider: str = typer.Option(
+        None, "--provider", help="Market data provider (overrides config)"
+    ),
+    feed_type: str = typer.Option(
+        None, "--feed-type", help="Data feed type (overrides config)"
+    ),
+):
+    """Start a new OHLCV ingestion job and run it synchronously.
+
+    Either use --config to load from YAML file, or specify --symbols, --start, and --end directly.
+    CLI flags override config file values when both are provided.
+    """
+    _ingest_impl(config, symbols, start, end, batch_size, output_path, workers, provider, feed_type)
+
+
+@app.command()
+def ingest(
+    # Config file option
+    config: Path = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="Path to YAML configuration file",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+    ),
+    # Direct flag options (optional when using config)
+    symbols: str = typer.Option(
+        None, "--symbols", "-s", help="Comma-separated tickers, e.g. AAPL,MSFT"
+    ),
+    start: str = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
+    end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
+    # Override options (work with both config and direct flags)
+    batch_size: int = typer.Option(
+        None, "--batch-size", help="Bars per request (overrides config)"
+    ),
+    output_path: str = typer.Option(
+        None, "--output", help="Output directory (overrides config)"
+    ),
+    workers: int = typer.Option(
+        None, "--workers", help="Number of worker threads (overrides config)"
+    ),
+    provider: str = typer.Option(
+        None, "--provider", help="Market data provider (overrides config)"
+    ),
+    feed_type: str = typer.Option(
+        None, "--feed-type", help="Data feed type (overrides config)"
+    ),
+):
+    """[DEPRECATED] Use 'marketpipe ingest-ohlcv' or 'marketpipe ohlcv ingest' instead.
+
+    Start a new ingestion job and run it synchronously.
+    """
+    typer.echo("⚠️  DEPRECATION WARNING: 'marketpipe ingest' is deprecated.", err=True)
+    typer.echo("   Use 'marketpipe ingest-ohlcv' or 'marketpipe ohlcv ingest' instead.", err=True)
+    typer.echo("   This command will be removed in a future version.", err=True)
+    typer.echo("", err=True)
+    _ingest_impl(config, symbols, start, end, batch_size, output_path, workers, provider, feed_type)
+
+
+def _validate_impl(
+    job_id: str = None,
+    list_reports: bool = False,
+    show: Path = None,
+):
+    """Implementation of the validate functionality."""
+    from marketpipe.bootstrap import bootstrap
+    bootstrap()
+    
     from marketpipe.validation.infrastructure.repositories import CsvReportRepository
 
     reporter = CsvReportRepository()
@@ -503,16 +604,97 @@ def validate(
     raise typer.Exit(1)
 
 
-@app.command()
-def aggregate(job_id: str):
-    """Run aggregation manually for a given ingestion job."""
+def _aggregate_impl(job_id: str):
+    """Implementation of the aggregate functionality."""
+    from marketpipe.bootstrap import bootstrap
+    bootstrap()
+    
     print(f"🔄 Starting aggregation for job: {job_id}")
     try:
+        from marketpipe.aggregation import AggregationRunnerService
         AggregationRunnerService.build_default().run_manual_aggregation(job_id)
         print(f"✅ Aggregation completed for job: {job_id}")
     except Exception as e:
         print(f"❌ Aggregation failed for job {job_id}: {e}")
         raise typer.Exit(1)
+
+
+# OHLCV validate command
+@ohlcv_app.command(name="validate")
+def validate_ohlcv(
+    job_id: str = typer.Option(None, "--job-id", help="Re-run validation for job"),
+    list_reports: bool = typer.Option(False, "--list", help="List available reports"),
+    show: Path = typer.Option(None, "--show", help="Show a report CSV"),
+):
+    """Validate ingested OHLCV data and manage validation reports.
+
+    Examples:
+        marketpipe ohlcv validate --job-id abc123        # Re-run validation
+        marketpipe ohlcv validate --list                 # List all reports
+        marketpipe ohlcv validate --show path/to/report.csv  # Show specific report
+    """
+    _validate_impl(job_id, list_reports, show)
+
+
+# OHLCV aggregate command
+@ohlcv_app.command(name="aggregate")
+def aggregate_ohlcv(job_id: str):
+    """Run OHLCV aggregation manually for a given ingestion job."""
+    _aggregate_impl(job_id)
+
+
+# Top-level convenience commands
+@app.command(name="validate-ohlcv")
+def validate_ohlcv_convenience(
+    job_id: str = typer.Option(None, "--job-id", help="Re-run validation for job"),
+    list_reports: bool = typer.Option(False, "--list", help="List available reports"),
+    show: Path = typer.Option(None, "--show", help="Show a report CSV"),
+):
+    """Validate ingested OHLCV data and manage validation reports.
+
+    Examples:
+        marketpipe validate-ohlcv --job-id abc123        # Re-run validation
+        marketpipe validate-ohlcv --list                 # List all reports
+        marketpipe validate-ohlcv --show path/to/report.csv  # Show specific report
+    """
+    _validate_impl(job_id, list_reports, show)
+
+
+@app.command(name="aggregate-ohlcv")
+def aggregate_ohlcv_convenience(job_id: str):
+    """Run OHLCV aggregation manually for a given ingestion job."""
+    _aggregate_impl(job_id)
+
+
+# Deprecated commands with warnings
+@app.command()
+def validate(
+    job_id: str = typer.Option(None, "--job-id", help="Re-run validation for job"),
+    list_reports: bool = typer.Option(False, "--list", help="List available reports"),
+    show: Path = typer.Option(None, "--show", help="Show a report CSV"),
+):
+    """[DEPRECATED] Use 'marketpipe validate-ohlcv' or 'marketpipe ohlcv validate' instead.
+
+    Validate ingested data and manage validation reports.
+    """
+    typer.echo("⚠️  DEPRECATION WARNING: 'marketpipe validate' is deprecated.", err=True)
+    typer.echo("   Use 'marketpipe validate-ohlcv' or 'marketpipe ohlcv validate' instead.", err=True)
+    typer.echo("   This command will be removed in a future version.", err=True)
+    typer.echo("", err=True)
+    _validate_impl(job_id, list_reports, show)
+
+
+@app.command()
+def aggregate(job_id: str):
+    """[DEPRECATED] Use 'marketpipe aggregate-ohlcv' or 'marketpipe ohlcv aggregate' instead.
+
+    Run aggregation manually for a given ingestion job.
+    """
+    typer.echo("⚠️  DEPRECATION WARNING: 'marketpipe aggregate' is deprecated.", err=True)
+    typer.echo("   Use 'marketpipe aggregate-ohlcv' or 'marketpipe ohlcv aggregate' instead.", err=True)
+    typer.echo("   This command will be removed in a future version.", err=True)
+    typer.echo("", err=True)
+    _aggregate_impl(job_id)
 
 
 @app.command()
@@ -540,6 +722,9 @@ def metrics(
         marketpipe metrics --metric ingest_rows --since "2024-01-01" --plot
         marketpipe metrics --avg 1h                        # Show 1-hour averages
     """
+    from marketpipe.bootstrap import bootstrap
+    bootstrap()
+    
     from marketpipe.metrics import SqliteMetricsRepository
 
     # If port is specified, start the metrics server
@@ -779,6 +964,9 @@ def query(
         marketpipe query "SELECT symbol, COUNT(*) FROM bars_1d GROUP BY symbol" --csv
         marketpipe query "SELECT MAX(high), MIN(low) FROM bars_1h WHERE symbol='MSFT'"
     """
+    from marketpipe.bootstrap import bootstrap
+    bootstrap()
+    
     import sys
 
     try:
@@ -848,6 +1036,7 @@ def migrate(
 ):
     """Apply any pending SQLite migrations."""
     try:
+        from marketpipe.migrations import apply_pending
         apply_pending(path)
         typer.echo("✅ Migrations up-to-date")
     except Exception as e:

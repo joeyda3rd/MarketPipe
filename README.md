@@ -96,6 +96,23 @@ pip install -e .
 
 ## Usage
 
+### Initialization
+
+MarketPipe uses lazy initialization to avoid side-effects when importing the CLI module. Database migrations and service registration only occur when you run actual commands (not when checking help text or running tests).
+
+```bash
+# This does NOT create any database files or run migrations
+marketpipe --help
+python -c "import marketpipe.cli"
+
+# These commands DO trigger initialization and database setup
+marketpipe ingest --symbols AAPL --start 2024-01-01 --end 2024-01-02
+marketpipe validate --list
+marketpipe metrics --port 8000
+```
+
+The bootstrap process runs automatically and is idempotent - multiple commands in the same process will share the same initialized state.
+
 ### Available Providers
 
 First, check what providers are available:

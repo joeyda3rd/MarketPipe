@@ -6,13 +6,6 @@ alpaca:
   rate_limit_per_min: 200
   feed: iex  # Use "iex" for free tier, "sip" for paid subscription
 
-<<<<<<< HEAD
-output_path: data
-compression: snappy
-symbols: ["AAPL", "MSFT", "TSLA"]
-start: 2025-06-04
-end: 2025-06-04
-=======
 symbols:
   - AAPL
   - GOOGL
@@ -22,7 +15,6 @@ start: "2024-01-02"
 end: "2024-01-03"
 output_path: "./data"
 compression: snappy
->>>>>>> df1d1238a09e3b6e79502b59c928819d7d544643
 workers: 3
 
 metrics:

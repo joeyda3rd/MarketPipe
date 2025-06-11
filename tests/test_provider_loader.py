@@ -228,6 +228,23 @@ class TestProviderConfigValidation:
 class TestRealProviders:
     """Test loading real providers."""
 
+    def setup_method(self):
+        """Setup for each test - register built-in providers."""
+        clear_registry()
+        
+        # Manually register built-in providers for testing
+        from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
+        from marketpipe.ingestion.infrastructure.adapters import AlpacaMarketDataAdapter
+        from marketpipe.ingestion.infrastructure.iex_adapter import IEXMarketDataAdapter
+        
+        register("fake", FakeMarketDataAdapter)
+        register("alpaca", AlpacaMarketDataAdapter)
+        register("iex", IEXMarketDataAdapter)
+
+    def teardown_method(self):
+        """Cleanup after each test."""
+        clear_registry()
+
     def test_build_fake_provider(self):
         """Test building fake provider."""
         config = {"provider": "fake", "base_price": 150.0, "volatility": 0.05}
