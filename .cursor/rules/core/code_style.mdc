@@ -1,0 +1,235 @@
+---
+description: Code style and formatting standards for MarketPipe
+globs:
+  - 'src/**/*.py'
+  - 'tests/**/*.py'
+  - 'examples/**/*.py'
+alwaysApply: true
+priority: high
+---
+
+# Code Style
+
+## Objective
+Maintain consistent code style and formatting across the MarketPipe codebase.
+
+## Context
+- Python 3.9+ with modern type annotations
+- Async/sync dual patterns
+- ETL pipeline with emphasis on readability and maintainability
+- No specific linter configuration detected, following PEP 8 principles
+
+## Rules
+
+### Future Annotations
+Always include future annotations import as the first line:
+
+✅ Good:
+```python
+from __future__ import annotations
+
+import asyncio
+from typing import Any, Dict
+```
+
+❌ Avoid:
+```python
+import asyncio
+from typing import Any, Dict, List[str]  # Without future annotations
+```
+
+### Type Annotations
+Use comprehensive type annotations with modern syntax:
+
+✅ Good:
+```python
+from __future__ import annotations
+
+def fetch_batch(
+    self,
+    symbol: str,
+    start_ts: int,
+    end_ts: int,
+) -> List[Dict[str, Any]]:
+    """Fetch OHLCV data for symbol in time range."""
+    
+async def async_request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+    """Async HTTP request with retry logic."""
+```
+
+❌ Avoid:
+```python
+def fetch_batch(self, symbol, start_ts, end_ts):  # No type hints
+    pass
+
+def process_data(self, data: dict):  # Use Dict[str, Any] instead
+    pass
+```
+
+### Docstrings
+Use concise, actionable docstrings following Google style:
+
+✅ Good:
+```python
+def build_request_params(
+    self,
+    symbol: str,
+    start_ts: int,
+    end_ts: int,
+    cursor: Optional[str] = None,
+) -> Mapping[str, str]:
+    """Build vendor-specific query parameters.
+    
+    Args:
+        symbol: Security identifier (e.g., "AAPL").
+        start_ts: Start timestamp in milliseconds (inclusive).
+        end_ts: End timestamp in milliseconds (exclusive).
+        cursor: Pagination cursor for subsequent requests.
+        
+    Returns:
+        Query parameters dict for API request.
+    """
+```
+
+❌ Avoid:
+```python
+def build_request_params(self, symbol, start_ts, end_ts, cursor=None):
+    """
+    This function builds the request parameters that are needed
+    to make a request to the API endpoint for the given symbol
+    and time range. It can also handle pagination.
+    """  # Too verbose, no type info
+```
+
+### Class Design
+Follow established patterns for abstract base classes and implementations:
+
+✅ Good:
+```python
+class BaseApiClient(abc.ABC):
+    """Abstract, vendor-agnostic API client.
+
+    Usage:
+        >>> cfg = ClientConfig(api_key="token", base_url="https://api.example.com")
+        >>> client = ConcreteClient(cfg, auth=TokenAuth(cfg.api_key))
+        >>> rows = client.fetch_batch("AAPL", 1690848000, 1690851600)
+    """
+
+    def __init__(
+        self,
+        config: ClientConfig,
+        auth: AuthStrategy,
+        rate_limiter: Optional[RateLimiter] = None,
+        metrics_collector: Optional[callable] = None,
+        state_backend: Optional[StateBackend] = None,
+        logger: Optional[logging.Logger] = None,
+    ) -> None:
+        self.config = config
+        self.auth = auth
+        self.rate_limiter = rate_limiter
+        self.metrics = metrics_collector or (lambda *a, **k: None)
+        self.state = state_backend
+        self.log = logger or logging.getLogger(self.__class__.__name__)
+```
+
+### Error Handling
+Use specific exception types and provide context:
+
+✅ Good:
+```python
+try:
+    response_json = r.json()
+except (json.JSONDecodeError, ValueError) as e:
+    self.log.warning(f"Failed to parse JSON response: {e}. Status: {r.status_code}")
+    if self.should_retry(r.status_code, {}):
+        # Retry logic
+        continue
+    else:
+        raise RuntimeError(f"Failed to parse API response as JSON: {r.text}")
+```
+
+❌ Avoid:
+```python
+try:
+    response_json = r.json()
+except Exception as e:  # Too broad
+    print(f"Error: {e}")  # No context, uses print
+    raise  # Re-raises without helpful message
+```
+
+### Function Parameters
+Use clear parameter ordering and optional parameters:
+
+✅ Good:
+```python
+def __init__(
+    self,
+    config: ClientConfig,                    # Required
+    auth: AuthStrategy,                      # Required
+    rate_limiter: Optional[RateLimiter] = None,      # Optional with default
+    metrics_collector: Optional[callable] = None,   # Optional with default
+    logger: Optional[logging.Logger] = None,         # Optional with default
+) -> None:
+```
+
+### Constants and Configuration
+Define constants at module level with descriptive names:
+
+✅ Good:
+```python
+ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
+_PATH_TEMPLATE = "/stocks/bars"
+DEFAULT_TIMEOUT = 30.0
+```
+
+❌ Avoid:
+```python
+FMT = "%Y-%m-%dT%H:%M:%SZ"  # Too abbreviated
+PATH = "/stocks/bars"       # Too generic
+```
+
+### Async/Sync Patterns
+Maintain parallel implementations for async and sync methods:
+
+✅ Good:
+```python
+def fetch_batch(self, symbol: str, start_ts: int, end_ts: int) -> List[Dict[str, Any]]:
+    """Synchronous batch fetch."""
+    rows = []
+    for page in self.paginate(symbol, start_ts, end_ts):
+        rows.extend(self.parse_response(page))
+    return rows
+
+async def async_fetch_batch(self, symbol: str, start_ts: int, end_ts: int) -> List[Dict[str, Any]]:
+    """Asynchronous batch fetch."""
+    rows = []
+    async for page in self.async_paginate(symbol, start_ts, end_ts):
+        rows.extend(self.parse_response(page))
+    return rows
+```
+
+### Comments
+Use comments sparingly for complex logic, prefer self-documenting code:
+
+✅ Good:
+```python
+# v2 API returns bars as a dict with symbol as key
+bars_dict = raw_json.get("bars", {})
+
+# Convert ISO timestamp to nanoseconds for Arrow compatibility
+timestamp = int(dt.datetime.fromisoformat(bar["t"].replace('Z', '+00:00')).timestamp() * 1_000_000_000)
+```
+
+❌ Avoid:
+```python
+# Get the bars
+bars_dict = raw_json.get("bars", {})  # Obvious from code
+
+# Loop through bars
+for symbol, bars in bars_dict.items():  # Obvious from code
+```
+
+## Exceptions
+- CLI modules may use simpler patterns for command definitions
+- Test files may include mock setups that don't follow production patterns
+- Example files may use simplified error handling for clarity

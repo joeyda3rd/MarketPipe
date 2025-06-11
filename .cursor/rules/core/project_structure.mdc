@@ -1,0 +1,170 @@
+---
+description: Project structure and file organization standards for MarketPipe
+globs:
+  - 'src/**/*'
+  - 'tests/**/*'
+  - 'examples/**/*'
+  - 'config/**/*'
+alwaysApply: true
+priority: high
+---
+
+# Project Structure
+
+## Objective
+Maintain consistent project organization following MarketPipe's modular ETL architecture.
+
+## Context
+- Package-based Python project with setuptools
+- Modular connector architecture for different data vendors
+- Separation of concerns: ingestion, validation, aggregation, metrics
+- Configuration-driven approach with YAML configs
+
+## Rules
+
+### Source Code Organization
+Follow the established module hierarchy:
+
+```
+src/marketpipe/
+├── __init__.py              # Package exports
+├── __main__.py              # Module entry point
+├── cli.py                   # Typer CLI commands
+├── main.py                  # Legacy entry point
+├── aggregation.py           # Time-frame aggregation
+├── validation.py            # Data validation
+├── loader.py               # DuckDB/Parquet loading
+├── metrics.py              # Prometheus metrics definitions
+├── metrics_server.py       # Metrics HTTP server
+└── ingestion/              # ETL pipeline core
+    ├── __init__.py
+    ├── __main__.py         # Ingestion module entry
+    ├── coordinator.py      # Thread coordination
+    ├── state.py           # State persistence
+    ├── validator.py       # Schema validation
+    ├── writer.py          # Parquet file writing
+    └── connectors/        # API client implementations
+        ├── __init__.py
+        ├── base_api_client.py    # Abstract client
+        ├── alpaca_client.py      # Alpaca implementation
+        ├── auth.py              # Authentication strategies
+        ├── models.py            # Configuration models
+        └── rate_limit.py        # Rate limiting
+```
+
+### Configuration Structure
+```
+config/
+├── example_config.yaml      # Basic configuration template
+└── example_with_metrics.yaml # Advanced configuration with metrics
+```
+
+### Schema Management
+```
+schema/
+└── schema_v1.json          # JSON schema for OHLCV data
+```
+
+### Testing Structure
+Mirror source structure in tests:
+```
+tests/
+├── test_cli.py             # CLI command tests
+├── test_coordinator_flow.py # Integration tests
+├── test_metrics.py         # Metrics tests
+├── test_alpaca_client.py   # Alpaca client tests
+└── test_base_client.py     # Base client tests
+```
+
+### Examples and Documentation
+```
+examples/
+├── alpaca_simple_test.py   # Basic usage examples
+├── alpaca_demo_async.py    # Async patterns
+├── alpaca_iex_test.py      # IEX feed examples
+└── ingest_one_day.py       # Complete workflow examples
+```
+
+## Module Design Patterns
+
+### Connector Architecture
+New API connectors should follow this pattern:
+1. Inherit from `BaseApiClient`
+2. Implement all abstract methods
+3. Follow vendor-specific naming: `{vendor}_client.py`
+4. Include comprehensive tests
+
+✅ Good:
+```python
+# src/marketpipe/ingestion/connectors/polygon_client.py
+class PolygonClient(BaseApiClient):
+    def build_request_params(self, ...): ...
+    def parse_response(self, ...): ...
+    def should_retry(self, ...): ...
+```
+
+### Configuration Models
+Use dataclasses for type-safe configuration:
+```python
+# src/marketpipe/ingestion/connectors/models.py
+@dataclass
+class ClientConfig:
+    api_key: str
+    base_url: str
+    timeout: float = 30.0
+```
+
+### Entry Points
+- CLI entry: `marketpipe.cli:app`
+- Module entry: `python -m marketpipe.{module}`
+- Programmatic: Import from package root
+
+## File Naming Rules
+
+### Source Files
+- Use snake_case: `base_api_client.py`, `rate_limit.py`
+- Include domain context: `alpaca_client.py`, `coordinator.py`
+- Avoid generic names: `utils.py`, `helpers.py`
+
+### Test Files
+- Prefix with `test_`: `test_alpaca_client.py`
+- Mirror source file names: `alpaca_client.py` → `test_alpaca_client.py`
+- Use descriptive test class names: `TestAlpacaRetryLogic`
+
+### Configuration Files
+- Use descriptive names: `example_config.yaml`, `example_with_metrics.yaml`
+- Include purpose in name: `grafana_dashboard.json`
+
+## Import Organization
+
+### Standard Order
+1. `from __future__ import annotations` (always first)
+2. Standard library imports
+3. Third-party imports
+4. Local imports (relative imports for same package)
+
+✅ Good:
+```python
+from __future__ import annotations
+
+import asyncio
+import datetime as dt
+from typing import Any, Dict, List
+
+import httpx
+import typer
+
+from marketpipe.metrics import REQUESTS
+from .models import ClientConfig
+```
+
+### Import Style
+- Use absolute imports for cross-package references
+- Use relative imports within the same package
+- Group related imports together
+- Avoid wildcard imports except in `__init__.py`
+
+## Exceptions
+- Legacy files like `main.py` may deviate from current structure
+- Example files may use simplified structure for clarity
+- Test files may include helper functions not following normal naming

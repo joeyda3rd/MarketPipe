@@ -1,0 +1,336 @@
+---
+description: Configuration management and YAML structure for MarketPipe
+globs:
+  - 'config/**/*.yaml'
+  - 'src/marketpipe/ingestion/connectors/models.py'
+  - 'src/marketpipe/loader.py'
+alwaysApply: true
+priority: medium
+---
+
+# Configuration Management
+
+## Objective
+Maintain consistent configuration patterns and YAML structure for MarketPipe's ETL operations.
+
+## Context
+- YAML-based configuration with environment variable support
+- Type-safe configuration using dataclasses
+- Separate client configurations for different vendors
+- Support for metrics, credentials, and operational parameters
+
+## Rules
+
+### YAML Configuration Structure
+Follow the established configuration hierarchy:
+
+✅ Good:
+```yaml
+# Top-level vendor configuration
+alpaca:
+  # Credentials loaded from environment variables
+  key: # Will be loaded from ALPACA_KEY in .env file
+  secret: # Will be loaded from ALPACA_SECRET in .env file
+  base_url: https://data.alpaca.markets/v2
+  rate_limit_per_min: 200
+  feed: iex  # "iex" for free tier, "sip" for paid subscription
+  timeout: 30.0
+  max_retries: 3
+
+# Global pipeline configuration
+symbols:
+  - AAPL
+  - GOOGL
+  - MSFT
+
+start: "2024-01-02"
+end: "2024-01-03"
+output_path: "./data"
+compression: snappy  # or zstd
+workers: 3
+
+# Optional metrics configuration
+metrics:
+  enabled: true
+  port: 8000
+  multiprocess_dir: "/tmp/prometheus_multiproc"
+
+# Optional state management
+state:
+  backend: sqlite
+  path: "./state.db"
+```
+
+❌ Avoid:
+```yaml
+# Inconsistent structure
+AlpacaConfig:
+  ApiKey: "hardcoded-key"  # Don't hardcode credentials
+  BaseURL: "https://api.alpaca.markets"
+  
+GlobalSettings:
+  Symbols: ["AAPL", "GOOGL"]  # Use lowercase keys
+  OutputDirectory: "./data"
+  
+MetricsSettings:
+  Enable: true  # Use "enabled" for consistency
+```
+
+### Dataclass Configuration Models
+Use dataclasses for type-safe configuration with proper validation:
+
+✅ Good:
+```python
+from dataclasses import dataclass, field
+from typing import Optional, List
+from pathlib import Path
+
+@dataclass
+class ClientConfig:
+    """Configuration for API client."""
+    api_key: str
+    base_url: str
+    user_agent: str = "MarketPipe/1.0"
+    timeout: float = 30.0
+    max_retries: int = 3
+    rate_limit_per_min: Optional[int] = None
+    
+    def __post_init__(self) -> None:
+        """Validate configuration after initialization."""
+        if not self.api_key:
+            raise ValueError("api_key is required")
+        if not self.base_url.startswith(("http://", "https://")):
+            raise ValueError("base_url must start with http:// or https://")
+        if self.timeout <= 0:
+            raise ValueError("timeout must be positive")
+        if self.max_retries < 0:
+            raise ValueError("max_retries must be non-negative")
+
+@dataclass
+class AlpacaConfig(ClientConfig):
+    """Alpaca-specific configuration."""
+    secret: str = ""
+    feed: str = "iex"  # "iex" or "sip"
+    
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if not self.secret:
+            raise ValueError("secret is required for Alpaca")
+        if self.feed not in {"iex", "sip"}:
+            raise ValueError("feed must be 'iex' or 'sip'")
+
+@dataclass
+class PipelineConfig:
+    """Main pipeline configuration."""
+    symbols: List[str]
+    start: str
+    end: str
+    output_path: str
+    compression: str = "snappy"
+    workers: int = 3
+    
+    # Optional configurations
+    metrics: Optional['MetricsConfig'] = None
+    state: Optional['StateConfig'] = None
+    
+    def __post_init__(self) -> None:
+        """Validate pipeline configuration."""
+        if not self.symbols:
+            raise ValueError("symbols list cannot be empty")
+        if self.compression not in {"snappy", "zstd", "lz4"}:
+            raise ValueError("compression must be 'snappy', 'zstd', or 'lz4'")
+        if self.workers <= 0:
+            raise ValueError("workers must be positive")
+        
+        # Create output directory if it doesn't exist
+        Path(self.output_path).mkdir(parents=True, exist_ok=True)
+```
+
+### Environment Variable Integration
+Load sensitive configuration from environment variables:
+
+✅ Good:
+```python
+import os
+from dotenv import load_dotenv
+from typing import Optional
+
+def load_alpaca_config(config_dict: dict) -> AlpacaConfig:
+    """Load Alpaca configuration with environment variable support."""
+    # Load .env file if it exists
+    load_dotenv()
+    
+    # Get credentials from environment or config
+    api_key = os.getenv("ALPACA_KEY") or config_dict.get("key", "")
+    secret = os.getenv("ALPACA_SECRET") or config_dict.get("secret", "")
+    
+    if not api_key:
+        raise ValueError("Alpaca API key not found in environment (ALPACA_KEY) or config")
+    if not secret:
+        raise ValueError("Alpaca secret not found in environment (ALPACA_SECRET) or config")
+    
+    return AlpacaConfig(
+        api_key=api_key,
+        secret=secret,
+        base_url=config_dict.get("base_url", "https://data.alpaca.markets/v2"),
+        feed=config_dict.get("feed", "iex"),
+        rate_limit_per_min=config_dict.get("rate_limit_per_min", 200),
+        timeout=config_dict.get("timeout", 30.0),
+        max_retries=config_dict.get("max_retries", 3),
+    )
+```
+
+### Configuration Loading Patterns
+Implement robust configuration loading with error handling:
+
+✅ Good:
+```python
+import yaml
+from pathlib import Path
+from typing import Dict, Any
+
+def load_config(config_path: str) -> PipelineConfig:
+    """Load and validate configuration from YAML file."""
+    config_file = Path(config_path)
+    
+    if not config_file.exists():
+        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+    
+    try:
+        with open(config_file, 'r') as f:
+            config_data = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML in configuration file: {e}")
+    
+    if not isinstance(config_data, dict):
+        raise ValueError("Configuration file must contain a YAML dictionary")
+    
+    # Extract vendor configurations
+    vendor_configs = {}
+    if "alpaca" in config_data:
+        vendor_configs["alpaca"] = load_alpaca_config(config_data["alpaca"])
+    
+    # Build pipeline configuration
+    pipeline_config = PipelineConfig(
+        symbols=config_data.get("symbols", []),
+        start=config_data.get("start", ""),
+        end=config_data.get("end", ""),
+        output_path=config_data.get("output_path", "./data"),
+        compression=config_data.get("compression", "snappy"),
+        workers=config_data.get("workers", 3),
+    )
+    
+    # Add optional configurations
+    if "metrics" in config_data:
+        pipeline_config.metrics = MetricsConfig(**config_data["metrics"])
+    
+    if "state" in config_data:
+        pipeline_config.state = StateConfig(**config_data["state"])
+    
+    return pipeline_config, vendor_configs
+```
+
+### Configuration Validation
+Validate configuration at multiple levels:
+
+✅ Good:
+```python
+def validate_date_range(start: str, end: str) -> None:
+    """Validate date range format and logic."""
+    from datetime import datetime
+    
+    try:
+        start_date = datetime.fromisoformat(start)
+        end_date = datetime.fromisoformat(end)
+    except ValueError as e:
+        raise ValueError(f"Invalid date format (use YYYY-MM-DD): {e}")
+    
+    if start_date >= end_date:
+        raise ValueError("start date must be before end date")
+    
+    # Check if date range is reasonable (not too far in future/past)
+    now = datetime.now()
+    if start_date > now:
+        raise ValueError("start date cannot be in the future")
+
+def validate_symbols(symbols: List[str]) -> None:
+    """Validate symbol format and availability."""
+    if not symbols:
+        raise ValueError("symbols list cannot be empty")
+    
+    for symbol in symbols:
+        if not symbol.isalpha() or len(symbol) > 10:
+            raise ValueError(f"Invalid symbol format: {symbol}")
+        if len(symbol) < 1:
+            raise ValueError("Symbol cannot be empty")
+```
+
+### Default Configuration Templates
+Provide clear configuration templates:
+
+✅ Good:
+```yaml
+# config/example_config.yaml - Basic configuration template
+alpaca:
+  # Credentials are loaded from .env file automatically
+  key: # Will be loaded from ALPACA_KEY in .env file
+  secret: # Will be loaded from ALPACA_SECRET in .env file
+  base_url: https://data.alpaca.markets/v2
+  rate_limit_per_min: 200
+  feed: iex  # Use "iex" for free tier, "sip" for paid subscription
+
+symbols:
+  - AAPL
+  - GOOGL
+  - MSFT
+
+start: "2024-01-02"
+end: "2024-01-03"
+output_path: "./data"
+compression: snappy
+workers: 3
+
+# Optional: Enable metrics collection
+# metrics:
+#   enabled: true
+#   port: 8000
+```
+
+```yaml
+# config/example_with_metrics.yaml - Advanced configuration
+alpaca:
+  key: # Loaded from ALPACA_KEY
+  secret: # Loaded from ALPACA_SECRET
+  base_url: https://data.alpaca.markets/v2
+  rate_limit_per_min: 200
+  feed: iex
+  timeout: 30.0
+  max_retries: 3
+
+symbols:
+  - AAPL
+  - GOOGL
+  - MSFT
+  - TSLA
+  - NVDA
+
+start: "2024-01-01"
+end: "2024-01-31"
+output_path: "./data"
+compression: zstd
+workers: 5
+
+metrics:
+  enabled: true
+  port: 8000
+  multiprocess_dir: "/tmp/prometheus_multiproc"
+
+state:
+  backend: sqlite
+  path: "./ingestion_state.db"
+```
+
+## Exceptions
+- Test configurations may use hardcoded values for simplicity
+- Example configurations may include placeholder values
+- Development configurations may have relaxed validation

@@ -1,0 +1,379 @@
+---
+description: CLI design and packaging patterns for MarketPipe
+globs:
+  - 'src/marketpipe/cli.py'
+  - 'src/marketpipe/__main__.py'
+  - 'pyproject.toml'
+alwaysApply: true
+priority: low
+---
+
+# CLI and Packaging
+
+## Objective
+Maintain consistent CLI design and packaging standards for MarketPipe.
+
+## Context
+- Typer-based CLI with clear command structure
+- Python package with entry points
+- Configuration-driven operations
+- User-friendly error handling and output
+
+## Rules
+
+### CLI Command Structure
+Use clear, action-oriented commands with descriptive help:
+
+✅ Good:
+```python
+import typer
+from pathlib import Path
+
+app = typer.Typer(
+    add_completion=False,
+    help="MarketPipe ETL commands for financial data processing"
+)
+
+@app.command()
+def ingest(
+    config: str = typer.Option(
+        ..., 
+        "--config", 
+        "-c",
+        help="Path to YAML configuration file"
+    ),
+    symbols: Optional[List[str]] = typer.Option(
+        None,
+        "--symbol",
+        "-s", 
+        help="Override symbols from config (can be used multiple times)"
+    ),
+    start_date: Optional[str] = typer.Option(
+        None,
+        "--start",
+        help="Override start date (YYYY-MM-DD)"
+    ),
+    end_date: Optional[str] = typer.Option(
+        None,
+        "--end", 
+        help="Override end date (YYYY-MM-DD)"
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would be processed without actually running"
+    )
+):
+    """Run the ingestion pipeline to collect market data."""
+    try:
+        # Validate inputs
+        config_path = Path(config)
+        if not config_path.exists():
+            typer.echo(f"❌ Config file not found: {config}", err=True)
+            raise typer.Exit(1)
+        
+        # Load and validate configuration
+        pipeline_config = load_config(config)
+        
+        # Apply CLI overrides
+        if symbols:
+            pipeline_config.symbols = symbols
+        if start_date:
+            pipeline_config.start = start_date
+        if end_date:
+            pipeline_config.end = end_date
+        
+        if dry_run:
+            typer.echo("🔍 Dry run mode - showing what would be processed:")
+            typer.echo(f"Symbols: {pipeline_config.symbols}")
+            typer.echo(f"Date range: {pipeline_config.start} to {pipeline_config.end}")
+            typer.echo(f"Output: {pipeline_config.output_path}")
+            return
+        
+        # Run ingestion
+        typer.echo("🚀 Starting ingestion pipeline...")
+        results = ingestion.ingest(pipeline_config)
+        
+        # Report results
+        typer.echo(f"✅ Ingestion completed successfully")
+        typer.echo(f"Processed: {results['success']} tasks")
+        if results['failed'] > 0:
+            typer.echo(f"⚠️ Failed: {results['failed']} tasks")
+            
+    except Exception as e:
+        typer.echo(f"❌ Ingestion failed: {e}", err=True)
+        raise typer.Exit(1)
+```
+
+❌ Avoid:
+```python
+@app.command()
+def ingest(config):  # No type hints or help
+    """Run ingestion."""  # Minimal help
+    ingestion.ingest(config)  # No error handling
+```
+
+### Error Handling and User Feedback
+Provide clear error messages and user-friendly output:
+
+✅ Good:
+```python
+@app.command()
+def metrics(
+    port: int = typer.Option(8000, "--port", "-p", help="Port to run metrics server on")
+):
+    """Start the Prometheus metrics server."""
+    try:
+        # Setup multiprocess metrics
+        setup_multiprocess_metrics()
+        
+        typer.echo(f"📊 Starting metrics server on http://localhost:{port}/metrics")
+        typer.echo("Press Ctrl+C to stop the server")
+        
+        # Start server
+        metrics_server_run(port=port)
+        
+        # Keep running
+        while True:
+            time.sleep(1)
+            
+    except OSError as e:
+        if e.errno == 98:  # Address already in use
+            typer.echo(f"\n❌ Error: Port {port} is already in use!", err=True)
+            typer.echo(f"💡 To find what's using the port: lsof -i :{port}")
+            typer.echo(f"💡 To kill the process: kill <PID>")
+            typer.echo(f"💡 Or try a different port: marketpipe metrics --port <other_port>")
+            raise typer.Exit(1)
+        else:
+            typer.echo(f"❌ Failed to start metrics server: {e}", err=True)
+            raise typer.Exit(1)
+    except KeyboardInterrupt:
+        typer.echo("\n👋 Metrics server stopped")
+    except Exception as e:
+        typer.echo(f"❌ Unexpected error: {e}", err=True)
+        raise typer.Exit(1)
+```
+
+### Configuration Validation in CLI
+Validate configuration early with helpful messages:
+
+✅ Good:
+```python
+def validate_cli_config(config_path: str, **overrides) -> Tuple[PipelineConfig, Dict[str, Any]]:
+    """Validate CLI configuration with user-friendly error messages."""
+    # Check config file exists
+    config_file = Path(config_path)
+    if not config_file.exists():
+        typer.echo(f"❌ Configuration file not found: {config_path}", err=True)
+        typer.echo(f"💡 Create a config file based on: config/example_config.yaml")
+        raise typer.Exit(1)
+    
+    try:
+        # Load configuration
+        pipeline_config, vendor_configs = load_config(config_path)
+        
+        # Apply overrides from CLI
+        for key, value in overrides.items():
+            if value is not None:
+                setattr(pipeline_config, key, value)
+        
+        # Validate date range
+        if pipeline_config.start and pipeline_config.end:
+            validate_date_range(pipeline_config.start, pipeline_config.end)
+        
+        # Check output directory is writable
+        output_path = Path(pipeline_config.output_path)
+        try:
+            output_path.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            typer.echo(f"❌ Cannot write to output directory: {output_path}", err=True)
+            raise typer.Exit(1)
+        
+        return pipeline_config, vendor_configs
+        
+    except yaml.YAMLError as e:
+        typer.echo(f"❌ Invalid YAML in configuration file: {e}", err=True)
+        raise typer.Exit(1)
+    except ValueError as e:
+        typer.echo(f"❌ Configuration error: {e}", err=True)
+        raise typer.Exit(1)
+    except Exception as e:
+        typer.echo(f"❌ Failed to load configuration: {e}", err=True)
+        raise typer.Exit(1)
+```
+
+### Package Entry Points
+Configure proper entry points in pyproject.toml:
+
+✅ Good:
+```toml
+[project.scripts]
+marketpipe = "marketpipe.cli:app"
+
+[project]
+name = "marketpipe"
+version = "0.1.0"
+description = "Lightweight CLI-based ETL for market data"
+readme = "README.md"
+authors = [{name = "MarketPipe"}]
+requires-python = ">=3.9"
+dependencies = [
+    "typer[all]",
+    "pandas",
+    "duckdb",
+    "pyarrow",
+    "requests",
+    "pyyaml",
+    "httpx",
+    "prometheus_client",
+    "python-dotenv"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "black",
+    "ruff",
+    "mypy"
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+```
+
+### Module Entry Points
+Support both script and module execution:
+
+✅ Good:
+```python
+# src/marketpipe/__main__.py
+"""Module entry point for MarketPipe."""
+
+from .cli import app
+
+if __name__ == "__main__":
+    app()
+```
+
+```python
+# src/marketpipe/ingestion/__main__.py
+"""Direct ingestion module entry point."""
+
+import sys
+from pathlib import Path
+
+def main():
+    """Run ingestion directly with config file argument."""
+    if len(sys.argv) != 2:
+        print("Usage: python -m marketpipe.ingestion <config.yaml>")
+        sys.exit(1)
+    
+    config_path = sys.argv[1]
+    if not Path(config_path).exists():
+        print(f"Error: Config file not found: {config_path}")
+        sys.exit(1)
+    
+    from . import ingest
+    try:
+        ingest(config_path)
+        print("Ingestion completed successfully")
+    except Exception as e:
+        print(f"Ingestion failed: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+```
+
+### Help and Documentation
+Provide comprehensive help and examples:
+
+✅ Good:
+```python
+app = typer.Typer(
+    add_completion=False,
+    help="""
+MarketPipe - ETL pipeline for financial market data
+
+Examples:
+  marketpipe ingest --config config/example_config.yaml
+  marketpipe ingest -c config.yaml --symbol AAPL --symbol GOOGL
+  marketpipe metrics --port 8080
+  marketpipe aggregate --input ./data --output ./aggregated
+  
+For more information, visit: https://github.com/yourorg/marketpipe
+""",
+    epilog="Run 'marketpipe COMMAND --help' for more information on a command."
+)
+
+@app.command()
+def ingest(
+    config: str = typer.Option(..., "--config", "-c", help="Path to YAML configuration file"),
+    symbols: Optional[List[str]] = typer.Option(None, "--symbol", "-s", help="Symbol to process (can be repeated)"),
+    start_date: Optional[str] = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
+    workers: Optional[int] = typer.Option(None, "--workers", "-w", help="Number of worker threads"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be processed"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging")
+):
+    """
+    Run the ingestion pipeline to collect market data.
+    
+    This command processes financial market data from configured sources
+    and stores it in partitioned Parquet files.
+    
+    Examples:
+      marketpipe ingest --config config/alpaca.yaml
+      marketpipe ingest -c config.yaml --symbol AAPL --start 2024-01-01
+      marketpipe ingest -c config.yaml --dry-run
+    """
+    # Implementation...
+```
+
+### Progress Reporting
+Show progress for long-running operations:
+
+✅ Good:
+```python
+import typer
+from rich.progress import Progress, BarColumn, TimeElapsedColumn
+
+@app.command()
+def ingest(config: str):
+    """Run ingestion with progress reporting."""
+    pipeline_config, vendor_configs = validate_cli_config(config)
+    
+    # Calculate total work
+    total_tasks = len(pipeline_config.symbols) * len(pipeline_config.date_ranges)
+    
+    with Progress(
+        "[progress.description]{task.description}",
+        BarColumn(),
+        "[progress.percentage]{task.percentage:>3.0f}%",
+        TimeElapsedColumn(),
+        console=typer.get_console()
+    ) as progress:
+        
+        task = progress.add_task("Processing symbols", total=total_tasks)
+        
+        def progress_callback(completed: int, total: int, current_symbol: str):
+            """Update progress bar."""
+            progress.update(task, completed=completed, description=f"Processing {current_symbol}")
+        
+        # Run ingestion with progress callback
+        results = ingestion.ingest_with_progress(pipeline_config, progress_callback)
+        
+        progress.update(task, completed=total_tasks, description="Completed")
+    
+    # Report final results
+    typer.echo(f"✅ Processed {results['success']} tasks successfully")
+    if results['failed'] > 0:
+        typer.echo(f"⚠️ {results['failed']} tasks failed")
+```
+
+## Exceptions
+- Development commands may have simplified error handling
+- Internal tools may use different CLI patterns for specific use cases
+- Test commands may bypass normal validation for testing scenarios

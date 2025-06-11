@@ -1,36 +1,42 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Legacy base client tests - maintaining backward compatibility."""
+
 import pytest
 
-from marketpipe.ingestion.connectors.base_api_client import BaseApiClient
-from marketpipe.ingestion.connectors.auth import AuthStrategy
-from marketpipe.ingestion.connectors.models import ClientConfig
+from marketpipe.ingestion.infrastructure.base_api_client import BaseApiClient
+from marketpipe.ingestion.infrastructure.auth import AuthStrategy
+from marketpipe.ingestion.infrastructure.models import ClientConfig
 
 
-class DummyAuth(AuthStrategy):
+class DummyMarketDataAuth(AuthStrategy):
+    """Dummy authentication strategy for testing."""
     def apply(self, headers: dict, params: dict) -> None:
         pass
 
 
-def test_abstract_enforcement():
-    class IncompleteClient(BaseApiClient):
+def test_legacy_abstract_base_client_enforces_complete_implementation():
+    """Test that legacy abstract base client enforces complete implementation."""
+    class IncompleteMarketDataClient(BaseApiClient):
         def build_request_params(self, symbol: str, start_ts: int, end_ts: int, cursor=None):
             return {}
 
         def endpoint_path(self) -> str:
-            return "/foo"
+            return "/market-data"
 
         def next_cursor(self, raw_json):
             return None
 
     with pytest.raises(TypeError):
-        IncompleteClient(config=ClientConfig(api_key="k", base_url="http://x"), auth=DummyAuth())
+        IncompleteMarketDataClient(config=ClientConfig(api_key="k", base_url="http://x"), auth=DummyMarketDataAuth())
 
 
-def test_config_validation():
+def test_legacy_client_config_validates_required_parameters():
+    """Test that legacy client config validates required parameters."""
     with pytest.raises(Exception):
         ClientConfig(api_key=123, base_url=None)  # type: ignore
 
 
-def test_pagination_iterator():
+def test_legacy_base_client_supports_symbol_data_pagination():
     pages = [{"cursor": "a"}, {"cursor": "b"}, {"cursor": None}]
 
     class PagingClient(BaseApiClient):
@@ -42,7 +48,7 @@ def test_pagination_iterator():
             return {}
 
         def endpoint_path(self) -> str:
-            return "/test"
+            return "/symbol-data"
 
         def next_cursor(self, raw_json):
             return raw_json["cursor"]
@@ -58,7 +64,7 @@ def test_pagination_iterator():
             self.calls += 1
             return result
 
-    client = PagingClient(config=ClientConfig(api_key="t", base_url="http://x"), auth=DummyAuth())
-    out = list(client.paginate("A", 1, 2))
-    assert len(out) == 3
+    client = PagingClient(config=ClientConfig(api_key="t", base_url="http://x"), auth=DummyMarketDataAuth())
+    pagination_results = list(client.paginate("AAPL", 1, 2))
+    assert len(pagination_results) == 3
 

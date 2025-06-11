@@ -1,0 +1,352 @@
+---
+description: Testing patterns and best practices for MarketPipe
+globs:
+  - 'tests/**/*.py'
+  - 'src/**/*.py'
+alwaysApply: true
+priority: medium
+---
+
+# Testing Patterns
+
+## Objective
+Maintain comprehensive and consistent testing patterns for MarketPipe's ETL components.
+
+## Context
+- pytest-based testing framework
+- Mock-heavy testing for external API clients
+- Both sync and async testing patterns
+- Integration tests for pipeline coordination
+- Emphasis on reliability and error handling
+
+## Rules
+
+### Test File Organization
+Mirror source structure and use descriptive test names:
+
+✅ Good:
+```
+tests/
+├── test_cli.py                    # CLI command tests
+├── test_coordinator_flow.py       # Integration tests
+├── test_metrics.py               # Metrics tests
+├── test_alpaca_client.py         # Alpaca client tests
+└── test_base_client.py           # Base client tests
+```
+
+### Test Class and Method Naming
+Use descriptive names that explain the test scenario:
+
+✅ Good:
+```python
+def test_alpaca_pagination():
+    """Test pagination handling with multiple pages."""
+
+def test_alpaca_retry_on_429():
+    """Client should sleep and retry after a 429 response."""
+
+def test_alpaca_async():
+    """Test async client functionality."""
+
+def test_coordinator_handles_failed_symbols():
+    """Coordinator should continue processing other symbols when one fails."""
+```
+
+❌ Avoid:
+```python
+def test_client():  # Too generic
+def test_error():   # Not descriptive
+def test_1():       # Meaningless name
+```
+
+### Mock Patterns for HTTP Clients
+Use consistent mocking patterns for external APIs:
+
+✅ Good:
+```python
+import types
+import httpx
+import pytest
+
+def test_alpaca_pagination(monkeypatch):
+    """Test pagination handling with multiple pages."""
+    pages = [
+        {
+            "bars": {"AAPL": [
+                {"t": "2023-01-02T09:30:00Z", "o": 1, "h": 2, "l": 0.5, "c": 1.5, "v": 100}
+            ]},
+            "next_page_token": "abc",
+        },
+        {
+            "bars": {"AAPL": [
+                {"t": "2023-01-02T09:31:00Z", "o": 1.5, "h": 2.1, "l": 1.0, "c": 2.0, "v": 150}
+            ]}
+        },
+    ]
+
+    headers_seen = []
+
+    def mock_get(url, params=None, headers=None, timeout=None):
+        headers_seen.append(headers)
+        body = pages.pop(0)
+        return types.SimpleNamespace(status_code=200, json=lambda: body, text=str(body))
+
+    monkeypatch.setattr(httpx, "get", mock_get)
+
+    config = ClientConfig(api_key="test_key", base_url="https://api.test.com")
+    auth = HeaderTokenAuth("api-key-id", "api-secret")
+    client = AlpacaClient(config=config, auth=auth)
+
+    rows = client.fetch_batch("AAPL", 0, 1000)
+
+    assert len(rows) == 2
+    assert headers_seen[0]["APCA-API-KEY-ID"] == "api-key-id"
+    assert all(row["schema_version"] == 1 for row in rows)
+    assert all(row["source"] == "alpaca" for row in rows)
+```
+
+### Async Testing Patterns
+Test async methods using asyncio.run:
+
+✅ Good:
+```python
+import asyncio
+
+def test_alpaca_async(monkeypatch):
+    """Test async client functionality."""
+    pages = [
+        {"bars": {"AAPL": [test_bar_1]}, "next_page_token": "abc"},
+        {"bars": {"AAPL": [test_bar_2]}}
+    ]
+    headers_seen = []
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
+        async def get(self, url, params=None, headers=None):
+            headers_seen.append(headers)
+            body = pages.pop(0)
+            return types.SimpleNamespace(status_code=200, json=lambda: body)
+
+    monkeypatch.setattr(httpx, "AsyncClient", DummyAsyncClient)
+
+    config = ClientConfig(api_key="test", base_url="https://api.test.com")
+    auth = HeaderTokenAuth("id", "secret")
+    client = AlpacaClient(config=config, auth=auth)
+
+    rows = asyncio.run(client.async_fetch_batch("AAPL", 0, 1000))
+    assert len(rows) == 2
+    assert headers_seen[0]["APCA-API-KEY-ID"] == "id"
+```
+
+### Error Handling Tests
+Test error conditions and retry logic:
+
+✅ Good:
+```python
+def test_alpaca_retry_on_429(monkeypatch):
+    """Client should sleep and retry after a 429 response."""
+    call_count = 0
+
+    def mock_get(url, params=None, headers=None, timeout=None):
+        nonlocal call_count
+        call_count += 1
+        
+        if call_count == 1:
+            # First call returns rate limit error
+            return types.SimpleNamespace(
+                status_code=429,
+                json=lambda: {"message": "too many requests"},
+                text="rate limit exceeded",
+            )
+        else:
+            # Second call succeeds
+            body = {
+                "bars": {"AAPL": [
+                    {"t": "2023-01-02T09:30:00Z", "o": 1, "h": 2, "l": 0.5, "c": 1.5, "v": 100}
+                ]}
+            }
+            return types.SimpleNamespace(status_code=200, json=lambda: body, text=str(body))
+
+    monkeypatch.setattr(httpx, "get", mock_get)
+
+    # Mock sleep to avoid actual delays
+    sleep_calls = []
+    monkeypatch.setattr("time.sleep", lambda s: sleep_calls.append(s))
+    
+    # Mock backoff to return predictable value
+    monkeypatch.setattr(
+        "marketpipe.ingestion.connectors.alpaca_client.AlpacaClient._backoff",
+        lambda self, attempt: 0.01,
+    )
+
+    config = ClientConfig(api_key="test", base_url="https://api.test.com")
+    auth = HeaderTokenAuth("id", "secret")
+    client = AlpacaClient(config=config, auth=auth)
+
+    rows = client.fetch_batch("AAPL", 0, 1000)
+
+    assert len(rows) == 1
+    assert call_count == 2  # Initial call + 1 retry
+    assert len(sleep_calls) == 1  # One sleep between retries
+```
+
+### Integration Test Patterns
+Test complete workflows with multiple components:
+
+✅ Good:
+```python
+def test_coordinator_processes_multiple_symbols(tmp_path, monkeypatch):
+    """Test coordinator processing multiple symbols in parallel."""
+    # Mock successful API responses
+    def mock_fetch_batch(symbol, start_ts, end_ts):
+        return [
+            {
+                "symbol": symbol,
+                "timestamp": 1640995800000000000,  # 2022-01-01 09:30:00
+                "date": "2022-01-01",
+                "open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5,
+                "volume": 1000, "schema_version": 1,
+            }
+        ]
+    
+    # Setup coordinator with mocked client
+    mock_client = Mock()
+    mock_client.fetch_batch = mock_fetch_batch
+    
+    validator = SchemaValidator("schema/schema_v1.json")
+    writer = ParquetWriter(str(tmp_path))
+    coordinator = IngestionCoordinator(mock_client, validator, writer, max_workers=2)
+    
+    # Run ingestion
+    symbols = ["AAPL", "GOOGL", "MSFT"]
+    date_ranges = [(1640995800000, 1641082200000)]  # One day
+    
+    results = coordinator.ingest_batch(symbols, date_ranges)
+    
+    # Verify results
+    assert results["success"] == 3
+    assert results["failed"] == 0
+    assert len(results["errors"]) == 0
+    
+    # Verify files were created
+    for symbol in symbols:
+        symbol_dir = tmp_path / f"symbol={symbol}"
+        assert symbol_dir.exists()
+        parquet_files = list(symbol_dir.glob("**/*.parquet"))
+        assert len(parquet_files) > 0
+```
+
+### Data Validation Tests
+Test schema validation and data quality checks:
+
+✅ Good:
+```python
+def test_schema_validator_rejects_invalid_data():
+    """Schema validator should reject rows with missing required fields."""
+    validator = SchemaValidator("schema/schema_v1.json")
+    
+    # Valid row
+    valid_row = {
+        "symbol": "AAPL",
+        "timestamp": 1640995800000000000,
+        "date": "2022-01-01",
+        "open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5,
+        "volume": 1000,
+        "schema_version": 1,
+    }
+    
+    # Invalid rows
+    invalid_rows = [
+        {},  # Empty row
+        {"symbol": "AAPL"},  # Missing required fields
+        {**valid_row, "open": -1},  # Invalid price
+        {**valid_row, "volume": -100},  # Invalid volume
+    ]
+    
+    all_rows = [valid_row] + invalid_rows
+    valid_data, errors = validator.validate_batch(all_rows, "AAPL")
+    
+    assert len(valid_data) == 1
+    assert len(errors) == len(invalid_rows)
+    assert valid_data[0] == valid_row
+```
+
+### Metrics Testing
+Test metrics collection and reporting:
+
+✅ Good:
+```python
+from prometheus_client import REGISTRY
+from marketpipe.metrics import REQUESTS, ERRORS, LATENCY
+
+def test_metrics_are_recorded():
+    """Test that metrics are properly recorded during client operations."""
+    # Clear metrics before test
+    REQUESTS._value.clear()
+    ERRORS._value.clear()
+    
+    # Setup client with mocked response
+    def mock_get(url, params=None, headers=None, timeout=None):
+        return types.SimpleNamespace(
+            status_code=200,
+            json=lambda: {"bars": {"AAPL": []}},
+            text="success"
+        )
+    
+    with patch('httpx.get', mock_get):
+        config = ClientConfig(api_key="test", base_url="https://api.test.com")
+        auth = HeaderTokenAuth("id", "secret")
+        client = AlpacaClient(config=config, auth=auth)
+        
+        client.fetch_batch("AAPL", 0, 1000)
+    
+    # Verify metrics were recorded
+    request_samples = REQUESTS.collect()[0].samples
+    alpaca_requests = [s for s in request_samples if 'alpaca' in str(s.labels)]
+    assert len(alpaca_requests) > 0
+    assert alpaca_requests[0].value >= 1
+```
+
+### Configuration Testing
+Test configuration loading and validation:
+
+✅ Good:
+```python
+def test_config_validation_rejects_invalid_dates():
+    """Configuration should reject invalid date ranges."""
+    invalid_configs = [
+        {"start": "2022-01-02", "end": "2022-01-01"},  # End before start
+        {"start": "invalid-date", "end": "2022-01-02"},  # Invalid format
+        {"start": "2022-01-01", "end": "not-a-date"},   # Invalid format
+    ]
+    
+    for config_data in invalid_configs:
+        with pytest.raises(ValueError):
+            validate_date_range(config_data["start"], config_data["end"])
+
+def test_config_loads_from_environment(monkeypatch):
+    """Configuration should load credentials from environment variables."""
+    monkeypatch.setenv("ALPACA_KEY", "test-key")
+    monkeypatch.setenv("ALPACA_SECRET", "test-secret")
+    
+    config_data = {
+        "base_url": "https://api.test.com",
+        "feed": "iex"
+    }
+    
+    config = load_alpaca_config(config_data)
+    
+    assert config.api_key == "test-key"
+    assert config.secret == "test-secret"
+    assert config.base_url == "https://api.test.com"
+```
+
+## Exceptions
+- Performance tests may use different patterns for benchmarking
+- End-to-end tests may require live API credentials and longer timeouts
+- Mock objects may not implement all methods for simplified testing scenarios

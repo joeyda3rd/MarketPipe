@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Example script running the ingestion CLI."""
 
 from __future__ import annotations

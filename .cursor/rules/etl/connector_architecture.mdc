@@ -1,0 +1,295 @@
+---
+description: API connector architecture and implementation patterns for MarketPipe
+globs:
+  - 'src/marketpipe/ingestion/connectors/**/*.py'
+  - 'tests/test_*_client.py'
+alwaysApply: true
+priority: high
+---
+
+# Connector Architecture
+
+## Objective
+Maintain consistent architecture patterns for API connectors in MarketPipe's ETL pipeline.
+
+## Context
+- Vendor-agnostic connector architecture using abstract base classes
+- Support for different data providers (Alpaca, Polygon, etc.)
+- Async/sync dual patterns for all connectors
+- Rate limiting, authentication, and retry logic
+- State persistence and checkpointing
+
+## Rules
+
+### Base Client Implementation
+All new connectors must inherit from `BaseApiClient` and implement required methods:
+
+✅ Good:
+```python
+from .base_api_client import BaseApiClient
+from .models import ClientConfig
+from .auth import AuthStrategy
+
+class NewVendorClient(BaseApiClient):
+    """New vendor API client implementation."""
+    
+    _PATH_TEMPLATE = "/v1/bars"
+    
+    def __init__(self, *args, feed: str = "default", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.feed = feed
+        self.log.info(f"NewVendorClient initialized with feed: {feed}")
+    
+    def endpoint_path(self) -> str:
+        return self._PATH_TEMPLATE
+    
+    def build_request_params(
+        self,
+        symbol: str,
+        start_ts: int,
+        end_ts: int,
+        cursor: Optional[str] = None,
+    ) -> Mapping[str, str]:
+        """Build vendor-specific query parameters."""
+        # Vendor-specific implementation
+    
+    def next_cursor(self, raw_json: Dict[str, Any]) -> Optional[str]:
+        """Extract pagination cursor from response."""
+        # Vendor-specific implementation
+    
+    def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Convert vendor response to canonical OHLCV format."""
+        # Transform to standard schema
+    
+    def should_retry(self, status: int, body: Dict[str, Any]) -> bool:
+        """Determine if request should be retried."""
+        # Vendor-specific retry logic
+```
+
+### Required Method Implementations
+Every connector must implement these abstract methods:
+
+1. **build_request_params()**: Convert symbol/time to vendor query parameters
+2. **endpoint_path()**: Return API endpoint path
+3. **next_cursor()**: Extract pagination token from response
+4. **parse_response()**: Transform vendor data to canonical schema
+5. **should_retry()**: Determine retry conditions
+
+### Request/Response Patterns
+Implement both sync and async HTTP methods:
+
+✅ Good:
+```python
+def _request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+    """Synchronous HTTP request with retry logic."""
+    if self.rate_limiter:
+        self.rate_limiter.acquire()
+    
+    url = f"{self.config.base_url}{self.endpoint_path()}"
+    headers = {"Accept": "application/json", "User-Agent": self.config.user_agent}
+    self.auth.apply(headers, params={})
+    
+    retries = 0
+    while True:
+        start = time.perf_counter()
+        response = httpx.get(url, params=params, headers=headers, timeout=self.config.timeout)
+        duration = time.perf_counter() - start
+        
+        # Record metrics
+        LATENCY.labels(self.__class__.__name__.lower().replace('client', '')).observe(duration)
+        REQUESTS.labels(self.__class__.__name__.lower().replace('client', '')).inc()
+        
+        if response.status_code >= 400:
+            ERRORS.labels(self.__class__.__name__.lower().replace('client', ''), str(response.status_code)).inc()
+        
+        try:
+            response_json = response.json()
+        except (json.JSONDecodeError, ValueError) as e:
+            self.log.warning(f"Failed to parse JSON: {e}. Status: {response.status_code}")
+            if self.should_retry(response.status_code, {}):
+                retries += 1
+                if retries > self.config.max_retries:
+                    raise RuntimeError(f"Request exceeded retry limit: {response.text}")
+                sleep_time = self._backoff(retries)
+                time.sleep(sleep_time)
+                continue
+            else:
+                raise RuntimeError(f"Failed to parse API response: {response.text}")
+        
+        if not self.should_retry(response.status_code, response_json):
+            return response_json
+        
+        retries += 1
+        if retries > self.config.max_retries:
+            raise RuntimeError(f"Request exceeded retry limit: {response.text}")
+        
+        sleep_time = self._backoff(retries)
+        self.log.warning(f"Retry {retries} sleeping {sleep_time:.2f}s")
+        time.sleep(sleep_time)
+```
+
+### Data Schema Compliance
+All connectors must return data in the canonical OHLCV schema:
+
+✅ Good:
+```python
+def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Convert vendor response to canonical OHLCV rows."""
+    rows = []
+    for vendor_bar in raw_json.get("data", []):
+        rows.append({
+            "symbol": vendor_bar["symbol"],
+            "timestamp": self._parse_timestamp(vendor_bar["timestamp"]),
+            "date": self._parse_date(vendor_bar["timestamp"]),
+            "open": float(vendor_bar["open"]),
+            "high": float(vendor_bar["high"]),
+            "low": float(vendor_bar["low"]),
+            "close": float(vendor_bar["close"]),
+            "volume": int(vendor_bar["volume"]),
+            "trade_count": vendor_bar.get("trade_count"),
+            "vwap": vendor_bar.get("vwap"),
+            "session": "regular",
+            "currency": "USD",
+            "status": "ok",
+            "source": self.__class__.__name__.lower().replace('client', ''),
+            "frame": "1m",
+            "schema_version": 1,
+        })
+    return rows
+```
+
+### Authentication Integration
+Use the authentication strategy pattern:
+
+✅ Good:
+```python
+from .auth import AuthStrategy, HeaderTokenAuth, QueryParamAuth
+
+# In connector initialization
+auth_strategy = HeaderTokenAuth(
+    key_header="API-KEY",
+    secret_header="API-SECRET"
+)
+
+# Or for query param auth
+auth_strategy = QueryParamAuth(
+    key_param="apikey",
+    secret_param="apisecret"
+)
+
+client = NewVendorClient(config=config, auth=auth_strategy)
+```
+
+### Rate Limiting Integration
+Integrate with the rate limiting system:
+
+✅ Good:
+```python
+from .rate_limit import RateLimiter
+
+# In coordinator or client setup
+rate_limiter = RateLimiter(
+    requests_per_window=config.rate_limit_per_min,
+    window_seconds=60.0
+)
+
+client = NewVendorClient(
+    config=config,
+    auth=auth_strategy,
+    rate_limiter=rate_limiter
+)
+```
+
+### Error Handling Patterns
+Implement consistent error handling:
+
+✅ Good:
+```python
+def should_retry(self, status: int, body: Dict[str, Any]) -> bool:
+    """Vendor-specific retry logic."""
+    # Standard HTTP errors that should be retried
+    if status in {429, 500, 502, 503, 504}:
+        return True
+    
+    # Vendor-specific error conditions
+    if status == 403:
+        error_code = body.get("error_code")
+        if error_code in {"rate_limit", "temporary_ban"}:
+            return True
+    
+    # Check error message for rate limiting
+    error_message = str(body).lower()
+    if "too many requests" in error_message or "rate limit" in error_message:
+        return True
+    
+    return False
+
+@staticmethod
+def _backoff(attempt: int) -> float:
+    """Exponential backoff with jitter."""
+    base = 1.5 ** attempt
+    jitter = random.uniform(0, 0.2 * base)
+    return base + jitter
+```
+
+### State Management
+Implement checkpointing for resume capability:
+
+✅ Good:
+```python
+def fetch_with_checkpoints(
+    self,
+    symbol: str,
+    start_ts: int,
+    end_ts: int,
+) -> List[Dict[str, Any]]:
+    """Fetch data with checkpoint support."""
+    # Load checkpoint if available
+    checkpoint = self.load_checkpoint(symbol)
+    if checkpoint:
+        start_ts = max(start_ts, int(checkpoint))
+        self.log.info(f"Resuming from checkpoint: {checkpoint}")
+    
+    rows = self.fetch_batch(symbol, start_ts, end_ts)
+    
+    # Save checkpoint after successful fetch
+    if rows:
+        latest_timestamp = max(row["timestamp"] for row in rows)
+        self.save_checkpoint(symbol, latest_timestamp)
+    
+    return rows
+```
+
+### Testing Patterns
+Create comprehensive tests for each connector:
+
+✅ Good:
+```python
+def test_new_vendor_client_pagination(monkeypatch):
+    """Test pagination handling."""
+    pages = [
+        {"data": [mock_bar_1], "next_cursor": "abc"},
+        {"data": [mock_bar_2], "next_cursor": None}
+    ]
+    
+    def mock_get(url, params=None, headers=None, timeout=None):
+        body = pages.pop(0)
+        return MockResponse(status_code=200, json_data=body)
+    
+    monkeypatch.setattr(httpx, "get", mock_get)
+    
+    config = ClientConfig(api_key="test", base_url="https://api.test.com")
+    auth = HeaderTokenAuth("api-key", "api-secret")
+    client = NewVendorClient(config=config, auth=auth)
+    
+    rows = client.fetch_batch("AAPL", 0, 1000)
+    
+    assert len(rows) == 2
+    assert all(row["schema_version"] == 1 for row in rows)
+    assert all(row["source"] == "newvendor" for row in rows)
+```
+
+## Exceptions
+- Test mocks may use simplified patterns that don't follow full production architecture
+- Legacy connectors may not implement all patterns until refactored
+- Simple utility connectors may have reduced functionality for specific use cases

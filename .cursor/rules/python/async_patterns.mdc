@@ -1,0 +1,262 @@
+---
+description: Async/sync dual patterns and async best practices for MarketPipe
+globs:
+  - 'src/**/*.py'
+  - 'tests/**/*.py'
+alwaysApply: true
+priority: medium
+---
+
+# Async Patterns
+
+## Objective
+Maintain consistent async/sync dual API patterns and async best practices across MarketPipe.
+
+## Context
+- Dual async/sync APIs for flexibility
+- HTTP clients using httpx for both sync and async
+- Rate limiting that works with both patterns
+- ETL pipeline that can operate in either mode
+
+## Rules
+
+### Dual Method Implementation
+Provide both sync and async versions of core methods:
+
+✅ Good:
+```python
+def fetch_batch(
+    self,
+    symbol: str,
+    start_ts: int,
+    end_ts: int,
+) -> List[Dict[str, Any]]:
+    """Synchronous batch fetch."""
+    rows = []
+    for page in self.paginate(symbol, start_ts, end_ts):
+        rows.extend(self.parse_response(page))
+    return rows
+
+async def async_fetch_batch(
+    self,
+    symbol: str,
+    start_ts: int,
+    end_ts: int,
+) -> List[Dict[str, Any]]:
+    """Asynchronous batch fetch."""
+    rows = []
+    async for page in self.async_paginate(symbol, start_ts, end_ts):
+        rows.extend(self.parse_response(page))
+    return rows
+```
+
+### Async Iterator Patterns
+Use async generators for paginated data:
+
+✅ Good:
+```python
+async def async_paginate(
+    self,
+    symbol: str,
+    start_ts: int,
+    end_ts: int,
+    **kwargs: Any,
+) -> AsyncIterator[Dict[str, Any]]:
+    """Async generator version of paginate method."""
+    cursor: Optional[str] = None
+    while True:
+        params = self.build_request_params(symbol, start_ts, end_ts, cursor)
+        raw_json = await self._async_request(params)
+        yield raw_json
+        cursor = self.next_cursor(raw_json)
+        if not cursor:
+            break
+```
+
+❌ Avoid:
+```python
+async def async_paginate(self, symbol: str, start_ts: int, end_ts: int):
+    """Return all pages as a list."""
+    results = []
+    cursor = None
+    while True:
+        params = self.build_request_params(symbol, start_ts, end_ts, cursor)
+        raw_json = await self._async_request(params)
+        results.append(raw_json)  # Memory inefficient
+        cursor = self.next_cursor(raw_json)
+        if not cursor:
+            break
+    return results
+```
+
+### HTTP Client Patterns
+Use httpx with proper async context management:
+
+✅ Good:
+```python
+async def _async_request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+    """Async HTTP request with retry logic."""
+    if self.rate_limiter:
+        await self.rate_limiter.async_acquire()
+
+    url = f"{self.config.base_url}{self._PATH_TEMPLATE}"
+    headers = {"Accept": "application/json", "User-Agent": self.config.user_agent}
+    self.auth.apply(headers, params={})
+
+    retries = 0
+    async with httpx.AsyncClient(timeout=self.config.timeout) as client:
+        while True:
+            start = time.perf_counter()
+            response = await client.get(url, params=params, headers=headers)
+            duration = time.perf_counter() - start
+            
+            # Metrics and error handling...
+            
+            if not self.should_retry(response.status_code, response_json):
+                return response_json
+            
+            retries += 1
+            if retries > self.config.max_retries:
+                raise RuntimeError("Async retry limit hit")
+            
+            sleep_time = self._backoff(retries)
+            await asyncio.sleep(sleep_time)
+```
+
+### Rate Limiting for Async
+Implement async-compatible rate limiting:
+
+✅ Good:
+```python
+class RateLimiter:
+    def __init__(self, requests_per_window: int, window_seconds: float = 60.0):
+        self.requests_per_window = requests_per_window
+        self.window_seconds = window_seconds
+        self._requests = []
+        self._lock = asyncio.Lock()  # For async safety
+        
+    async def async_acquire(self) -> None:
+        """Async rate limit acquisition."""
+        async with self._lock:
+            now = time.time()
+            # Remove old requests
+            self._requests = [req_time for req_time in self._requests 
+                           if now - req_time < self.window_seconds]
+            
+            if len(self._requests) >= self.requests_per_window:
+                sleep_time = self.window_seconds - (now - self._requests[0])
+                if sleep_time > 0:
+                    await asyncio.sleep(sleep_time)
+                    return await self.async_acquire()  # Retry
+            
+            self._requests.append(now)
+    
+    def acquire(self) -> None:
+        """Synchronous rate limit acquisition."""
+        # Sync implementation without async/await
+```
+
+### Error Handling in Async Context
+Handle errors consistently between sync and async:
+
+✅ Good:
+```python
+async def _async_request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+    try:
+        response_json = response.json()
+    except (json.JSONDecodeError, ValueError) as e:
+        self.log.warning(f"Failed to parse JSON response: {e}")
+        if self.should_retry(response.status_code, {}):
+            retries += 1
+            if retries > self.config.max_retries:
+                raise RuntimeError("Alpaca async retry limit hit")
+            sleep_time = self._backoff(retries)
+            await asyncio.sleep(sleep_time)  # Use async sleep
+            continue
+        else:
+            raise RuntimeError(f"Failed to parse API response: {response.text}")
+```
+
+### Async Context in Tests
+Test async methods properly:
+
+✅ Good:
+```python
+import asyncio
+import pytest
+
+def test_alpaca_async(monkeypatch):
+    """Test async client functionality."""
+    
+    class DummyAsyncClient:
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
+        async def get(self, url, params=None, headers=None):
+            return mock_response
+    
+    monkeypatch.setattr(httpx, "AsyncClient", DummyAsyncClient)
+    
+    client = AlpacaClient(config=cfg, auth=auth)
+    rows = asyncio.run(client.async_fetch_batch("AAPL", 0, 1))
+    assert len(rows) == 2
+```
+
+### Async Utility Functions
+Create async-aware utility functions:
+
+✅ Good:
+```python
+async def gather_symbol_data(
+    client: BaseApiClient,
+    symbols: List[str],
+    start_ts: int,
+    end_ts: int,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Gather data for multiple symbols concurrently."""
+    tasks = [
+        client.async_fetch_batch(symbol, start_ts, end_ts)
+        for symbol in symbols
+    ]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    symbol_data = {}
+    for symbol, result in zip(symbols, results):
+        if isinstance(result, Exception):
+            logger.error(f"Failed to fetch {symbol}: {result}")
+            symbol_data[symbol] = []
+        else:
+            symbol_data[symbol] = result
+    
+    return symbol_data
+```
+
+### Async Method Naming
+Use clear naming conventions for async methods:
+
+✅ Good:
+```python
+# Clear async variant naming
+async def async_fetch_batch(self, ...): ...
+async def async_paginate(self, ...): ...
+async def async_request(self, ...): ...
+
+# Async generators
+async def stream_data(self, ...): ...  # Implies async iteration
+```
+
+❌ Avoid:
+```python
+# Generic async prefix
+async def async_get(self, ...): ...
+async def async_method(self, ...): ...
+
+# Unclear async nature
+async def get_data(self, ...): ...  # Could be sync or async
+```
+
+## Exceptions
+- CLI modules typically use sync patterns for simplicity
+- Some utility functions may be sync-only if they don't involve I/O
+- Test helpers may use simplified async patterns for mocking

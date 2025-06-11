@@ -1,0 +1,126 @@
+---
+description: Python naming conventions and code organization for MarketPipe
+globs:
+  - 'src/**/*.py'
+  - 'tests/**/*.py'
+  - 'examples/**/*.py'
+alwaysApply: true
+priority: high
+---
+
+# Naming Conventions
+
+## Objective
+Enforce consistent Python naming conventions and code organization patterns specific to MarketPipe's architecture.
+
+## Context
+- Python codebase using modern typing with `from __future__ import annotations`
+- ETL pipeline with modular connector architecture
+- Type hints and dataclasses for configuration
+- Async/sync dual API patterns
+
+## Rules
+
+### Module and Package Names
+- Use lowercase with underscores: `base_api_client.py`, `rate_limit.py`
+- Keep names descriptive and domain-specific: `alpaca_client.py`, `coordinator.py`
+- Avoid generic names like `utils.py` or `helpers.py`
+
+✅ Good:
+```python
+# src/marketpipe/ingestion/connectors/alpaca_client.py
+# src/marketpipe/ingestion/coordinator.py
+# src/marketpipe/metrics_server.py
+```
+
+❌ Avoid:
+```python
+# src/marketpipe/utils.py
+# src/marketpipe/helpers.py
+# src/marketpipe/client.py  # Too generic
+```
+
+### Class Names
+- Use PascalCase for classes: `BaseApiClient`, `AlpacaClient`
+- Include domain context in names: `IngestionCoordinator`, `SchemaValidator`
+- Abstract base classes should use descriptive names, not just "Base"
+
+✅ Good:
+```python
+class BaseApiClient(abc.ABC):
+class AlpacaClient(BaseApiClient):
+class IngestionCoordinator:
+class HeaderTokenAuth(AuthStrategy):
+```
+
+❌ Avoid:
+```python
+class Client:  # Too generic
+class Base:    # Not descriptive
+class API:     # Abbreviation without context
+```
+
+### Function and Method Names
+- Use snake_case: `fetch_batch()`, `build_request_params()`
+- Use verb-noun pattern for actions: `parse_response()`, `save_checkpoint()`
+- Private methods start with underscore: `_request()`, `_backoff()`
+- Async methods should have descriptive names, not just "async_" prefix
+
+✅ Good:
+```python
+def fetch_batch(self, symbol: str, start_ts: int, end_ts: int):
+def build_request_params(self, symbol: str, ...):
+async def async_fetch_batch(self, ...):  # Clear async variant
+def _request(self, params: Mapping[str, str]):  # Private
+```
+
+❌ Avoid:
+```python
+def getBatch():  # camelCase
+def get():       # Too generic
+def async_get(): # Generic async prefix
+```
+
+### Variable Names
+- Use snake_case: `start_ts`, `response_json`, `rate_limiter`
+- Use descriptive names over abbreviations: `timestamp` not `ts` (except in function parameters)
+- Constants use SCREAMING_SNAKE_CASE: `ISO_FMT`, `MAX_RETRIES`
+
+✅ Good:
+```python
+ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
+response_json = r.json()
+rate_limiter = RateLimiter(200)
+```
+
+❌ Avoid:
+```python
+data = r.json()  # Too generic
+rl = RateLimiter(200)  # Abbreviation
+isoFmt = "%Y-%m-%dT%H:%M:%SZ"  # camelCase
+```
+
+### File Organization
+- Group related functionality in modules
+- Use `__all__` exports for public API
+- Import organization: standard library, third-party, local imports
+
+✅ Good:
+```python
+from __future__ import annotations
+
+import asyncio
+import datetime as dt
+from typing import Any, Dict, List
+
+import httpx
+import typer
+
+from marketpipe.metrics import REQUESTS, ERRORS
+from .models import ClientConfig
+```
+
+## Exceptions
+- CLI command functions may use shorter names when context is clear: `ingest()`, `validate()`
+- Test functions should be descriptive: `test_alpaca_pagination()`, `test_retry_on_429()`
+- Configuration keys in YAML may use different conventions: `rate_limit_per_min`

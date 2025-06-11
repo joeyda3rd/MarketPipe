@@ -1,0 +1,268 @@
+---
+description: Modern Python patterns and best practices for MarketPipe
+globs:
+  - 'src/**/*.py'
+  - 'tests/**/*.py'
+alwaysApply: true
+priority: high
+---
+
+# Modern Python Patterns
+
+## Objective
+Enforce modern Python patterns and best practices suited for MarketPipe's architecture.
+
+## Context
+- Python 3.9+ with future annotations enabled
+- Async/sync dual API patterns
+- Heavy use of type hints and dataclasses
+- HTTP clients with retry logic and rate limiting
+
+## Rules
+
+### Type Annotations
+Use modern typing patterns with future annotations:
+
+✅ Good:
+```python
+from __future__ import annotations
+
+from typing import Any, Dict, List, Mapping, Optional, Union
+from dataclasses import dataclass
+
+def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Parse vendor response to canonical format."""
+
+@dataclass
+class ClientConfig:
+    api_key: str
+    base_url: str
+    timeout: float = 30.0
+    max_retries: int = 3
+```
+
+❌ Avoid:
+```python
+from typing import List, Dict, Optional
+
+def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:  # Without future annotations
+    
+class ClientConfig:  # Use dataclass instead
+    def __init__(self, api_key: str, base_url: str):
+        self.api_key = api_key
+        self.base_url = base_url
+```
+
+### Dataclasses for Configuration
+Use dataclasses for configuration objects with proper defaults:
+
+✅ Good:
+```python
+@dataclass
+class ClientConfig:
+    api_key: str
+    base_url: str
+    user_agent: str = "MarketPipe/1.0"
+    timeout: float = 30.0
+    max_retries: int = 3
+    
+    def __post_init__(self) -> None:
+        """Validate configuration after initialization."""
+        if not self.api_key:
+            raise ValueError("api_key is required")
+        if not self.base_url.startswith(("http://", "https://")):
+            raise ValueError("base_url must start with http:// or https://")
+```
+
+### Abstract Base Classes
+Use abc.ABC for defining interfaces:
+
+✅ Good:
+```python
+import abc
+from typing import Any, Dict, List, Mapping, Optional
+
+class BaseApiClient(abc.ABC):
+    """Abstract, vendor-agnostic API client."""
+    
+    @abc.abstractmethod
+    def build_request_params(
+        self,
+        symbol: str,
+        start_ts: int,
+        end_ts: int,
+        cursor: Optional[str] = None,
+    ) -> Mapping[str, str]:
+        """Return query parameters dict specific to this vendor."""
+        
+    @abc.abstractmethod
+    def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Convert vendor response to list of canonical OHLCV rows."""
+```
+
+### Context Managers
+Use context managers for resource management:
+
+✅ Good:
+```python
+async def _async_request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+    async with httpx.AsyncClient(timeout=self.config.timeout) as client:
+        response = await client.get(url, params=params, headers=headers)
+        return response.json()
+```
+
+❌ Avoid:
+```python
+async def _async_request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+    client = httpx.AsyncClient(timeout=self.config.timeout)
+    response = await client.get(url, params=params, headers=headers)
+    # Missing client cleanup
+    return response.json()
+```
+
+### Error Handling with Specific Exceptions
+Catch specific exceptions and provide meaningful error messages:
+
+✅ Good:
+```python
+try:
+    response_json = r.json()
+except (json.JSONDecodeError, ValueError) as e:
+    self.log.warning(f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}")
+    if self.should_retry(r.status_code, {}):
+        retries += 1
+        if retries > self.config.max_retries:
+            raise RuntimeError(f"API request exceeded retry limit: {r.text}")
+        continue
+    else:
+        raise RuntimeError(f"Failed to parse API response as JSON: {r.text}")
+```
+
+❌ Avoid:
+```python
+try:
+    response_json = r.json()
+except Exception as e:  # Too broad
+    print(f"Error: {e}")   # Use logging, not print
+    return {}              # Silent failure
+```
+
+### Async Patterns
+Implement proper async patterns with clear naming:
+
+✅ Good:
+```python
+async def async_paginate(
+    self,
+    symbol: str,
+    start_ts: int,
+    end_ts: int,
+    **kwargs: Any,
+) -> AsyncIterator[Dict[str, Any]]:
+    """Async generator version of paginate method."""
+    cursor: Optional[str] = None
+    while True:
+        params = self.build_request_params(symbol, start_ts, end_ts, cursor)
+        raw_json = await self._async_request(params)
+        yield raw_json
+        cursor = self.next_cursor(raw_json)
+        if not cursor:
+            break
+```
+
+### Logging
+Use structured logging with proper levels:
+
+✅ Good:
+```python
+import logging
+
+class AlpacaClient(BaseApiClient):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.log = kwargs.get('logger') or logging.getLogger(self.__class__.__name__)
+        
+    def _request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+        self.log.debug(f"Making request with params: {params}")
+        try:
+            response = httpx.get(url, params=params)
+            self.log.info(f"Request successful: {response.status_code}")
+        except Exception as e:
+            self.log.error(f"Request failed: {e}")
+            raise
+```
+
+❌ Avoid:
+```python
+def _request(self, params):
+    print(f"Making request...")  # Use logging
+    response = httpx.get(url, params=params)
+    print(f"Got response: {response.status_code}")  # Use logging
+```
+
+### Enum Usage
+Use Enum for constants and configuration values:
+
+✅ Good:
+```python
+from enum import Enum
+
+class DataFeed(str, Enum):
+    """Alpaca data feed options."""
+    IEX = "iex"      # Free tier
+    SIP = "sip"      # Paid subscription
+    
+class SessionType(str, Enum):
+    """Trading session types."""
+    REGULAR = "regular"
+    PRE_MARKET = "pre"
+    POST_MARKET = "post"
+```
+
+### Path and URL Handling
+Use pathlib and proper URL construction:
+
+✅ Good:
+```python
+from pathlib import Path
+from urllib.parse import urljoin
+
+def endpoint_url(self) -> str:
+    """Build full endpoint URL."""
+    return urljoin(self.config.base_url, self._PATH_TEMPLATE)
+    
+def output_path(self, symbol: str, date: str) -> Path:
+    """Build output file path."""
+    return Path(self.config.output_dir) / f"symbol={symbol}" / f"date={date}.parquet"
+```
+
+❌ Avoid:
+```python
+def endpoint_url(self) -> str:
+    return self.config.base_url + self._PATH_TEMPLATE  # String concatenation
+    
+def output_path(self, symbol: str, date: str) -> str:
+    return f"{self.config.output_dir}/symbol={symbol}/date={date}.parquet"  # String paths
+```
+
+### Function Signatures
+Use clear parameter types and return types:
+
+✅ Good:
+```python
+def fetch_batch(
+    self,
+    symbol: str,
+    start_ts: int,
+    end_ts: int,
+) -> List[Dict[str, Any]]:
+    """High-level helper returning normalized OHLCV rows."""
+    
+def save_checkpoint(self, symbol: str, checkpoint: str | int) -> None:
+    """Persist symbol checkpoint if state backend is configured."""
+```
+
+## Exceptions
+- CLI modules may use simpler patterns for command-line interfaces
+- Test files may use simplified mocking that doesn't follow all production patterns
+- Legacy modules may not follow all modern patterns until refactored

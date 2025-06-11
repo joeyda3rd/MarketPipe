@@ -1,0 +1,117 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Tests for the CLI ingest command."""
+
+from __future__ import annotations
+
+import pytest
+from unittest.mock import patch, AsyncMock
+from typer.testing import CliRunner
+
+from marketpipe.cli import app
+
+runner = CliRunner()
+
+
+def test_ingest_cli_smoke():
+    """Test that the ingest CLI command can be invoked without errors."""
+    with patch("marketpipe.cli._build_ingestion_services") as mock_build:
+        # Mock the services
+        mock_job_service = AsyncMock()
+        mock_coordinator_service = AsyncMock()
+        
+        mock_job_service.create_job.return_value = "job-123"
+        mock_coordinator_service.execute_job.return_value = {
+            "symbols_processed": 1,
+            "total_bars": 100,
+            "files_created": 1,
+            "processing_time_seconds": 5.0,
+        }
+        
+        mock_build.return_value = (mock_job_service, mock_coordinator_service)
+        
+        # Run the CLI command
+        result = runner.invoke(app, [
+            "ingest",
+            "--symbols", "AAPL",
+            "--start", "2025-01-01",
+            "--end", "2025-01-02"
+        ])
+        
+        # Verify the command succeeded
+        assert result.exit_code == 0
+        assert "job-123" in result.stdout
+        assert "Job completed successfully" in result.stdout
+        assert "Symbols processed: 1" in result.stdout
+
+
+def test_ingest_cli_with_multiple_symbols():
+    """Test the ingest CLI with multiple symbols."""
+    with patch("marketpipe.cli._build_ingestion_services") as mock_build:
+        # Mock the services
+        mock_job_service = AsyncMock()
+        mock_coordinator_service = AsyncMock()
+        
+        mock_job_service.create_job.return_value = "job-456"
+        mock_coordinator_service.execute_job.return_value = {
+            "symbols_processed": 3,
+            "total_bars": 300,
+            "files_created": 3,
+            "processing_time_seconds": 15.0,
+        }
+        
+        mock_build.return_value = (mock_job_service, mock_coordinator_service)
+        
+        # Run the CLI command with multiple symbols
+        result = runner.invoke(app, [
+            "ingest",
+            "--symbols", "AAPL,GOOGL,MSFT",
+            "--start", "2025-01-01",
+            "--end", "2025-01-02",
+            "--batch-size", "500",
+            "--workers", "2"
+        ])
+        
+        # Verify the command succeeded
+        assert result.exit_code == 0
+        assert "job-456" in result.stdout
+        assert "3 symbols" in result.stdout
+
+
+def test_ingest_cli_handles_service_errors():
+    """Test that the CLI handles service errors gracefully."""
+    with patch("marketpipe.cli._build_ingestion_services") as mock_build:
+        # Mock the services to raise an error
+        mock_job_service = AsyncMock()
+        mock_coordinator_service = AsyncMock()
+        
+        mock_job_service.create_job.side_effect = ValueError("Invalid symbols")
+        
+        mock_build.return_value = (mock_job_service, mock_coordinator_service)
+        
+        # Run the CLI command
+        result = runner.invoke(app, [
+            "ingest",
+            "--symbols", "INVALID",
+            "--start", "2025-01-01",
+            "--end", "2025-01-02"
+        ])
+        
+        # Verify the command failed gracefully
+        assert result.exit_code == 1
+        assert "Configuration error" in result.stdout
+
+
+def test_ingest_cli_handles_missing_credentials():
+    """Test that the CLI handles missing credentials gracefully."""
+    with patch.dict("os.environ", {}, clear=True):
+        # Run the CLI command without credentials
+        result = runner.invoke(app, [
+            "ingest",
+            "--symbols", "AAPL",
+            "--start", "2025-01-01",
+            "--end", "2025-01-02"
+        ])
+        
+        # Verify the command failed gracefully
+        assert result.exit_code == 1
+        assert "Alpaca credentials not found" in result.stdout 
