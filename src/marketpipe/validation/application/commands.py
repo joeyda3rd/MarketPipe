@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Validation application commands."""
 
 from __future__ import annotations

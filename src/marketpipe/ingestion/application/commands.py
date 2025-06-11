@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Ingestion application commands."""
 
 from __future__ import annotations
@@ -41,6 +42,21 @@ class CancelJobCommand:
     
     job_id: IngestionJobId
     reason: str = "User requested cancellation"
+
+
+@dataclass(frozen=True)
+class CompleteJobCommand:
+    """Command to mark an ingestion job as completed."""
+    
+    job_id: IngestionJobId
+
+
+@dataclass(frozen=True)
+class FailJobCommand:
+    """Command to mark an ingestion job as failed."""
+    
+    job_id: IngestionJobId
+    error_message: str
 
 
 @dataclass(frozen=True)

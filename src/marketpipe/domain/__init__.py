@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain model package for MarketPipe.
 
 This package contains the core domain models following Domain-Driven Design principles:

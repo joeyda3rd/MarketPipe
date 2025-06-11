@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 import abc
@@ -83,11 +84,11 @@ class BaseApiClient(abc.ABC):
     # ---------- Low-level request ----------
     def _request(self, params: Mapping[str, str]) -> Dict[str, Any]:
         """Blocking HTTP request with rate-limit, retry, and auth handling."""
-        raise NotImplementedError
+        ...
 
     async def _async_request(self, params: Mapping[str, str]) -> Dict[str, Any]:
         """Async HTTP request (same semantics as :meth:`_request`)."""
-        raise NotImplementedError
+        ...
 
     # ---------- Public batch fetch ----------
     def fetch_batch(

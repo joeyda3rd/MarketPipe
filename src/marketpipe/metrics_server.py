@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import os
 from prometheus_client import start_http_server, generate_latest, CollectorRegistry, CONTENT_TYPE_LATEST
 from prometheus_client.multiprocess import MultiProcessCollector

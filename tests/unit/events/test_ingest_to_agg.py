@@ -1,7 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
+from datetime import date
 from unittest.mock import patch, MagicMock
 
+from marketpipe.domain.value_objects import Symbol
 from marketpipe.events import EventBus, IngestionJobCompleted
 from marketpipe.aggregation import AggregationRunnerService
 
@@ -25,8 +28,14 @@ def test_subscribe_and_publish(monkeypatch):
     # Register aggregation service
     AggregationRunnerService.register()
     
-    # Publish event
-    EventBus.publish(IngestionJobCompleted("job-x"))
+    # Publish event with required arguments
+    EventBus.publish(IngestionJobCompleted(
+        job_id="job-x",
+        symbol=Symbol("AAPL"),
+        trading_date=date(2024, 1, 15),
+        bars_processed=1000,
+        success=True
+    ))
     
     # Verify the job was processed
     assert called == ["job-x"]
@@ -50,10 +59,28 @@ def test_aggregation_service_handles_multiple_events(monkeypatch):
     # Register service
     AggregationRunnerService.register()
     
-    # Publish multiple events
-    EventBus.publish(IngestionJobCompleted("job-1"))
-    EventBus.publish(IngestionJobCompleted("job-2"))
-    EventBus.publish(IngestionJobCompleted("job-3"))
+    # Publish multiple events with required arguments
+    EventBus.publish(IngestionJobCompleted(
+        job_id="job-1",
+        symbol=Symbol("AAPL"),
+        trading_date=date(2024, 1, 15),
+        bars_processed=500,
+        success=True
+    ))
+    EventBus.publish(IngestionJobCompleted(
+        job_id="job-2",
+        symbol=Symbol("GOOGL"),
+        trading_date=date(2024, 1, 15),
+        bars_processed=750,
+        success=True
+    ))
+    EventBus.publish(IngestionJobCompleted(
+        job_id="job-3",
+        symbol=Symbol("MSFT"),
+        trading_date=date(2024, 1, 15),
+        bars_processed=600,
+        success=True
+    ))
     
     # Verify all jobs were processed
     assert called_jobs == ["job-1", "job-2", "job-3"]
@@ -85,8 +112,15 @@ def test_aggregation_service_error_handling(monkeypatch):
         mock_logger.return_value = mock_log
         
         try:
-            # Publish event that will cause error
-            EventBus.publish(IngestionJobCompleted("failing-job"))
+            # Publish event that will cause error with required arguments
+            EventBus.publish(IngestionJobCompleted(
+                job_id="failing-job",
+                symbol=Symbol("FAIL"),
+                trading_date=date(2024, 1, 15),
+                bars_processed=0,
+                success=False,
+                error_message="Test failure"
+            ))
         except Exception:
             pass  # Expected to raise due to error handling
     

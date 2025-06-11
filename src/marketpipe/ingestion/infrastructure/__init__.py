@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Ingestion infrastructure module."""
 
 from __future__ import annotations

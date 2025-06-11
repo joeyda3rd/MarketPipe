@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Tests for CLI ingestion configuration functionality."""
 
 from __future__ import annotations

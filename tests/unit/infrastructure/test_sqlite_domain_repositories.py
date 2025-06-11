@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Unit tests for SQLite domain repositories.
 
 Tests the concrete implementations of domain repository interfaces

@@ -1,12 +1,7 @@
 ---
 description: Python packaging and distribution standards for MarketPipe
-globs:
-  - 'pyproject.toml'
-  - 'setup.py'
-  - 'MANIFEST.in'
-  - 'src/marketpipe/__init__.py'
+globs: 
 alwaysApply: true
-priority: low
 ---
 
 # Packaging Standards
@@ -48,7 +43,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Financial and Insurance Industry",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -391,7 +386,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Financial and Insurance Industry",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",

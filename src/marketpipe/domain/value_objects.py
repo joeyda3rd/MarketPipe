@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain value objects for MarketPipe.
 
 Value Objects are immutable objects that are defined by their values rather

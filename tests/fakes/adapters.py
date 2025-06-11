@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Fake adapter implementations for testing."""
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         self._fetch_calls: List[tuple[Symbol, TimeRange]] = []
         self._should_fail = False
         self._failure_message = "Simulated provider failure"
+        self._failing_symbols: set[Symbol] = set()
         self._connection_working = True
         self._supported_symbols = [
             Symbol.from_string("AAPL"),
@@ -35,6 +37,13 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         """Configure the adapter to simulate failures."""
         self._should_fail = should_fail
         self._failure_message = message
+    
+    def set_symbol_failure(self, symbol: Symbol, should_fail: bool = True) -> None:
+        """Configure specific symbols to fail."""
+        if should_fail:
+            self._failing_symbols.add(symbol)
+        else:
+            self._failing_symbols.discard(symbol)
     
     def set_connection_status(self, is_working: bool) -> None:
         """Configure the connection status for testing."""
@@ -54,6 +63,11 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         # Record the call for testing
         self._fetch_calls.append((symbol, time_range))
         
+        # Check if this specific symbol should fail
+        if symbol in self._failing_symbols:
+            raise Exception(f"{self._failure_message} for {symbol}")
+        
+        # Check global failure mode
         if self._should_fail:
             raise Exception(self._failure_message)
         

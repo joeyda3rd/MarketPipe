@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Tests for IngestionJobConfig Pydantic model."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Infrastructure repository implementations for ingestion domain."""
 
 from __future__ import annotations
@@ -5,7 +6,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from typing import List, Optional, Dict
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from ..domain.entities import IngestionJob, IngestionJobId, ProcessingState
@@ -18,6 +19,7 @@ from ..domain.repositories import (
 )
 from ..domain.value_objects import IngestionCheckpoint, ProcessingMetrics
 from marketpipe.domain.value_objects import Symbol
+from marketpipe.infrastructure.sqlite_pool import connection
 
 
 class SqliteIngestionJobRepository(IIngestionJobRepository):
@@ -29,7 +31,7 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
     
     def _init_database(self) -> None:
         """Initialize the database schema."""
-        with sqlite3.connect(self._db_path) as conn:
+        with connection(self._db_path) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS ingestion_jobs (
                     job_id TEXT PRIMARY KEY,
@@ -56,7 +58,7 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
             job_data = self._serialize_job(job)
             now = datetime.now()
             
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.execute("""
                     INSERT OR REPLACE INTO ingestion_jobs 
                     (job_id, job_data, state, created_at, updated_at)
@@ -76,7 +78,7 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
     async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
         """Retrieve an ingestion job by its ID."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute(
                     "SELECT job_data FROM ingestion_jobs WHERE job_id = ?",
@@ -95,7 +97,7 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
     async def get_by_state(self, state: ProcessingState) -> List[IngestionJob]:
         """Get all jobs in a specific state."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute(
                     "SELECT job_data FROM ingestion_jobs WHERE state = ? ORDER BY created_at DESC",
@@ -113,7 +115,7 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
         active_states = [ProcessingState.PENDING.value, ProcessingState.IN_PROGRESS.value]
         
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 placeholders = ",".join("?" * len(active_states))
                 cursor = conn.execute(
@@ -134,7 +136,7 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
     ) -> List[IngestionJob]:
         """Get jobs created within a date range."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute("""
                     SELECT job_data FROM ingestion_jobs 
@@ -151,7 +153,7 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
     async def delete(self, job_id: IngestionJobId) -> bool:
         """Delete an ingestion job."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 cursor = conn.execute(
                     "DELETE FROM ingestion_jobs WHERE job_id = ?",
                     (str(job_id),)
@@ -165,7 +167,7 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
     async def get_job_history(self, limit: int = 100) -> List[IngestionJob]:
         """Get recent job history."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute(
                     "SELECT job_data FROM ingestion_jobs ORDER BY created_at DESC LIMIT ?",
@@ -181,7 +183,7 @@ class SqliteIngestionJobRepository(IIngestionJobRepository):
     async def count_jobs_by_state(self) -> Dict[ProcessingState, int]:
         """Count jobs grouped by their processing state."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 cursor = conn.execute(
                     "SELECT state, COUNT(*) as count FROM ingestion_jobs GROUP BY state"
                 )
@@ -264,7 +266,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     
     def _init_database(self) -> None:
         """Initialize the database schema."""
-        with sqlite3.connect(self._db_path) as conn:
+        with connection(self._db_path) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS ingestion_checkpoints (
                     job_id TEXT NOT NULL,
@@ -288,7 +290,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     ) -> None:
         """Save a checkpoint for a specific job and symbol."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.execute("""
                     INSERT OR REPLACE INTO ingestion_checkpoints 
                     (job_id, symbol, last_processed_timestamp, records_processed, updated_at)
@@ -312,7 +314,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     ) -> Optional[IngestionCheckpoint]:
         """Get the latest checkpoint for a job and symbol."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute("""
                     SELECT last_processed_timestamp, records_processed, updated_at
@@ -340,7 +342,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     ) -> List[IngestionCheckpoint]:
         """Get all checkpoints for a specific job."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute("""
                     SELECT symbol, last_processed_timestamp, records_processed, updated_at
@@ -368,7 +370,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     async def delete_checkpoints(self, job_id: IngestionJobId) -> None:
         """Delete all checkpoints for a specific job."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.execute(
                     "DELETE FROM ingestion_checkpoints WHERE job_id = ?",
                     (str(job_id),)
@@ -381,7 +383,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     async def get_global_checkpoint(self, symbol: Symbol) -> Optional[IngestionCheckpoint]:
         """Get the most recent checkpoint for a symbol across all jobs."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute("""
                     SELECT symbol, last_processed_timestamp, records_processed, updated_at
@@ -408,7 +410,7 @@ class SqliteCheckpointRepository(IIngestionCheckpointRepository):
     async def cleanup_old_checkpoints(self, older_than: datetime) -> int:
         """Remove checkpoints older than the specified date."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 cursor = conn.execute(
                     "DELETE FROM ingestion_checkpoints WHERE updated_at < ?",
                     (older_than,)
@@ -429,7 +431,7 @@ class SqliteMetricsRepository(IIngestionMetricsRepository):
     
     def _init_database(self) -> None:
         """Initialize the database schema."""
-        with sqlite3.connect(self._db_path) as conn:
+        with connection(self._db_path) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS ingestion_metrics (
                     job_id TEXT PRIMARY KEY,
@@ -447,7 +449,7 @@ class SqliteMetricsRepository(IIngestionMetricsRepository):
         try:
             metrics_data = json.dumps(metrics.to_dict())
             
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.execute("""
                     INSERT OR REPLACE INTO ingestion_metrics 
                     (job_id, metrics_data, created_at)
@@ -465,7 +467,7 @@ class SqliteMetricsRepository(IIngestionMetricsRepository):
     async def get_metrics(self, job_id: IngestionJobId) -> Optional[ProcessingMetrics]:
         """Get metrics for a specific job."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute(
                     "SELECT metrics_data FROM ingestion_metrics WHERE job_id = ?",
@@ -495,9 +497,34 @@ class SqliteMetricsRepository(IIngestionMetricsRepository):
         end_date: datetime
     ) -> List[tuple[IngestionJobId, ProcessingMetrics]]:
         """Get metrics for jobs within a date range."""
-        # Implementation would query metrics within date range
-        # and return list of (job_id, metrics) tuples
-        raise NotImplementedError("Metrics history not yet implemented")
+        try:
+            with connection(self._db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT job_id, metrics_data
+                    FROM ingestion_metrics 
+                    WHERE created_at BETWEEN ? AND ?
+                    ORDER BY created_at DESC
+                """, (start_date, end_date))
+                
+                results = []
+                for row in cursor.fetchall():
+                    job_id = IngestionJobId(row["job_id"])
+                    metrics_dict = json.loads(row["metrics_data"])
+                    metrics = ProcessingMetrics(
+                        symbols_processed=metrics_dict["symbols_processed"],
+                        symbols_failed=metrics_dict["symbols_failed"],
+                        total_bars_ingested=metrics_dict["total_bars_ingested"],
+                        total_processing_time_seconds=metrics_dict["total_processing_time_seconds"],
+                        average_processing_time_per_symbol=metrics_dict["average_processing_time_per_symbol"],
+                        peak_memory_usage_mb=metrics_dict.get("peak_memory_usage_mb")
+                    )
+                    results.append((job_id, metrics))
+                
+                return results
+                
+        except sqlite3.Error as e:
+            raise IngestionRepositoryError(f"Failed to get metrics history: {e}") from e
     
     async def get_average_metrics(
         self, 
@@ -505,13 +532,74 @@ class SqliteMetricsRepository(IIngestionMetricsRepository):
         end_date: datetime
     ) -> Optional[ProcessingMetrics]:
         """Calculate average metrics across jobs in a date range."""
-        # Implementation would calculate averages across all jobs in range
-        raise NotImplementedError("Average metrics not yet implemented")
+        try:
+            with connection(self._db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT metrics_data
+                    FROM ingestion_metrics 
+                    WHERE created_at BETWEEN ? AND ?
+                """, (start_date, end_date))
+                
+                all_metrics = []
+                for row in cursor.fetchall():
+                    metrics_dict = json.loads(row["metrics_data"])
+                    all_metrics.append(metrics_dict)
+                
+                if not all_metrics:
+                    return None
+                
+                # Calculate averages
+                avg_symbols_processed = sum(m["symbols_processed"] for m in all_metrics) / len(all_metrics)
+                avg_symbols_failed = sum(m["symbols_failed"] for m in all_metrics) / len(all_metrics)
+                avg_bars_ingested = sum(m["total_bars_ingested"] for m in all_metrics) / len(all_metrics)
+                avg_processing_time = sum(m["total_processing_time_seconds"] for m in all_metrics) / len(all_metrics)
+                avg_time_per_symbol = sum(m["average_processing_time_per_symbol"] for m in all_metrics) / len(all_metrics)
+                
+                # Average memory usage (only for jobs that have it)
+                memory_values = [m.get("peak_memory_usage_mb") for m in all_metrics if m.get("peak_memory_usage_mb") is not None]
+                avg_memory = sum(memory_values) / len(memory_values) if memory_values else None
+                
+                return ProcessingMetrics(
+                    symbols_processed=int(avg_symbols_processed),
+                    symbols_failed=int(avg_symbols_failed),
+                    total_bars_ingested=int(avg_bars_ingested),
+                    total_processing_time_seconds=avg_processing_time,
+                    average_processing_time_per_symbol=avg_time_per_symbol,
+                    peak_memory_usage_mb=avg_memory
+                )
+                
+        except sqlite3.Error as e:
+            raise IngestionRepositoryError(f"Failed to calculate average metrics: {e}") from e
     
     async def get_performance_trends(
         self, 
         days: int = 30
     ) -> List[tuple[datetime, float]]:
         """Get daily average processing performance over time."""
-        # Implementation would return daily performance trends
-        raise NotImplementedError("Performance trends not yet implemented")
+        try:
+            # Calculate start date
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days)
+            
+            with connection(self._db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT DATE(created_at) as date, 
+                           AVG(json_extract(metrics_data, '$.total_processing_time_seconds')) as avg_time
+                    FROM ingestion_metrics 
+                    WHERE created_at BETWEEN ? AND ?
+                    GROUP BY DATE(created_at)
+                    ORDER BY date
+                """, (start_date, end_date))
+                
+                trends = []
+                for row in cursor.fetchall():
+                    date_obj = datetime.fromisoformat(row["date"])
+                    avg_time = float(row["avg_time"]) if row["avg_time"] else 0.0
+                    trends.append((date_obj, avg_time))
+                
+                return trends
+                
+        except sqlite3.Error as e:
+            raise IngestionRepositoryError(f"Failed to get performance trends: {e}") from e

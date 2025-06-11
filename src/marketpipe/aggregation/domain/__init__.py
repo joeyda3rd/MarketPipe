@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Aggregation domain layer."""
 
 from .value_objects import FrameSpec, DEFAULT_SPECS

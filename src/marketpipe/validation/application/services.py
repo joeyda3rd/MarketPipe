@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Validation application services."""
 
 from __future__ import annotations
@@ -21,18 +22,69 @@ class ValidationRunnerService:
 
     def handle_ingestion_completed(self, event: IngestionJobCompleted) -> None:
         """Handle ingestion completion event by validating the data."""
-        # Load DataFrames from storage engine
-        symbol_dataframes = self._storage_engine.load_job_bars(event.job_id)
-        
-        for symbol_name, df in symbol_dataframes.items():
-            # Convert DataFrame to domain objects
-            bars = self._convert_dataframe_to_bars(df, symbol_name)
+        try:
+            # Record validation start metrics
+            from marketpipe.metrics import record_metric
+            record_metric("validation_jobs_started", 1)
             
-            # Validate using domain service
-            result = self._validator.validate_bars(symbol_name, bars)
+            # Load DataFrames from storage engine
+            symbol_dataframes = self._storage_engine.load_job_bars(event.job_id)
             
-            # Save validation report
-            self._reporter.save(result)
+            total_errors = 0
+            total_bars_validated = 0
+            symbols_processed = 0
+            
+            for symbol_name, df in symbol_dataframes.items():
+                try:
+                    # Convert DataFrame to domain objects
+                    bars = self._convert_dataframe_to_bars(df, symbol_name)
+                    total_bars_validated += len(bars)
+                    
+                    # Validate using domain service
+                    result = self._validator.validate_bars(symbol_name, bars)
+                    
+                    # Record validation metrics
+                    error_count = len(result.errors)
+                    total_errors += error_count
+                    
+                    record_metric("validation_bars_processed", len(bars))
+                    record_metric(f"validation_bars_{symbol_name}", len(bars))
+                    
+                    if error_count > 0:
+                        record_metric("validation_errors_found", error_count)
+                        record_metric(f"validation_errors_{symbol_name}", error_count)
+                        print(f"WARN Validation found {error_count} errors for {symbol_name}")
+                    else:
+                        record_metric("validation_success", 1)
+                        record_metric(f"validation_success_{symbol_name}", 1)
+                    
+                    # Save validation report with job_id
+                    report_path = self._reporter.save(event.job_id, result)
+                    print(f"INFO Validation report written: {report_path}")
+                    
+                    symbols_processed += 1
+                    
+                except Exception as symbol_error:
+                    # Record symbol-specific validation failure
+                    record_metric("validation_symbol_failures", 1)
+                    record_metric(f"validation_failure_{symbol_name}", 1)
+                    print(f"ERROR Failed to validate symbol {symbol_name}: {symbol_error}")
+            
+            # Record overall job validation metrics
+            if total_errors == 0:
+                record_metric("validation_jobs_success", 1)
+                print(f"INFO Validation completed successfully for job {event.job_id}: {symbols_processed} symbols, {total_bars_validated} bars")
+            else:
+                record_metric("validation_jobs_with_errors", 1)
+                record_metric("validation_total_errors", total_errors)
+                print(f"WARN Validation completed with {total_errors} total errors for job {event.job_id}")
+                
+        except Exception as e:
+            # Record overall validation failure
+            from marketpipe.metrics import record_metric
+            record_metric("validation_jobs_failed", 1)
+            print(f"ERROR Validation failed for job {event.job_id}: {e}")
+            raise
 
     def _convert_dataframe_to_bars(self, df, symbol_name: str) -> list:
         """Convert DataFrame to OHLCVBar domain objects."""

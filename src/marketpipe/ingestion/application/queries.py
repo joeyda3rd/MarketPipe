@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Ingestion application queries."""
 
 from __future__ import annotations
