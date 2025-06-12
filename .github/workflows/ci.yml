@@ -30,6 +30,7 @@ jobs:
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: coverage-sqlite
           path: coverage.xml
@@ -89,6 +90,7 @@ jobs:
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: coverage-postgres
           path: coverage.xml
@@ -106,12 +108,14 @@ jobs:
       
       - name: Download SQLite coverage
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: coverage-sqlite
           path: ./coverage-sqlite/
       
       - name: Download Postgres coverage  
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: coverage-postgres
           path: ./coverage-postgres/

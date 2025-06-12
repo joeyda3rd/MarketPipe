@@ -87,7 +87,7 @@ class TestBootstrapFunctionality:
             reset_bootstrap_state()
             
             # Mock the dependencies to avoid actual database/service operations
-            with patch("marketpipe.migrations.apply_pending") as mock_apply, \
+            with patch("marketpipe.bootstrap.apply_pending_alembic") as mock_apply, \
                  patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg, \
                  patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg:
                 
@@ -120,7 +120,7 @@ class TestBootstrapFunctionality:
             reset_bootstrap_state()
             
             # Mock migrations to raise an error
-            with patch("marketpipe.migrations.apply_pending", side_effect=Exception("Migration failed")):
+            with patch("marketpipe.bootstrap.apply_pending_alembic", side_effect=Exception("Migration failed")):
                 with pytest.raises(RuntimeError, match="MarketPipe bootstrap failed"):
                     bootstrap()
                 
@@ -134,7 +134,7 @@ class TestBootstrapFunctionality:
         with patch.dict(os.environ, {"MP_DB": str(custom_db_path)}):
             reset_bootstrap_state()
             
-            with patch("marketpipe.migrations.apply_pending") as mock_apply, \
+            with patch("marketpipe.bootstrap.apply_pending_alembic") as mock_apply, \
                  patch("marketpipe.validation.ValidationRunnerService.register"), \
                  patch("marketpipe.aggregation.AggregationRunnerService.register"):
                 
@@ -150,7 +150,7 @@ class TestBootstrapFunctionality:
             assert not is_bootstrapped()
             
             # Mock bootstrap to avoid side effects
-            with patch("marketpipe.migrations.apply_pending"), \
+            with patch("marketpipe.bootstrap.apply_pending_alembic"), \
                  patch("marketpipe.validation.ValidationRunnerService.register"), \
                  patch("marketpipe.aggregation.AggregationRunnerService.register"):
                 
@@ -203,7 +203,7 @@ class TestCliCommandBootstrap:
             
             runner = CliRunner()
             
-            with patch("marketpipe.migrations.apply_pending") as mock_apply, \
+            with patch("marketpipe.bootstrap.apply_pending_alembic") as mock_apply, \
                  patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg, \
                  patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg, \
                  patch("marketpipe.cli.ohlcv_validate.CsvReportRepository") as mock_repo:
@@ -230,7 +230,7 @@ class TestCliCommandBootstrap:
             
             runner = CliRunner()
             
-            with patch("marketpipe.migrations.apply_pending") as mock_apply, \
+            with patch("marketpipe.bootstrap.apply_pending_alembic") as mock_apply, \
                  patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg, \
                  patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg, \
                  patch("marketpipe.cli.ohlcv_aggregate.AggregationRunnerService.build_default") as mock_build:
@@ -260,7 +260,7 @@ class TestCliCommandBootstrap:
             
             runner = CliRunner()
             
-            with patch("marketpipe.migrations.apply_pending") as mock_apply, \
+            with patch("marketpipe.bootstrap.apply_pending_alembic") as mock_apply, \
                  patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg, \
                  patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg, \
                  patch("marketpipe.metrics.SqliteMetricsRepository") as mock_repo:
@@ -287,7 +287,7 @@ class TestCliCommandBootstrap:
             
             runner = CliRunner()
             
-            with patch("marketpipe.migrations.apply_pending") as mock_apply, \
+            with patch("marketpipe.bootstrap.apply_pending_alembic") as mock_apply, \
                  patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg, \
                  patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg, \
                  patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
@@ -327,7 +327,7 @@ class TestBootstrapConcurrency:
                 # Simulate some work time
                 time.sleep(0.01)
             
-            with patch("marketpipe.migrations.apply_pending", side_effect=counting_apply_pending), \
+            with patch("marketpipe.bootstrap.apply_pending_alembic", side_effect=counting_apply_pending), \
                  patch("marketpipe.validation.ValidationRunnerService.register"), \
                  patch("marketpipe.aggregation.AggregationRunnerService.register"):
                 

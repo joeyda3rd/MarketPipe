@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -13,6 +14,7 @@ from marketpipe.domain.market_data import (
     IMarketDataProvider,
     ProviderMetadata,
 )
+from marketpipe.security.mask import safe_for_log
 from .alpaca_client import AlpacaClient
 from .models import ClientConfig
 from .auth import HeaderTokenAuth
@@ -41,6 +43,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         self._api_secret = api_secret
         self._base_url = base_url
         self._feed_type = feed_type
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         # Configure Alpaca client (infrastructure layer)
         self._client_config = ClientConfig(
@@ -102,9 +105,12 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
             raw_bars = self._alpaca_client.fetch_batch(symbol.value, start_ms, end_ms)
         except Exception as e:
             # Translate infrastructure exceptions to domain exceptions
-            raise MarketDataProviderError(
-                f"Failed to fetch data for {symbol}: {e}"
-            ) from e
+            safe_msg = safe_for_log(
+                f"Failed to fetch data for {symbol}: {e}",
+                self._api_key,
+                self._api_secret
+            )
+            raise MarketDataProviderError(safe_msg) from e
 
         # Limit results to max_bars
         if len(raw_bars) > max_bars:
@@ -118,7 +124,12 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
                 domain_bars.append(domain_bar)
             except Exception as e:
                 # Log translation errors but continue processing other bars
-                print(f"Warning: Failed to translate bar for {symbol}: {e}")
+                safe_msg = safe_for_log(
+                    f"Failed to translate bar for {symbol}: {e}",
+                    self._api_key,
+                    self._api_secret
+                )
+                self._logger.warning(safe_msg)
                 continue
 
         return domain_bars
