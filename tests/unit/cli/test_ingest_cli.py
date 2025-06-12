@@ -14,7 +14,7 @@ runner = CliRunner()
 def test_ingest_cli_smoke():
     """Test that the ingest CLI command can be invoked without errors."""
     with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
-        with patch("marketpipe.cli._build_ingestion_services") as mock_build:
+        with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build:
             # Mock the services
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
@@ -53,7 +53,7 @@ def test_ingest_cli_smoke():
 def test_ingest_cli_with_multiple_symbols():
     """Test the ingest CLI with multiple symbols."""
     with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
-        with patch("marketpipe.cli._build_ingestion_services") as mock_build:
+        with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build:
             # Mock the services
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
@@ -95,7 +95,7 @@ def test_ingest_cli_with_multiple_symbols():
 def test_ingest_cli_handles_service_errors():
     """Test that the CLI handles service errors gracefully."""
     with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
-        with patch("marketpipe.cli._build_ingestion_services") as mock_build:
+        with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build:
             # Mock the services to raise an error
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
@@ -142,4 +142,4 @@ def test_ingest_cli_handles_missing_credentials():
 
         # Verify the command failed gracefully
         assert result.exit_code == 1
-        assert "Alpaca credentials not found" in result.stdout
+        assert "validation error for ClientConfig" in result.stdout

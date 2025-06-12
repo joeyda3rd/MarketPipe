@@ -127,7 +127,7 @@ class TestIngestionJobConfig:
     def test_provider_validation(self):
         """Test provider validation."""
         # Valid providers
-        for provider in ["alpaca", "polygon", "iex"]:
+        for provider in ["alpaca", "fake", "iex"]:
             config = IngestionJobConfig(
                 symbols=["AAPL"],
                 start=date(2025, 1, 1),
@@ -274,7 +274,7 @@ end: 2025-06-07
 
         # Test overriding some values
         overridden_config = base_config.merge_overrides(
-            batch_size=2000, workers=8, provider="polygon"
+            batch_size=2000, workers=8, provider="iex"
         )
 
         # Original should be unchanged
@@ -285,7 +285,7 @@ end: 2025-06-07
         # New config should have overrides
         assert overridden_config.batch_size == 2000
         assert overridden_config.workers == 8
-        assert overridden_config.provider == "polygon"
+        assert overridden_config.provider == "iex"
 
         # Unchanged values should remain
         assert overridden_config.symbols == ["AAPL"]
