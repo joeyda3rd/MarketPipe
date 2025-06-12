@@ -82,7 +82,13 @@ jobs:
       # but running them once here gives earlier failure visibility
       - name: Apply migrations
         run: |
-          alembic upgrade head
+          for i in {1..5}; do
+            echo "Migration attempt $i/5..."
+            alembic upgrade head && break || {
+              echo "Migration failed, retrying in 5 seconds..."
+              sleep 5
+            }
+          done
 
       - name: Run tests (Postgres)
         run: |
