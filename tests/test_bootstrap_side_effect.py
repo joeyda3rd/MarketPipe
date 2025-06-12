@@ -177,8 +177,8 @@ class TestCliCommandBootstrap:
 
             # Mock bootstrap itself and _ingest_impl to prevent actual execution
             with patch("marketpipe.bootstrap.bootstrap") as mock_bootstrap, \
-                 patch("marketpipe.cli._build_ingestion_services") as mock_build_services, \
-                 patch("marketpipe.cli.asyncio.run") as mock_async_run:
+                 patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build_services, \
+                 patch("marketpipe.cli.ohlcv_ingest.asyncio.run") as mock_async_run:
 
                 # Mock the services to avoid complex setup
                 mock_build_services.return_value = (MagicMock(), MagicMock())
@@ -206,7 +206,7 @@ class TestCliCommandBootstrap:
             with patch("marketpipe.migrations.apply_pending") as mock_apply, \
                  patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg, \
                  patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg, \
-                 patch("marketpipe.validation.infrastructure.repositories.CsvReportRepository") as mock_repo:
+                 patch("marketpipe.cli.ohlcv_validate.CsvReportRepository") as mock_repo:
                 
                 # Mock empty reports list to avoid actual file operations
                 mock_repo.return_value.list_reports.return_value = []
@@ -233,7 +233,7 @@ class TestCliCommandBootstrap:
             with patch("marketpipe.migrations.apply_pending") as mock_apply, \
                  patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg, \
                  patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg, \
-                 patch("marketpipe.aggregation.AggregationRunnerService.build_default") as mock_build:
+                 patch("marketpipe.cli.ohlcv_aggregate.AggregationRunnerService.build_default") as mock_build:
                 
                 # Mock the aggregation service
                 mock_service = MagicMock()

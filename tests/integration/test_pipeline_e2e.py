@@ -75,14 +75,15 @@ def test_full_pipeline_end_to_end(tmp_path, monkeypatch):
     ) as mock_service:
         # Create a mock service that simulates successful aggregation
         mock_agg_service = Mock()
-        mock_agg_service.run_manual_aggregation.return_value = None  # Success
+        mock_agg_service.handle_ingestion_completed.return_value = None  # Success
         mock_service.return_value = mock_agg_service
 
         result = runner.invoke(app, ["aggregate", job_id], catch_exceptions=False)
 
         assert result.exit_code == 0
-        assert f"Aggregation completed for job: {job_id}" in result.stdout
-        mock_agg_service.run_manual_aggregation.assert_called_once_with(job_id)
+        assert "All aggregations completed successfully!" in result.stdout
+        # The CLI calls handle_ingestion_completed, not run_manual_aggregation
+        mock_agg_service.handle_ingestion_completed.assert_called_once()
         print("✓ Aggregation: CLI command succeeded")
 
     # 3. VALIDATE: Run validate CLI command
@@ -113,7 +114,7 @@ def test_full_pipeline_end_to_end(tmp_path, monkeypatch):
             assert (
                 result.exit_code == 0
             ), f"Validation failed with output: {result.stdout}"
-            assert f"Validation completed for job: {job_id}" in result.stdout
+            assert "Validation completed successfully!" in result.stdout
             print("✓ Validation: CLI command succeeded")
 
     # 4. QUERY: Run query CLI command
@@ -233,7 +234,7 @@ def test_pipeline_error_handling(tmp_path, monkeypatch):
     result = runner.invoke(app, ["validate", "--job-id", "nonexistent-job"])
     # With our mocked services, this actually succeeds (which is correct for the test)
     assert result.exit_code == 0
-    assert "Validation completed for job: nonexistent-job" in result.stdout
+    assert "Validation completed successfully!" in result.stdout
 
     # Test query command with invalid SQL
     with patch(

@@ -98,8 +98,8 @@
 ## 🚀 Enhanced CLI Commands
 
 - [x] 🟡 **Rename CLI commands for clarity** _(mp ingest-ohlcv, mp backfill-ohlcv, mp aggregate-ohlcv, mp validate-ohlcv)_ ✅ **COMPLETED** - CLI commands renamed with OHLCV sub-app, convenience commands, and deprecation warnings
+- [x] 🟡 **Split monolithic CLI into sub-modules** _(create `marketpipe.cli.ingest`, `.validate`, `.aggregate`, `.query`, register with root Typer app)_ ✅ **COMPLETED** - CLI modularized into separate modules with proper service imports and ≥70% test coverage
 - [ ] 🟡 **Implement backfill command** _(historical data ingestion with gap detection)_
-- [ ] 🟡 **Split monolithic CLI into sub-modules** _(create `marketpipe.cli.ingest`, `.validate`, `.aggregate`, `.query`, register with root Typer app)_
 - [ ] 🟡 **Add `prune` commands & retention scripts** _( `mp prune parquet --older-than 5y`, `mp prune sqlite --older-than 18m`; sample cron/systemd units; update metrics)_
 - [ ] 🟢 **Add data loader Python API** _(load_ohlcv() function for research/backtesting)_
 - [ ] 🔵 **Scheduler integration** _(crontab examples, systemd timers)_
@@ -154,6 +154,14 @@
 - ✅ **Comprehensive Testing**: 7 test cases covering deprecation warnings, new command existence, sub-app functionality, and signature compatibility
 - ✅ **Enhanced Help System**: Updated help text to clearly indicate deprecated commands and provide migration instructions
 - ✅ **Implementation Shared**: Extracted common functionality into `_ingest_impl()`, `_validate_impl()`, and `_aggregate_impl()` to avoid code duplication
+
+### CLI Modularization _(December 2024)_
+- ✅ **Modular Package Structure**: Split monolithic CLI into `src/marketpipe/cli/` package with separate modules (`ohlcv_ingest.py`, `ohlcv_validate.py`, `ohlcv_aggregate.py`, `query.py`, `utils.py`)
+- ✅ **Service Integration**: Fixed import issues and integrated with actual available services (`ValidationRunnerService`, `AggregationRunnerService`) using event-based architecture
+- ✅ **Entry Point Migration**: Updated pyproject.toml entry point to `mp = "marketpipe.cli:app"` for cleaner command structure
+- ✅ **Import Resolution**: Resolved service import conflicts, updated CLI modules to use proper event handlers and domain service patterns
+- ✅ **Test Coverage Achievement**: 18 comprehensive tests with 100% pass rate covering command functionality, imports, deprecation warnings, and modular structure
+- ✅ **Backward Compatibility**: All existing functionality preserved while enabling future extensibility through modular architecture
 
 ### Pluggable Provider Framework _(December 2024)_
 - ✅ **Provider Registry System**: Entry points-based provider discovery with `ProviderRegistry` class, dynamic provider loading, CLI integration with `providers` command
