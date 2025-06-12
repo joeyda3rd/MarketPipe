@@ -24,7 +24,8 @@ dependencies = [
     "alembic>=1.13",
     "sqlalchemy>=2.0",
     "fasteners>=0.18",
-    "greenlet>=2.0"
+    "greenlet>=2.0",
+    "pydantic>=2.0"
 ]
 
 [project.optional-dependencies]

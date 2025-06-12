@@ -1,5 +1,7 @@
 """Integration tests to verify API keys are properly masked in logs."""
 
+from __future__ import annotations
+
 import pytest
 import logging
 import os
@@ -43,6 +45,9 @@ class TestSecretsInLogs:
 
     def test_alpaca_client_json_parse_error_masks_key(self, alpaca_client, test_api_key, caplog):
         """Test that JSON parse errors don't expose API keys in logs."""
+        
+        # Ensure logging level captures warnings
+        caplog.set_level(logging.WARNING)
         
         def mock_get(*args, **kwargs):
             response = Mock()

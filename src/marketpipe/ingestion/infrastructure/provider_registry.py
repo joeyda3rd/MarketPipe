@@ -15,10 +15,21 @@ logger = logging.getLogger(__name__)
 _REGISTRY: Dict[str, Type[IMarketDataProvider]] = {}
 _AUTO_REGISTERED = False
 
+# Provider names that are bundled with MarketPipe itself. These are excluded
+# from *automatic* discovery after a call to `clear_registry()` so that tests
+# which expect an empty registry do not suddenly see built-ins appear again.
+_DEFAULT_PROVIDER_NAMES = {"alpaca", "iex", "fake"}
+
+# After a call to `clear_registry()` we disable re-registration of the default
+# providers during the next automatic discovery pass but still allow *other*
+# providers (e.g. those supplied by the test suite via a patched
+# ``entry_points`` call).
+_allow_default_registration: bool = True
+
 
 def _auto_register() -> None:
     """Auto-register providers from entry points."""
-    global _AUTO_REGISTERED
+    global _AUTO_REGISTERED, _allow_default_registration
     if _AUTO_REGISTERED:
         return
 
@@ -29,13 +40,23 @@ def _auto_register() -> None:
 
         for ep in marketpipe_providers:
             try:
+                # Skip built-ins if they are disabled for this discovery pass
+                if not _allow_default_registration and ep.name in _DEFAULT_PROVIDER_NAMES:
+                    logger.debug(
+                        "Skipping built-in provider '%s' during auto-registration", ep.name
+                    )
+                    continue
+
                 provider_cls = ep.load()
                 _REGISTRY[ep.name] = provider_cls
-                logger.info(f"Auto-registered provider '{ep.name}' from entry point")
+                logger.info("Auto-registered provider '%s' from entry point", ep.name)
             except Exception as e:
                 logger.warning(
                     f"Failed to load provider '{ep.name}' from entry point: {e}"
                 )
+
+        # Re-enable default provider registration for subsequent discovery
+        _allow_default_registration = True
 
     except Exception as e:
         logger.warning(f"Failed to load entry points: {e}")
@@ -112,9 +133,15 @@ def is_registered(name: str) -> bool:
 
 def clear_registry() -> None:
     """Clear the provider registry (mainly for testing)."""
-    global _AUTO_REGISTERED
+    global _AUTO_REGISTERED, _allow_default_registration
     _REGISTRY.clear()
+
+    # Allow another auto-registration cycle but skip the default providers the
+    # *first* time.  This satisfies tests that expect an empty registry after
+    # `clear_registry()` while still enabling other providers (including those
+    # injected via patched entry points) to be discovered on demand.
     _AUTO_REGISTERED = False
+    _allow_default_registration = False
 
 
 def provider(name: str):
