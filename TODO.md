@@ -71,7 +71,7 @@
 
 ## 🏗️ Database & Migrations
 
-- [ ] 🟡 **Adopt Alembic for migrations (SQLite + Postgres)** _(scaffold `alembic.ini`, port existing SQL files to `versions/`, CI runs `alembic upgrade head`)_
+- [x] 🟡 **Adopt Alembic for migrations (SQLite + Postgres)** _(scaffold `alembic.ini`, port existing SQL files to `versions/`, CI runs `alembic upgrade head`)_ ✅ **COMPLETED** - Full Alembic migration system with SQLite + Postgres CI jobs
 - [ ] 🟡 **Feature-flagged Postgres support** _(implement `PostgresIngestionJobRepository` with `asyncpg`, activated when `DATABASE_URL` is set)_
 
 ## 📈 Metrics & Monitoring
