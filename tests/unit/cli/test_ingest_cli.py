@@ -19,11 +19,14 @@ def test_ingest_cli_smoke():
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
 
+            # Mock create_job to return a job ID
             mock_job_service.create_job.return_value = "job-123"
+            
+            # Mock execute_job to return a result dict
             mock_coordinator_service.execute_job.return_value = {
                 "symbols_processed": 1,
                 "total_bars": 100,
-                "files_created": 1,
+                "symbols_failed": 0,
                 "processing_time_seconds": 5.0,
             }
 
@@ -58,11 +61,14 @@ def test_ingest_cli_with_multiple_symbols():
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
 
+            # Mock create_job to return a job ID
             mock_job_service.create_job.return_value = "job-456"
+            
+            # Mock execute_job to return a result dict
             mock_coordinator_service.execute_job.return_value = {
                 "symbols_processed": 3,
                 "total_bars": 300,
-                "files_created": 3,
+                "symbols_failed": 0,
                 "processing_time_seconds": 15.0,
             }
 
@@ -89,7 +95,7 @@ def test_ingest_cli_with_multiple_symbols():
             # Verify the command succeeded
             assert result.exit_code == 0
             assert "job-456" in result.stdout
-            assert "3 symbols" in result.stdout
+            assert "Symbols processed: 3" in result.stdout
 
 
 def test_ingest_cli_handles_service_errors():
@@ -120,7 +126,7 @@ def test_ingest_cli_handles_service_errors():
 
             # Verify the command failed gracefully
             assert result.exit_code == 1
-            assert "Configuration error" in result.stdout
+            assert "Ingestion failed: Invalid symbols" in result.stdout
 
 
 def test_ingest_cli_handles_missing_credentials():

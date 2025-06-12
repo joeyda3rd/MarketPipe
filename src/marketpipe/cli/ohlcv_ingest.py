@@ -252,28 +252,34 @@ def _ingest_impl(
         command = CreateIngestionJobCommand(
             symbols=[Symbol(s) for s in job_config.symbols],
             time_range=TimeRange.from_dates(job_config.start, job_config.end),
-            ingestion_config=IngestionConfiguration(
-                provider_name=job_config.provider,
+            configuration=IngestionConfiguration(
+                output_path=Path(job_config.output_path),
+                compression="snappy",
+                max_workers=job_config.workers,
+                batch_size=job_config.batch_size,
+                rate_limit_per_minute=provider_config["rate_limit_per_min"],
                 feed_type=job_config.feed_type,
-                batch_config=BatchConfiguration(
-                    batch_size=job_config.batch_size,
-                    max_workers=job_config.workers,
-                ),
             ),
+            batch_config=BatchConfiguration.default(),
         )
 
-        # Execute ingestion
-        print("🚀 Starting ingestion...")
-        result = asyncio.run(coordinator_service.execute_ingestion(command))
+        # Create and execute job
+        print("🚀 Creating ingestion job...")
+        job_id = asyncio.run(job_service.create_job(command))
+        print(f"📝 Created job: {job_id}")
 
-        if result.success:
-            print(f"✅ Ingestion completed successfully!")
-            print(f"📊 Job ID: {result.job_id}")
-            print(f"📈 Total bars ingested: {result.total_bars}")
-            print(f"⏱️  Total time: {result.duration:.2f} seconds")
-        else:
-            print(f"❌ Ingestion failed: {result.error}")
-            raise typer.Exit(1)
+        print("⚡ Starting job execution...")
+        result = asyncio.run(coordinator_service.execute_job(job_id))
+
+        # Report results
+        print("✅ Job completed successfully!")
+        print(f"📊 Job ID: {job_id}")
+        print(f"📈 Symbols processed: {result.get('symbols_processed', 0)}")
+        print(f"📊 Total bars: {result.get('total_bars', 0)}")
+        print(f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.2f}s")
+
+        if result.get("symbols_failed", 0) > 0:
+            print(f"⚠️  Failed symbols: {result.get('symbols_failed', 0)}")
 
     except Exception as e:
         print(f"❌ Ingestion failed: {e}")

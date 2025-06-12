@@ -34,8 +34,20 @@ def apply_pending_alembic(db_path: Path) -> None:
     # Ensure database directory exists
     db_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Set up Alembic configuration
-    alembic_cfg = Config("alembic.ini")
+    # Locate the Alembic configuration file relative to the project root
+    # to ensure migrations work even if the current working directory is
+    # changed by tests or CLI invocations.
+    project_root = Path(__file__).resolve().parent.parent.parent  # src/marketpipe → project root
+    alembic_ini = project_root / "alembic.ini"
+
+    if not alembic_ini.exists():
+        raise FileNotFoundError(
+            "Alembic configuration file 'alembic.ini' not found at expected "
+            f"location: {alembic_ini}"
+        )
+
+    # Set up Alembic configuration using the resolved path
+    alembic_cfg = Config(str(alembic_ini))
     
     # Convert path to SQLite URL format (always use 3 slashes for SQLite)
     database_url = f"sqlite:///{db_path.absolute()}"
