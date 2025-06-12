@@ -43,7 +43,7 @@ def metrics(
     bootstrap()
     
     try:
-        from marketpipe.aggregation.infrastructure.repositories import SqliteMetricsRepository
+        from marketpipe.metrics import SqliteMetricsRepository
 
         # If port is specified, start metrics server
         if port is not None:

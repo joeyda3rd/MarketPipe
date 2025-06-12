@@ -23,10 +23,19 @@ def _aggregate_impl(job_id: str):
         aggregation_service = AggregationRunnerService.build_default()
 
         # Create and trigger the ingestion completed event  
-        from marketpipe.events import IngestionJobCompleted
+        from marketpipe.domain.events import IngestionJobCompleted
+        from marketpipe.domain.value_objects import Symbol
+        from datetime import date
         
         # Create a mock event to trigger aggregation
-        event = IngestionJobCompleted(job_id=job_id)
+        # Use dummy values since this is just to trigger the aggregation
+        event = IngestionJobCompleted(
+            job_id=job_id,
+            symbol=Symbol("DUMMY"),  # Placeholder symbol
+            trading_date=date.today(),
+            bars_processed=0,
+            success=True
+        )
 
         try:
             # Execute aggregation via event handler
