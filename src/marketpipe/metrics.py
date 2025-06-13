@@ -36,6 +36,13 @@ PROCESSING_TIME = Summary(
 # Rate limiter metrics (imported from rate_limit module)
 from marketpipe.ingestion.infrastructure.rate_limit import RATE_LIMITER_WAITS
 
+# Lock to serialize concurrent write operations to the SQLite metrics DB.  A
+# single process typically sees only low write throughput, so the contention
+# impact is negligible while it completely eliminates the occasional
+# `sqlite3.OperationalError: database is locked` raised when two async tasks
+# attempt to write at the same time (as seen in the metrics event tests).
+_WRITE_LOCK: asyncio.Lock | None = None
+
 __all__ = [
     "REQUESTS",
     "ERRORS",
@@ -90,12 +97,31 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
         """Record a metric data point."""
         timestamp = int(datetime.now().timestamp())
 
-        async with self._conn() as db:
-            await db.execute(
-                "INSERT INTO metrics (ts, name, value) VALUES (?, ?, ?)",
-                (timestamp, name, value),
-            )
-            await db.commit()
+        # Lazily (re)initialise the lock for **each** event-loop.  A single
+        # global ``asyncio.Lock`` cannot be shared across multiple independent
+        # event-loops which is exactly what happens when ``asyncio.run(...)``
+        # is invoked repeatedly inside the test-suite.  When we detect that
+        # the existing lock belongs to a different loop we simply create a
+        # fresh one bound to the current loop.
+
+        global _WRITE_LOCK  # noqa: PLW0603 – intentional module-level state
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # No running loop – create a *dummy* placeholder that is unique so
+            # that the branch below replaces the global lock.
+            loop = object()  # type: ignore[assignment]
+
+        if _WRITE_LOCK is None or getattr(_WRITE_LOCK, "_loop", None) is not loop:
+            _WRITE_LOCK = asyncio.Lock()
+
+        async with _WRITE_LOCK:  # Serialize writes to avoid SQLite busy errors
+            async with self._conn() as db:
+                await db.execute(
+                    "INSERT INTO metrics (ts, name, value) VALUES (?, ?, ?)",
+                    (timestamp, name, value),
+                )
+                await db.commit()
 
     async def get_metrics_history(
         self, metric: str, *, since: Optional[datetime] = None
