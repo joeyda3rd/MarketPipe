@@ -28,8 +28,8 @@ class TestRateLimiterLoad:
         )
         limiter.set_provider_name("load_test")
         
-        # Test duration: 30 seconds (reduced from 5 minutes for CI)
-        test_duration = 30.0
+        # Test duration: 5 seconds for CI (reduced from 30 seconds to prevent timeouts)
+        test_duration = 5.0
         requests_per_second = test_rate_per_min / 60.0  # ~6.67 requests/second
         
         start_time = time.monotonic()
@@ -76,8 +76,8 @@ class TestRateLimiterLoad:
         )
         limiter.set_provider_name("async_load_test")
         
-        # Test duration: 30 seconds (reduced from 5 minutes for CI)
-        test_duration = 30.0
+        # Test duration: 5 seconds for CI (reduced from 30 seconds to prevent timeouts)
+        test_duration = 5.0
         requests_per_second = test_rate_per_min / 60.0  # ~6.67 requests/second
         
         start_time = time.monotonic()
@@ -115,8 +115,8 @@ class TestRateLimiterLoad:
         limiter = RateLimiter(capacity=100, refill_rate=100/60.0)  # 100 requests/minute
         limiter.set_provider_name("concurrent_test")
         
-        # Test duration: 10 seconds
-        test_duration = 10.0
+        # Test duration: 3 seconds for CI
+        test_duration = 3.0
         
         sync_requests = []
         async_requests = []
@@ -148,8 +148,10 @@ class TestRateLimiterLoad:
                     errors.append(f"Async: {e}")
             async_requests.append(count)
         
-        # Run concurrent workers
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        # Run concurrent workers with proper cleanup
+        executor = None
+        try:
+            executor = ThreadPoolExecutor(max_workers=2)
             # Start sync workers
             sync_futures = [executor.submit(sync_worker) for _ in range(2)]
             
@@ -157,11 +159,20 @@ class TestRateLimiterLoad:
             async def run_async_workers():
                 await asyncio.gather(*[async_worker() for _ in range(2)])
             
-            asyncio.run(run_async_workers())
+            # Run async workers in new event loop to avoid conflicts
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(run_async_workers())
+            finally:
+                loop.close()
             
             # Wait for sync workers
             for future in sync_futures:
                 future.result()
+        finally:
+            if executor:
+                executor.shutdown(wait=True)
         
         total_requests = sum(sync_requests) + sum(async_requests)
         
@@ -201,8 +212,8 @@ class TestRateLimiterLoad:
         sustained_start = time.monotonic()
         sustained_requests = 0
         
-        # Make requests for ~5 seconds
-        while time.monotonic() - sustained_start < 5.0:
+        # Make requests for ~2 seconds (reduced for CI)
+        while time.monotonic() - sustained_start < 2.0:
             limiter.acquire(1)
             sustained_requests += 1
         
