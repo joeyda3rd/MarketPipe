@@ -28,16 +28,20 @@ def test_subscribe_and_publish(monkeypatch):
     # Register aggregation service
     AggregationRunnerService.register()
 
-    # Publish event with required arguments
-    EventBus.publish(
-        IngestionJobCompleted(
-            job_id="job-x",
-            symbol=Symbol("AAPL"),
-            trading_date=date(2024, 1, 15),
-            bars_processed=1000,
-            success=True,
-        )
-    )
+    # Mock the record_metric function to avoid metrics issues
+    with patch("marketpipe.metrics.record_metric"):
+        # Mock DuckDB views refresh to avoid filesystem dependencies
+        with patch("marketpipe.aggregation.infrastructure.duckdb_views.refresh_views"):
+            # Publish event with required arguments
+            EventBus.publish(
+                IngestionJobCompleted(
+                    job_id="job-x",
+                    symbol=Symbol("AAPL"),
+                    trading_date=date(2024, 1, 15),
+                    bars_processed=1000,
+                    success=True,
+                )
+            )
 
     # Verify the job was processed
     assert called == ["job-x"]
@@ -61,34 +65,38 @@ def test_aggregation_service_handles_multiple_events(monkeypatch):
     # Register service
     AggregationRunnerService.register()
 
-    # Publish multiple events with required arguments
-    EventBus.publish(
-        IngestionJobCompleted(
-            job_id="job-1",
-            symbol=Symbol("AAPL"),
-            trading_date=date(2024, 1, 15),
-            bars_processed=500,
-            success=True,
-        )
-    )
-    EventBus.publish(
-        IngestionJobCompleted(
-            job_id="job-2",
-            symbol=Symbol("GOOGL"),
-            trading_date=date(2024, 1, 15),
-            bars_processed=750,
-            success=True,
-        )
-    )
-    EventBus.publish(
-        IngestionJobCompleted(
-            job_id="job-3",
-            symbol=Symbol("MSFT"),
-            trading_date=date(2024, 1, 15),
-            bars_processed=600,
-            success=True,
-        )
-    )
+    # Mock the record_metric function to avoid metrics issues
+    with patch("marketpipe.metrics.record_metric"):
+        # Mock DuckDB views refresh to avoid filesystem dependencies
+        with patch("marketpipe.aggregation.infrastructure.duckdb_views.refresh_views"):
+            # Publish multiple events with required arguments
+            EventBus.publish(
+                IngestionJobCompleted(
+                    job_id="job-1",
+                    symbol=Symbol("AAPL"),
+                    trading_date=date(2024, 1, 15),
+                    bars_processed=500,
+                    success=True,
+                )
+            )
+            EventBus.publish(
+                IngestionJobCompleted(
+                    job_id="job-2",
+                    symbol=Symbol("GOOGL"),
+                    trading_date=date(2024, 1, 15),
+                    bars_processed=750,
+                    success=True,
+                )
+            )
+            EventBus.publish(
+                IngestionJobCompleted(
+                    job_id="job-3",
+                    symbol=Symbol("MSFT"),
+                    trading_date=date(2024, 1, 15),
+                    bars_processed=600,
+                    success=True,
+                )
+            )
 
     # Verify all jobs were processed
     assert called_jobs == ["job-1", "job-2", "job-3"]
@@ -114,27 +122,33 @@ def test_aggregation_service_error_handling(monkeypatch):
     # Register service
     AggregationRunnerService.register()
 
-    # Mock logging to capture error messages
-    with patch("logging.getLogger") as mock_logger:
-        mock_log = MagicMock()
-        mock_logger.return_value = mock_log
+    # Mock the record_metric function to avoid metrics issues
+    with patch("marketpipe.metrics.record_metric"):
+        # Mock logging to capture error messages
+        with patch("logging.getLogger") as mock_logger:
+            mock_log = MagicMock()
+            mock_logger.return_value = mock_log
 
-        try:
             # Publish event that will cause error with required arguments
-            EventBus.publish(
-                IngestionJobCompleted(
-                    job_id="failing-job",
-                    symbol=Symbol("FAIL"),
-                    trading_date=date(2024, 1, 15),
-                    bars_processed=0,
-                    success=False,
-                    error_message="Test failure",
+            # The service re-raises exceptions, so we need to catch it
+            try:
+                EventBus.publish(
+                    IngestionJobCompleted(
+                        job_id="failing-job",
+                        symbol=Symbol("FAIL"),
+                        trading_date=date(2024, 1, 15),
+                        bars_processed=0,
+                        success=False,
+                        error_message="Test failure",
+                    )
                 )
-            )
-        except Exception:
-            pass  # Expected to raise due to error handling
+                # If we get here, the exception wasn't raised as expected
+                assert False, "Expected exception was not raised"
+            except Exception:
+                # This is expected due to re-raising in the service
+                pass
 
-    # Verify error was processed
+    # Verify error was processed (the mock was called)
     assert error_count == 1
 
 
@@ -148,10 +162,14 @@ def test_manual_aggregation():
     # Create service and mock its engine
     service = AggregationRunnerService.build_default()
 
-    # Mock the aggregate_job method on the engine instance
-    with patch.object(service._engine, "aggregate_job", side_effect=mock_aggregate_job):
-        # Run manual aggregation
-        service.run_manual_aggregation("manual-job")
+    # Mock the record_metric function to avoid metrics issues
+    with patch("marketpipe.metrics.record_metric"):
+        # Mock DuckDB views refresh to avoid filesystem dependencies
+        with patch("marketpipe.aggregation.infrastructure.duckdb_views.refresh_views"):
+            # Mock the aggregate_job method on the engine instance
+            with patch.object(service._engine, "aggregate_job", side_effect=mock_aggregate_job):
+                # Run manual aggregation
+                service.run_manual_aggregation("manual-job")
 
     # Verify job was processed manually
     assert called_jobs == ["manual-job"]

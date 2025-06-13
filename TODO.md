@@ -123,7 +123,7 @@
 
 ## 🎉 Recent Completions
 
-### Postgres CI Integration _(December 2024)_
+### Postgres CI Integration
 - ✅ **Dual-Database CI Implementation**: Complete GitHub Actions workflow with parallel SQLite and Postgres testing jobs, proper service container configuration for Postgres 15
 - ✅ **Test Separation Strategy**: pytest markers system (sqlite_only, postgres) with proper test filtering, 13 SQLite-only tests automatically deselected for Postgres job
 - ✅ **Postgres Dependencies**: Added asyncpg>=0.28.0 to dev and test extras, proper dependency management for production and testing environments
@@ -135,7 +135,7 @@
 - ✅ **Production Ready**: Proper error handling for missing database backends, graceful test skipping, comprehensive validation of CI filtering mechanisms
 - ✅ **Documentation**: Created POSTGRES_CI_IMPLEMENTATION.md with technical details, updated TODO.md with completion status
 
-### Functional RateLimiter Implementation _(December 2024)_
+### Functional RateLimiter Implementation
 - ✅ **Token Bucket Algorithm**: Complete implementation with capacity and refill_rate parameters for accurate rate limiting across sync and async contexts
 - ✅ **Dual API Patterns**: Both sync `acquire()` and async `acquire_async()` methods using threading.Condition and asyncio.Condition for proper coordination
 - ✅ **Retry-After Header Support**: `notify_retry_after()` and `notify_retry_after_async()` methods handle API rate limit responses with bucket clearing and forced waits
@@ -147,7 +147,7 @@
 - ✅ **Thread Safety**: Proper locking mechanisms, state management, reset functionality for testing, and backward compatibility with async_acquire() alias
 - ✅ **Performance Validation**: Load tests demonstrate 399+ req/min sustained rates, proper burst handling, and mixed concurrent worker scenarios
 
-### Bootstrap Side-Effect Removal _(December 2024)_
+### Bootstrap Side-Effect Removal
 - ✅ **Centralized Bootstrap Module**: Created `src/marketpipe/bootstrap.py` with thread-safe, idempotent `bootstrap()` function that handles DB migrations and service registration
 - ✅ **Import-Time Side-Effect Elimination**: Removed `apply_pending()` and service registration calls from CLI module imports, preventing unwanted database operations during help commands
 - ✅ **Lazy Initialization Pattern**: Bootstrap only executes when CLI commands run, not when modules are imported, enabling clean help text and testing scenarios
@@ -158,7 +158,7 @@
 - ✅ **Backward Compatibility**: All existing command functionality preserved while fixing underlying architectural issues
 - ✅ **Testing Utilities**: Added `is_bootstrapped()`, `reset_bootstrap_state()` helper functions for reliable test state management
 
-### CLI Command Renaming _(December 2024)_
+### CLI Command Renaming
 - ✅ **OHLCV Sub-App Structure**: Created `marketpipe ohlcv` sub-app with `ingest`, `validate`, and `aggregate` commands for clear organization of OHLCV pipeline operations
 - ✅ **Convenience Commands**: Added top-level `ingest-ohlcv`, `validate-ohlcv`, and `aggregate-ohlcv` commands for quick access without sub-app navigation
 - ✅ **Deprecation System**: Implemented proper deprecation warnings for old commands (`ingest`, `validate`, `aggregate`) with clear migration guidance
@@ -167,7 +167,7 @@
 - ✅ **Enhanced Help System**: Updated help text to clearly indicate deprecated commands and provide migration instructions
 - ✅ **Implementation Shared**: Extracted common functionality into `_ingest_impl()`, `_validate_impl()`, and `_aggregate_impl()` to avoid code duplication
 
-### CLI Modularization _(December 2024)_
+### CLI Modularization
 - ✅ **Modular Package Structure**: Split monolithic CLI into `src/marketpipe/cli/` package with separate modules (`ohlcv_ingest.py`, `ohlcv_validate.py`, `ohlcv_aggregate.py`, `query.py`, `utils.py`)
 - ✅ **Service Integration**: Fixed import issues and integrated with actual available services (`ValidationRunnerService`, `AggregationRunnerService`) using event-based architecture
 - ✅ **Entry Point Migration**: Updated pyproject.toml entry point to `mp = "marketpipe.cli:app"` for cleaner command structure
@@ -175,7 +175,7 @@
 - ✅ **Test Coverage Achievement**: 18 comprehensive tests with 100% pass rate covering command functionality, imports, deprecation warnings, and modular structure
 - ✅ **Backward Compatibility**: All existing functionality preserved while enabling future extensibility through modular architecture
 
-### Pluggable Provider Framework _(December 2024)_
+### Pluggable Provider Framework
 - ✅ **Provider Registry System**: Entry points-based provider discovery with `ProviderRegistry` class, dynamic provider loading, CLI integration with `providers` command
 - ✅ **Three Working Providers**: Alpaca, IEX, and Fake adapters implementing `IMarketDataProvider` interface with get_bars(), get_trades(), get_quotes() methods
 - ✅ **Configuration Integration**: Dynamic provider validation based on registered providers, flexible provider selection via CLI --provider flag
@@ -184,7 +184,7 @@
 - ✅ **Legacy Cleanup**: Removed obsolete connectors folder, migrated all provider logic to new adapter pattern
 - ✅ **Entry Points Configuration**: Proper pyproject.toml entry points for automatic provider discovery, extensible architecture for third-party providers
 
-### SQLite Migrations + Connection Pooling _(December 2024)_
+### SQLite Migrations + Connection Pooling
 - ✅ **Migration Framework**: Complete auto-migration system with `apply_pending()` function that tracks applied migrations in `schema_version` table, scans `versions/*.sql` files lexicographically, applies pending migrations in transactions with rollback on failure
 - ✅ **Core Schema Management**: Initial migration (`001_core_schema.sql`) creates all core tables (symbol_bars_aggregates, ohlcv_bars, checkpoints, metrics) with basic indexes, optimization migration (`002_metrics_index.sql`) drops old metrics indexes and creates composite `idx_metrics_name_ts` index
 - ✅ **Connection Pooling System**: Thread-safe global connection pool using `threading.Lock()` and `_pools` dictionary keyed by database path, `_init_conn()` function configuring connections with WAL mode, 3-second busy timeout, NORMAL synchronous mode, 10000 cache size, and MEMORY temp store
@@ -192,7 +192,7 @@
 - ✅ **CLI Integration**: Auto-migration on CLI import and dedicated `migrate` command with `--path` option for manual migration execution, graceful error handling and user feedback
 - ✅ **Comprehensive Testing**: Migration tests (9 tests covering idempotent application, schema creation, failure rollback, concurrent access) and pooling tests (11 tests covering connection reuse, configuration, concurrent access, statistics), all tests passing with proper cleanup
 
-### DuckDB View Helpers & Query CLI _(December 2024)_
+### DuckDB View Helpers & Query CLI
 - ✅ **DuckDB Views Implementation**: Complete views module with cached connection, optimization settings (4 threads, 1GB memory), Hive partitioning support for all timeframes (5m, 15m, 1h, 1d)
 - ✅ **View Management**: ensure_views(), refresh_views(), _attach_partition() with fallback to empty views when data paths don't exist, proper error handling and logging
 - ✅ **Query Interface**: Main query() function with comprehensive validation, get_available_data() for data summary, validate_views() for health checks, set_agg_root() for testing
@@ -202,7 +202,7 @@
 - ✅ **Export Integration**: Added duckdb_views to aggregation package exports, proper module organization, documentation with usage examples
 - ✅ **Production Ready**: Fast querying of aggregated Parquet data, time-based filtering, error handling, user-friendly CLI with help and examples
 
-### CLI Regression Tests _(December 2024)_
+### CLI Regression Tests
 - ✅ **Guard-Rail Testing**: Comprehensive test suite preventing side-effects and command regressions (tests/cli/ folder with 22 tests)
 - ✅ **Side-Effect Prevention**: `test_help_no_side_effects.py` ensures CLI help commands don't create unwanted files/directories like data/db
 - ✅ **Deprecation Validation**: `test_deprecated_alias.py` verifies deprecated commands show proper warnings and suggest new alternatives
@@ -212,7 +212,7 @@
 - ✅ **Production Protection**: Future edits will be blocked if they reintroduce bootstrap side-effects or break CLI functionality
 - ✅ **Testing Infrastructure**: 100% pass rate, proper test isolation, subprocess and CliRunner patterns for reliable CLI testing
 
-### Metrics & Monitoring Integration _(December 2024)_
+### Metrics & Monitoring Integration
 - ✅ **Enhanced SqliteMetricsRepository**: Complete async/sync implementation with get_metrics_history(), get_average_metrics(), get_performance_trends() methods
 - ✅ **Event-Driven Metrics Collection**: Automatic metrics recording via domain event handlers for IngestionJobCompleted, ValidationFailed, ValidationCompleted, AggregationCompleted, AggregationFailed events
 - ✅ **Enhanced CLI Metrics Command**: Added --metric, --since, --avg, --plot, --list options with ASCII sparklines and performance reporting
@@ -222,7 +222,7 @@
 - ✅ **CLI Features**: Sparkline plotting, performance averages, metric history visualization, graceful error handling
 - ✅ **Production Ready**: Async/sync dual patterns, thread-safe operations, proper error handling and logging
 
-### Validation Reporting & Global Placeholder Removal _(December 2024)_
+### Validation Reporting & Global Placeholder Removal
 - ✅ **CsvReportRepository Implementation**: Complete save/load/list operations with CSV format (symbol, ts_ns, reason), filename pattern <job_id>_<symbol>.csv
 - ✅ **Enhanced CLI Validation**: Updated `marketpipe validate` command with --job-id (re-run), --list (enumerate reports), --show (display CSV) operations
 - ✅ **Placeholder Elimination**: All NotImplementedError statements replaced with proper implementations across base_api_client.py, repositories.py, adapters.py
@@ -231,7 +231,7 @@
 - ✅ **Technical Debt Cleanup**: SqliteMetricsRepository methods implemented (get_metrics_history, get_average_metrics, get_performance_trends)
 - ✅ **IEX Adapter Stubs**: Provided working implementations for get_bars, get_trades, get_quotes methods
 
-### Test Infrastructure Stabilization _(December 2024)_
+### Test Infrastructure Stabilization
 - ✅ **Dynamic Date Generation**: Replaced hardcoded 2023 dates with `create_recent_time_range()` function generating dates 10 days ago to avoid 730-day validation limits
 - ✅ **Domain Event Architecture**: Fixed all abstract method implementations in domain events (IngestionJobCompleted, AggregationCompleted, AggregationFailed)
 - ✅ **Async Coordination Patterns**: Replaced ThreadPoolExecutor with proper asyncio.gather() for async service coordination
@@ -241,34 +241,16 @@
 - ✅ **Domain Invariant Enforcement**: Fixed tests to respect business rules (job completion requires all symbols processed)
 - ✅ **Test Results**: 235+ tests passing, comprehensive test infrastructure stability achieved
 
-### Storage Layer Finalization _(Feature Branch: `feature/storage-layer-finalization`)_
-- ✅ **ParquetStorageEngine Implementation**: Production-ready engine with 455 lines of code, comprehensive API covering write/read/utility operations
-- ✅ **Thread-Safe Design**: FastenersTM InterProcessLock for concurrent access, configurable compression (zstd, snappy, gzip, lz4, brotli)
-- ✅ **Partitioned Storage**: `<root>/frame=<frame>/symbol=<SYMBOL>/date=<YYYY-MM-DD>/<job_id>.parquet` layout enabling efficient queries
-- ✅ **Cross-Context Integration**: Replaced stub implementation across ingestion, aggregation, and validation contexts
-- ✅ **Job Management**: delete_job(), list_jobs(), get_storage_stats(), validate_integrity() operations
-- ✅ **Comprehensive Testing**: 32 tests with 89% branch coverage, integration testing for roundtrip data integrity
-- ✅ **PyArrow Compatibility**: Resolved dictionary encoding conflicts, optimized DataFrame-based loading
-- ✅ **Backward Compatibility**: Maintained through re-exports, seamless replacement of existing ParquetDataStorage
+### Test Suite Stabilization
+- ✅ **Event-Loop Safe SQLite Locks**: Replaced a single global `_GLOBAL_DB_LOCK` with per-event-loop locks stored in a `weakref.WeakKeyDictionary`, eliminating cross-loop "lock bound to different event-loop" failures in the async repositories and metrics code.
+- ✅ **Metrics Refactor**: Removed synchronous `asyncio.run()` misuse inside `metrics.py`; adopted the new event-loop aware SQLite lock mix-in to keep metrics persistence fully async-safe.
+- ✅ **CLI & Logging Fixes**: Updated CLI error-handling tests to reflect new provider-error messages and ensured `AlpacaClient` logs are captured deterministically for secrets-masking assertions.
+- ✅ **Async Example Tests**: Added missing `pytest.mark.asyncio` decorators to async example scripts to guarantee proper execution under pytest.
+- ✅ **Test Isolation Improvements**: Ensured adjustments to `caplog` fixtures and temporary database paths prevent state leakage between tests, resulting in a fully green test suite (▶ **245 tests passing, coverage ≈ 72 %**).
 
-### Domain Services Completion _(Feature Branch: `feature/domain-services-completion`)_
-- ✅ **Enhanced SymbolBarsAggregate**: add_bar() with running totals and event emission, close_day() with VWAP calculation and daily summary
-- ✅ **OHLCVCalculationService**: vwap(), daily_summary(), resample() methods using Decimal for financial precision
-- ✅ **MarketDataValidationService**: validate_bar() and validate_batch() with comprehensive business rules (price > 0, volume ≥ 0, OHLC consistency, trading hours validation)
-- ✅ **Event System Consolidation**: Unified DomainEvent base class, fixed frozen dataclass issues, added missing _get_event_data() methods
-- ✅ **Comprehensive Testing**: 68 domain tests with 100% pass rate, extensive edge case coverage
-- ✅ **Financial Precision**: All calculations use Decimal arithmetic for accurate financial computations
-- ✅ **Error Handling**: Proper validation of invalid inputs, meaningful error messages, event emission on failures
-- ✅ **Event Handlers Structure**: Default logging handlers, metrics integration setup functions
+### Storage Layer Finalization
 
-### SQLite Domain Repositories Implementation _(Feature Branch: `feature/sqlite-domain-repositories`)_
-- ✅ **SqliteSymbolBarsRepository**: Optimistic concurrency control, aggregate lifecycle management
-- ✅ **SqliteOHLCVRepository**: Streaming queries with AsyncIterator, batch operations, delete_bars method
-- ✅ **SqliteCheckpointRepository**: JSON serialization, concurrent access safety
-- ✅ **CLI Integration**: Repositories wired into application bootstrap
-- ✅ **Domain Events Fix**: Fixed frozen dataclass compatibility issues
-- ✅ **EntityId Extensions**: Added from_string() method for database deserialization
-- ✅ **Comprehensive Testing**: 22 unit tests with 60% coverage (exceeds 55% requirement)
-- ✅ **Error Handling**: Domain exception mapping (RepositoryError, ConcurrencyError, DuplicateKeyError)
-- ✅ **Async/Sync Patterns**: Dual patterns with aiosqlite fallback to sqlite3
+### Domain Services Completion
+
+### SQLite Domain Repositories Implementation
 

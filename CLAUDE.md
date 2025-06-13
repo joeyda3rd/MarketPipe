@@ -157,3 +157,9 @@ Use consistent domain terminology across all code and documentation:
 - Communicate between contexts via well-defined interfaces
 - Apply ubiquitous language consistently in code, tests, and documentation
 - Organize code by bounded context, not technical layers
+
+## Chat Date Context Rule
+
+> **Rule**: At the beginning of every chat session, the assistant **MUST** obtain the current date from the operating system (e.g. via `date` shell command) and keep that value in its working context for the remainder of the session. If, at any point, the conversation context is reset or significantly condensed, the assistant **MUST** refresh the stored date by executing the same command again before proceeding.
+
+This guarantees that time-sensitive reasoning remains accurate even when the context window is rebuilt or truncated.

@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [ main, develop ]
+  workflow_dispatch:
 
 jobs:
   ###############################################################
@@ -11,6 +12,7 @@ jobs:
   ###############################################################
   test-sqlite:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -26,20 +28,22 @@ jobs:
 
       - name: Run tests (SQLite)
         run: |
-          pytest -q --cov=marketpipe --cov-report=xml
+          mkdir -p tmp/coverage
+          pytest -q --cov=marketpipe --cov-branch
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         if: success()
         with:
           name: coverage-sqlite
-          path: coverage.xml
+          path: tmp/coverage
 
   ###############################################################
   # 2. Postgres job – new
   ###############################################################
   test-postgres:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     # Start a Postgres 15 service container
     services:
@@ -92,17 +96,18 @@ jobs:
 
       - name: Run tests (Postgres)
         run: |
-          pytest -q -m "not sqlite_only" --cov=marketpipe --cov-append
+          mkdir -p tmp/coverage
+          pytest -q -m "not sqlite_only" --cov=marketpipe --cov-branch
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         if: success()
         with:
           name: coverage-postgres
-          path: coverage.xml
+          path: tmp/coverage
 
   ###############################################################
-  # 3. Combined coverage report (optional)
+  # 3. Combined coverage report
   ###############################################################
   coverage-report:
     runs-on: ubuntu-latest
@@ -112,20 +117,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Download SQLite coverage
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: coverage-sqlite
-          path: ./coverage-sqlite/
-      
-      - name: Download Postgres coverage  
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: coverage-postgres
-          path: ./coverage-postgres/
-      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -134,27 +125,35 @@ jobs:
       - name: Install coverage tools
         run: |
           python -m pip install --upgrade pip
-          pip install coverage
+          pip install coverage==7.5
       
-      - name: Combine coverage reports
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: tmp
+      
+      - name: Combine coverage files
         run: |
-          echo "SQLite coverage:"
-          if [ -f ./coverage-sqlite/coverage.xml ]; then
-            head -20 ./coverage-sqlite/coverage.xml
-          else
-            echo "No SQLite coverage.xml found"
-          fi
-          echo -e "\nPostgres coverage:"
-          if [ -f ./coverage-postgres/coverage.xml ]; then
-            head -20 ./coverage-postgres/coverage.xml
-          else
-            echo "No Postgres coverage.xml found"
-          fi
+          mkdir -p tmp/coverage
+          # Find and combine all .coverage.* files from artifacts
+          find tmp/ -name ".coverage.*" -exec cp {} tmp/coverage/ \;
+          cd tmp/coverage
+          coverage combine
+          coverage xml -o coverage.xml
+          coverage html -d html
+          coverage report --show-missing
+      
+      - name: Upload combined coverage artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: coverage-combined
+          path: tmp/coverage
       
       - name: Upload combined coverage to Codecov (optional)
         # Uncomment to enable Codecov integration
         # uses: codecov/codecov-action@v3
         # with:
-        #   files: ./coverage-sqlite/coverage.xml,./coverage-postgres/coverage.xml
+        #   files: tmp/coverage/coverage.xml
         #   fail_ci_if_error: false
         run: echo "Coverage reports generated. Enable Codecov upload if needed." 
