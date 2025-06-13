@@ -110,6 +110,11 @@ def bootstrap() -> None:
             from marketpipe.aggregation import AggregationRunnerService
             AggregationRunnerService.register()
             
+            # Register monitoring event handlers
+            logger.debug("Registering monitoring event handlers")
+            from marketpipe.infrastructure.monitoring.event_handlers import register
+            register()
+            
             # Mark as bootstrapped
             _BOOTSTRAPPED = True
             logger.info("MarketPipe bootstrap completed successfully")

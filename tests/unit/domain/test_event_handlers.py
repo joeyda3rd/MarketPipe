@@ -7,7 +7,6 @@ from marketpipe.domain.event_handlers import (
     log_validation_failed,
     log_bar_collection_completed,
     setup_default_event_handlers,
-    setup_metrics_event_handlers,
 )
 from marketpipe.domain.events import (
     IngestionJobCompleted,
@@ -103,18 +102,12 @@ def test_setup_default_event_handlers():
 
 
 def test_setup_metrics_event_handlers():
-    """Test setting up metrics event handlers."""
-    with patch("marketpipe.events.EventBus") as mock_event_bus:
-        with patch("marketpipe.domain.event_handlers.logger") as mock_logger:
-            setup_metrics_event_handlers()
+    """Test setting up metrics event handlers via infrastructure module."""
+    with patch("marketpipe.infrastructure.monitoring.event_handlers.EventBus") as mock_event_bus:
+        with patch("marketpipe.infrastructure.monitoring.event_handlers.logger") as mock_logger:
+            from marketpipe.infrastructure.monitoring.event_handlers import register
+            register()
 
-            # The function may either succeed or fail with ImportError
-            # Check that it handled the case properly
-            if mock_event_bus.subscribe.call_count >= 1:
-                # Success case: metrics were available
-                mock_logger.info.assert_called_with("Metrics event handlers registered")
-            else:
-                # ImportError case: metrics not available
-                mock_logger.warning.assert_called_with(
-                    "Metrics module not available, skipping metrics event handlers"
-                )
+            # Should register multiple handlers
+            assert mock_event_bus.subscribe.call_count >= 2
+            mock_logger.info.assert_called_with("Monitoring event handlers registered successfully")

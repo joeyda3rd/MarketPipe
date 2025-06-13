@@ -120,36 +120,11 @@ def setup_default_event_handlers() -> None:
     logger.info("Default event handlers registered")
 
 
-def setup_metrics_event_handlers() -> None:
-    """Setup event handlers for metrics collection."""
-    try:
-        from ...metrics import REQUESTS, ERRORS
 
-        def track_ingestion_metrics(event: IngestionJobCompleted) -> None:
-            """Track ingestion job metrics."""
-            if event.success:
-                REQUESTS.labels(vendor="ingestion").inc()
-            else:
-                ERRORS.labels(vendor="ingestion", status_code="job_failed").inc()
-
-        def track_validation_metrics(event: ValidationFailed) -> None:
-            """Track validation failure metrics."""
-            ERRORS.labels(vendor="validation", status_code="validation_failed").inc()
-
-        from ..events import EventBus
-
-        EventBus.subscribe(IngestionJobCompleted, track_ingestion_metrics)
-        EventBus.subscribe(ValidationFailed, track_validation_metrics)
-
-        logger.info("Metrics event handlers registered")
-
-    except ImportError:
-        logger.warning("Metrics module not available, skipping metrics event handlers")
 
 
 __all__ = [
     "setup_default_event_handlers",
-    "setup_metrics_event_handlers",
     "log_bar_collection_started",
     "log_bar_collection_completed",
     "log_validation_failed",
