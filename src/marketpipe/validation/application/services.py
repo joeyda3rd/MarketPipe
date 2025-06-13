@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from marketpipe.events import EventBus, IngestionJobCompleted
+from marketpipe.events import IngestionJobCompleted
+from marketpipe.bootstrap import get_event_bus
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.domain.entities import OHLCVBar, EntityId
@@ -134,4 +135,4 @@ class ValidationRunnerService:
     def register(cls):
         """Register service to listen for ingestion completion events."""
         svc = cls.build_default()
-        EventBus.subscribe(IngestionJobCompleted, svc.handle_ingestion_completed)
+        get_event_bus().subscribe(IngestionJobCompleted, svc.handle_ingestion_completed)

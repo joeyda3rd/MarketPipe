@@ -1,14 +1,29 @@
 # SPDX-License-Identifier: Apache-2.0
-"""In-memory event bus and domain events."""
+"""DEPRECATED: Legacy event bus module.
+
+This module has been deprecated. The concrete EventBus has been moved to the
+infrastructure layer. Domain events are now imported directly from the domain.
+
+Use:
+- from marketpipe.domain.events import DomainEvent, IEventBus, ...
+- from marketpipe.bootstrap import get_event_bus
+"""
 
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import Callable, Dict, List, Type
+import warnings
 
-# Import domain events from the domain layer
+warnings.warn(
+    "marketpipe.events is deprecated. "
+    "Import domain events from marketpipe.domain.events and get event bus from bootstrap.get_event_bus()",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+# Import domain events from the domain layer for backward compatibility
 from .domain.events import (
     DomainEvent,
+    IEventBus,
     BarCollectionStarted,
     BarCollectionCompleted,
     ValidationFailed,
@@ -21,30 +36,14 @@ from .domain.events import (
     SymbolDeactivated,
 )
 
-
-Subscriber = Callable[[DomainEvent], None]
-
-
-class EventBus:
-    """Simple in-memory event bus for domain events."""
-
-    _subs: Dict[Type[DomainEvent], List[Subscriber]] = defaultdict(list)
-
-    @classmethod
-    def subscribe(cls, etype: Type[DomainEvent], fn: Subscriber) -> None:
-        """Subscribe a function to handle events of a specific type."""
-        cls._subs[etype].append(fn)
-
-    @classmethod
-    def publish(cls, event: DomainEvent) -> None:
-        """Publish an event to all subscribers."""
-        for fn in cls._subs[type(event)]:
-            fn(event)
+# Forward to infrastructure implementation for backward compatibility
+from .infrastructure.messaging.in_memory_bus import EventBus
 
 
 __all__ = [
     "DomainEvent",
-    "EventBus",
+    "IEventBus",
+    "EventBus",  # Legacy - use get_event_bus() instead
     "BarCollectionStarted",
     "BarCollectionCompleted",
     "ValidationFailed",

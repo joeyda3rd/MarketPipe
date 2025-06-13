@@ -1,13 +1,12 @@
-"""Tests for domain event handlers."""
+"""Tests for infrastructure domain event handlers."""
 
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from datetime import date, datetime, timezone
-from marketpipe.domain.event_handlers import (
+from marketpipe.infrastructure.monitoring.domain_event_handlers import (
     log_ingestion_job_completed,
     log_validation_failed,
     log_bar_collection_completed,
-    setup_default_event_handlers,
-    setup_metrics_event_handlers,
+    register_logging_handlers,
 )
 from marketpipe.domain.events import (
     IngestionJobCompleted,
@@ -19,7 +18,7 @@ from marketpipe.domain.value_objects import Symbol
 
 def test_log_ingestion_job_completed_success():
     """Test logging successful ingestion job completion."""
-    with patch("marketpipe.domain.event_handlers.logger") as mock_logger:
+    with patch("marketpipe.infrastructure.monitoring.domain_event_handlers.logger") as mock_logger:
         event = IngestionJobCompleted(
             job_id="test-job",
             symbol=Symbol("AAPL"),
@@ -38,7 +37,7 @@ def test_log_ingestion_job_completed_success():
 
 def test_log_ingestion_job_completed_failure():
     """Test logging failed ingestion job completion."""
-    with patch("marketpipe.domain.event_handlers.logger") as mock_logger:
+    with patch("marketpipe.infrastructure.monitoring.domain_event_handlers.logger") as mock_logger:
         event = IngestionJobCompleted(
             job_id="test-job",
             symbol=Symbol("AAPL"),
@@ -59,7 +58,7 @@ def test_log_ingestion_job_completed_failure():
 
 def test_log_validation_failed():
     """Test logging validation failures."""
-    with patch("marketpipe.domain.event_handlers.logger") as mock_logger:
+    with patch("marketpipe.infrastructure.monitoring.domain_event_handlers.logger") as mock_logger:
         event = ValidationFailed(
             symbol=Symbol("AAPL"),
             timestamp=datetime.now(timezone.utc),
@@ -75,7 +74,7 @@ def test_log_validation_failed():
 
 def test_log_bar_collection_completed():
     """Test logging bar collection completion."""
-    with patch("marketpipe.domain.event_handlers.logger") as mock_logger:
+    with patch("marketpipe.infrastructure.monitoring.domain_event_handlers.logger") as mock_logger:
         event = BarCollectionCompleted(
             symbol=Symbol("AAPL"),
             trading_date=date(2024, 1, 15),
@@ -91,30 +90,28 @@ def test_log_bar_collection_completed():
         assert "AAPL" in mock_logger.info.call_args[0][0]
 
 
-def test_setup_default_event_handlers():
-    """Test setting up default event handlers."""
-    with patch("marketpipe.events.EventBus") as mock_event_bus:
-        with patch("marketpipe.domain.event_handlers.logger") as mock_logger:
-            setup_default_event_handlers()
+def test_register_logging_handlers():
+    """Test registering logging event handlers."""
+    with patch("marketpipe.bootstrap.get_event_bus") as mock_get_event_bus:
+        mock_event_bus = Mock()
+        mock_get_event_bus.return_value = mock_event_bus
+        with patch("marketpipe.infrastructure.monitoring.domain_event_handlers.logger") as mock_logger:
+            register_logging_handlers()
 
             # Should register multiple handlers
             assert mock_event_bus.subscribe.call_count >= 5
-            mock_logger.info.assert_called_with("Default event handlers registered")
+            mock_logger.info.assert_called_with("Domain event logging handlers registered")
 
 
 def test_setup_metrics_event_handlers():
-    """Test setting up metrics event handlers."""
-    with patch("marketpipe.events.EventBus") as mock_event_bus:
-        with patch("marketpipe.domain.event_handlers.logger") as mock_logger:
-            setup_metrics_event_handlers()
+    """Test setting up metrics event handlers via infrastructure module."""
+    with patch("marketpipe.bootstrap.get_event_bus") as mock_get_event_bus:
+        mock_event_bus = Mock()
+        mock_get_event_bus.return_value = mock_event_bus
+        with patch("marketpipe.infrastructure.monitoring.event_handlers.logger") as mock_logger:
+            from marketpipe.infrastructure.monitoring.event_handlers import register
+            register()
 
-            # The function may either succeed or fail with ImportError
-            # Check that it handled the case properly
-            if mock_event_bus.subscribe.call_count >= 1:
-                # Success case: metrics were available
-                mock_logger.info.assert_called_with("Metrics event handlers registered")
-            else:
-                # ImportError case: metrics not available
-                mock_logger.warning.assert_called_with(
-                    "Metrics module not available, skipping metrics event handlers"
-                )
+            # Should register multiple handlers
+            assert mock_event_bus.subscribe.call_count >= 2
+            mock_logger.info.assert_called_with("Monitoring event handlers registered successfully") 

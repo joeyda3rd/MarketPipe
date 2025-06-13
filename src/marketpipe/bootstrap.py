@@ -8,19 +8,26 @@ side-effects when importing the CLI module for help text or testing.
 
 from __future__ import annotations
 
-__all__ = ["apply_pending_alembic", "apply_pending", "bootstrap", "is_bootstrapped", "reset_bootstrap_state"]
+__all__ = ["apply_pending_alembic", "apply_pending", "bootstrap", "is_bootstrapped", "reset_bootstrap_state", "get_event_bus"]
 
 import os
 from pathlib import Path
 import logging
 import threading
+from typing import TYPE_CHECKING
 
 from alembic import command
 from alembic.config import Config
 
+if TYPE_CHECKING:
+    from marketpipe.domain.events import IEventBus
+
 # Global flag to ensure bootstrap only runs once per process
 _BOOTSTRAPPED = False
 _BOOTSTRAP_LOCK = threading.Lock()
+
+# Global event bus instance
+_EVENT_BUS: "IEventBus" | None = None
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +117,16 @@ def bootstrap() -> None:
             from marketpipe.aggregation import AggregationRunnerService
             AggregationRunnerService.register()
             
+            # Register monitoring event handlers
+            logger.debug("Registering monitoring event handlers")
+            from marketpipe.infrastructure.monitoring.event_handlers import register
+            register()
+            
+            # Register logging event handlers
+            logger.debug("Registering logging event handlers")
+            from marketpipe.infrastructure.monitoring.domain_event_handlers import register_logging_handlers
+            register_logging_handlers()
+            
             # Mark as bootstrapped
             _BOOTSTRAPPED = True
             logger.info("MarketPipe bootstrap completed successfully")
@@ -136,4 +153,20 @@ def reset_bootstrap_state() -> None:
     global _BOOTSTRAPPED
     with _BOOTSTRAP_LOCK:
         _BOOTSTRAPPED = False
-    logger.debug("Bootstrap state reset for testing") 
+    logger.debug("Bootstrap state reset for testing")
+
+
+def get_event_bus() -> "IEventBus":
+    """Get the global event bus instance.
+    
+    Returns a singleton instance of the event bus that can be used throughout
+    the application. The event bus is created lazily on first access.
+    
+    Returns:
+        IEventBus: The global event bus instance
+    """
+    global _EVENT_BUS
+    if _EVENT_BUS is None:
+        from marketpipe.infrastructure.messaging.in_memory_bus import InMemoryEventBus
+        _EVENT_BUS = InMemoryEventBus()
+    return _EVENT_BUS

@@ -62,5 +62,8 @@ fake = "marketpipe.ingestion.infrastructure.fake_adapter:FakeMarketDataAdapter"
 [tool.setuptools]
 license-files = ["LICENSE"]
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 # Coverage configuration moved to .coveragerc to support parallel mode
 

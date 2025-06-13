@@ -5,7 +5,8 @@ from datetime import date
 from unittest.mock import patch, MagicMock
 
 from marketpipe.domain.value_objects import Symbol
-from marketpipe.events import EventBus, IngestionJobCompleted
+from marketpipe.domain.events import IngestionJobCompleted
+from marketpipe.bootstrap import get_event_bus
 from marketpipe.aggregation import AggregationRunnerService
 
 
@@ -22,10 +23,14 @@ def test_subscribe_and_publish(monkeypatch):
         mock_aggregate_job,
     )
 
-    # Clear any existing subscribers to avoid interference
-    EventBus._subs.clear()
+    # Reset the event bus completely
+    import marketpipe.bootstrap
+    from marketpipe.infrastructure.messaging.in_memory_bus import InMemoryEventBus
+    
+    marketpipe.bootstrap._EVENT_BUS = None
+    InMemoryEventBus.clear_subscriptions()
 
-    # Register aggregation service
+    # Register aggregation service  
     AggregationRunnerService.register()
 
     # Mock the record_metric function to avoid metrics issues
@@ -33,7 +38,8 @@ def test_subscribe_and_publish(monkeypatch):
         # Mock DuckDB views refresh to avoid filesystem dependencies
         with patch("marketpipe.aggregation.infrastructure.duckdb_views.refresh_views"):
             # Publish event with required arguments
-            EventBus.publish(
+            event_bus = get_event_bus()
+            event_bus.publish(
                 IngestionJobCompleted(
                     job_id="job-x",
                     symbol=Symbol("AAPL"),
@@ -59,8 +65,12 @@ def test_aggregation_service_handles_multiple_events(monkeypatch):
         mock_aggregate_job,
     )
 
-    # Clear any existing subscribers
-    EventBus._subs.clear()
+    # Reset the event bus completely
+    import marketpipe.bootstrap
+    from marketpipe.infrastructure.messaging.in_memory_bus import InMemoryEventBus
+    
+    marketpipe.bootstrap._EVENT_BUS = None
+    InMemoryEventBus.clear_subscriptions()
 
     # Register service
     AggregationRunnerService.register()
@@ -70,7 +80,8 @@ def test_aggregation_service_handles_multiple_events(monkeypatch):
         # Mock DuckDB views refresh to avoid filesystem dependencies
         with patch("marketpipe.aggregation.infrastructure.duckdb_views.refresh_views"):
             # Publish multiple events with required arguments
-            EventBus.publish(
+            event_bus = get_event_bus()
+            event_bus.publish(
                 IngestionJobCompleted(
                     job_id="job-1",
                     symbol=Symbol("AAPL"),
@@ -79,7 +90,7 @@ def test_aggregation_service_handles_multiple_events(monkeypatch):
                     success=True,
                 )
             )
-            EventBus.publish(
+            event_bus.publish(
                 IngestionJobCompleted(
                     job_id="job-2",
                     symbol=Symbol("GOOGL"),
@@ -88,7 +99,7 @@ def test_aggregation_service_handles_multiple_events(monkeypatch):
                     success=True,
                 )
             )
-            EventBus.publish(
+            event_bus.publish(
                 IngestionJobCompleted(
                     job_id="job-3",
                     symbol=Symbol("MSFT"),
@@ -116,8 +127,12 @@ def test_aggregation_service_error_handling(monkeypatch):
         mock_aggregate_job_with_error,
     )
 
-    # Clear any existing subscribers
-    EventBus._subs.clear()
+    # Reset the event bus completely
+    import marketpipe.bootstrap
+    from marketpipe.infrastructure.messaging.in_memory_bus import InMemoryEventBus
+    
+    marketpipe.bootstrap._EVENT_BUS = None
+    InMemoryEventBus.clear_subscriptions()
 
     # Register service
     AggregationRunnerService.register()
@@ -132,7 +147,8 @@ def test_aggregation_service_error_handling(monkeypatch):
             # Publish event that will cause error with required arguments
             # The service re-raises exceptions, so we need to catch it
             try:
-                EventBus.publish(
+                event_bus = get_event_bus()
+                event_bus.publish(
                     IngestionJobCompleted(
                         job_id="failing-job",
                         symbol=Symbol("FAIL"),

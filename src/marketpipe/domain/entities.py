@@ -239,26 +239,7 @@ class OHLCVBar(Entity):
         self._vwap = vwap
         self._increment_version()
 
-    def to_dict(self) -> dict:
-        """Convert the OHLCV bar to a dictionary for serialization.
 
-        Returns:
-            Dictionary representation of the bar
-        """
-        return {
-            "id": str(self._id),
-            "symbol": str(self._symbol),
-            "timestamp": self._timestamp.to_nanoseconds(),
-            "date": self._timestamp.trading_date().isoformat(),
-            "open": float(self._open_price.value),
-            "high": float(self._high_price.value),
-            "low": float(self._low_price.value),
-            "close": float(self._close_price.value),
-            "volume": self._volume.value,
-            "trade_count": self._trade_count,
-            "vwap": float(self._vwap.value) if self._vwap else None,
-            "version": self._version,
-        }
 
     def __str__(self) -> str:
         """String representation of the OHLCV bar."""

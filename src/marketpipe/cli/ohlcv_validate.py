@@ -12,7 +12,7 @@ from marketpipe.validation.application.services import ValidationRunnerService
 from marketpipe.validation.infrastructure.repositories import (
     CsvReportRepository,
 )
-from marketpipe.domain.events import InMemoryEventPublisher
+from marketpipe.infrastructure.events import InMemoryEventPublisher
 
 
 def _validate_impl(

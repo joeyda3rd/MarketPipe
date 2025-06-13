@@ -8,14 +8,38 @@ bounded contexts and support event-driven architecture patterns.
 
 from __future__ import annotations
 
-import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Protocol, Callable, Type
 from uuid import UUID, uuid4
 
 from .value_objects import Symbol, Timestamp
+
+
+class IEventBus(Protocol):
+    """Protocol for event bus implementations.
+    
+    This interface defines the contract that any event bus implementation
+    must follow, enabling dependency inversion in the domain layer.
+    """
+    
+    def subscribe(self, etype: Type[DomainEvent], fn: Callable[[DomainEvent], None]) -> None:
+        """Subscribe a function to handle events of a specific type.
+        
+        Args:
+            etype: The type of domain event to subscribe to
+            fn: Function that will handle events of this type
+        """
+        ...
+    
+    def publish(self, event: DomainEvent) -> None:
+        """Publish an event to all subscribers.
+        
+        Args:
+            event: The domain event to publish
+        """
+        ...
 
 
 class DomainEvent(ABC):
@@ -55,20 +79,7 @@ class DomainEvent(ABC):
         """Event schema version."""
         pass
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert event to dictionary for serialization.
 
-        Returns:
-            Dictionary representation of the event
-        """
-        return {
-            "event_id": str(self.event_id),
-            "event_type": self.event_type,
-            "aggregate_id": self.aggregate_id,
-            "occurred_at": self.occurred_at.isoformat(),
-            "version": self.version,
-            **self._get_event_data(),
-        }
 
     @abstractmethod
     def _get_event_data(self) -> Dict[str, Any]:
@@ -495,53 +506,3 @@ class IEventPublisher(ABC):
             events: List of domain events to publish
         """
         pass
-
-
-class InMemoryEventPublisher(IEventPublisher):
-    """
-    Simple in-memory event publisher for development and testing.
-
-    This publisher stores events in memory and provides basic
-    event handling capabilities. For production use, consider
-    implementing a persistent event store or message queue.
-    """
-
-    def __init__(self):
-        self._events: list[DomainEvent] = []
-        self._handlers: dict[str, list] = {}
-
-    async def publish(self, event: DomainEvent) -> None:
-        """Publish a single domain event."""
-        self._events.append(event)
-
-        # Call registered handlers
-        event_type = event.event_type
-        if event_type in self._handlers:
-            for handler in self._handlers[event_type]:
-                try:
-                    if asyncio.iscoroutinefunction(handler):
-                        await handler(event)
-                    else:
-                        handler(event)
-                except Exception as e:
-                    # Log error but don't let handler failures break the publisher
-                    print(f"Event handler error for {event_type}: {e}")
-
-    async def publish_many(self, events: list[DomainEvent]) -> None:
-        """Publish multiple domain events."""
-        for event in events:
-            await self.publish(event)
-
-    def register_handler(self, event_type: str, handler) -> None:
-        """Register an event handler for a specific event type."""
-        if event_type not in self._handlers:
-            self._handlers[event_type] = []
-        self._handlers[event_type].append(handler)
-
-    def get_published_events(self) -> list[DomainEvent]:
-        """Get all published events (useful for testing)."""
-        return self._events.copy()
-
-    def clear_events(self) -> None:
-        """Clear all stored events (useful for testing)."""
-        self._events.clear()

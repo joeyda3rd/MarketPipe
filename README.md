@@ -4,88 +4,59 @@
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 MarketPipe is a lightweight, Python-native ETL framework focused on time
-series market data.  It aims to provide a simple command line interface
-for ingesting, aggregating and validating OHLCV data with baked in
-DuckDB/Parquet storage.  The project is still in early scaffolding.
+series market data, built with Domain-Driven Design (DDD) principles.  
+It provides a simple command line interface for ingesting, aggregating and 
+validating OHLCV data with baked-in DuckDB/Parquet storage and comprehensive 
+monitoring capabilities.
+
+## Architecture Overview
+
+MarketPipe follows Domain-Driven Design with clear separation between domain logic, application services, and infrastructure concerns:
 
 ```mermaid
 flowchart TD
-    %% ---------- Provider layer ----------
-    subgraph "Provider Registry"
+    %% ---------- DDD Layers ----------
+    subgraph "Domain Layer"
         direction LR
-        REG["Registry<br/>(entry_points)"]:::adapter
-        REG -. registers .-> PAD["Adapters:<br/>• Alpaca<br/>• Finnhub<br/>• Polygon<br/>• …"]:::adapter
+        DOM["Domain Models:<br/>• Entities (OHLCVBar)<br/>• Value Objects (Symbol, Price)<br/>• Aggregates (SymbolBarsAggregate)<br/>• Domain Events<br/>• Domain Services"]:::domain
     end
 
-    %% ---------- Universe ----------
-    subgraph "Universe"
-        UB["Universe Builder<br/>(filters.yml)"]:::io --> UCSV["universe-YYYY-MM-DD.csv"]
+    subgraph "Application Layer"
+        direction LR
+        APP["Application Services:<br/>• IngestionApplicationService<br/>• ValidationApplicationService<br/>• AggregationApplicationService<br/>• Event Orchestration"]:::application
     end
 
-    %% ---------- Daily pipeline (single row) ----------
-    subgraph "DailyPipeline"
-        direction LR          %% keep the three stages side-by-side
-
-        %% Ingestion
-        subgraph "Ingestion"
-            direction TB
-            ING["mp ingest-ohlcv --provider &lt;id&gt;"]:::io --> RAW["Raw 1 m Parquet"]
-            BF["mp backfill-ohlcv --provider &lt;id&gt;"]:::io --> RAW
-        end
-
-        %% Aggregation
-        subgraph "Aggregation"
-            direction TB
-            AGG["mp aggregate-ohlcv"] --> AGGPK["Parquet 5 m / 15 m / 1 h / 1 d"]
-        end
-
-        %% Validation
-        subgraph "Validation"
-            direction TB
-            VAL["mp validate-ohlcv --provider &lt;id&gt;"]:::io --> VCSV["Validation report"]
-            VCSV --> QA["Emit QA metrics"]
-        end
+    subgraph "Infrastructure Layer"
+        direction LR
+        INFRA["Infrastructure:<br/>• Market Data Providers<br/>• Storage (Parquet/DuckDB)<br/>• Monitoring (Prometheus)<br/>• Event Publishers<br/>• Repositories"]:::infrastructure
     end
 
-    %% ---------- Loader (dropped one row) ----------
-    subgraph "Loader"
-        direction TB
-        LD["load_ohlcv()"] --> SCAN["DuckDB parquet_scan"] --> DF["DataFrame"]
+    %% ---------- CLI Interface ----------
+    subgraph "CLI Interface"
+        CLI["Typer CLI:<br/>• ingest-ohlcv<br/>• validate-ohlcv<br/>• aggregate-ohlcv<br/>• metrics<br/>• query"]:::cli
     end
 
-    %% invisible spacer to steer arrow around Provider Registry
-    SPACER(( )):::invis
-
-    %% ---------- Scheduler ----------
-    subgraph "Scheduler (crontab)"
-        CR1["18:10 ET"] --> ING
-        CR2["18:20 ET"] --> AGG
-        CR3["18:30 ET"] --> VAL
-        CR4["Thu 20:00 ET"] --> UB
+    %% ---------- External Systems ----------
+    subgraph "External Systems"
+        EXT["Market Data Providers:<br/>• Alpaca Markets<br/>• IEX Cloud<br/>• Fake Provider (testing)"]:::external
     end
 
     %% ---------- Flow arrows ----------
-    UCSV --> ING
-    UCSV --> BF
-    REG  --> ING
-    REG  --> BF
-    REG  --> VAL
-    RAW  --> AGG
-    AGGPK --> VAL
-    QA   --> MON["Prometheus / Grafana"]
-
-    %% bend DataFrame → Quant around Provider Registry
-    DF --> SPACER
-    SPACER --> QUANT["Quant / Backtest"]
+    CLI --> APP
+    APP --> DOM
+    APP --> INFRA
+    INFRA --> EXT
+    
+    %% Event flow
+    DOM -.-> APP
+    APP -.-> INFRA
 
     %% ---------- Styles ----------
-    classDef io      fill:#ffeecc,stroke:#d88200;
-    classDef adapter fill:#d0eaff,stroke:#0077cc;
-    classDef invis   fill:#ffffff00,stroke:#ffffff00;   %% transparent node
-
-    class ING,BF,UB,VAL io;
-    class REG,PAD adapter;
-
+    classDef domain fill:#ffeb9c,stroke:#333,stroke-width:3px
+    classDef application fill:#dae8fc,stroke:#333,stroke-width:2px
+    classDef infrastructure fill:#f8cecc,stroke:#333,stroke-width:2px
+    classDef cli fill:#e1d5e7,stroke:#333,stroke-width:2px
+    classDef external fill:#d5e8d4,stroke:#333,stroke-width:1px
 ```
 
 ## Installation
@@ -172,6 +143,16 @@ marketpipe migrate
 marketpipe --help
 marketpipe ingest --help
 ```
+
+## Architecture Benefits
+
+The Domain-Driven Design architecture provides:
+
+- **Clean Separation**: Domain logic isolated from infrastructure concerns
+- **Testability**: Pure domain models with comprehensive test coverage
+- **Maintainability**: Clear boundaries between layers prevent coupling
+- **Extensibility**: New providers and features can be added without affecting core domain
+- **Monitoring**: Built-in metrics and event-driven architecture for observability
 
 ## License
 
