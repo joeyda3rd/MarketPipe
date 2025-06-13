@@ -29,7 +29,7 @@ jobs:
       - name: Run tests (SQLite)
         run: |
           mkdir -p tmp/coverage
-          pytest -q --cov=marketpipe --cov-branch -m "not integration" --timeout=60
+          pytest -q --cov=marketpipe --cov-branch -m "not integration" --timeout=60 --maxfail=1
 
       # Move coverage file to a unique name so it can be combined later
       - name: Collect coverage file (SQLite)
@@ -103,7 +103,7 @@ jobs:
       - name: Run tests (Postgres)
         run: |
           mkdir -p tmp/coverage
-          pytest -q -m "not sqlite_only and not integration" --cov=marketpipe --cov-branch --timeout=60
+          pytest -q -m "not sqlite_only and not integration" --cov=marketpipe --cov-branch --timeout=60 --maxfail=1
 
       # Move coverage file to a unique name so it can be combined later
       - name: Collect coverage file (Postgres)
