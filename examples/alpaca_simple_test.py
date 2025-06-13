@@ -7,6 +7,7 @@ Simple Alpaca API Test - Try the most basic endpoints
 import os
 import asyncio
 import httpx
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,13 +16,12 @@ alpaca_key = os.environ.get("ALPACA_KEY")
 alpaca_secret = os.environ.get("ALPACA_SECRET")
 
 if not alpaca_key or not alpaca_secret:
-    import pytest
-
     pytest.skip("ALPACA credentials not set", allow_module_level=True)
 
 print(f"🔑 Testing with credentials: {alpaca_key[:8]}... / {alpaca_secret[:8]}...")
 
 
+@pytest.mark.asyncio
 async def test_basic_endpoints():
     headers = {
         "APCA-API-KEY-ID": alpaca_key,

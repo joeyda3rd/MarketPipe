@@ -10,15 +10,27 @@ from __future__ import annotations
 import contextlib
 import asyncio
 from typing import AsyncContextManager
+import weakref
 
 import aiosqlite
 
 
-# Global lock to serialize _conn acquisition across tasks/threads.  SQLite can
-# only handle a single writer at a time; by funnelling connection creation and
-# PRAGMA setup through a module-level lock we avoid transient `database is
-# locked` errors that surface in highly-concurrent unit tests.
-_GLOBAL_DB_LOCK: asyncio.Lock | None = None
+# Per-event-loop locks to avoid "bound to different event loop" errors
+_EVENT_LOOP_LOCKS: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
+
+
+def _get_event_loop_lock() -> asyncio.Lock:
+    """Get or create a lock for the current event loop."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop - create a dummy key that will get its own lock
+        loop = object()  # type: ignore[assignment]
+    
+    if loop not in _EVENT_LOOP_LOCKS:
+        _EVENT_LOOP_LOCKS[loop] = asyncio.Lock()
+    
+    return _EVENT_LOOP_LOCKS[loop]
 
 
 class SqliteAsyncMixin:
@@ -50,11 +62,9 @@ class SqliteAsyncMixin:
         Yields:
             aiosqlite.Connection: Configured database connection
         """
-        global _GLOBAL_DB_LOCK  # noqa: PLW0603
-        if _GLOBAL_DB_LOCK is None:
-            _GLOBAL_DB_LOCK = asyncio.Lock()
-
-        async with _GLOBAL_DB_LOCK:
+        db_lock = _get_event_loop_lock()
+        
+        async with db_lock:
             async with aiosqlite.connect(self.db_path, timeout=30) as db:
                 # Enable WAL mode for better concurrency
                 await db.execute("PRAGMA journal_mode=WAL;")
