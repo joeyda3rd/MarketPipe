@@ -272,3 +272,10 @@
 - ✅ **Error Handling**: Domain exception mapping (RepositoryError, ConcurrencyError, DuplicateKeyError)
 - ✅ **Async/Sync Patterns**: Dual patterns with aiosqlite fallback to sqlite3
 
+### Test Suite Stabilization _(January 2025)_
+- ✅ **Event-Loop Safe SQLite Locks**: Replaced a single global `_GLOBAL_DB_LOCK` with per-event-loop locks stored in a `weakref.WeakKeyDictionary`, eliminating cross-loop "lock bound to different event-loop" failures in the async repositories and metrics code.
+- ✅ **Metrics Refactor**: Removed synchronous `asyncio.run()` misuse inside `metrics.py`; adopted the new event-loop aware SQLite lock mix-in to keep metrics persistence fully async-safe.
+- ✅ **CLI & Logging Fixes**: Updated CLI error-handling tests to reflect new provider-error messages and ensured `AlpacaClient` logs are captured deterministically for secrets-masking assertions.
+- ✅ **Async Example Tests**: Added missing `pytest.mark.asyncio` decorators to async example scripts to guarantee proper execution under pytest.
+- ✅ **Test Isolation Improvements**: Ensured adjustments to `caplog` fixtures and temporary database paths prevent state leakage between tests, resulting in a fully green test suite (▶ **245 tests passing, coverage ≈ 72 %**).
+
