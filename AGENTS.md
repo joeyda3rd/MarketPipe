@@ -307,3 +307,7 @@ src/marketpipe/
 ```
 
 Focus on **domain-driven design**, **ubiquitous language**, and **bounded context separation** when making any changes to the codebase. 
+
+## Chat Date Context Rule
+
+> **Rule**: At the start of every chat, the agent **MUST** fetch the current date from the shell (e.g. invoking `date`), store that value in memory, and reference it for all time-aware reasoning during the conversation. If the context window is reset, truncated, or significantly condensed, the agent **MUST** refresh the stored date by re-executing the command before continuing. 
