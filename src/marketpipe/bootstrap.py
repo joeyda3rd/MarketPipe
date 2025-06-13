@@ -122,6 +122,11 @@ def bootstrap() -> None:
             from marketpipe.infrastructure.monitoring.event_handlers import register
             register()
             
+            # Register logging event handlers
+            logger.debug("Registering logging event handlers")
+            from marketpipe.infrastructure.monitoring.domain_event_handlers import register_logging_handlers
+            register_logging_handlers()
+            
             # Mark as bootstrapped
             _BOOTSTRAPPED = True
             logger.info("MarketPipe bootstrap completed successfully")

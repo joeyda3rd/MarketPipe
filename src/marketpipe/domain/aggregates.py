@@ -513,20 +513,4 @@ class DailySummary:
         change = self.calculate_price_change()
         return float((change.value / self.open_price.value) * 100)
 
-    def to_dict(self) -> dict:
-        """Convert to dictionary for serialization."""
-        return {
-            "symbol": str(self.symbol),
-            "trading_date": self.trading_date.isoformat(),
-            "open": float(self.open_price.value),
-            "high": float(self.high_price.value),
-            "low": float(self.low_price.value),
-            "close": float(self.close_price.value),
-            "volume": self.volume.value,
-            "vwap": float(self.vwap.value) if self.vwap else None,
-            "bar_count": self.bar_count,
-            "first_bar_time": str(self.first_bar_time),
-            "last_bar_time": str(self.last_bar_time),
-            "price_change": float(self.calculate_price_change().value),
-            "price_change_percentage": self.calculate_price_change_percentage(),
-        }
+

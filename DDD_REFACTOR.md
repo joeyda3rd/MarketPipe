@@ -23,7 +23,7 @@ B. Overarching To-Do List
 2. ✅ **Introduce IEventBus interface & move concrete bus to infrastructure**  
 3. ✅ **Retire / refactor `cli_old.py`; converge on new Typer CLI**  
 4. ✅ **Consolidate duplicate package roots (`marketpipe/` vs `src/marketpipe/`)**  
-5. **Remove `.to_dict()` helpers & logging statements from domain objects**  
+5. ✅ **Remove `.to_dict()` helpers & logging statements from domain objects**  
 6. **Purge Prometheus/SQLite/httpx imports from domain layer**  
 7. **Add guard-rail tests & import-linter contracts**  
 8. **Update docs, ADRs & release notes**
