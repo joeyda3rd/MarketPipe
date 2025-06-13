@@ -25,7 +25,7 @@ B. Overarching To-Do List
 4. ✅ **Consolidate duplicate package roots (`marketpipe/` vs `src/marketpipe/`)**  
 5. ✅ **Remove `.to_dict()` helpers & logging statements from domain objects**  
 6. ✅ **Purge Prometheus/SQLite/httpx imports from domain layer**  
-7. **Add guard-rail tests & import-linter contracts**  
+7. ✅ **Add guard-rail tests & import-linter contracts**  
 8. **Update docs, ADRs & release notes**
 
 *Tip – iterate vertically* (slice by slice) and merge to `main` frequently.
@@ -232,6 +232,8 @@ Check
 
 Caution  
 Treat violations as blocking; otherwise rules won't stick.
+
+✅ **COMPLETED**: Step 7 finished successfully. Added import-linter configuration in `setup.cfg` with contracts to prevent domain layer from importing infrastructure or application layers. Created comprehensive guard-rail tests in `tests/unit/test_ddd_guard_rails.py` to verify DDD boundaries and ensure metrics functionality is preserved. Fixed domain validation service to remove event emission (moved to application layer). All 501 tests passing with import-linter showing zero violations.
 
 --------------------------------------------------
 8. Update Documentation

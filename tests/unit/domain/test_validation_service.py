@@ -336,15 +336,15 @@ class TestMarketDataValidationService:
         assert len(errors) > 0
         assert any("Extreme volume spike" in error for error in errors)
 
-    @patch("marketpipe.bootstrap.get_event_bus")
-    def test_validate_batch_emits_validation_failed_event_on_errors(
-        self, mock_get_event_bus, service, symbol
+    def test_validate_batch_returns_validation_errors_for_business_rules(
+        self, service, symbol
     ):
-        """Test that ValidationFailed event is emitted when validation fails."""
-        # Set up mock event bus
-        mock_event_bus = Mock()
-        mock_get_event_bus.return_value = mock_event_bus
-
+        """Test that validation batch returns errors for business rule violations.
+        
+        Note: Domain services should not emit events directly - that's an 
+        application layer concern. This test verifies the domain service
+        correctly identifies validation errors without side effects.
+        """
         # Create bars with non-monotonic timestamps to trigger validation error
         bars = [
             OHLCVBar(
@@ -375,14 +375,11 @@ class TestMarketDataValidationService:
 
         errors = service.validate_batch(bars)
 
-        # Should have errors
+        # Should have errors for business rule violations
         assert len(errors) > 0
-
-        # Should have published ValidationFailed event
-        mock_event_bus.publish.assert_called_once()
-        published_event = mock_event_bus.publish.call_args[0][0]
-        assert isinstance(published_event, ValidationFailed)
-        assert published_event.symbol == symbol
+        
+        # Domain service should return errors but not emit events
+        # Event emission should be handled by application layer
 
     def test_validate_trading_hours_with_valid_hours_returns_no_errors(
         self, service, valid_bar

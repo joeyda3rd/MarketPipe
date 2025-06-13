@@ -478,9 +478,11 @@ class MarketDataValidationService(DomainService):
         for error in volume_errors:
             all_errors.append(f"Volume pattern: {error}")
 
-        # Emit ValidationFailed event if any errors found
+        # Emit validation failed event if there are errors
         if all_errors:
-            self._emit_validation_failed_event(bars, all_errors)
+            # Domain services should not emit events directly
+            # Application layer should handle event emission based on validation results
+            pass
 
         return all_errors
 
@@ -535,38 +537,6 @@ class MarketDataValidationService(DomainService):
             )
 
         return errors
-
-    def _emit_validation_failed_event(
-        self, bars: List[OHLCVBar], errors: List[str]
-    ) -> None:
-        """Emit ValidationFailed event for failed validation.
-
-        Args:
-            bars: List of bars that failed validation
-            errors: List of validation error messages
-        """
-        if not bars:
-            return
-
-        # Create event for the first bar (representative)
-        first_bar = bars[0]
-        error_summary = "; ".join(errors[:3])  # Limit to first 3 errors
-        if len(errors) > 3:
-            error_summary += f" (and {len(errors) - 3} more errors)"
-
-        # Import and emit the event
-        from .events import ValidationFailed
-        from marketpipe.bootstrap import get_event_bus
-
-        event = ValidationFailed(
-            symbol=first_bar.symbol,
-            timestamp=first_bar.timestamp,
-            error_message=error_summary,
-            rule_id="batch_validation",
-            severity="error",
-        )
-
-        get_event_bus().publish(event)
 
     def validate_trading_hours(self, bar: OHLCVBar) -> List[str]:
         """Validate that bar timestamp is within reasonable trading hours.

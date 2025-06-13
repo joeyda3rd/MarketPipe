@@ -1,6 +1,6 @@
 # MarketPipe Domain Model Diagrams
 
-This document contains UML and Mermaid diagrams illustrating the Domain-Driven Design architecture of MarketPipe.
+This document contains UML and Mermaid diagrams illustrating the Domain-Driven Design architecture of MarketPipe after the DDD refactor.
 
 ## Bounded Context Overview
 
@@ -44,6 +44,66 @@ graph TB
     class AA,RL,CM,SM genericContext
 ```
 
+## DDD Layer Architecture
+
+```mermaid
+graph TB
+    subgraph "Domain Layer (src/marketpipe/domain/)"
+        direction TB
+        ENT[Entities:<br/>• OHLCVBar<br/>• EntityId]
+        VO[Value Objects:<br/>• Symbol<br/>• Price<br/>• Timestamp<br/>• Volume<br/>• TimeRange]
+        AGG[Aggregates:<br/>• SymbolBarsAggregate<br/>• UniverseAggregate]
+        EVT[Domain Events:<br/>• IngestionJobCompleted<br/>• ValidationFailed<br/>• BarCollectionCompleted]
+        SVC[Domain Services:<br/>• MarketDataValidationService]
+        REPO[Repository Interfaces:<br/>• IOHLCVRepository<br/>• IUniverseRepository]
+    end
+    
+    subgraph "Application Layer (src/marketpipe/*/application/)"
+        direction TB
+        ASVC[Application Services:<br/>• IngestionApplicationService<br/>• ValidationApplicationService<br/>• AggregationApplicationService]
+        ORCH[Event Orchestration:<br/>• Event Bus Integration<br/>• Cross-Context Coordination]
+    end
+    
+    subgraph "Infrastructure Layer (src/marketpipe/infrastructure/)"
+        direction TB
+        REPOS[Repository Implementations:<br/>• SQLiteOHLCVRepository<br/>• ParquetOHLCVRepository]
+        EVENTS[Event Infrastructure:<br/>• InMemoryEventPublisher<br/>• Domain Event Handlers]
+        MONITOR[Monitoring:<br/>• Prometheus Metrics<br/>• Event-based Metrics Collection]
+        STORAGE[Storage:<br/>• Parquet Writers<br/>• DuckDB Integration<br/>• SQLite State Management]
+    end
+    
+    subgraph "CLI Layer (src/marketpipe/cli/)"
+        direction TB
+        CLI[CLI Commands:<br/>• ingest-ohlcv<br/>• validate-ohlcv<br/>• aggregate-ohlcv<br/>• metrics<br/>• query]
+    end
+    
+    %% Dependencies (following DDD rules)
+    CLI --> ASVC
+    ASVC --> ENT
+    ASVC --> VO
+    ASVC --> AGG
+    ASVC --> EVT
+    ASVC --> SVC
+    ASVC --> REPO
+    ASVC --> REPOS
+    ASVC --> EVENTS
+    REPOS --> ENT
+    REPOS --> VO
+    REPOS --> AGG
+    EVENTS --> EVT
+    MONITOR --> EVT
+    
+    classDef domain fill:#ffeb9c,stroke:#333,stroke-width:3px
+    classDef application fill:#dae8fc,stroke:#333,stroke-width:2px
+    classDef infrastructure fill:#f8cecc,stroke:#333,stroke-width:2px
+    classDef cli fill:#e1d5e7,stroke:#333,stroke-width:2px
+    
+    class ENT,VO,AGG,EVT,SVC,REPO domain
+    class ASVC,ORCH application
+    class REPOS,EVENTS,MONITOR,STORAGE infrastructure
+    class CLI cli
+```
+
 ## Domain Model Class Diagram
 
 ```mermaid
@@ -78,13 +138,13 @@ classDiagram
         +calculatePriceChange() Price
         +isSameTradingDay(other) bool
         +isDuringMarketHours() bool
-        +toDict() dict
     }
     
     class Symbol {
         +str value
         +fromString(str) Symbol
         +toString() str
+        +validate() void
     }
     
     class Price {
@@ -167,7 +227,6 @@ classDiagram
         +int version
         +getEventType() str
         +getAggregateId() str
-        +toDict() dict
     }
     
     class BarCollectionCompleted {
@@ -194,6 +253,18 @@ classDiagram
         +str severity
     }
     
+    class IEventPublisher {
+        <<interface>>
+        +publish(DomainEvent) void
+        +subscribe(eventType, handler) void
+    }
+    
+    class MarketDataValidationService {
+        +validateBatch(bars, symbol) list
+        +validateBar(bar) list
+        +validateBusinessRules(bar) list
+    }
+    
     Entity <|-- OHLCVBar
     Entity o-- EntityId
     
@@ -204,314 +275,84 @@ classDiagram
     
     SymbolBarsAggregate o-- Symbol
     SymbolBarsAggregate o-- OHLCVBar
-    SymbolBarsAggregate --> DomainEvent
+    SymbolBarsAggregate o-- DomainEvent
     
     UniverseAggregate o-- Symbol
-    UniverseAggregate --> DomainEvent
+    UniverseAggregate o-- DomainEvent
     
     DomainEvent <|-- BarCollectionCompleted
     DomainEvent <|-- IngestionJobCompleted
     DomainEvent <|-- ValidationFailed
     
-    TimeRange o-- Timestamp
-```
-
-## Repository Interfaces
-
-```mermaid
-classDiagram
-    class ISymbolBarsRepository {
-        <<interface>>
-        +getBySymbolAndDate(Symbol, date) SymbolBarsAggregate
-        +save(SymbolBarsAggregate) void
-        +findSymbolsWithData(date, date) list
-        +getCompletionStatus(list, list) dict
-        +delete(Symbol, date) bool
-    }
+    BarCollectionCompleted o-- Symbol
+    IngestionJobCompleted o-- Symbol
+    ValidationFailed o-- Symbol
+    ValidationFailed o-- Timestamp
     
-    class IOHLCVRepository {
-        <<interface>>
-        +getBarsForSymbol(Symbol, TimeRange) AsyncIterator
-        +getBarsForSymbols(list, TimeRange) AsyncIterator
-        +saveBars(list) void
-        +exists(Symbol, Timestamp) bool
-        +countBars(Symbol, TimeRange) int
-        +getLatestTimestamp(Symbol) Timestamp
-        +deleteBars(Symbol, TimeRange) int
-    }
-    
-    class IUniverseRepository {
-        <<interface>>
-        +getById(str) UniverseAggregate
-        +save(UniverseAggregate) void
-        +getDefaultUniverse() UniverseAggregate
-        +listUniverses() list
-    }
-    
-    class IDailySummaryRepository {
-        <<interface>>
-        +getSummary(Symbol, date) DailySummary
-        +getSummaries(Symbol, date, date) list
-        +saveSummary(DailySummary) void
-        +saveSummaries(list) void
-        +deleteSummary(Symbol, date) bool
-    }
-    
-    class ICheckpointRepository {
-        <<interface>>
-        +saveCheckpoint(Symbol, dict) void
-        +getCheckpoint(Symbol) dict
-        +deleteCheckpoint(Symbol) bool
-        +listCheckpoints() list
-    }
-    
-    ISymbolBarsRepository ..> SymbolBarsAggregate
-    IOHLCVRepository ..> OHLCVBar
-    IUniverseRepository ..> UniverseAggregate
-    IDailySummaryRepository ..> DailySummary
-    ICheckpointRepository ..> Symbol
-```
-
-## Domain Services
-
-```mermaid
-classDiagram
-    class DomainService {
-        <<abstract>>
-    }
-    
-    class OHLCVCalculationService {
-        +aggregateBarsToTimeframe(list, int) list
-        +calculateSMA(list, int, str) list
-        +calculateVolatility(list, int) list
-        -calculatePeriodStart(datetime, int) datetime
-        -aggregateBarGroup(list, int) OHLCVBar
-    }
-    
-    class MarketDataValidationService {
-        +validateTradingHours(OHLCVBar) list
-        +validatePriceMovements(OHLCVBar, OHLCVBar) list
-        +validateVolumePatterns(list) list
-    }
-    
-    class TradingCalendarService {
-        +isTradingDay(date) bool
-        +getTradingSessionTimes(date) dict
-        +getNextTradingDay(date) date
-        +getPreviousTradingDay(date) date
-    }
-    
-    DomainService <|-- OHLCVCalculationService
-    DomainService <|-- MarketDataValidationService
-    DomainService <|-- TradingCalendarService
-    
-    OHLCVCalculationService ..> OHLCVBar
     MarketDataValidationService ..> OHLCVBar
-    TradingCalendarService ..> Symbol
-```
-
-## Context Integration Flow
-
-```mermaid
-sequenceDiagram
-    participant CLI as CLI Interface
-    participant IC as Ingestion Coordinator
-    participant MDI as Market Data Integration
-    participant DV as Data Validation
-    participant DS as Data Storage
-    participant OM as Operations & Monitoring
-    
-    CLI->>IC: execute_ingestion_workflow(job)
-    
-    IC->>OM: record_job_started(job)
-    IC->>MDI: fetch_market_data(symbol, time_range)
-    MDI->>OM: record_request_metrics()
-    MDI-->>IC: raw_bars[]
-    
-    IC->>DV: validate_bars(raw_bars)
-    DV->>OM: record_validation_metrics()
-    DV-->>IC: validation_result
-    
-    alt validation passed
-        IC->>DS: store_bars(validated_bars)
-        DS->>OM: record_storage_metrics()
-        DS-->>IC: storage_result
-        IC->>OM: record_job_completed(success)
-    else validation failed
-        IC->>OM: record_validation_error()
-        IC->>OM: record_job_completed(failure)
-    end
+    MarketDataValidationService ..> Symbol
 ```
 
 ## Event Flow Diagram
 
 ```mermaid
-graph LR
-    subgraph "Data Ingestion Context"
-        IJS[IngestionJobStarted]
-        IJC[IngestionJobCompleted]
-    end
+sequenceDiagram
+    participant CLI as CLI Layer
+    participant App as Application Service
+    participant Dom as Domain Aggregate
+    participant Evt as Domain Events
+    participant Infra as Infrastructure
     
-    subgraph "Market Data Integration Context"
-        MDR[MarketDataReceived]
-        RLE[RateLimitExceeded]
-    end
-    
-    subgraph "Data Validation Context"
-        VF[ValidationFailed]
-    end
-    
-    subgraph "Data Storage Context"
-        DS[DataStored]
-    end
-    
-    subgraph "Symbol Management"
-        BCS[BarCollectionStarted]
-        BCC[BarCollectionCompleted]
-        SA[SymbolActivated]
-        SD[SymbolDeactivated]
-    end
-    
-    IJS --> MDR
-    MDR --> VF
-    MDR --> BCS
-    BCS --> BCC
-    BCC --> DS
-    DS --> IJC
-    
-    VF --> IJC
-    RLE --> IJC
-    
-    SA --> IJS
-    SD --> IJC
-    
-    classDef eventClass fill:#e1d5e7,stroke:#9673a6,stroke-width:2px
-    class IJS,IJC,MDR,RLE,VF,DS,BCS,BCC,SA,SD eventClass
+    CLI->>App: ingest command
+    App->>Dom: create SymbolBarsAggregate
+    App->>Dom: addBar(ohlcvBar)
+    Dom->>Dom: validate business rules
+    Dom->>Evt: emit BarCollectionCompleted
+    App->>Infra: save aggregate
+    App->>Infra: publish events
+    Infra->>Infra: update metrics
+    Infra-->>CLI: return success
 ```
 
-## Aggregate Boundaries
+## Repository Pattern
 
 ```mermaid
-graph TD
-    subgraph "SymbolBarsAggregate Boundary"
-        SBA[SymbolBarsAggregate Root]
-        OB1[OHLCVBar Entity]
-        OB2[OHLCVBar Entity]
-        OB3[OHLCVBar Entity]
-        DS1[DailySummary Value Object]
-        
-        SBA --> OB1
-        SBA --> OB2
-        SBA --> OB3
-        SBA --> DS1
-    end
+classDiagram
+    class IOHLCVRepository {
+        <<interface>>
+        +save(bars) void
+        +findBySymbolAndDateRange(symbol, start, end) list
+        +exists(symbol, timestamp) bool
+        +delete(symbol, timestamp) void
+    }
     
-    subgraph "UniverseAggregate Boundary"
-        UA[UniverseAggregate Root]
-        S1[Symbol Value Object]
-        S2[Symbol Value Object]
-        S3[Symbol Value Object]
-        
-        UA --> S1
-        UA --> S2
-        UA --> S3
-    end
+    class SQLiteOHLCVRepository {
+        +save(bars) void
+        +findBySymbolAndDateRange(symbol, start, end) list
+        +exists(symbol, timestamp) bool
+        +delete(symbol, timestamp) void
+    }
     
-    subgraph "Value Objects (Shared Kernel)"
-        SYM[Symbol]
-        PRC[Price]
-        TS[Timestamp]
-        VOL[Volume]
-        TR[TimeRange]
-    end
+    class ParquetOHLCVRepository {
+        +save(bars) void
+        +findBySymbolAndDateRange(symbol, start, end) list
+        +exists(symbol, timestamp) bool
+        +delete(symbol, timestamp) void
+    }
     
-    OB1 --> SYM
-    OB1 --> PRC
-    OB1 --> TS
-    OB1 --> VOL
+    IOHLCVRepository <|.. SQLiteOHLCVRepository
+    IOHLCVRepository <|.. ParquetOHLCVRepository
     
-    S1 --> SYM
-    TR --> TS
-    
-    classDef aggregateRoot fill:#ffeb9c,stroke:#d6b656,stroke-width:3px
-    classDef entity fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px
-    classDef valueObject fill:#f8cecc,stroke:#b85450,stroke-width:1px
-    
-    class SBA,UA aggregateRoot
-    class OB1,OB2,OB3 entity
-    class DS1,S1,S2,S3,SYM,PRC,TS,VOL,TR valueObject
+    SQLiteOHLCVRepository ..> OHLCVBar
+    ParquetOHLCVRepository ..> OHLCVBar
 ```
 
-## Data Flow Architecture
+## Key DDD Principles Enforced
 
-```mermaid
-flowchart TB
-    subgraph "External Systems"
-        A1[Alpaca API]
-        P1[Polygon API]
-        O1[Other Providers]
-    end
-    
-    subgraph "Anti-Corruption Layer"
-        ACL1[Alpaca Adapter]
-        ACL2[Polygon Adapter]
-        ACL3[Generic Adapter]
-    end
-    
-    subgraph "Domain Model"
-        DM[Canonical OHLCV Bars]
-    end
-    
-    subgraph "Application Services"
-        IC[Ingestion Coordinator]
-        VS[Validation Service]
-        SS[Storage Service]
-    end
-    
-    subgraph "Infrastructure"
-        PQ[Parquet Files]
-        DB[DuckDB]
-        SQ[SQLite State]
-        PM[Prometheus Metrics]
-    end
-    
-    A1 --> ACL1
-    P1 --> ACL2
-    O1 --> ACL3
-    
-    ACL1 --> DM
-    ACL2 --> DM
-    ACL3 --> DM
-    
-    DM --> IC
-    IC --> VS
-    VS --> SS
-    
-    SS --> PQ
-    SS --> DB
-    IC --> SQ
-    IC --> PM
-    
-    classDef external fill:#f9f9f9,stroke:#333,stroke-width:1px
-    classDef anticorruption fill:#fff2cc,stroke:#d6b656,stroke-width:2px
-    classDef domain fill:#ffeb9c,stroke:#d6b656,stroke-width:3px
-    classDef application fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px
-    classDef infrastructure fill:#f8cecc,stroke:#b85450,stroke-width:1px
-    
-    class A1,P1,O1 external
-    class ACL1,ACL2,ACL3 anticorruption
-    class DM domain
-    class IC,VS,SS application
-    class PQ,DB,SQ,PM infrastructure
-```
-
-These diagrams illustrate the key aspects of MarketPipe's Domain-Driven Design architecture:
-
-1. **Bounded Context Overview**: Shows the relationship between core, supporting, and generic domains
-2. **Domain Model Class Diagram**: Details the entities, value objects, and aggregates
-3. **Repository Interfaces**: Shows the data access abstraction layer
-4. **Domain Services**: Illustrates business logic services
-5. **Context Integration Flow**: Sequence diagram showing cross-context communication
-6. **Event Flow**: Shows how domain events flow between contexts
-7. **Aggregate Boundaries**: Illustrates consistency boundaries and shared kernel
-8. **Data Flow Architecture**: Shows the overall system architecture with anti-corruption layers
+1. **Domain Purity**: Domain layer contains only business logic, no infrastructure dependencies
+2. **Dependency Inversion**: Application layer depends on domain interfaces, infrastructure implements them
+3. **Event-Driven Architecture**: Domain events enable loose coupling between bounded contexts
+4. **Aggregate Boundaries**: Clear consistency boundaries around SymbolBarsAggregate and UniverseAggregate
+5. **Repository Pattern**: Abstract data access behind domain interfaces
+6. **Value Objects**: Immutable value objects for Symbol, Price, Timestamp, etc.
+7. **Entity Identity**: Clear entity identity through EntityId value object
