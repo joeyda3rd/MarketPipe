@@ -24,7 +24,7 @@ B. Overarching To-Do List
 3. ✅ **Retire / refactor `cli_old.py`; converge on new Typer CLI**  
 4. ✅ **Consolidate duplicate package roots (`marketpipe/` vs `src/marketpipe/`)**  
 5. ✅ **Remove `.to_dict()` helpers & logging statements from domain objects**  
-6. **Purge Prometheus/SQLite/httpx imports from domain layer**  
+6. ✅ **Purge Prometheus/SQLite/httpx imports from domain layer**  
 7. **Add guard-rail tests & import-linter contracts**  
 8. **Update docs, ADRs & release notes**
 
@@ -197,6 +197,8 @@ Check
 
 Caution  
 A stray `from httpx import Response` in a type hint still drags infra into domain; use `if TYPE_CHECKING:` block.
+
+✅ **COMPLETED**: Step 6 finished successfully. Found and moved `InMemoryEventPublisher` (containing `asyncio` import) from `domain/events.py` to `infrastructure/events/publishers.py`. Updated CLI imports. Domain layer now contains only standard library and internal domain imports. All 492 tests passing.
 
 --------------------------------------------------
 7. Add guard-rail static checks

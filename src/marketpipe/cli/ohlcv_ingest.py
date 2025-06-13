@@ -35,7 +35,7 @@ from marketpipe.infrastructure.repositories.sqlite_domain import (
     SqliteSymbolBarsRepository,
     SqliteOHLCVRepository,
 )
-from marketpipe.domain.events import InMemoryEventPublisher
+from marketpipe.infrastructure.events import InMemoryEventPublisher
 from marketpipe.config import IngestionJobConfig
 from marketpipe.domain.events import IngestionJobCompleted
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
