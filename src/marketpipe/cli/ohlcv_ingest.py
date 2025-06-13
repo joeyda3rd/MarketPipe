@@ -37,7 +37,7 @@ from marketpipe.infrastructure.repositories.sqlite_domain import (
 )
 from marketpipe.domain.events import InMemoryEventPublisher
 from marketpipe.config import IngestionJobConfig
-from marketpipe.events import IngestionJobCompleted
+from marketpipe.domain.events import IngestionJobCompleted
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 from marketpipe.validation.domain.services import ValidationDomainService
 

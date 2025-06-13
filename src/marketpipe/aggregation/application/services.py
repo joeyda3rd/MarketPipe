@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from datetime import date
 
-from marketpipe.events import IngestionJobCompleted
+from marketpipe.domain.events import IngestionJobCompleted
 from marketpipe.bootstrap import get_event_bus
 from marketpipe.domain.value_objects import Symbol
 from ..domain.services import AggregationDomainService
