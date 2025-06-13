@@ -185,12 +185,12 @@ def test_pool_growth_under_load(tmp_path):
     # Start multiple threads that hold connections
     threads = []
     for i in range(3):
-        thread = threading.Thread(target=hold_connection, args=(0.5,))
+        thread = threading.Thread(target=hold_connection, args=(0.1,))  # Reduced for CI
         threads.append(thread)
         thread.start()
 
     # Give threads time to acquire connections
-    time.sleep(0.1)
+    time.sleep(0.05)  # Reduced for CI
 
     # Should have multiple connections in use
     assert len(connections_in_use) > 1

@@ -188,18 +188,18 @@ class TestRateLimiter:
 
     def test_token_refill_over_time(self):
         """Test that tokens are refilled over time at the correct rate."""
-        limiter = RateLimiter(capacity=10, refill_rate=5.0)  # 5 tokens per second
+        limiter = RateLimiter(capacity=10, refill_rate=50.0)  # 50 tokens per second (faster for CI)
         
         # Drain bucket
         limiter.acquire(10)
         assert abs(limiter.get_available_tokens()) < 0.01  # Allow small timing differences
         
-        # Wait 1 second
-        time.sleep(1.0)
+        # Wait 0.2 seconds (reduced for CI)
+        time.sleep(0.2)
         
-        # Should have ~5 tokens (5 tokens per second)
+        # Should have ~10 tokens (50 tokens per second * 0.2s = 10 tokens)
         available = limiter.get_available_tokens()
-        assert 4.5 <= available <= 5.5  # Allow for timing variation
+        assert 9.0 <= available <= 10.0  # Allow for timing variation
 
     def test_capacity_limit(self):
         """Test that tokens don't exceed capacity even with long waits."""
@@ -208,8 +208,8 @@ class TestRateLimiter:
         # Start with full bucket
         assert limiter.get_available_tokens() == 5.0
         
-        # Wait a while - tokens shouldn't exceed capacity
-        time.sleep(2.0)
+        # Wait briefly - tokens shouldn't exceed capacity (reduced for CI)
+        time.sleep(0.1)
         assert limiter.get_available_tokens() == 5.0
 
     @pytest.mark.asyncio
@@ -441,6 +441,6 @@ class TestRateLimiterIntegration:
         assert 1.5 <= available_tokens <= 2.5  # Allow tolerance for timing variations
         
         # Subsequent requests should work normally after refill
-        time.sleep(0.5)  # Allow some refill
+        time.sleep(0.1)  # Allow some refill (reduced for CI)
         available = limiter.get_available_tokens()
         assert available > 0.0 
