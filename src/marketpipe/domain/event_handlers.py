@@ -103,19 +103,21 @@ def log_symbol_deactivated(event: SymbolDeactivated) -> None:
 
 def setup_default_event_handlers() -> None:
     """Setup default event handlers for logging."""
-    from ..events import EventBus
+    from marketpipe.bootstrap import get_event_bus
+
+    event_bus = get_event_bus()
 
     # Register all default handlers
-    EventBus.subscribe(BarCollectionStarted, log_bar_collection_started)
-    EventBus.subscribe(BarCollectionCompleted, log_bar_collection_completed)
-    EventBus.subscribe(ValidationFailed, log_validation_failed)
-    EventBus.subscribe(IngestionJobStarted, log_ingestion_job_started)
-    EventBus.subscribe(IngestionJobCompleted, log_ingestion_job_completed)
-    EventBus.subscribe(MarketDataReceived, log_market_data_received)
-    EventBus.subscribe(DataStored, log_data_stored)
-    EventBus.subscribe(RateLimitExceeded, log_rate_limit_exceeded)
-    EventBus.subscribe(SymbolActivated, log_symbol_activated)
-    EventBus.subscribe(SymbolDeactivated, log_symbol_deactivated)
+    event_bus.subscribe(BarCollectionStarted, log_bar_collection_started)
+    event_bus.subscribe(BarCollectionCompleted, log_bar_collection_completed)
+    event_bus.subscribe(ValidationFailed, log_validation_failed)
+    event_bus.subscribe(IngestionJobStarted, log_ingestion_job_started)
+    event_bus.subscribe(IngestionJobCompleted, log_ingestion_job_completed)
+    event_bus.subscribe(MarketDataReceived, log_market_data_received)
+    event_bus.subscribe(DataStored, log_data_stored)
+    event_bus.subscribe(RateLimitExceeded, log_rate_limit_exceeded)
+    event_bus.subscribe(SymbolActivated, log_symbol_activated)
+    event_bus.subscribe(SymbolDeactivated, log_symbol_deactivated)
 
     logger.info("Default event handlers registered")
 

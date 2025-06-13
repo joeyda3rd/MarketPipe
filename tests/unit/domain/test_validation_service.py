@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 from datetime import datetime, timezone
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from src.marketpipe.domain.services import MarketDataValidationService
 from src.marketpipe.domain.entities import OHLCVBar, EntityId
@@ -336,11 +336,15 @@ class TestMarketDataValidationService:
         assert len(errors) > 0
         assert any("Extreme volume spike" in error for error in errors)
 
-    @patch("src.marketpipe.events.EventBus.publish")
+    @patch("marketpipe.bootstrap.get_event_bus")
     def test_validate_batch_emits_validation_failed_event_on_errors(
-        self, mock_publish, service, symbol
+        self, mock_get_event_bus, service, symbol
     ):
         """Test that ValidationFailed event is emitted when validation fails."""
+        # Set up mock event bus
+        mock_event_bus = Mock()
+        mock_get_event_bus.return_value = mock_event_bus
+
         # Create bars with non-monotonic timestamps to trigger validation error
         bars = [
             OHLCVBar(
@@ -375,8 +379,8 @@ class TestMarketDataValidationService:
         assert len(errors) > 0
 
         # Should have published ValidationFailed event
-        mock_publish.assert_called_once()
-        published_event = mock_publish.call_args[0][0]
+        mock_event_bus.publish.assert_called_once()
+        published_event = mock_event_bus.publish.call_args[0][0]
         assert isinstance(published_event, ValidationFailed)
         assert published_event.symbol == symbol
 

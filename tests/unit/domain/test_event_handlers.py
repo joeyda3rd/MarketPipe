@@ -1,6 +1,6 @@
 """Tests for domain event handlers."""
 
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from datetime import date, datetime, timezone
 from marketpipe.domain.event_handlers import (
     log_ingestion_job_completed,
@@ -92,7 +92,9 @@ def test_log_bar_collection_completed():
 
 def test_setup_default_event_handlers():
     """Test setting up default event handlers."""
-    with patch("marketpipe.events.EventBus") as mock_event_bus:
+    with patch("marketpipe.bootstrap.get_event_bus") as mock_get_event_bus:
+        mock_event_bus = Mock()
+        mock_get_event_bus.return_value = mock_event_bus
         with patch("marketpipe.domain.event_handlers.logger") as mock_logger:
             setup_default_event_handlers()
 
@@ -103,7 +105,9 @@ def test_setup_default_event_handlers():
 
 def test_setup_metrics_event_handlers():
     """Test setting up metrics event handlers via infrastructure module."""
-    with patch("marketpipe.infrastructure.monitoring.event_handlers.EventBus") as mock_event_bus:
+    with patch("marketpipe.bootstrap.get_event_bus") as mock_get_event_bus:
+        mock_event_bus = Mock()
+        mock_get_event_bus.return_value = mock_event_bus
         with patch("marketpipe.infrastructure.monitoring.event_handlers.logger") as mock_logger:
             from marketpipe.infrastructure.monitoring.event_handlers import register
             register()

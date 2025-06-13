@@ -556,7 +556,7 @@ class MarketDataValidationService(DomainService):
 
         # Import and emit the event
         from .events import ValidationFailed
-        from ..events import EventBus
+        from marketpipe.bootstrap import get_event_bus
 
         event = ValidationFailed(
             symbol=first_bar.symbol,
@@ -566,7 +566,7 @@ class MarketDataValidationService(DomainService):
             severity="error",
         )
 
-        EventBus.publish(event)
+        get_event_bus().publish(event)
 
     def validate_trading_hours(self, bar: OHLCVBar) -> List[str]:
         """Validate that bar timestamp is within reasonable trading hours.

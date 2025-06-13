@@ -12,10 +12,35 @@ import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Protocol, Callable, Type
 from uuid import UUID, uuid4
 
 from .value_objects import Symbol, Timestamp
+
+
+class IEventBus(Protocol):
+    """Protocol for event bus implementations.
+    
+    This interface defines the contract that any event bus implementation
+    must follow, enabling dependency inversion in the domain layer.
+    """
+    
+    def subscribe(self, etype: Type[DomainEvent], fn: Callable[[DomainEvent], None]) -> None:
+        """Subscribe a function to handle events of a specific type.
+        
+        Args:
+            etype: The type of domain event to subscribe to
+            fn: Function that will handle events of this type
+        """
+        ...
+    
+    def publish(self, event: DomainEvent) -> None:
+        """Publish an event to all subscribers.
+        
+        Args:
+            event: The domain event to publish
+        """
+        ...
 
 
 class DomainEvent(ABC):

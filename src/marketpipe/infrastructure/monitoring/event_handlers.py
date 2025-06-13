@@ -14,7 +14,6 @@ import logging
 from typing import TYPE_CHECKING
 
 from marketpipe.events import (
-    EventBus,
     IngestionJobCompleted,
     ValidationFailed,
 )
@@ -182,20 +181,24 @@ def register() -> None:
     to set up all monitoring infrastructure.
     """
     try:
+        from marketpipe.bootstrap import get_event_bus
+        
+        event_bus = get_event_bus()
+
         # Subscribe to application-level ingestion events
-        EventBus.subscribe(IngestionJobCompleted, _handle_ingestion_completed)
+        event_bus.subscribe(IngestionJobCompleted, _handle_ingestion_completed)
 
         # Subscribe to validation events
-        EventBus.subscribe(ValidationCompleted, _handle_validation_completed)
-        EventBus.subscribe(ValidationFailed, _handle_validation_failed)
+        event_bus.subscribe(ValidationCompleted, _handle_validation_completed)
+        event_bus.subscribe(ValidationFailed, _handle_validation_failed)
 
         # Subscribe to aggregation events
-        EventBus.subscribe(AggregationCompleted, _handle_aggregation_completed)
-        EventBus.subscribe(AggregationFailed, _handle_aggregation_failed)
+        event_bus.subscribe(AggregationCompleted, _handle_aggregation_completed)
+        event_bus.subscribe(AggregationFailed, _handle_aggregation_failed)
 
         # Subscribe to domain-level events
-        EventBus.subscribe(DomainIngestionJobCompleted, _track_domain_ingestion_metrics)
-        EventBus.subscribe(DomainValidationFailed, _track_domain_validation_metrics)
+        event_bus.subscribe(DomainIngestionJobCompleted, _track_domain_ingestion_metrics)
+        event_bus.subscribe(DomainValidationFailed, _track_domain_validation_metrics)
 
         logger.info("Monitoring event handlers registered successfully")
 

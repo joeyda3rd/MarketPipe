@@ -5,7 +5,8 @@ import logging
 from pathlib import Path
 from datetime import date
 
-from marketpipe.events import EventBus, IngestionJobCompleted
+from marketpipe.events import IngestionJobCompleted
+from marketpipe.bootstrap import get_event_bus
 from marketpipe.domain.value_objects import Symbol
 from ..domain.services import AggregationDomainService
 from ..domain.value_objects import DEFAULT_SPECS
@@ -69,7 +70,7 @@ class AggregationRunnerService:
 
             # Publish success event
             success_event = AggregationCompleted(event.job_id, frames_processed)
-            EventBus.publish(success_event)
+            get_event_bus().publish(success_event)
 
             self.log.info(
                 f"Aggregation completed for job {event.job_id}: {frames_processed} frames processed"
@@ -85,7 +86,7 @@ class AggregationRunnerService:
 
             # Publish failure event
             failure_event = AggregationFailed(event.job_id, str(e))
-            EventBus.publish(failure_event)
+            get_event_bus().publish(failure_event)
 
             # Re-raise to maintain error visibility
             raise
@@ -131,7 +132,7 @@ class AggregationRunnerService:
     def register(cls) -> None:
         """Register event listener for ingestion completed events."""
         service = cls.build_default()
-        EventBus.subscribe(IngestionJobCompleted, service.handle_ingestion_completed)
+        get_event_bus().subscribe(IngestionJobCompleted, service.handle_ingestion_completed)
 
         logging.getLogger(cls.__name__).info(
             "Aggregation service registered for IngestionJobCompleted events"
