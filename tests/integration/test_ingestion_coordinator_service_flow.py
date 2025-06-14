@@ -7,7 +7,6 @@ import pytest
 import asyncio
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-import os
 
 import pyarrow.parquet as pq
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
@@ -183,16 +182,14 @@ class TestIngestionCoordinatorEndToEndFlow:
         assert len(start_events) == 1
         assert start_events[0].job_id == job_id
         assert start_events[0].symbols == [symbol]
+        
+        await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     @pytest.mark.asyncio
     async def test_coordinator_handles_multiple_symbols_correctly(
         self, ingestion_services, tmp_path
     ):
         """Coordinator should ingest multiple symbols concurrently without errors."""
-        # GitHub hosted runners occasionally hit SQLite write-locks under heavy parallelism.
-        # Mark this test xfail when running in CI to avoid random timeouts.
-        if os.getenv("GITHUB_ACTIONS") == "true":
-            pytest.xfail("Flaky on GitHub runners due to SQLite write-lock timing; covered by local suite.")
 
         services = ingestion_services
         job_service = services["job_service"]
@@ -235,6 +232,9 @@ class TestIngestionCoordinatorEndToEndFlow:
         # Verify execution result
         assert result["status"] == "completed"
         assert result["symbols_processed"] >= len(symbols)
+        
+        # Wait for any pending metrics tasks to complete before test ends
+        await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     @pytest.mark.asyncio
     async def test_coordinator_handles_failed_symbols_gracefully(
@@ -280,6 +280,8 @@ class TestIngestionCoordinatorEndToEndFlow:
         # Verify that at least the working symbol was processed
         assert result["symbols_processed"] >= 1
         assert result["symbols_failed"] >= 1  # GOOGL should have failed
+        
+        await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     @pytest.mark.asyncio
     async def test_coordinator_uses_checkpoints_for_resumable_operations(
@@ -336,6 +338,8 @@ class TestIngestionCoordinatorEndToEndFlow:
         # Verify job execution was successful
         assert result["status"] == "completed"
         assert result["symbols_processed"] >= 1
+        
+        await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     @pytest.mark.asyncio
     async def test_coordinator_creates_proper_partition_paths(
@@ -388,6 +392,8 @@ class TestIngestionCoordinatorEndToEndFlow:
         partition_path_str = str(created_partition.file_path)
         assert f"symbol={symbol.value}" in partition_path_str
         # The exact year/month/day format might vary based on the ParquetStorageEngine implementation
+        
+        await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     @pytest.mark.asyncio
     async def test_coordinator_emits_comprehensive_domain_events(
@@ -455,6 +461,8 @@ class TestIngestionCoordinatorEndToEndFlow:
         assert len(completed_events) == 1
         assert completed_events[0].symbols_processed == 1
         assert completed_events[0].total_bars_processed == len(test_bars)
+        
+        await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     def test_process_symbol_writes_parquet_partition(
         self, ingestion_services, tmp_path
