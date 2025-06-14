@@ -38,11 +38,13 @@ class TestPostgresMigrations:
         # Apply migrations
         command.upgrade(alembic_cfg, "head")
         
-        # Verify current migration version
+        # Verify current migration version using sync driver
         from alembic.runtime.migration import MigrationContext
         from sqlalchemy import create_engine
         
-        engine = create_engine(postgres_url)
+        # Convert asyncpg URL to psycopg2 URL for sync operations
+        sync_url = postgres_url.replace("+asyncpg", "")
+        engine = create_engine(sync_url)
         with engine.connect() as conn:
             context = MigrationContext.configure(conn)
             current_rev = context.get_current_revision()
@@ -56,7 +58,9 @@ class TestPostgresMigrations:
         
         from sqlalchemy import create_engine, text
         
-        engine = create_engine(postgres_url)
+        # Convert asyncpg URL to psycopg2 URL for sync operations
+        sync_url = postgres_url.replace("+asyncpg", "")
+        engine = create_engine(sync_url)
         
         # Test some Postgres-specific functionality
         with engine.connect() as conn:
@@ -133,7 +137,9 @@ class TestPostgresMigrations:
         asyncpg = pytest.importorskip("asyncpg")
         
         from sqlalchemy import create_engine
-        engine = create_engine(db_url)
+        # Convert asyncpg URL to psycopg2 URL for sync operations
+        sync_url = db_url.replace("+asyncpg", "")
+        engine = create_engine(sync_url)
         
         with engine.connect() as conn:
             from sqlalchemy import text
