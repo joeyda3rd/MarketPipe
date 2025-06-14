@@ -62,11 +62,23 @@ def upgrade() -> None:
     op.execute("CREATE INDEX idx_ohlcv_symbol_timestamp ON ohlcv_bars(symbol, timestamp_ns)")
     
     # Update existing rows to populate trading_date from timestamp_ns
-    op.execute("""
-        UPDATE ohlcv_bars 
-        SET trading_date = date(timestamp_ns / 1000000000, 'unixepoch')
-        WHERE trading_date IS NULL
-    """)
+    # Use database-agnostic approach
+    from alembic import context
+    
+    if context.config.get_main_option("sqlalchemy.url").startswith("postgresql"):
+        # PostgreSQL version
+        op.execute("""
+            UPDATE ohlcv_bars 
+            SET trading_date = TO_CHAR(TO_TIMESTAMP(timestamp_ns / 1000000000.0), 'YYYY-MM-DD')
+            WHERE trading_date IS NULL
+        """)
+    else:
+        # SQLite version
+        op.execute("""
+            UPDATE ohlcv_bars 
+            SET trading_date = date(timestamp_ns / 1000000000, 'unixepoch')
+            WHERE trading_date IS NULL
+        """)
     
     # Create new indexes
     op.execute("CREATE INDEX idx_ohlcv_trading_date ON ohlcv_bars(trading_date)")
