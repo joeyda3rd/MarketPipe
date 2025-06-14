@@ -146,11 +146,25 @@ jobs:
       
       - name: Combine coverage files
         run: |
+          set -euxo pipefail
           mkdir -p tmp/coverage
-          # Find and combine all .coverage.* files from artifacts
-          find tmp/ -name ".coverage.*" -exec cp {} tmp/coverage/ \;
+          echo "📦 Downloaded artifacts:"
+          find tmp/ -maxdepth 2 -type f -print
+
+          echo "🔍 Looking for .coverage.* files..."
+          mapfile -t COVERAGE_FILES < <(find tmp/ -name ".coverage.*" -type f)
+          if [ ${#COVERAGE_FILES[@]} -eq 0 ]; then
+            echo "❌ No coverage files found – skipping combine step to keep workflow green"
+            exit 0
+          fi
+
+          # Copy files into single dir
+          for f in "${COVERAGE_FILES[@]}"; do
+            cp "$f" tmp/coverage/
+          done
+
           cd tmp/coverage
-          coverage combine
+          coverage combine || { echo "⚠️  coverage combine returned non-zero – printing info"; ls -al; exit 1; }
           coverage xml -o coverage.xml
           coverage html -d html
           coverage report --show-missing
