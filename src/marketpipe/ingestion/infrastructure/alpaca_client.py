@@ -81,10 +81,10 @@ class AlpacaClient(BaseApiClient):
                 timeout=self.config.timeout,
             )
             duration = time.perf_counter() - start
-            LATENCY.labels("alpaca").observe(duration)
-            REQUESTS.labels("alpaca").inc()
+            LATENCY.labels(source="alpaca", provider="alpaca", feed=self.feed).observe(duration)
+            REQUESTS.labels(source="alpaca", provider="alpaca", feed=self.feed).inc()
             if r.status_code >= 400:
-                ERRORS.labels("alpaca", str(r.status_code)).inc()
+                ERRORS.labels(source="alpaca", provider="alpaca", feed=self.feed, code=str(r.status_code)).inc()
 
             # Handle JSON parsing safely
             try:
@@ -160,10 +160,10 @@ class AlpacaClient(BaseApiClient):
                     headers=headers,
                 )
                 duration = time.perf_counter() - start
-                LATENCY.labels("alpaca").observe(duration)
-                REQUESTS.labels("alpaca").inc()
+                LATENCY.labels(source="alpaca", provider="alpaca", feed=self.feed).observe(duration)
+                REQUESTS.labels(source="alpaca", provider="alpaca", feed=self.feed).inc()
                 if r.status_code >= 400:
-                    ERRORS.labels("alpaca", str(r.status_code)).inc()
+                    ERRORS.labels(source="alpaca", provider="alpaca", feed=self.feed, code=str(r.status_code)).inc()
 
                 # Handle JSON parsing safely
                 try:

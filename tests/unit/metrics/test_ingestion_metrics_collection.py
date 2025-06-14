@@ -17,7 +17,7 @@ class TestIngestionMetricsCollection:
 
     def test_market_data_provider_request_counter_increments_correctly(self):
         """Test that market data provider request counter increments correctly."""
-        metric = REQUESTS.labels("alpaca")
+        metric = REQUESTS.labels(source="alpaca", provider="alpaca", feed="iex")
         before = metric._value.get()
         metric.inc()
         assert metric._value.get() == before + 1
@@ -40,7 +40,7 @@ class TestIngestionMetricsCollection:
                 mock_server.assert_called_once_with(port=port)
         
         # For the actual HTTP test, use a simplified mock approach
-        REQUESTS.labels("alpaca").inc()
+        REQUESTS.labels(source="alpaca", provider="alpaca", feed="iex").inc()
         
         # Mock a successful response that contains the expected metrics
         with patch('requests.get') as mock_get:
@@ -55,7 +55,7 @@ class TestIngestionMetricsCollection:
 
     def test_alpaca_provider_metrics_are_labeled_correctly(self):
         """Test that Alpaca market data provider metrics are labeled correctly."""
-        alpaca_metric = REQUESTS.labels("alpaca")
+        alpaca_metric = REQUESTS.labels(source="alpaca", provider="alpaca", feed="iex")
         before = alpaca_metric._value.get()
         alpaca_metric.inc()
         after = alpaca_metric._value.get()

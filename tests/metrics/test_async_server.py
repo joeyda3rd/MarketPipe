@@ -68,7 +68,7 @@ async def test_async_server_serves_prometheus_metrics():
         await server.start()
         
         # Increment a test metric
-        REQUESTS.labels(source="test").inc()
+        REQUESTS.labels(source="test", provider="test", feed="test").inc()
         
         # Give server a moment to start
         await asyncio.sleep(0.1)

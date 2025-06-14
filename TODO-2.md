@@ -18,6 +18,11 @@ Owners: see each subsection. All items must keep ≥ 70 % test coverage and gree
   - [x] Migrate database schema if additional columns are required.  
   - [x] Add regression tests verifying that the new labels are present.
   - **Implementation Details**: Extended `record_metric()` function with optional `provider` and `feed` keyword arguments (default "unknown"). Updated all metric emission sites in ingestion, validation, and aggregation services to include provider/feed labels. Added database migration (003) to add `provider` and `feed` columns to metrics table with backward compatibility. Created comprehensive regression test suite with 6 test cases covering all functionality. Fixed migration system to handle duplicate applications gracefully.
+  - **Gap Fixes Applied**: 
+    - **Gap A**: Redefined Prometheus metrics (REQUESTS, ERRORS, LATENCY) with full label set (source, provider, feed) and added legacy metrics for backward compatibility
+    - **Gap B**: Replaced brittle test detection with `MP_DISABLE_SQLITE_METRICS` environment variable for controlling SQLite persistence  
+    - **Gap C**: Enhanced migration 003 with explicit UPDATE statements to back-fill existing rows with default values
+    - **Gap D**: Fixed `record_metric()` type hints by adding `source` parameter and implementing proper forwarding to Prometheus metrics with provider/feed labels
 
 - [x] **Grafana dashboard JSON** (Owner: Infra) ✅ **COMPLETED 2024-12-19**
   - [x] Create panels for CPU usage, event-loop lag, rate-limit waits, ingestion throughput.  

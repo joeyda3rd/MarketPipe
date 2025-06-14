@@ -15,10 +15,28 @@ from marketpipe.infrastructure.sqlite_pool import connection
 from marketpipe.infrastructure.sqlite_async_mixin import SqliteAsyncMixin
 from marketpipe.migrations import apply_pending
 
-# Existing metrics
-REQUESTS = Counter("mp_requests_total", "API requests", ["source"])
-ERRORS = Counter("mp_errors_total", "Errors", ["source", "code"])
-LATENCY = Histogram("mp_request_latency_seconds", "Latency", ["source"])
+# Core metrics with full label set: source, provider, feed
+REQUESTS = Counter(
+    "mp_requests_total", 
+    "API requests", 
+    ["source", "provider", "feed"]
+)
+ERRORS = Counter(
+    "mp_errors_total", 
+    "Errors", 
+    ["source", "provider", "feed", "code"]
+)
+LATENCY = Histogram(
+    "mp_request_latency_seconds", 
+    "Latency", 
+    ["source", "provider", "feed"]
+)
+
+# Legacy metrics for backward compatibility (deprecated)
+LEGACY_REQUESTS = Counter("mp_requests_legacy_total", "API requests (legacy)", ["source"])
+LEGACY_ERRORS = Counter("mp_errors_legacy_total", "Errors (legacy)", ["source", "code"])
+LEGACY_LATENCY = Histogram("mp_request_legacy_latency_seconds", "Latency (legacy)", ["source"])
+
 BACKLOG = Gauge("mp_backlog_jobs", "Coordinator queue size")
 
 # New metrics for ingestion/validation/aggregation
@@ -41,8 +59,11 @@ from marketpipe.metrics_server import EVENT_LOOP_LAG
 
 __all__ = [
     "REQUESTS",
-    "ERRORS",
+    "ERRORS", 
     "LATENCY",
+    "LEGACY_REQUESTS",
+    "LEGACY_ERRORS",
+    "LEGACY_LATENCY",
     "BACKLOG",
     "INGEST_ROWS",
     "VALIDATION_ERRORS",
@@ -221,7 +242,14 @@ def get_metrics_repository() -> SqliteMetricsRepository:
     return _metrics_repo
 
 
-def record_metric(name: str, value: float, *, provider: str = "unknown", feed: str = "unknown", **labels) -> None:
+def record_metric(
+    name: str, 
+    value: float, 
+    *, 
+    provider: str = "unknown", 
+    feed: str = "unknown",
+    source: str = "unknown"
+) -> None:
     """Record a metric to both Prometheus and SQLite persistence.
 
     This function updates Prometheus counters/summaries and persists
@@ -229,12 +257,29 @@ def record_metric(name: str, value: float, *, provider: str = "unknown", feed: s
     
     Args:
         name: The metric name
-        value: The metric value
-        provider: The data provider (e.g., "alpaca", "polygon") 
+        value: The metric value  
+        provider: The data provider (e.g., "alpaca", "polygon")
         feed: The data feed type (e.g., "iex", "sip")
-        **labels: Additional labels passed through for future extensibility
+        source: The source component (for backward compatibility)
     """
-    # Update Prometheus metrics based on metric name
+    # Update Prometheus metrics with full label set
+    if "request" in name.lower():
+        REQUESTS.labels(source=source, provider=provider, feed=feed).inc(value)
+        # Also update legacy metric for backward compatibility
+        LEGACY_REQUESTS.labels(source=source).inc(value)
+    elif "error" in name.lower():
+        error_code = "unknown"
+        # Try to extract error code from metric name
+        if "_" in name:
+            parts = name.split("_")
+            error_code = parts[-1] if parts[-1] not in ["total", "count"] else "unknown"
+        ERRORS.labels(source=source, provider=provider, feed=feed, code=error_code).inc(value)
+        LEGACY_ERRORS.labels(source=source, code=error_code).inc(value)
+    elif "latency" in name.lower() or "duration" in name.lower():
+        LATENCY.labels(source=source, provider=provider, feed=feed).observe(value)
+        LEGACY_LATENCY.labels(source=source).observe(value)
+    
+    # Update operation-specific metrics  
     if "ingest" in name.lower():
         PROCESSING_TIME.labels(operation="ingestion").observe(value)
     elif "validation" in name.lower():
@@ -242,30 +287,10 @@ def record_metric(name: str, value: float, *, provider: str = "unknown", feed: s
     elif "aggregation" in name.lower():
         PROCESSING_TIME.labels(operation="aggregation").observe(value)
 
-    # Check if we're in a pytest environment
-    import sys
-    if "pytest" in sys.modules:
-        # In test environment - check if we're in a metrics-related test
-        try:
-            import inspect
-            frame = inspect.currentframe()
-            while frame:
-                filename = frame.f_code.co_filename
-                if ("test_metrics" in filename or 
-                    "test_ingest" in filename or
-                    "metrics_events" in filename or
-                    "test_integration" in filename or
-                    "test_provider_feed_metrics" in filename or  # Our regression test
-                    "regression" in filename):  # Any regression test
-                    # This is a metrics-related test, allow persistence
-                    break
-                frame = frame.f_back
-            else:
-                # Not a metrics test, skip SQLite persistence to avoid event loop issues
-                return
-        except Exception:
-            # If inspection fails, skip to be safe
-            return
+    # Check environment variable for SQLite persistence
+    if os.environ.get("MP_DISABLE_SQLITE_METRICS", "").lower() in ("1", "true", "yes"):
+        # SQLite metrics disabled via environment variable
+        return
 
     # Persist to SQLite - handle event loop contexts carefully
     repo = get_metrics_repository()

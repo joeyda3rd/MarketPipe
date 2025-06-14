@@ -195,10 +195,34 @@ docker-compose up -d
 
 Import the included dashboard from `grafana/marketpipe_dashboard.json` to visualize:
 
-- Request rates and error rates by provider
+- Request rates and error rates by provider/feed with filtering
 - Event loop lag monitoring (async server)
 - Ingestion throughput and validation errors
 - Rate limiter activity and processing times
+- Deployment annotations for tracking releases
+
+**Import Instructions:**
+
+1. **Method 1 - Direct Import (Recommended):**
+   ```bash
+   # Copy the dashboard JSON with stable UID
+   curl -X POST \
+     -H "Content-Type: application/json" \
+     -d @grafana/marketpipe_dashboard.json \
+     http://admin:admin@localhost:3000/api/dashboards/db
+   ```
+
+2. **Method 2 - Grafana UI:**
+   - Navigate to Grafana → Dashboards → Import
+   - Upload `grafana/marketpipe_dashboard.json`
+   - The dashboard uses UID `marketpipe-etl-metrics` for stable URL and sharing
+
+**Dashboard Features:**
+- **Provider/Feed Filtering**: Template variables to filter metrics by provider and feed
+- **Deployment Annotations**: Automatically tracks MarketPipe restarts/deployments
+- **Enhanced Legends**: Tabular legends with current/max/avg values
+- **Stable UID**: `marketpipe-etl-metrics` prevents ID churn during exports
+- **99th Percentile**: Added P99 latency tracking for better performance visibility
 
 Environment variables for metrics configuration:
 

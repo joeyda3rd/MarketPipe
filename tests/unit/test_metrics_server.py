@@ -130,39 +130,36 @@ async def test_async_metrics_server_basic_functionality():
     assert server.server is None
     assert server._lag_monitor_task is None
     
+    # Mock the lag monitoring method to return a proper task
+    async def mock_lag_monitor():
+        try:
+            await asyncio.sleep(1000)  # Long sleep that will be cancelled
+        except asyncio.CancelledError:
+            raise
+    
     # Mock asyncio.start_server to avoid actually binding
     with patch("asyncio.start_server") as mock_start_server:
         mock_server = Mock()
         mock_start_server.return_value = mock_server
         
-        with patch("asyncio.create_task") as mock_create_task:
-            mock_task = Mock()
-            mock_create_task.return_value = mock_task
-            
+        with patch.object(server, '_monitor_event_loop_lag', mock_lag_monitor):
             # Start server
             await server.start()
             
             # Verify state
             assert server.server is mock_server
-            assert server._lag_monitor_task is mock_task
+            assert server._lag_monitor_task is not None
             
             # Mock server close for cleanup
             mock_server.close = Mock()
             mock_server.wait_closed = Mock()
             mock_server.wait_closed.return_value = asyncio.sleep(0)
             
-            # Mock task cancellation
-            mock_task.cancel = Mock()
-            mock_task_wait = asyncio.Future()
-            mock_task_wait.set_exception(asyncio.CancelledError())
-            mock_task.__await__ = lambda: mock_task_wait.__await__()
-            
             # Stop server
             await server.stop()
             
             # Verify cleanup
             mock_server.close.assert_called_once()
-            mock_task.cancel.assert_called_once()
             assert server.server is None
             assert server._lag_monitor_task is None
 
@@ -171,7 +168,7 @@ def test_async_server_respects_multiprocess_environment():
     """Test that AsyncMetricsServer respects multiprocess environment."""
     with tempfile.TemporaryDirectory() as temp_dir:
         with patch.dict(os.environ, {"PROMETHEUS_MULTIPROC_DIR": temp_dir}):
-            with patch("prometheus_client.multiprocess.MultiProcessCollector") as mock_collector:
+            with patch("marketpipe.metrics_server.MultiProcessCollector") as mock_collector:
                 server = AsyncMetricsServer()
                 
                 # MultiProcessCollector should have been called

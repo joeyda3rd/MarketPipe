@@ -11,7 +11,8 @@ from unittest.mock import patch
 
 def test_legacy_counter_increment_maintains_backward_compatibility():
     """Test that legacy counter increment functionality maintains backward compatibility."""
-    metric = REQUESTS.labels("alpaca")
+    # Use the new metric signature with all required labels
+    metric = REQUESTS.labels(source="alpaca", provider="alpaca", feed="iex")
     before = metric._value.get()
     metric.inc()
     assert metric._value.get() == before + 1
@@ -35,7 +36,7 @@ def test_legacy_metrics_endpoint_serves_prometheus_format():
             mock_server.assert_called_once_with(port=port)
     
     # For the actual HTTP test, use a simplified mock approach
-    REQUESTS.labels("alpaca").inc()
+    REQUESTS.labels(source="alpaca", provider="alpaca", feed="iex").inc()
     
     # Mock a successful response that contains the expected metrics
     with patch('requests.get') as mock_get:

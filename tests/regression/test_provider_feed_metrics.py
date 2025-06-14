@@ -14,9 +14,21 @@ import tempfile
 import os
 from pathlib import Path
 from datetime import datetime, timezone
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock, AsyncMock, patch
+from dataclasses import dataclass
+from typing import Dict, Any
 
-from marketpipe.metrics import SqliteMetricsRepository, record_metric
+from marketpipe.metrics import (
+    record_metric, 
+    REQUESTS, 
+    ERRORS, 
+    LATENCY,
+    LEGACY_REQUESTS,
+    LEGACY_ERRORS, 
+    LEGACY_LATENCY,
+    SqliteMetricsRepository,
+    MetricPoint
+)
 from marketpipe.ingestion.application.services import IngestionCoordinatorService
 from marketpipe.ingestion.domain.entities import IngestionJobId
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
@@ -274,6 +286,196 @@ def test_command_line_integration_with_fake_provider():
     # 3. Checking the metrics database for correct labels
     
     assert True  # Placeholder assertion
+
+
+class FakeProvider:
+    """Fake provider for testing metrics with provider/feed labels."""
+    
+    def __init__(self, provider_name: str, feed_type: str):
+        self.provider_name = provider_name
+        self.feed_type = feed_type
+        
+    def get_provider_info(self):
+        return {"provider": self.provider_name, "feed": self.feed_type}
+
+
+class TestProviderFeedLabelsFixed:
+    """Test that all identified gaps have been fixed."""
+
+    def test_prometheus_metrics_have_full_labels(self):
+        """Test Gap A: Prometheus counters now have provider/feed labels."""
+        # Verify metric definitions have the full label set
+        assert "source" in REQUESTS._labelnames
+        assert "provider" in REQUESTS._labelnames 
+        assert "feed" in REQUESTS._labelnames
+        
+        assert "source" in ERRORS._labelnames
+        assert "provider" in ERRORS._labelnames
+        assert "feed" in ERRORS._labelnames
+        assert "code" in ERRORS._labelnames
+        
+        assert "source" in LATENCY._labelnames
+        assert "provider" in LATENCY._labelnames
+        assert "feed" in LATENCY._labelnames
+        
+        # Test that metrics can be labeled with provider/feed
+        REQUESTS.labels(source="test", provider="alpaca", feed="iex").inc()
+        ERRORS.labels(source="test", provider="alpaca", feed="iex", code="404").inc()
+        LATENCY.labels(source="test", provider="alpaca", feed="iex").observe(0.5)
+        
+        # Verify legacy metrics also exist for backward compatibility
+        # Note: Prometheus client automatically strips '_total' suffix from Counter names
+        assert LEGACY_REQUESTS._name == "mp_requests_legacy"  
+        assert LEGACY_ERRORS._name == "mp_errors_legacy"
+        assert LEGACY_LATENCY._name == "mp_request_legacy_latency_seconds"
+
+    def test_env_var_disables_sqlite_metrics(self):
+        """Test Gap B: Environment variable disables SQLite metrics."""
+        # Test is already using MP_DISABLE_SQLITE_METRICS=1
+        # Verify record_metric doesn't try to persist to SQLite
+        original_env = os.environ.get("MP_DISABLE_SQLITE_METRICS")
+        
+        try:
+            # Enable SQLite persistence 
+            os.environ["MP_DISABLE_SQLITE_METRICS"] = "0"
+            
+            with patch('marketpipe.metrics.get_metrics_repository') as mock_repo:
+                mock_repo.return_value.record = AsyncMock()
+                record_metric("test_metric", 1.0, provider="test", feed="test", source="test")
+                # Should have attempted to create repository when not disabled
+                mock_repo.assert_called()
+                
+            # Disable SQLite persistence
+            os.environ["MP_DISABLE_SQLITE_METRICS"] = "1"
+            
+            with patch('marketpipe.metrics.get_metrics_repository') as mock_repo:
+                record_metric("test_metric", 1.0, provider="test", feed="test", source="test")
+                # Should not have attempted to create repository when disabled
+                mock_repo.assert_not_called()
+                
+        finally:
+            # Restore original environment
+            if original_env is not None:
+                os.environ["MP_DISABLE_SQLITE_METRICS"] = original_env
+            else:
+                os.environ.pop("MP_DISABLE_SQLITE_METRICS", None)
+
+    def test_record_metric_forwards_to_prometheus(self):
+        """Test Gap D: record_metric forwards provider/feed to Prometheus metrics."""
+        # Note: We don't clear metrics in newer prometheus_client versions
+        # Instead we'll check for specific label combinations that are unique to this test
+        
+        # Test request metric forwarding with unique provider/feed combinations
+        record_metric("test_request", 1.0, provider="test_alpaca_unique", feed="test_iex_unique", source="test_unique")
+        
+        # Verify Prometheus metrics were updated with correct labels
+        request_samples = [s for s in REQUESTS.collect()[0].samples if s.labels.get('provider') == 'test_alpaca_unique']
+        assert len(request_samples) > 0
+        assert request_samples[0].labels['feed'] == 'test_iex_unique'
+        assert request_samples[0].labels['source'] == 'test_unique'
+        
+        # Test error metric forwarding
+        record_metric("test_error_failed", 1.0, provider="test_polygon_unique", feed="test_sip_unique", source="test_validation_unique")
+        
+        error_samples = [s for s in ERRORS.collect()[0].samples if s.labels.get('provider') == 'test_polygon_unique']
+        assert len(error_samples) > 0
+        assert error_samples[0].labels['feed'] == 'test_sip_unique'
+        assert error_samples[0].labels['source'] == 'test_validation_unique'
+        
+        # Test latency metric forwarding
+        record_metric("test_duration_seconds", 1.5, provider="test_alpaca_latency", feed="test_iex_latency", source="test_ingestion_unique")
+        
+        latency_samples = [s for s in LATENCY.collect()[0].samples if s.labels.get('provider') == 'test_alpaca_latency']
+        assert len(latency_samples) > 0
+
+    def test_alpaca_client_uses_new_labels(self):
+        """Test that Alpaca client uses new metric signature."""
+        from marketpipe.ingestion.infrastructure.alpaca_client import AlpacaClient
+        from marketpipe.ingestion.infrastructure.models import ClientConfig
+        from marketpipe.ingestion.infrastructure.auth import HeaderTokenAuth
+        
+        # Note: We don't clear metrics in newer prometheus_client versions
+        # Instead we'll check for unique labels specific to this test
+        
+        config = ClientConfig(api_key="test", base_url="https://api.test.com")
+        auth = HeaderTokenAuth("key", "secret")
+        client = AlpacaClient(config=config, auth=auth, feed="iex")
+        
+        # Mock successful response
+        with patch('httpx.get') as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"bars": {"AAPL": []}}
+            mock_get.return_value = mock_response
+            
+            # Make request that triggers metrics
+            client._request({"symbol": "AAPL"})
+            
+            # Verify metrics have provider/feed labels
+            request_samples = [s for s in REQUESTS.collect()[0].samples]
+            # Look for metrics with the exact combination we expect from this test
+            alpaca_requests = [s for s in request_samples 
+                             if s.labels.get('provider') == 'alpaca' 
+                             and s.labels.get('feed') == 'iex'
+                             and s.labels.get('source') == 'alpaca']
+            assert len(alpaca_requests) > 0, f"Expected alpaca metrics not found. Available samples: {[(s.labels, s.value) for s in request_samples]}"
+
+    def test_migration_backfill_applied(self):
+        """Test Gap C: Migration 003 includes back-fill for existing rows."""
+        # Read the migration file to verify it includes UPDATE statements
+        from pathlib import Path
+        migration_file = Path("src/marketpipe/migrations/versions/003_provider_feed_labels.sql")
+        
+        assert migration_file.exists(), "Migration 003 should exist"
+        
+        content = migration_file.read_text()
+        assert "UPDATE metrics SET provider = 'unknown' WHERE provider IS NULL" in content
+        assert "UPDATE metrics SET feed = 'unknown' WHERE feed IS NULL" in content
+
+    def test_database_schema_supports_provider_feed(self):
+        """Test that database schema correctly supports provider and feed columns."""
+        from marketpipe.metrics import SqliteMetricsRepository
+        import tempfile
+        import asyncio
+        
+        # Create test database
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_file:
+            repo = SqliteMetricsRepository(tmp_file.name)
+            
+            async def test_schema():
+                # Record metric with provider/feed
+                await repo.record("test_metric", 42.0, provider="test_provider", feed="test_feed")
+                
+                # Retrieve and verify
+                metrics = await repo.get_metrics_history("test_metric")
+                assert len(metrics) == 1
+                assert metrics[0].provider == "test_provider"
+                assert metrics[0].feed == "test_feed"
+                assert metrics[0].value == 42.0
+                
+            # Run async test
+            asyncio.run(test_schema())
+
+    def test_legacy_metrics_backward_compatibility(self):
+        """Test that legacy metrics are maintained for backward compatibility."""
+        # Note: We don't clear metrics in newer prometheus_client versions
+        # Instead we'll check for unique labels specific to this test
+        
+        # Record metrics that should update both new and legacy with unique labels
+        record_metric("test_request", 1.0, provider="legacy_test_alpaca", feed="legacy_test_iex", source="legacy_test_source")
+        record_metric("test_error_timeout", 1.0, provider="legacy_test_alpaca", feed="legacy_test_iex", source="legacy_test_source")
+        record_metric("test_latency", 0.5, provider="legacy_test_alpaca", feed="legacy_test_iex", source="legacy_test_source")
+        
+        # Verify legacy metrics were also updated
+        legacy_requests = [s for s in LEGACY_REQUESTS.collect()[0].samples if s.labels.get('source') == 'legacy_test_source']
+        assert len(legacy_requests) > 0
+        assert legacy_requests[0].labels['source'] == 'legacy_test_source'
+        
+        legacy_errors = [s for s in LEGACY_ERRORS.collect()[0].samples if s.labels.get('source') == 'legacy_test_source']
+        assert len(legacy_errors) > 0
+        
+        legacy_latency = [s for s in LEGACY_LATENCY.collect()[0].samples if s.labels.get('source') == 'legacy_test_source']
+        assert len(legacy_latency) > 0
 
 
 if __name__ == "__main__":
