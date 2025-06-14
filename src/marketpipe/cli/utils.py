@@ -12,12 +12,15 @@ from pathlib import Path
 import typer
 
 from marketpipe.ingestion.infrastructure.provider_registry import list_providers
-from marketpipe.metrics_server import run as metrics_server_run
+from marketpipe.metrics_server import run as metrics_server_run, start_async_server, stop_async_server
 
 
 def metrics(
     port: int = typer.Option(
         None, "--port", "-p", help="Port to run Prometheus metrics server"
+    ),
+    legacy_metrics: bool = typer.Option(
+        False, "--legacy-metrics", help="Use legacy blocking metrics server"
     ),
     metric: str = typer.Option(
         None, "--metric", "-m", help="Show specific metric history"
@@ -34,10 +37,11 @@ def metrics(
     """Manage and view MarketPipe metrics.
     
     Examples:
-        marketpipe metrics --port 8000              # Start Prometheus server
-        marketpipe metrics --list                   # List available metrics
-        marketpipe metrics --metric ingestion_bars  # Show metric history
-        marketpipe metrics --avg 1h --plot          # Show hourly averages with plot
+        marketpipe metrics --port 8000                 # Start async Prometheus server
+        marketpipe metrics --port 8000 --legacy-metrics # Start legacy blocking server
+        marketpipe metrics --list                      # List available metrics
+        marketpipe metrics --metric ingestion_bars     # Show metric history
+        marketpipe metrics --avg 1h --plot             # Show hourly averages with plot
     """
     from marketpipe.bootstrap import bootstrap
     bootstrap()
@@ -47,9 +51,29 @@ def metrics(
 
         # If port is specified, start metrics server
         if port is not None:
-            print(f"📊 Starting metrics server on http://localhost:{port}/metrics")
-            print("Press Ctrl+C to stop the server")
-            metrics_server_run(port=port)
+            if legacy_metrics:
+                print(f"📊 Starting legacy metrics server on http://localhost:{port}/metrics")
+                print("Press Ctrl+C to stop the server")
+                metrics_server_run(port=port, legacy=True)
+            else:
+                print(f"📊 Starting async metrics server on http://localhost:{port}/metrics")
+                print("Press Ctrl+C to stop the server")
+                
+                # Run async server
+                async def run_async_server():
+                    server = await start_async_server(port=port)
+                    try:
+                        while True:
+                            await asyncio.sleep(1)
+                    except KeyboardInterrupt:
+                        print("\n📊 Shutting down async metrics server...")
+                    finally:
+                        await stop_async_server()
+                
+                try:
+                    asyncio.run(run_async_server())
+                except KeyboardInterrupt:
+                    print("📊 Async metrics server stopped")
             return
 
         # Setup metrics repository
@@ -174,7 +198,8 @@ def metrics(
         metrics_list = metrics_repo.list_metric_names()
         if not metrics_list:
             print("📊 No metrics found in database")
-            print("💡 Try: marketpipe metrics --port 8000  # Start metrics server")
+            print("💡 Try: marketpipe metrics --port 8000  # Start async metrics server")
+            print("💡 Or:  marketpipe metrics --port 8000 --legacy-metrics  # Start legacy server")
             return
 
         print("📊 Recent Metrics Summary")
@@ -194,6 +219,7 @@ def metrics(
         print("\n💡 Use --list to see all metrics")
         print("💡 Use --metric <name> to see history")
         print("💡 Use --avg 1h to see hourly averages")
+        print("💡 Use --port 8000 to start async metrics server")
 
     except Exception as e:
         print(f"❌ Error querying metrics: {e}")

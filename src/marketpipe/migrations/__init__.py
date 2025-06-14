@@ -98,9 +98,9 @@ def _apply_migration(db_path: Path, version: str, migration_file: Path) -> None:
             # Execute migration SQL
             conn.executescript(migration_sql)
 
-            # Record successful application
+            # Record successful application (using INSERT OR IGNORE to prevent duplicates)
             conn.execute(
-                "INSERT INTO schema_version (version, applied_ts) VALUES (?, ?)",
+                "INSERT OR IGNORE INTO schema_version (version, applied_ts) VALUES (?, ?)",
                 (version, int(__import__("time").time())),
             )
 
