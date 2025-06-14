@@ -44,6 +44,13 @@ class TestPostgresMigrations:
         
         # Convert asyncpg URL to psycopg2 URL for sync operations
         sync_url = postgres_url.replace("+asyncpg", "")
+        
+        # Skip if psycopg2 is not available
+        try:
+            import psycopg2
+        except ImportError:
+            pytest.skip("psycopg2 not available for sync operations")
+            
         engine = create_engine(sync_url)
         with engine.connect() as conn:
             context = MigrationContext.configure(conn)
@@ -60,6 +67,13 @@ class TestPostgresMigrations:
         
         # Convert asyncpg URL to psycopg2 URL for sync operations
         sync_url = postgres_url.replace("+asyncpg", "")
+        
+        # Skip if psycopg2 is not available
+        try:
+            import psycopg2
+        except ImportError:
+            pytest.skip("psycopg2 not available for sync operations")
+            
         engine = create_engine(sync_url)
         
         # Test some Postgres-specific functionality
@@ -139,6 +153,13 @@ class TestPostgresMigrations:
         from sqlalchemy import create_engine
         # Convert asyncpg URL to psycopg2 URL for sync operations
         sync_url = db_url.replace("+asyncpg", "")
+        
+        # Skip if psycopg2 is not available
+        try:
+            import psycopg2
+        except ImportError:
+            pytest.skip("psycopg2 not available for sync operations")
+            
         engine = create_engine(sync_url)
         
         with engine.connect() as conn:
