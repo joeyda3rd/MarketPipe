@@ -1,0 +1,259 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MarketPipe ETL Metrics",
+    "tags": ["marketpipe", "etl", "async"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate",
+        "type": "graph",
+        "span": 6,
+        "targets": [
+          {
+            "expr": "rate(mp_requests_total[5m])",
+            "legendFormat": "{{source}} requests/sec",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "requests/sec",
+            "min": 0
+          }
+        ],
+        "xAxes": [
+          {
+            "mode": "time"
+          }
+        ],
+        "legend": {
+          "show": true
+        }
+      },
+      {
+        "id": 2,
+        "title": "Error Rate",
+        "type": "graph",
+        "span": 6,
+        "targets": [
+          {
+            "expr": "rate(mp_errors_total[5m])",
+            "legendFormat": "{{source}} {{code}} errors/sec",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "errors/sec",
+            "min": 0
+          }
+        ],
+        "xAxes": [
+          {
+            "mode": "time"
+          }
+        ],
+        "legend": {
+          "show": true
+        }
+      },
+      {
+        "id": 3,
+        "title": "Request Latency",
+        "type": "graph",
+        "span": 12,
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(mp_request_latency_seconds_bucket[5m]))",
+            "legendFormat": "{{source}} 95th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(mp_request_latency_seconds_bucket[5m]))",
+            "legendFormat": "{{source}} median",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "seconds",
+            "min": 0
+          }
+        ],
+        "xAxes": [
+          {
+            "mode": "time"
+          }
+        ],
+        "legend": {
+          "show": true
+        }
+      },
+      {
+        "id": 4,
+        "title": "Event Loop Lag",
+        "type": "singlestat",
+        "span": 3,
+        "targets": [
+          {
+            "expr": "marketpipe_event_loop_lag_seconds",
+            "legendFormat": "Event Loop Lag",
+            "refId": "A"
+          }
+        ],
+        "valueName": "current",
+        "format": "s",
+        "thresholds": "0.1,0.5",
+        "colorBackground": true,
+        "colors": [
+          "rgba(50, 172, 45, 0.97)",
+          "rgba(237, 129, 40, 0.89)",
+          "rgba(245, 54, 54, 0.9)"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Rate Limiter Waits",
+        "type": "graph",
+        "span": 9,
+        "targets": [
+          {
+            "expr": "rate(mp_rate_limiter_waits_total[5m])",
+            "legendFormat": "{{provider}} {{mode}} waits/sec",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "waits/sec",
+            "min": 0
+          }
+        ],
+        "xAxes": [
+          {
+            "mode": "time"
+          }
+        ],
+        "legend": {
+          "show": true
+        }
+      },
+      {
+        "id": 6,
+        "title": "Ingestion Throughput",
+        "type": "graph",
+        "span": 6,
+        "targets": [
+          {
+            "expr": "rate(mp_ingest_rows_total[5m])",
+            "legendFormat": "{{symbol}} rows/sec",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "rows/sec",
+            "min": 0
+          }
+        ],
+        "xAxes": [
+          {
+            "mode": "time"
+          }
+        ],
+        "legend": {
+          "show": true
+        }
+      },
+      {
+        "id": 7,
+        "title": "Validation Errors",
+        "type": "graph",
+        "span": 6,
+        "targets": [
+          {
+            "expr": "rate(mp_validation_errors_total[5m])",
+            "legendFormat": "{{symbol}} {{error_type}} errors/sec",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "errors/sec",
+            "min": 0
+          }
+        ],
+        "xAxes": [
+          {
+            "mode": "time"
+          }
+        ],
+        "legend": {
+          "show": true
+        }
+      },
+      {
+        "id": 8,
+        "title": "Processing Time",
+        "type": "graph",
+        "span": 12,
+        "targets": [
+          {
+            "expr": "rate(mp_processing_time_seconds_sum[5m]) / rate(mp_processing_time_seconds_count[5m])",
+            "legendFormat": "{{operation}} avg processing time",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "seconds",
+            "min": 0
+          }
+        ],
+        "xAxes": [
+          {
+            "mode": "time"
+          }
+        ],
+        "legend": {
+          "show": true
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "time_options": [
+        "5m",
+        "15m",
+        "1h",
+        "6h",
+        "12h",
+        "24h",
+        "2d",
+        "7d",
+        "30d"
+      ]
+    },
+    "refresh": "10s",
+    "schemaVersion": 16,
+    "version": 1
+  }
+} 

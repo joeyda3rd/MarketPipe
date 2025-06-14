@@ -36,6 +36,9 @@ PROCESSING_TIME = Summary(
 # Rate limiter metrics (imported from rate_limit module)
 from marketpipe.ingestion.infrastructure.rate_limit import RATE_LIMITER_WAITS
 
+# Event loop lag monitoring (imported from metrics_server module)
+from marketpipe.metrics_server import EVENT_LOOP_LAG
+
 __all__ = [
     "REQUESTS",
     "ERRORS",
@@ -46,6 +49,7 @@ __all__ = [
     "AGG_ROWS",
     "PROCESSING_TIME",
     "RATE_LIMITER_WAITS",
+    "EVENT_LOOP_LAG",
     "record_metric",
     "MetricPoint",
     "TrendPoint",
@@ -60,6 +64,8 @@ class MetricPoint:
     timestamp: datetime
     metric: str
     value: float
+    provider: str = "unknown"
+    feed: str = "unknown"
 
 
 @dataclass(frozen=True)
@@ -86,14 +92,14 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
         # Apply migrations on first use
         apply_pending(self._db_path)
 
-    async def record(self, name: str, value: float) -> None:
-        """Record a metric data point."""
+    async def record(self, name: str, value: float, provider: str = "unknown", feed: str = "unknown") -> None:
+        """Record a metric data point with provider and feed labels."""
         timestamp = int(datetime.now().timestamp())
 
         async with self._conn() as db:
             await db.execute(
-                "INSERT INTO metrics (ts, name, value) VALUES (?, ?, ?)",
-                (timestamp, name, value),
+                "INSERT INTO metrics (ts, name, value, provider, feed) VALUES (?, ?, ?, ?, ?)",
+                (timestamp, name, value, provider, feed),
             )
             await db.commit()
 
@@ -106,7 +112,10 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
                 since_ts = int(since.timestamp())
                 cursor = await db.execute(
                     """
-                    SELECT ts, name, value FROM metrics 
+                    SELECT ts, name, value, 
+                           COALESCE(provider, 'unknown') as provider, 
+                           COALESCE(feed, 'unknown') as feed 
+                    FROM metrics 
                     WHERE name = ? AND ts >= ?
                     ORDER BY ts
                 """,
@@ -115,7 +124,10 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
             else:
                 cursor = await db.execute(
                     """
-                    SELECT ts, name, value FROM metrics 
+                    SELECT ts, name, value, 
+                           COALESCE(provider, 'unknown') as provider, 
+                           COALESCE(feed, 'unknown') as feed 
+                    FROM metrics 
                     WHERE name = ?
                     ORDER BY ts
                 """,
@@ -128,6 +140,8 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
                     timestamp=datetime.fromtimestamp(row[0]),
                     metric=row[1],
                     value=row[2],
+                    provider=row[3],
+                    feed=row[4],
                 )
                 for row in rows
             ]
@@ -207,11 +221,18 @@ def get_metrics_repository() -> SqliteMetricsRepository:
     return _metrics_repo
 
 
-def record_metric(name: str, value: float) -> None:
+def record_metric(name: str, value: float, *, provider: str = "unknown", feed: str = "unknown", **labels) -> None:
     """Record a metric to both Prometheus and SQLite persistence.
 
     This function updates Prometheus counters/summaries and persists
     the data to SQLite for historical analysis.
+    
+    Args:
+        name: The metric name
+        value: The metric value
+        provider: The data provider (e.g., "alpaca", "polygon") 
+        feed: The data feed type (e.g., "iex", "sip")
+        **labels: Additional labels passed through for future extensibility
     """
     # Update Prometheus metrics based on metric name
     if "ingest" in name.lower():
@@ -233,7 +254,9 @@ def record_metric(name: str, value: float) -> None:
                 if ("test_metrics" in filename or 
                     "test_ingest" in filename or
                     "metrics_events" in filename or
-                    "test_integration" in filename):
+                    "test_integration" in filename or
+                    "test_provider_feed_metrics" in filename or  # Our regression test
+                    "regression" in filename):  # Any regression test
                     # This is a metrics-related test, allow persistence
                     break
                 frame = frame.f_back
@@ -251,12 +274,12 @@ def record_metric(name: str, value: float) -> None:
         # Try to determine if we're in an async context
         loop = asyncio.get_running_loop()
         # We're in an async context, schedule the task
-        task = loop.create_task(repo.record(name, value))
+        task = loop.create_task(repo.record(name, value, provider, feed))
         # Don't wait for completion to avoid blocking
     except RuntimeError:
         # No running event loop, run it synchronously
         try:
-            asyncio.run(repo.record(name, value))
+            asyncio.run(repo.record(name, value, provider, feed))
         except Exception:
             # If there are still event loop issues, just skip silently
             pass

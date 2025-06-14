@@ -313,6 +313,20 @@ class IngestionCoordinatorService:
         if not job:
             raise IngestionJobNotFoundError(job_id)
 
+        # Extract provider and feed info for metrics
+        provider = "unknown"
+        feed = job.configuration.feed_type if job.configuration else "unknown"
+        
+        # Try to get provider info from the market data provider
+        if hasattr(self._market_data_provider, 'get_provider_info'):
+            provider_info = self._market_data_provider.get_provider_info()
+            provider = provider_info.get("provider", "unknown")
+            feed = provider_info.get("feed_type", feed)
+        elif hasattr(self._market_data_provider, '_feed_type'):
+            # For Alpaca adapter, extract feed type directly
+            feed = getattr(self._market_data_provider, '_feed_type', feed)
+            provider = "alpaca"  # Most common case
+
         start_time = datetime.now(timezone.utc)
         processed_symbols = 0
         failed_symbols = 0
@@ -336,8 +350,8 @@ class IngestionCoordinatorService:
                     # Record symbol-level failure metrics
                     from marketpipe.metrics import record_metric
 
-                    record_metric("ingest_symbol_failures", 1)
-                    record_metric(f"ingest_failures_{symbol.value}", 1)
+                    record_metric("ingest_symbol_failures", 1, provider=provider, feed=feed)
+                    record_metric(f"ingest_failures_{symbol.value}", 1, provider=provider, feed=feed)
                 else:
                     try:
                         bars_count, partition = result
@@ -356,9 +370,9 @@ class IngestionCoordinatorService:
                         # Record success metrics
                         from marketpipe.metrics import record_metric
 
-                        record_metric("ingest_symbols_success", 1)
-                        record_metric("ingest_rows_processed", bars_count)
-                        record_metric(f"ingest_success_{symbol.value}", 1)
+                        record_metric("ingest_symbols_success", 1, provider=provider, feed=feed)
+                        record_metric("ingest_rows_processed", bars_count, provider=provider, feed=feed)
+                        record_metric(f"ingest_success_{symbol.value}", 1, provider=provider, feed=feed)
 
                         # Publish events
                         for event in job.domain_events:
@@ -374,7 +388,7 @@ class IngestionCoordinatorService:
                         # Record metrics
                         from marketpipe.metrics import record_metric
 
-                        record_metric("ingest_symbol_failures", 1)
+                        record_metric("ingest_symbol_failures", 1, provider=provider, feed=feed)
 
             # Job should auto-complete when all symbols are processed
             # Calculate and save final metrics
@@ -384,16 +398,16 @@ class IngestionCoordinatorService:
             # Record job-level metrics
             from marketpipe.metrics import record_metric
 
-            record_metric("ingest_job_duration_seconds", processing_time)
-            record_metric("ingest_job_total_bars", total_bars)
+            record_metric("ingest_job_duration_seconds", processing_time, provider=provider, feed=feed)
+            record_metric("ingest_job_total_bars", total_bars, provider=provider, feed=feed)
 
             # Record success/failure metrics
             if failed_symbols == 0:
-                record_metric("ingest_job_success", 1)
+                record_metric("ingest_job_success", 1, provider=provider, feed=feed)
             else:
                 # Partial success - record mixed results
-                record_metric("ingest_job_partial_success", 1)
-                record_metric("ingest_job_failed_symbols", failed_symbols)
+                record_metric("ingest_job_partial_success", 1, provider=provider, feed=feed)
+                record_metric("ingest_job_failed_symbols", failed_symbols, provider=provider, feed=feed)
 
             return {
                 "job_id": str(job_id),
@@ -411,10 +425,10 @@ class IngestionCoordinatorService:
             # Record failure metrics
             from marketpipe.metrics import record_metric
 
-            record_metric("ingest_job_failures", 1)
+            record_metric("ingest_job_failures", 1, provider=provider, feed=feed)
             if job.symbols:
                 for symbol in job.symbols:
-                    record_metric(f"ingest_failures_{symbol.value}", 1)
+                    record_metric(f"ingest_failures_{symbol.value}", 1, provider=provider, feed=feed)
 
             raise
 
@@ -432,6 +446,20 @@ class IngestionCoordinatorService:
         5. Updates checkpoint
         6. Returns results
         """
+        # Extract provider and feed info for metrics
+        provider = "unknown"
+        feed = job.configuration.feed_type if job.configuration else "unknown"
+        
+        # Try to get provider info from the market data provider
+        if hasattr(self._market_data_provider, 'get_provider_info'):
+            provider_info = self._market_data_provider.get_provider_info()
+            provider = provider_info.get("provider", "unknown")
+            feed = provider_info.get("feed_type", feed)
+        elif hasattr(self._market_data_provider, '_feed_type'):
+            # For Alpaca adapter, extract feed type directly
+            feed = getattr(self._market_data_provider, '_feed_type', feed)
+            provider = "alpaca"  # Most common case
+
         # Check for existing checkpoint
         checkpoint = await self._checkpoint_repository.get_checkpoint(
             job.job_id, symbol
@@ -465,9 +493,9 @@ class IngestionCoordinatorService:
             # Record validation failure metrics but continue with valid data
             from marketpipe.metrics import record_metric
 
-            record_metric("validation_failures", len(validation_result.errors))
+            record_metric("validation_failures", len(validation_result.errors), provider=provider, feed=feed)
             record_metric(
-                f"validation_failures_{symbol.value}", len(validation_result.errors)
+                f"validation_failures_{symbol.value}", len(validation_result.errors), provider=provider, feed=feed
             )
 
             # Use only valid bars if any exist

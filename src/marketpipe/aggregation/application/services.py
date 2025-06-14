@@ -30,6 +30,20 @@ class AggregationRunnerService:
         self._domain = domain
         self.log = logging.getLogger(self.__class__.__name__)
 
+    def _extract_provider_feed_info(self, event: IngestionJobCompleted) -> tuple[str, str]:
+        """Extract provider and feed information from event or defaults."""
+        # Try to get provider/feed from event attributes
+        provider = getattr(event, 'provider', 'unknown')
+        feed = getattr(event, 'feed', 'unknown')
+        
+        # If not available in event, try to infer from job context or use defaults
+        if provider == 'unknown' or feed == 'unknown':
+            # For now, use defaults - in the future we could look up job configuration
+            provider = "unknown" 
+            feed = "unknown"
+            
+        return provider, feed
+
     def handle_ingestion_completed(self, event: IngestionJobCompleted) -> None:
         """Handle IngestionJobCompleted event by running aggregation.
 
@@ -39,10 +53,13 @@ class AggregationRunnerService:
         try:
             self.log.info(f"Starting aggregation for job {event.job_id}")
 
+            # Extract provider/feed info for metrics
+            provider, feed = self._extract_provider_feed_info(event)
+
             # Record aggregation start metrics
             from marketpipe.metrics import record_metric
 
-            record_metric("aggregation_jobs_started", 1)
+            record_metric("aggregation_jobs_started", 1, provider=provider, feed=feed)
 
             # Generate SQL for each frame
             sql_pairs = [
@@ -59,13 +76,13 @@ class AggregationRunnerService:
 
             # Record success metrics
             frames_processed = len(DEFAULT_SPECS)
-            record_metric("aggregation_jobs_success", 1)
-            record_metric("aggregation_frames_processed", frames_processed)
+            record_metric("aggregation_jobs_success", 1, provider=provider, feed=feed)
+            record_metric("aggregation_frames_processed", frames_processed, provider=provider, feed=feed)
 
             # If engine returns row counts, record those too
             if hasattr(result, "total_rows_aggregated"):
                 record_metric(
-                    "aggregation_rows_processed", result.total_rows_aggregated
+                    "aggregation_rows_processed", result.total_rows_aggregated, provider=provider, feed=feed
                 )
 
             # Publish success event
@@ -79,10 +96,13 @@ class AggregationRunnerService:
         except Exception as e:
             self.log.error(f"Aggregation failed for job {event.job_id}: {e}")
 
+            # Extract provider/feed for error metrics too
+            provider, feed = self._extract_provider_feed_info(event)
+
             # Record failure metrics
             from marketpipe.metrics import record_metric
 
-            record_metric("aggregation_jobs_failed", 1)
+            record_metric("aggregation_jobs_failed", 1, provider=provider, feed=feed)
 
             # Publish failure event
             failure_event = AggregationFailed(event.job_id, str(e))
@@ -99,10 +119,10 @@ class AggregationRunnerService:
         """
         self.log.info(f"Running manual aggregation for job {job_id}")
 
-        # Record manual aggregation metrics
+        # Record manual aggregation metrics with defaults
         from marketpipe.metrics import record_metric
 
-        record_metric("aggregation_manual_runs", 1)
+        record_metric("aggregation_manual_runs", 1, provider="manual", feed="manual")
 
         # Create fake event and handle it
         event = IngestionJobCompleted(

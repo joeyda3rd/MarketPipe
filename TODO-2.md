@@ -12,11 +12,12 @@ Owners: see each subsection. All items must keep ≥ 70 % test coverage and gree
   - [x] Add `event_loop_lag_seconds` gauge to confirm no blocking behaviour.  
   - **Implementation Details**: Implemented `AsyncMetricsServer` class with `asyncio.start_server`, added `--legacy-metrics` CLI flag for backward compatibility, comprehensive test suite with 13 test cases, Docker Compose monitoring stack, and Grafana dashboard.
 
-- [ ] **Provider / Feed labels on Parquet and retention metrics** (Owner: Infra)  
-  - [ ] Extend `record_metric()` signature to accept `provider` and `feed` labels.  
-  - [ ] Back-fill label arguments where existing counters or gauges are emitted.  
-  - [ ] Migrate database schema if additional columns are required.  
-  - [ ] Add regression tests verifying that the new labels are present.  
+- [x] **Provider / Feed labels on Parquet and retention metrics** (Owner: Infra) ✅ **COMPLETED 2024-12-19**
+  - [x] Extend `record_metric()` signature to accept `provider` and `feed` labels.  
+  - [x] Back-fill label arguments where existing counters or gauges are emitted.  
+  - [x] Migrate database schema if additional columns are required.  
+  - [x] Add regression tests verifying that the new labels are present.
+  - **Implementation Details**: Extended `record_metric()` function with optional `provider` and `feed` keyword arguments (default "unknown"). Updated all metric emission sites in ingestion, validation, and aggregation services to include provider/feed labels. Added database migration (003) to add `provider` and `feed` columns to metrics table with backward compatibility. Created comprehensive regression test suite with 6 test cases covering all functionality. Fixed migration system to handle duplicate applications gracefully.
 
 - [x] **Grafana dashboard JSON** (Owner: Infra) ✅ **COMPLETED 2024-12-19**
   - [x] Create panels for CPU usage, event-loop lag, rate-limit waits, ingestion throughput.  

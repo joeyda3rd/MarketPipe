@@ -41,11 +41,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _extract_provider_feed_from_event(event) -> tuple[str, str]:
+    """Extract provider and feed information from any event."""
+    provider = getattr(event, 'provider', 'unknown')
+    feed = getattr(event, 'feed', 'unknown')
+    return provider, feed
+
+
 def _handle_ingestion_completed(event: IngestionJobCompleted) -> None:
     """Handle ingestion job completion events."""
     try:
+        # Extract provider/feed info
+        provider, feed = _extract_provider_feed_from_event(event)
+        
         # Record general ingestion metrics
-        record_metric("ingest_jobs", 1)
+        record_metric("ingest_jobs", 1, provider=provider, feed=feed)
 
         # Update Prometheus counters
         if event.success:
@@ -53,14 +63,14 @@ def _handle_ingestion_completed(event: IngestionJobCompleted) -> None:
             # Record per-symbol ingestion
             if hasattr(event, "symbol") and event.symbol:
                 INGEST_ROWS.labels(symbol=str(event.symbol)).inc(event.bars_processed)
-                record_metric(f"ingest_bars_{event.symbol}", event.bars_processed)
+                record_metric(f"ingest_bars_{event.symbol}", event.bars_processed, provider=provider, feed=feed)
         else:
             ERRORS.labels(source="ingestion", code="job_failed").inc()
-            record_metric("ingest_failures", 1)
+            record_metric("ingest_failures", 1, provider=provider, feed=feed)
 
         # Record job processing metrics
         if hasattr(event, "processing_time_seconds"):
-            record_metric("ingest_processing_time", event.processing_time_seconds)
+            record_metric("ingest_processing_time", event.processing_time_seconds, provider=provider, feed=feed)
 
         logger.debug(f"Recorded metrics for ingestion job completion: {event.job_id}")
 
@@ -71,7 +81,10 @@ def _handle_ingestion_completed(event: IngestionJobCompleted) -> None:
 def _handle_validation_completed(event: ValidationCompleted) -> None:
     """Handle validation completion events."""
     try:
-        record_metric("validation_jobs", 1)
+        # Extract provider/feed info
+        provider, feed = _extract_provider_feed_from_event(event)
+        
+        record_metric("validation_jobs", 1, provider=provider, feed=feed)
 
         # Record validation success
         REQUESTS.labels(source="validation").inc()
@@ -79,7 +92,7 @@ def _handle_validation_completed(event: ValidationCompleted) -> None:
         # Extract symbol from the validation result
         if hasattr(event, "result") and hasattr(event.result, "symbol"):
             symbol = event.result.symbol
-            record_metric(f"validation_completed_{symbol}", 1)
+            record_metric(f"validation_completed_{symbol}", 1, provider=provider, feed=feed)
 
         logger.debug("Recorded metrics for validation completion")
 
@@ -90,13 +103,16 @@ def _handle_validation_completed(event: ValidationCompleted) -> None:
 def _handle_validation_failed(event: ValidationFailed) -> None:
     """Handle validation failure events."""
     try:
+        # Extract provider/feed info
+        provider, feed = _extract_provider_feed_from_event(event)
+        
         # Record validation error metrics with proper labels
         symbol = str(event.symbol)
         error_type = getattr(event, "rule_id", "unknown")
 
         VALIDATION_ERRORS.labels(symbol=symbol, error_type=error_type).inc()
-        record_metric("validation_errors", 1)
-        record_metric(f"validation_errors_{symbol}", 1)
+        record_metric("validation_errors", 1, provider=provider, feed=feed)
+        record_metric(f"validation_errors_{symbol}", 1, provider=provider, feed=feed)
 
         # Update Prometheus error counter
         ERRORS.labels(source="validation", code="validation_failed").inc()
@@ -110,7 +126,10 @@ def _handle_validation_failed(event: ValidationFailed) -> None:
 def _handle_aggregation_completed(event: AggregationCompleted) -> None:
     """Handle aggregation completion events."""
     try:
-        record_metric("aggregation_jobs", 1)
+        # Extract provider/feed info
+        provider, feed = _extract_provider_feed_from_event(event)
+        
+        record_metric("aggregation_jobs", 1, provider=provider, feed=feed)
 
         # Record aggregation success
         REQUESTS.labels(source="aggregation").inc()
@@ -122,7 +141,7 @@ def _handle_aggregation_completed(event: AggregationCompleted) -> None:
             symbol = getattr(event, "symbol", "ALL")  # Default symbol
 
             AGG_ROWS.labels(frame=frame, symbol=symbol).inc(event.frames_processed)
-            record_metric("aggregation_frames", event.frames_processed)
+            record_metric("aggregation_frames", event.frames_processed, provider=provider, feed=feed)
 
         logger.debug(f"Recorded metrics for aggregation completion: {event.job_id}")
 
@@ -133,14 +152,17 @@ def _handle_aggregation_completed(event: AggregationCompleted) -> None:
 def _handle_aggregation_failed(event: AggregationFailed) -> None:
     """Handle aggregation failure events."""
     try:
-        record_metric("aggregation_failures", 1)
+        # Extract provider/feed info
+        provider, feed = _extract_provider_feed_from_event(event)
+        
+        record_metric("aggregation_failures", 1, provider=provider, feed=feed)
 
         # Record aggregation error
         ERRORS.labels(source="aggregation", code="job_failed").inc()
 
         # Record frame-specific failure if available
         frame = getattr(event, "frame", "unknown")
-        record_metric(f"aggregation_failures_{frame}", 1)
+        record_metric(f"aggregation_failures_{frame}", 1, provider=provider, feed=feed)
 
         logger.debug(f"Recorded metrics for aggregation failure: {event.job_id}")
 
@@ -151,6 +173,9 @@ def _handle_aggregation_failed(event: AggregationFailed) -> None:
 def _track_domain_ingestion_metrics(event: DomainIngestionJobCompleted) -> None:
     """Track ingestion job metrics from domain events."""
     try:
+        # Extract provider/feed info
+        provider, feed = _extract_provider_feed_from_event(event)
+        
         if event.success:
             REQUESTS.labels(vendor="ingestion").inc()
         else:
@@ -164,9 +189,12 @@ def _track_domain_ingestion_metrics(event: DomainIngestionJobCompleted) -> None:
 def _track_domain_validation_metrics(event: DomainValidationFailed) -> None:
     """Track validation failure metrics from domain events."""
     try:
+        # Extract provider/feed info
+        provider, feed = _extract_provider_feed_from_event(event)
+        
         ERRORS.labels(vendor="validation", status_code="validation_failed").inc()
         
-        logger.debug(f"Recorded domain validation metrics for: {event.symbol}")
+        logger.debug(f"Recorded domain validation metrics for symbol: {event.symbol}")
     except Exception as e:
         logger.error(f"Failed to record domain validation metrics: {e}")
 
