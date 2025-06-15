@@ -173,7 +173,10 @@ class TestPostgresPoolRaceCondition:
         # Mock asyncpg.create_pool to track calls
         with patch('asyncpg.create_pool') as mock_create_pool:
             mock_pool = AsyncMock()
-            mock_create_pool.return_value = mock_pool
+            # Return the mock directly, not as a coroutine
+            async def mock_create_pool_func(*args, **kwargs):
+                return mock_pool
+            mock_create_pool.side_effect = mock_create_pool_func
             
             # Simulate concurrent calls to _get_pool
             tasks = [repo._get_pool() for _ in range(5)]

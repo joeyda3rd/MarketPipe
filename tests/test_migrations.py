@@ -44,6 +44,7 @@ class TestAlembicMigrations:
             expected_tables = [
                 'alembic_version',
                 'checkpoints',
+                'ingestion_jobs',
                 'metrics', 
                 'ohlcv_bars',
                 'symbol_bars_aggregates'
@@ -62,7 +63,7 @@ class TestAlembicMigrations:
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute("SELECT version_num FROM alembic_version")
             version = cursor.fetchone()[0]
-            assert version == "0004"
+            assert version == "0005"
 
     def test_alembic_current_command(self, tmp_path):
         """Test alembic current command works."""
@@ -98,7 +99,7 @@ class TestAlembicMigrations:
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute("SELECT version_num FROM alembic_version")
             version = cursor.fetchone()[0]
-            assert version == "0004"
+            assert version == "0005"
 
     def test_ohlcv_columns_after_migration(self, tmp_path):
         """Test that OHLCV table has all expected columns after migration."""
@@ -176,6 +177,7 @@ class TestPostgresMigrations:
                 conn.execute(text("DROP TABLE IF EXISTS ohlcv_bars CASCADE"))
                 conn.execute(text("DROP TABLE IF EXISTS checkpoints CASCADE"))
                 conn.execute(text("DROP TABLE IF EXISTS metrics CASCADE"))
+                conn.execute(text("DROP TABLE IF EXISTS ingestion_jobs CASCADE"))
                 conn.commit()
             
             # Run migrations
@@ -193,6 +195,7 @@ class TestPostgresMigrations:
                 expected_tables = [
                     'alembic_version',
                     'checkpoints',
+                    'ingestion_jobs',
                     'metrics',
                     'ohlcv_bars', 
                     'symbol_bars_aggregates'
@@ -220,7 +223,7 @@ class TestPostgresMigrations:
             with engine.connect() as conn:
                 result = conn.execute(text("SELECT version_num FROM alembic_version"))
                 version = result.fetchone()[0]
-                assert version == "0004"
+                assert version == "0005"
                 
         except Exception as e:
             pytest.skip(f"Postgres test failed (likely no running Postgres): {e}")
