@@ -65,7 +65,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                     (symbol, day, state, payload, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                    (str(job.symbol), job.day, job.state.value, payload, job.created_at, now),
+                    (str(job.job_id.symbol), job.job_id.day, job.state.value, payload, job.created_at, now),
                 )
                 await db.commit()
 

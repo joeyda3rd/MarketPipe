@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import List, Optional, Set
 from uuid import UUID, uuid4
+import abc
 
 from marketpipe.domain.entities import Entity, EntityId
 from marketpipe.domain.events import DomainEvent
@@ -25,24 +26,88 @@ class ProcessingState(Enum):
     CANCELLED = "cancelled"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True, init=False)
 class IngestionJobId:
-    """Unique identifier for an ingestion job."""
+    """Identifier for an ingestion job.
 
-    value: UUID
+    This value object supports two representations for backwards-compatibility:
+
+    1. **Composite key** – the preferred format which encodes the *symbol* and
+       *trading day* using the pattern ``<SYMBOL>_<YYYY-MM-DD>``.
+       Example: ``AAPL_2024-06-15``.
+
+    2. **Opaque/legacy ID** – any arbitrary string (historically a UUID or a
+       free-form text used by older tests). In this case the ``symbol`` and
+       ``day`` properties return ``None``.
+    """
+
+    _raw: str
+
+    def __init__(self, value_or_symbol: str | Symbol, day: str | None = None):
+        """Create a new *IngestionJobId*.
+
+        Args:
+            value_or_symbol: Either a full identifier string *or* the symbol
+                component when constructing a composite key.
+            day: Optional trading day component (``YYYY-MM-DD``). If provided,
+                a composite key will be created; otherwise *value_or_symbol*
+                is treated as a fully-formed identifier.
+        """
+
+        # Resolve the raw identifier string that will be stored internally.
+        if day is None:
+            raw = str(value_or_symbol)
+        else:
+            # Ensure we have a valid ``Symbol`` instance for type safety.
+            sym = value_or_symbol if isinstance(value_or_symbol, Symbol) else Symbol(str(value_or_symbol))
+            raw = f"{sym}_{day}"
+
+        object.__setattr__(self, "_raw", raw)
+
+    # ------------------------------------------------------------------
+    # Convenience constructors
+    # ------------------------------------------------------------------
+    @classmethod
+    def generate(cls) -> "IngestionJobId":
+        """Generate a random opaque identifier (UUID4)."""
+        return cls(str(uuid4()))
 
     @classmethod
-    def generate(cls) -> IngestionJobId:
-        """Generate a new unique ID."""
-        return cls(uuid4())
+    def from_string(cls, id_str: str) -> "IngestionJobId":
+        """Create an *IngestionJobId* from its string representation."""
+        return cls(id_str)
 
-    @classmethod
-    def from_string(cls, id_str: str) -> IngestionJobId:
-        """Create from string representation."""
-        return cls(UUID(id_str))
+    # ------------------------------------------------------------------
+    # Accessors / helpers
+    # ------------------------------------------------------------------
+    @property
+    def value(self) -> str:  # Backwards compatibility alias
+        """Return the underlying *raw* identifier string."""
+        return self._raw
 
-    def __str__(self) -> str:
-        return str(self.value)
+    # The repository now expects ``symbol`` and ``day`` attributes. These are
+    # parsed on-demand and return *None* when the identifier does not conform
+    # to the composite format.
+    @property
+    def symbol(self) -> Optional[Symbol]:
+        """Extract the *symbol* component if available."""
+        parts = self._raw.split("_", 1)
+        return Symbol(parts[0]) if len(parts) == 2 else None
+
+    @property
+    def day(self) -> Optional[str]:
+        """Extract the *day* (``YYYY-MM-DD``) component if available."""
+        parts = self._raw.split("_", 1)
+        return parts[1] if len(parts) == 2 else None
+
+    # ------------------------------------------------------------------
+    # String / representation helpers
+    # ------------------------------------------------------------------
+    def __str__(self) -> str:  # noqa: DunderStr
+        return self._raw
+
+    def __repr__(self) -> str:  # noqa: DunderRepr
+        return f"IngestionJobId('{self._raw}')"
 
 
 class IngestionJob(Entity):
