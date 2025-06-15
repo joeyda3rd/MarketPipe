@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import List, Optional, Set
 from uuid import UUID, uuid4
 import abc
+import re
 
 from marketpipe.domain.entities import Entity, EntityId
 from marketpipe.domain.events import DomainEvent
@@ -85,20 +86,43 @@ class IngestionJobId:
         """Return the underlying *raw* identifier string."""
         return self._raw
 
-    # The repository now expects ``symbol`` and ``day`` attributes. These are
-    # parsed on-demand and return *None* when the identifier does not conform
-    # to the composite format.
+    _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}$")
+
+    def _decompose(self) -> tuple[Optional[str], Optional[str]]:
+        """Return `(symbol_str, day_str)` if identifier is composite, else `(None, None)`."""
+        parts = self._raw.rsplit("_", 1)
+        if len(parts) != 2:
+            return None, None
+
+        symbol_part, day_part = parts
+
+        # Validate that the *day* portion looks like a YYYY-MM-DD date. This guards
+        # against treating opaque/legacy identifiers that merely contain an
+        # underscore as composite keys.
+        if not self._DATE_RE.fullmatch(day_part):
+            return None, None
+
+        return symbol_part, day_part
+
     @property
     def symbol(self) -> Optional[Symbol]:
-        """Extract the *symbol* component if available."""
-        parts = self._raw.split("_", 1)
-        return Symbol(parts[0]) if len(parts) == 2 else None
+        """Extract the *symbol* component if available (composite IDs only)."""
+        symbol_part, _ = self._decompose()
+        if symbol_part is None:
+            return None
+
+        try:
+            return Symbol(symbol_part)
+        except ValueError:
+            # If the symbol part does not pass validation (e.g., legacy formats),
+            # treat the identifier as opaque.
+            return None
 
     @property
     def day(self) -> Optional[str]:
         """Extract the *day* (``YYYY-MM-DD``) component if available."""
-        parts = self._raw.split("_", 1)
-        return parts[1] if len(parts) == 2 else None
+        _, day_part = self._decompose()
+        return day_part
 
     # ------------------------------------------------------------------
     # String / representation helpers
