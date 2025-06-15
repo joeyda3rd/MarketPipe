@@ -151,6 +151,36 @@ marketpipe ingest --provider iex --symbols AAPL --start 2024-01-01 --end 2024-01
 - `--output`: Output directory for data files (default: ./data)
 - `--workers`: Number of worker threads (default: 4)
 
+### Database Backends
+
+MarketPipe supports multiple database backends for job state and metadata storage:
+
+```bash
+# SQLite (default) - no configuration needed
+marketpipe ingest --provider fake --symbols TEST --start 2024-01-01 --end 2024-01-02
+
+# PostgreSQL - set DATABASE_URL environment variable
+export DATABASE_URL="postgresql://user:pass@localhost:5432/marketpipe"
+marketpipe ingest --provider fake --symbols TEST --start 2024-01-01 --end 2024-01-02
+```
+
+#### Supported Database URLs
+
+- **SQLite**: `sqlite:///path/to/database.db` (default)
+- **PostgreSQL**: `postgresql://user:pass@host:port/dbname`
+- **PostgreSQL with asyncpg**: `postgresql+asyncpg://user:pass@host:port/dbname`
+
+The repository backend is automatically selected based on the `DATABASE_URL` environment variable. PostgreSQL provides enhanced concurrency with `SELECT FOR UPDATE SKIP LOCKED` for multi-worker job claiming.
+
+#### Version History
+
+**v0.2 β** - Database Backend Support
+- ✅ **PostgreSQL Support**: Full async PostgreSQL backend with connection pooling
+- ✅ **Auto-selection**: Automatic backend selection via `DATABASE_URL` environment variable  
+- ✅ **Rich Domain Model**: JSONB storage for complete domain model serialization
+- ✅ **Simple API Adapter**: CLI-friendly interface with case-insensitive status handling
+- ✅ **Production Features**: Connection pooling, metrics, proper error handling
+
 ### Metrics and Monitoring
 
 MarketPipe includes a built-in async metrics server for Prometheus monitoring:
