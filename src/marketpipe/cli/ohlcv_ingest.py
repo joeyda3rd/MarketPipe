@@ -36,7 +36,7 @@ from marketpipe.infrastructure.repositories.sqlite_domain import (
     SqliteOHLCVRepository,
 )
 from marketpipe.infrastructure.events import InMemoryEventPublisher
-from marketpipe.config import IngestionJobConfig
+from marketpipe.config import IngestionJobConfig, load_config, ConfigVersionError
 from marketpipe.domain.events import IngestionJobCompleted
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 from marketpipe.validation.domain.services import ValidationDomainService
@@ -163,7 +163,11 @@ def _ingest_impl(
         if config is not None:
             # Load from YAML file
             print(f"📄 Loading configuration from: {config}")
-            job_config = IngestionJobConfig.from_yaml(config)
+            try:
+                job_config = load_config(config)
+            except ConfigVersionError as e:
+                print(f"❌ Configuration version error: {e}")
+                raise typer.Exit(1)
 
             # Apply CLI overrides if provided
             overrides = {

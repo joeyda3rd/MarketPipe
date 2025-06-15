@@ -6,12 +6,16 @@ from __future__ import annotations
 import os
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Literal
 
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 PathLike = Union[str, Path]
+
+# Configuration versioning constants
+CURRENT_CONFIG_VERSION = "1"
+MIN_SUPPORTED_VERSION = "1"
 
 
 class IngestionJobConfig(BaseModel):
@@ -21,6 +25,10 @@ class IngestionJobConfig(BaseModel):
     from YAML files with snake_case or kebab-case field names.
     """
 
+    config_version: str = Field(
+        default=CURRENT_CONFIG_VERSION,
+        description="Configuration schema version"
+    )
     symbols: List[str] = Field(
         ...,
         description="List of stock symbols to ingest (e.g., ['AAPL', 'MSFT'])",
@@ -42,6 +50,9 @@ class IngestionJobConfig(BaseModel):
         default="./data", description="Output directory for data files"
     )
     workers: int = Field(default=4, description="Number of worker threads", ge=1, le=32)
+
+    class Config:
+        extra = "forbid"  # Reject unknown keys
 
     @field_validator("symbols")
     @classmethod
@@ -113,8 +124,10 @@ class IngestionJobConfig(BaseModel):
     def from_yaml(cls, path: PathLike) -> IngestionJobConfig:
         """Load configuration from YAML file.
 
-        Supports both snake_case and kebab-case field names in YAML.
-        Environment variables in the YAML file are expanded.
+        DEPRECATED: Use load_config() from marketpipe.config.loader instead.
+        
+        This method is kept for backward compatibility but now delegates
+        to the new centralized loader with version validation.
 
         Args:
             path: Path to YAML configuration file
@@ -126,66 +139,11 @@ class IngestionJobConfig(BaseModel):
             FileNotFoundError: If the YAML file doesn't exist
             ValueError: If the YAML is invalid or contains invalid configuration
         """
-        yaml_path = Path(path)
-        if not yaml_path.exists():
-            raise FileNotFoundError(f"Configuration file not found: {path}")
+        # Import here to avoid circular imports
+        from .loader import load_config
+        return load_config(path)
 
-        try:
-            with open(yaml_path, "r") as f:
-                yaml_content = f.read()
 
-            # Expand environment variables
-            expanded_content = os.path.expandvars(yaml_content)
-
-            # Load YAML
-            raw_data = yaml.safe_load(expanded_content)
-            if not isinstance(raw_data, dict):
-                raise ValueError(
-                    "YAML file must contain a dictionary at the root level"
-                )
-
-            # Convert kebab-case to snake_case for compatibility
-            normalized_data = cls._normalize_yaml_keys(raw_data)
-
-            return cls(**normalized_data)
-
-        except yaml.YAMLError as e:
-            raise ValueError(f"Invalid YAML in configuration file: {e}") from e
-        except Exception as e:
-            raise ValueError(f"Failed to load configuration from {path}: {e}") from e
-
-    @staticmethod
-    def _normalize_yaml_keys(data: Dict[str, Any]) -> Dict[str, Any]:
-        """Normalize YAML keys from kebab-case to snake_case.
-
-        Args:
-            data: Raw YAML data dictionary
-
-        Returns:
-            Dictionary with normalized keys
-        """
-        key_mapping = {
-            # kebab-case -> snake_case
-            "batch-size": "batch_size",
-            "feed-type": "feed_type",
-            "output-path": "output_path",
-            # snake_case (no change)
-            "symbols": "symbols",
-            "start": "start",
-            "end": "end",
-            "batch_size": "batch_size",
-            "provider": "provider",
-            "feed_type": "feed_type",
-            "output_path": "output_path",
-            "workers": "workers",
-        }
-
-        normalized = {}
-        for key, value in data.items():
-            normalized_key = key_mapping.get(key, key)
-            normalized[normalized_key] = value
-
-        return normalized
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation.
