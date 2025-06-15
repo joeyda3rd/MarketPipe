@@ -35,8 +35,8 @@ def upgrade() -> None:
         'ingestion_jobs',
         sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('symbol', sa.String(20), nullable=False),
-        sa.Column('trading_date', sa.Date(), nullable=False),
-        sa.Column('status', sa.String(20), nullable=False),
+        sa.Column('day', sa.Date(), nullable=False),
+        sa.Column('state', sa.String(20), nullable=False),
         payload_column,
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
@@ -46,13 +46,13 @@ def upgrade() -> None:
         sa.Column('retry_count', sa.Integer(), nullable=False, server_default='0'),
         sa.Column('retry_after', sa.TIMESTAMP(timezone=True), nullable=True),
         # Define unique constraint inline for SQLite compatibility
-        sa.UniqueConstraint('symbol', 'trading_date', name='uq_ingestion_jobs_symbol_date'),
+        sa.UniqueConstraint('symbol', 'day', name='uq_ingestion_jobs_symbol_day'),
     )
     
     # Create indexes for efficient querying
-    op.create_index('idx_ingestion_jobs_status', 'ingestion_jobs', ['status'])
+    op.create_index('idx_ingestion_jobs_state', 'ingestion_jobs', ['state'])
     op.create_index('idx_ingestion_jobs_created_at', 'ingestion_jobs', ['created_at'])
-    op.create_index('idx_ingestion_jobs_trading_date', 'ingestion_jobs', ['trading_date'])
+    op.create_index('idx_ingestion_jobs_day', 'ingestion_jobs', ['day'])
     
     # PostgreSQL-specific optimizations
     if is_postgresql:
@@ -101,9 +101,9 @@ def downgrade() -> None:
         op.drop_index('idx_ingestion_jobs_payload_gin', table_name='ingestion_jobs')
     
     # Drop indexes (they'll be dropped with the table, but being explicit)
-    op.drop_index('idx_ingestion_jobs_trading_date', table_name='ingestion_jobs')
+    op.drop_index('idx_ingestion_jobs_day', table_name='ingestion_jobs')
     op.drop_index('idx_ingestion_jobs_created_at', table_name='ingestion_jobs')
-    op.drop_index('idx_ingestion_jobs_status', table_name='ingestion_jobs')
+    op.drop_index('idx_ingestion_jobs_state', table_name='ingestion_jobs')
     
     # Drop table (this will also drop the unique constraint defined inline)
     op.drop_table('ingestion_jobs') 
