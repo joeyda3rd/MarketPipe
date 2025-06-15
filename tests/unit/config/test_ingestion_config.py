@@ -169,6 +169,7 @@ class TestIngestionJobConfig:
     def test_load_yaml_success(self):
         """Test successful YAML loading."""
         yaml_content = """
+config_version: "1"
 symbols: [AAPL, MSFT, NVDA]
 start: 2025-06-01
 end: 2025-06-07
@@ -200,6 +201,7 @@ workers: 8
     def test_load_yaml_kebab_case(self):
         """Test YAML loading with kebab-case field names."""
         yaml_content = """
+config_version: "1"
 symbols: [AAPL, MSFT]
 start: 2025-06-01
 end: 2025-06-07
@@ -229,6 +231,7 @@ output-path: ./kebab_data
     def test_load_yaml_invalid_yaml(self):
         """Test YAML loading with invalid YAML syntax."""
         invalid_yaml = """
+config_version: "1"
 symbols: [AAPL, MSFT
 start: 2025-06-01
 end: 2025-06-07
@@ -247,6 +250,7 @@ end: 2025-06-07
     def test_load_yaml_invalid_config(self):
         """Test YAML loading with invalid configuration values."""
         invalid_config = """
+config_version: "1"
 symbols: []  # Empty symbols list
 start: 2025-06-01
 end: 2025-06-07
@@ -296,6 +300,7 @@ end: 2025-06-07
         """Test that CLI flags override YAML config values."""
         # Create a YAML config
         yaml_content = """
+config_version: "1"
 symbols: [AAPL, MSFT]
 start: 2025-06-01
 end: 2025-06-07

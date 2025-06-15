@@ -3,6 +3,9 @@
 # This file demonstrates how to configure ingestion jobs using YAML.
 # You can use either snake_case or kebab-case for field names.
 
+# Required: Configuration schema version
+config_version: "1"
+
 # Required: List of stock symbols to ingest
 symbols: [AAPL, MSFT, NVDA]
 

@@ -19,6 +19,7 @@ class TestIngestCliConfig:
     def test_config_file_loading(self):
         """Test that config file is loaded correctly."""
         yaml_content = """
+config_version: "1"
 symbols: [AAPL, MSFT]
 start: 2025-01-01
 end: 2025-01-07
@@ -63,6 +64,7 @@ workers: 8
     def test_config_override_with_flags(self):
         """Test that CLI flags override config file values."""
         yaml_content = """
+config_version: "1"
 symbols: [AAPL]
 start: 2025-01-01
 end: 2025-01-07
@@ -171,6 +173,7 @@ workers: 4
     def test_kebab_case_config_loading(self):
         """Test that kebab-case config fields are handled correctly."""
         yaml_content = """
+config_version: "1"
 symbols: [TESLA]
 start: 2025-03-01
 end: 2025-03-07
@@ -215,6 +218,7 @@ output-path: ./test_output
     def test_invalid_yaml_syntax_error(self):
         """Test that invalid YAML syntax produces proper error."""
         invalid_yaml = """
+config_version: "1"
 symbols: [AAPL, MSFT
 start: 2025-01-01
 end: 2025-01-07

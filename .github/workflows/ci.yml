@@ -26,6 +26,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e '.[dev]' pytest-timeout
 
+      - name: Check config version consistency
+        run: |
+          python -c "
+          import re
+          from pathlib import Path
+          
+          # Read the version constants
+          config_file = Path('src/marketpipe/config/ingestion.py').read_text()
+          current_match = re.search(r'CURRENT_CONFIG_VERSION\s*=\s*[\"\'](.*?)[\"\']', config_file)
+          min_match = re.search(r'MIN_SUPPORTED_VERSION\s*=\s*[\"\'](.*?)[\"\']', config_file)
+          
+          if not current_match or not min_match:
+              raise RuntimeError('Could not find version constants in config file')
+          
+          current_ver = current_match.group(1)
+          min_ver = min_match.group(1)
+          
+          print(f'✅ Found CURRENT_CONFIG_VERSION: {current_ver}')
+          print(f'✅ Found MIN_SUPPORTED_VERSION: {min_ver}')
+          
+          # Basic consistency checks
+          if not current_ver or not min_ver:
+              raise ValueError('Version constants cannot be empty')
+              
+          if min_ver > current_ver:
+              raise ValueError(f'MIN_SUPPORTED_VERSION ({min_ver}) cannot be greater than CURRENT_CONFIG_VERSION ({current_ver})')
+          
+          print('✅ Configuration version constants are consistent')
+          "
+
       - name: Run tests (SQLite)
         run: |
           mkdir -p tmp/coverage
@@ -83,6 +113,36 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e '.[dev]' pytest-timeout          # asyncpg pulled in via extras
+
+      - name: Check config version consistency
+        run: |
+          python -c "
+          import re
+          from pathlib import Path
+          
+          # Read the version constants
+          config_file = Path('src/marketpipe/config/ingestion.py').read_text()
+          current_match = re.search(r'CURRENT_CONFIG_VERSION\s*=\s*[\"\'](.*?)[\"\']', config_file)
+          min_match = re.search(r'MIN_SUPPORTED_VERSION\s*=\s*[\"\'](.*?)[\"\']', config_file)
+          
+          if not current_match or not min_match:
+              raise RuntimeError('Could not find version constants in config file')
+          
+          current_ver = current_match.group(1)
+          min_ver = min_match.group(1)
+          
+          print(f'✅ Found CURRENT_CONFIG_VERSION: {current_ver}')
+          print(f'✅ Found MIN_SUPPORTED_VERSION: {min_ver}')
+          
+          # Basic consistency checks
+          if not current_ver or not min_ver:
+              raise ValueError('Version constants cannot be empty')
+              
+          if min_ver > current_ver:
+              raise ValueError(f'MIN_SUPPORTED_VERSION ({min_ver}) cannot be greater than CURRENT_CONFIG_VERSION ({current_ver})')
+          
+          print('✅ Configuration version constants are consistent')
+          "
 
       # Safety: wait a few extra seconds so pg_isready finishes
       - name: Wait for Postgres

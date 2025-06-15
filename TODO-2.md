@@ -31,11 +31,12 @@ Owners: see each subsection. All items must keep ≥ 70 % test coverage and gree
   - **Implementation Details**: Created comprehensive Grafana dashboard with 8 panels covering request rates, error rates, latency percentiles, event loop lag, ingestion metrics, validation errors, rate limiter waits, and data quality tracking.
 
 ## 2  Configuration Management
-- [ ] **Config versioning** (Owner: Config)  
-  - [ ] Add `config_version` field to YAML schema (default `1`).  
-  - [ ] Implement validator that warns on unknown versions and fails on unsupported versions.  
-  - [ ] Unit-test forward and backward compatibility.  
-  - [ ] Add CI guard that fails if schema changes without version bump.
+- [x] **Config versioning** (Owner: Config) ✅ **COMPLETED 2024-12-19**
+  - [x] Add `config_version` field to YAML schema (default `1`).  
+  - [x] Implement validator that warns on unknown versions and fails on unsupported versions.  
+  - [x] Unit-test forward and backward compatibility.  
+  - [x] Add CI guard that fails if schema changes without version bump.
+  - **Implementation Details**: Added centralized configuration loader with version validation, updated IngestionJobConfig model with versioning support, implemented kebab-case to snake_case normalization, comprehensive test suite covering all scenarios, CI guard for version consistency, and documentation for migration and usage.
 
 ## 3  Core Runtime
 - [ ] **PostgresIngestionJobRepository** (Owner: Infra)  
