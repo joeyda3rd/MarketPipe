@@ -57,6 +57,19 @@ from marketpipe.ingestion.infrastructure.rate_limit import RATE_LIMITER_WAITS
 # Event loop lag monitoring (imported from metrics_server module)
 from marketpipe.metrics_server import EVENT_LOOP_LAG
 
+# Backfill metrics
+BACKFILL_GAPS_FOUND_TOTAL = Counter(
+    "mp_backfill_gaps_found_total",
+    "Total number of per-symbol gaps detected for backfill",
+    ["symbol"],
+)
+BACKFILL_GAP_LATENCY_SECONDS = Histogram(
+    "mp_backfill_gap_latency_seconds",
+    "Duration of individual gap back-fill runs",
+    ["symbol"],
+    buckets=[0.5, 1, 2, 5, 10, 30, 60, 120],
+)
+
 __all__ = [
     "REQUESTS",
     "ERRORS", 
@@ -71,6 +84,8 @@ __all__ = [
     "PROCESSING_TIME",
     "RATE_LIMITER_WAITS",
     "EVENT_LOOP_LAG",
+    "BACKFILL_GAPS_FOUND_TOTAL",
+    "BACKFILL_GAP_LATENCY_SECONDS",
     "record_metric",
     "MetricPoint",
     "TrendPoint",

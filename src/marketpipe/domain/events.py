@@ -469,6 +469,72 @@ class SymbolDeactivated(DomainEvent):
         }
 
 
+@dataclass(frozen=True)
+class BackfillJobCompleted(DomainEvent):
+    """Event raised when a per-symbol/day back-fill job completes successfully."""
+
+    symbol: Symbol
+    trading_date: date
+    duration_seconds: float
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
+
+    def __post_init__(self):
+        if self.event_id is None:
+            object.__setattr__(self, "event_id", uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
+
+    @property
+    def event_type(self) -> str:  # noqa: D401
+        return "backfill_job_completed"
+
+    @property
+    def aggregate_id(self) -> str:
+        return f"{self.symbol}_{self.trading_date.isoformat()}"
+
+    def _get_event_data(self) -> Dict[str, Any]:
+        return {
+            "symbol": str(self.symbol),
+            "trading_date": self.trading_date.isoformat(),
+            "duration_seconds": self.duration_seconds,
+        }
+
+
+@dataclass(frozen=True)
+class BackfillJobFailed(DomainEvent):
+    """Event raised when a per-symbol/day back-fill job fails."""
+
+    symbol: Symbol
+    trading_date: date
+    error_message: str
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
+
+    def __post_init__(self):
+        if self.event_id is None:
+            object.__setattr__(self, "event_id", uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
+
+    @property
+    def event_type(self) -> str:  # noqa: D401
+        return "backfill_job_failed"
+
+    @property
+    def aggregate_id(self) -> str:
+        return f"{self.symbol}_{self.trading_date.isoformat()}"
+
+    def _get_event_data(self) -> Dict[str, Any]:
+        return {
+            "symbol": str(self.symbol),
+            "trading_date": self.trading_date.isoformat(),
+            "error": self.error_message,
+        }
+
+
 # Event type registry for deserialization
 EVENT_TYPE_REGISTRY = {
     "bar_collection_started": BarCollectionStarted,
@@ -481,6 +547,8 @@ EVENT_TYPE_REGISTRY = {
     "rate_limit_exceeded": RateLimitExceeded,
     "symbol_activated": SymbolActivated,
     "symbol_deactivated": SymbolDeactivated,
+    "backfill_job_completed": BackfillJobCompleted,
+    "backfill_job_failed": BackfillJobFailed,
 }
 
 
