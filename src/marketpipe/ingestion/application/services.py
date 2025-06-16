@@ -419,8 +419,17 @@ class IngestionCoordinatorService:
             }
 
         except Exception as e:
-            # Mark job as failed
-            await self._job_service.fail_job(FailJobCommand(job_id, str(e)))
+            # Only fail the job if it's still in progress
+            # If it's already completed, don't try to fail it
+            try:
+                job = await self._job_repository.get_by_id(job_id)
+                if job and job.can_fail:
+                    await self._job_service.fail_job(FailJobCommand(job_id, str(e)))
+                else:
+                    # Job is already completed/failed, just log the error
+                    print(f"Warning: Error occurred after job completion: {e}")
+            except Exception as inner_e:
+                print(f"Warning: Could not update job status after error: {inner_e}")
 
             # Record failure metrics
             from marketpipe.metrics import record_metric
