@@ -421,16 +421,19 @@ class TestProviderFeedLabelsFixed:
             assert len(alpaca_requests) > 0, f"Expected alpaca metrics not found. Available samples: {[(s.labels, s.value) for s in request_samples]}"
 
     def test_migration_backfill_applied(self):
-        """Test Gap C: Migration 003 includes back-fill for existing rows."""
-        # Read the migration file to verify it includes UPDATE statements
+        """Test Gap C: Migration 003 handles existing data properly."""
+        # Read the migration file to verify it includes proper table recreation
         from pathlib import Path
         migration_file = Path("src/marketpipe/migrations/versions/003_provider_feed_labels.sql")
         
         assert migration_file.exists(), "Migration 003 should exist"
         
         content = migration_file.read_text()
-        assert "UPDATE metrics SET provider = 'unknown' WHERE provider IS NULL" in content
-        assert "UPDATE metrics SET feed = 'unknown' WHERE feed IS NULL" in content
+        # Verify the new approach: table recreation with proper columns
+        assert "CREATE TABLE metrics_temp" in content
+        assert "provider TEXT DEFAULT 'unknown'" in content
+        assert "feed TEXT DEFAULT 'unknown'" in content
+        assert "ALTER TABLE metrics_temp RENAME TO metrics" in content
 
     def test_database_schema_supports_provider_feed(self):
         """Test that database schema correctly supports provider and feed columns."""
