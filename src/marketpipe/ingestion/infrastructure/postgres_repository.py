@@ -318,6 +318,55 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 logger.error(f"Failed to fetch and lock jobs: {e}")
                 raise IngestionRepositoryError(f"Failed to fetch and lock jobs: {e}") from e
 
+    async def count_old_jobs(self, cutoff_date: str) -> int:
+        """Count jobs older than cutoff date."""
+        with REPO_LATENCY.labels('count_old_jobs', 'postgres').time():
+            REPO_QUERIES.labels('count_old_jobs', 'postgres').inc()
+            
+            try:
+                pool = await self._get_pool()
+                
+                async with pool.acquire() as conn:
+                    result = await conn.fetchval(
+                        "SELECT COUNT(*) FROM ingestion_jobs WHERE day < $1",
+                        cutoff_date
+                    )
+                
+                return result if result is not None else 0
+                
+            except asyncpg.PostgresError as e:
+                logger.error(f"Failed to count old jobs: {e}")
+                raise IngestionRepositoryError(f"Failed to count old jobs: {e}") from e
+
+    async def delete_old_jobs(self, cutoff_date: str) -> int:
+        """Delete jobs older than cutoff date and run VACUUM."""
+        with REPO_LATENCY.labels('delete_old_jobs', 'postgres').time():
+            REPO_QUERIES.labels('delete_old_jobs', 'postgres').inc()
+            
+            try:
+                pool = await self._get_pool()
+                
+                async with pool.acquire() as conn:
+                    # Delete old jobs and get count
+                    result = await conn.execute(
+                        "DELETE FROM ingestion_jobs WHERE day < $1",
+                        cutoff_date
+                    )
+                    
+                    # Extract number of deleted rows from result
+                    deleted_count = int(result.split()[-1]) if result.startswith('DELETE') else 0
+                    
+                    if deleted_count > 0:
+                        # Run VACUUM to reclaim space (PostgreSQL equivalent)
+                        await conn.execute("VACUUM ingestion_jobs")
+                        logger.info(f"Deleted {deleted_count} old jobs and ran VACUUM")
+                    
+                    return deleted_count
+                
+            except asyncpg.PostgresError as e:
+                logger.error(f"Failed to delete old jobs: {e}")
+                raise IngestionRepositoryError(f"Failed to delete old jobs: {e}") from e
+
     async def close(self) -> None:
         """Close the connection pool."""
         if self._pool:

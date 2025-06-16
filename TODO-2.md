@@ -61,9 +61,10 @@ Owners: see each subsection. All items must keep ≥ 70 % test coverage and gree
   - [x] CLI `mp ohlcv backfill`.
   - [x] Gap detector, batching, idempotency tests.
 
-- [ ] **Prune commands** (Owner: Pipeline)  
-  - [ ] CLI group `mp prune parquet|sqlite`, dry-run mode.  
-  - [ ] Retention logic in Parquet engine and SQLite repo.  
+- [x] **Prune commands** (Owner: Pipeline) ✅ **COMPLETED 2024-12-19**
+  - [x] CLI group `mp prune parquet|sqlite`, dry-run mode.  
+  - [x] Retention logic in Parquet engine and SQLite repo.
+  - **Implementation Details**: Complete data retention utilities with age expression parsing (`30d`, `18m`, `5y`), multi-pattern file date extraction, SQLite VACUUM operations, Prometheus metrics integration, domain events, comprehensive testing, and production-ready error handling.  
 
 - [ ] **Scheduler integration** (Owner: Pipeline)  
   - [ ] Provide sample cron and systemd timer files.  

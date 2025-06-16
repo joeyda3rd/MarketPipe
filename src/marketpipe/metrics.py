@@ -70,6 +70,18 @@ BACKFILL_GAP_LATENCY_SECONDS = Histogram(
     buckets=[0.5, 1, 2, 5, 10, 30, 60, 120],
 )
 
+# Data pruning metrics
+DATA_PRUNED_BYTES_TOTAL = Counter(
+    "mp_data_pruned_bytes_total",
+    "Total bytes of data pruned/deleted",
+    ["type"]  # parquet, sqlite, etc.
+)
+DATA_PRUNED_ROWS_TOTAL = Counter(
+    "mp_data_pruned_rows_total", 
+    "Total rows of data pruned/deleted",
+    ["type"]  # sqlite, etc.
+)
+
 __all__ = [
     "REQUESTS",
     "ERRORS", 
@@ -86,6 +98,8 @@ __all__ = [
     "EVENT_LOOP_LAG",
     "BACKFILL_GAPS_FOUND_TOTAL",
     "BACKFILL_GAP_LATENCY_SECONDS",
+    "DATA_PRUNED_BYTES_TOTAL",
+    "DATA_PRUNED_ROWS_TOTAL",
     "record_metric",
     "MetricPoint",
     "TrendPoint",

@@ -535,6 +535,39 @@ class BackfillJobFailed(DomainEvent):
         }
 
 
+@dataclass(frozen=True)
+class DataPruned(DomainEvent):
+    """Event raised when data is pruned/deleted by retention policies."""
+
+    data_type: str  # "parquet", "sqlite", etc.
+    amount: int  # bytes for files, rows for database records
+    cutoff: date  # cutoff date used for pruning
+    event_id: UUID = None
+    occurred_at: datetime = None
+    version: int = 1
+
+    def __post_init__(self):
+        if self.event_id is None:
+            object.__setattr__(self, "event_id", uuid4())
+        if self.occurred_at is None:
+            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
+
+    @property
+    def event_type(self) -> str:
+        return "data_pruned"
+
+    @property
+    def aggregate_id(self) -> str:
+        return f"prune_{self.data_type}_{self.cutoff.isoformat()}"
+
+    def _get_event_data(self) -> Dict[str, Any]:
+        return {
+            "data_type": self.data_type,
+            "amount": self.amount,
+            "cutoff": self.cutoff.isoformat(),
+        }
+
+
 # Event type registry for deserialization
 EVENT_TYPE_REGISTRY = {
     "bar_collection_started": BarCollectionStarted,
@@ -549,6 +582,7 @@ EVENT_TYPE_REGISTRY = {
     "symbol_deactivated": SymbolDeactivated,
     "backfill_job_completed": BackfillJobCompleted,
     "backfill_job_failed": BackfillJobFailed,
+    "data_pruned": DataPruned,
 }
 
 

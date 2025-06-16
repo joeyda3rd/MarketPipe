@@ -102,6 +102,7 @@ if not _USING_TYER_STUB:
     from .query import query
     from .utils import metrics, providers, migrate
     from .ohlcv_backfill import app as backfill_app
+    from .prune import prune_app
 
     # Register OHLCV sub-app commands
     ohlcv_app.command(name="ingest")(ingest_ohlcv)
@@ -126,6 +127,9 @@ if not _USING_TYER_STUB:
 
     # Add backfill sub-command
     ohlcv_app.add_typer(backfill_app, name="backfill")
+    
+    # Add prune sub-command
+    app.add_typer(prune_app, name="prune")
 
 
 if __name__ == "__main__":

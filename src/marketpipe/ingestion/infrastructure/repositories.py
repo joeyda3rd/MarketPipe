@@ -256,6 +256,40 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to fetch and lock jobs: {e}") from e
 
+    async def count_old_jobs(self, cutoff_date: str) -> int:
+        """Count jobs older than cutoff date."""
+        try:
+            async with self._conn() as db:
+                cursor = await db.execute(
+                    "SELECT COUNT(*) FROM ingestion_jobs WHERE day < ?",
+                    (cutoff_date,)
+                )
+                result = await cursor.fetchone()
+                return result[0] if result else 0
+
+        except aiosqlite.Error as e:
+            raise IngestionRepositoryError(f"Failed to count old jobs: {e}") from e
+
+    async def delete_old_jobs(self, cutoff_date: str) -> int:
+        """Delete jobs older than cutoff date and run VACUUM."""
+        try:
+            async with self._conn() as db:
+                cursor = await db.execute(
+                    "DELETE FROM ingestion_jobs WHERE day < ?",
+                    (cutoff_date,)
+                )
+                deleted = cursor.rowcount
+                
+                if deleted > 0:
+                    # Run VACUUM to reclaim space
+                    await db.execute("VACUUM")
+                
+                await db.commit()
+                return deleted
+
+        except aiosqlite.Error as e:
+            raise IngestionRepositoryError(f"Failed to delete old jobs: {e}") from e
+
     def _serialize_job_to_json(self, job: IngestionJob) -> str:
         """Serialize an IngestionJob to JSON string for new schema."""
         job_dict = {

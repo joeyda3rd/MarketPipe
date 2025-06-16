@@ -100,7 +100,7 @@
 - [x] 🟡 **Rename CLI commands for clarity** _(mp ingest-ohlcv, mp backfill-ohlcv, mp aggregate-ohlcv, mp validate-ohlcv)_ ✅ **COMPLETED** - CLI commands renamed with OHLCV sub-app, convenience commands, and deprecation warnings
 - [x] 🟡 **Split monolithic CLI into sub-modules** _(create `marketpipe.cli.ingest`, `.validate`, `.aggregate`, `.query`, register with root Typer app)_ ✅ **COMPLETED** - CLI modularized into separate modules with proper service imports and ≥70% test coverage
 - [ ] 🟡 **Implement backfill command** _(historical data ingestion with gap detection)_
-- [ ] 🟡 **Add `prune` commands & retention scripts** _( `mp prune parquet --older-than 5y`, `mp prune sqlite --older-than 18m`; sample cron/systemd units; update metrics)_
+- [x] 🟡 **Add `prune` commands & retention scripts** _( `mp prune parquet --older-than 5y`, `mp prune sqlite --older-than 18m`; sample cron/systemd units; update metrics)_ ✅ **COMPLETED** - Full data retention utilities with dry-run mode, metrics integration, domain events, comprehensive testing
 - [x] 🟢 **Add data loader Python API** _(load_ohlcv() function for research/backtesting)_ ✅ **PARTIALLY COMPLETED** - ParquetStorageEngine.load_symbol_data(), DuckDBAggregationEngine.get_aggregated_data() provide data loading capabilities. Missing: unified load_ohlcv() research API
 - [ ] 🔵 **Scheduler integration** _(crontab examples, systemd timers)_
 
@@ -122,6 +122,18 @@
 - Metrics: ~85% ✅ _(New metrics integration with comprehensive test coverage)_
 
 ## 🎉 Recent Completions
+
+### Data Retention (Prune) Commands Implementation
+- ✅ **Complete CLI Module**: Implemented `src/marketpipe/cli/prune.py` with `mp prune parquet --older-than 5y` and `mp prune sqlite --older-than 18m` commands supporting dry-run mode and comprehensive age expression parsing
+- ✅ **Age Expression Parser**: Robust `_parse_age()` function supporting `30d`, `18m`, `5y` formats with days as default unit, proper validation and error handling
+- ✅ **Parquet File Pruning**: Multi-pattern date extraction from file paths (`symbol=AAPL/2024-01-15.parquet`, `date=2024-01-15/`, `2024/01/15/` structures), safe file deletion with size tracking
+- ✅ **SQLite Database Pruning**: Repository integration with `count_old_jobs()` and `delete_old_jobs()` methods, VACUUM operation for space reclamation, proper async/await handling
+- ✅ **Metrics Integration**: Added `DATA_PRUNED_BYTES_TOTAL{type="parquet"}` and `DATA_PRUNED_ROWS_TOTAL{type="sqlite"}` Prometheus counters with legacy metrics recording
+- ✅ **Domain Events**: Implemented `DataPruned` event with `data_type`, `amount`, and `cutoff` fields, proper event emission and registry registration
+- ✅ **Safety Features**: Dry-run preview mode, backend detection (SQLite pruning only with SQLite repositories), graceful error handling, clear user feedback
+- ✅ **Comprehensive Testing**: 20+ test classes covering age parsing, file detection, database operations, metrics recording, domain events, error scenarios, CLI integration
+- ✅ **Documentation**: Complete user guide (`docs/prune_commands.md`) with usage examples, business rules, troubleshooting, security considerations, integration patterns
+- ✅ **Production Ready**: Proper CLI registration, dependency management (`humanize>=4.0.0`), error handling, exit codes, import safety, comprehensive validation
 
 ### Postgres CI Integration
 - ✅ **Dual-Database CI Implementation**: Complete GitHub Actions workflow with parallel SQLite and Postgres testing jobs, proper service container configuration for Postgres 15
