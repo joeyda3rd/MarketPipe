@@ -23,12 +23,12 @@ def test_migrations_apply_once(tmp_path):
     with sqlite3.connect(db) as conn:
         cursor = conn.execute("SELECT COUNT(*) FROM schema_version")
         version_count = cursor.fetchone()[0]
-        assert version_count == 3
+        assert version_count == 5
 
         # Check that the correct versions were applied
         cursor = conn.execute("SELECT version FROM schema_version ORDER BY version")
         versions = [row[0] for row in cursor.fetchall()]
-        assert versions == ["001", "002", "003"]
+        assert versions == ["001", "002", "003", "004", "005"]
 
 
 def test_migrations_create_schema_version_table(tmp_path):
@@ -76,6 +76,7 @@ def test_migrations_create_core_tables(tmp_path):
 
         expected_tables = [
             "checkpoints",
+            "ingestion_jobs",
             "metrics",
             "ohlcv_bars",
             "schema_version",
@@ -192,6 +193,8 @@ def test_partial_migrations_applied(tmp_path):
         assert "001" in versions
         assert "002" in versions
         assert "003" in versions
+        assert "004" in versions
+        assert "005" in versions
         
         # Verify that applying again is idempotent (no duplicates)
         initial_count = len(versions)
@@ -218,7 +221,7 @@ def test_migrations_with_nonexistent_database_dir(tmp_path):
 
     with sqlite3.connect(db) as conn:
         cursor = conn.execute("SELECT COUNT(*) FROM schema_version")
-        assert cursor.fetchone()[0] == 3
+        assert cursor.fetchone()[0] == 5
 
 
 def test_concurrent_migration_application(tmp_path):
@@ -251,4 +254,4 @@ def test_concurrent_migration_application(tmp_path):
     # Check that migrations were applied correctly
     with sqlite3.connect(db) as conn:
         cursor = conn.execute("SELECT COUNT(*) FROM schema_version")
-        assert cursor.fetchone()[0] == 3
+        assert cursor.fetchone()[0] == 5

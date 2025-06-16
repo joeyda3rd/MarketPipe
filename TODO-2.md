@@ -57,9 +57,9 @@ Owners: see each subsection. All items must keep ≥ 70 % test coverage and gree
   - [ ] Update docs and examples; add tests.
 
 ## 5  Pipeline Commands
-- [ ] **Backfill command** (Owner: Pipeline)  
-  - [ ] CLI `mp ohlcv backfill`.  
-  - [ ] Gap detector, batching, idempotency tests.  
+- [x] **Backfill command** (Owner: Pipeline) ✅ **COMPLETED 2025-06-20**
+  - [x] CLI `mp ohlcv backfill`.
+  - [x] Gap detector, batching, idempotency tests.
 
 - [ ] **Prune commands** (Owner: Pipeline)  
   - [ ] CLI group `mp prune parquet|sqlite`, dry-run mode.  

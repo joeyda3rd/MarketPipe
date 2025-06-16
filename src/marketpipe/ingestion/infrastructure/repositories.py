@@ -19,6 +19,21 @@ from ..domain.repositories import (
 from ..domain.value_objects import IngestionCheckpoint, ProcessingMetrics
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.infrastructure.sqlite_async_mixin import SqliteAsyncMixin
+from prometheus_client import Counter, Histogram
+
+
+# Shared metrics for all repository backends
+REPO_QUERIES = Counter(
+    'ingestion_repo_queries_total',
+    'Total number of repository queries',
+    ['operation', 'backend']
+)
+
+REPO_LATENCY = Histogram(
+    'ingestion_repo_latency_seconds',
+    'Repository operation latency',
+    ['operation', 'backend']
+)
 
 
 class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
@@ -30,50 +45,27 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         self._init_database()
 
     def _init_database(self) -> None:
-        """Initialize the database schema."""
-        # For now, keep the sync initialization but use the connection pool
-        from marketpipe.infrastructure.sqlite_pool import connection
-        with connection(self._db_path) as conn:
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS ingestion_jobs (
-                    job_id TEXT PRIMARY KEY,
-                    job_data TEXT NOT NULL,
-                    state TEXT NOT NULL,
-                    created_at TIMESTAMP NOT NULL,
-                    updated_at TIMESTAMP NOT NULL
-                )
-            """
-            )
-
-            conn.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_jobs_state 
-                ON ingestion_jobs(state)
-            """
-            )
-
-            conn.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_jobs_created_at 
-                ON ingestion_jobs(created_at)
-            """
-            )
+        """Initialize the database schema using migrations."""
+        from marketpipe.migrations import apply_pending
+        apply_pending(self._db_path)
 
     async def save(self, job: IngestionJob) -> None:
         """Save an ingestion job."""
+        with REPO_LATENCY.labels('save', 'sqlite').time():
+            REPO_QUERIES.labels('save', 'sqlite').inc()
+            
         try:
-            job_data = self._serialize_job(job)
+            payload = self._serialize_job_to_json(job)
             now = datetime.now()
 
             async with self._conn() as db:
                 await db.execute(
                     """
                     INSERT OR REPLACE INTO ingestion_jobs 
-                    (job_id, job_data, state, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?)
+                    (symbol, day, state, payload, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                    (str(job.job_id), job_data, job.state.value, job.created_at, now),
+                    (str(job.job_id.symbol), job.job_id.day, job.state.value, payload, job.created_at, now),
                 )
                 await db.commit()
 
@@ -88,31 +80,34 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             async with self._conn() as db:
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
-                    "SELECT job_data FROM ingestion_jobs WHERE job_id = ?",
-                    (str(job_id),),
+                    "SELECT * FROM ingestion_jobs WHERE symbol = ? AND day = ?",
+                    (str(job_id.symbol), job_id.day),
                 )
                 row = await cursor.fetchone()
 
                 if row is None:
                     return None
 
-                return self._deserialize_job(row["job_data"])
+                return self._deserialize_job_from_row(row)
 
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get job {job_id}: {e}") from e
 
     async def get_by_state(self, state: ProcessingState) -> List[IngestionJob]:
         """Get all jobs in a specific state."""
+        with REPO_LATENCY.labels('get_by_state', 'sqlite').time():
+            REPO_QUERIES.labels('get_by_state', 'sqlite').inc()
+            
         try:
             async with self._conn() as db:
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
-                    "SELECT job_data FROM ingestion_jobs WHERE state = ? ORDER BY created_at DESC",
+                    "SELECT * FROM ingestion_jobs WHERE state = ? ORDER BY created_at DESC",
                     (state.value,),
                 )
                 rows = await cursor.fetchall()
 
-                return [self._deserialize_job(row["job_data"]) for row in rows]
+                return [self._deserialize_job_from_row(row) for row in rows]
 
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(
@@ -131,12 +126,12 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                 db.row_factory = aiosqlite.Row
                 placeholders = ",".join("?" * len(active_states))
                 cursor = await db.execute(
-                    f"SELECT job_data FROM ingestion_jobs WHERE state IN ({placeholders}) ORDER BY created_at",
+                    f"SELECT * FROM ingestion_jobs WHERE state IN ({placeholders}) ORDER BY created_at",
                     active_states,
                 )
                 rows = await cursor.fetchall()
 
-                return [self._deserialize_job(row["job_data"]) for row in rows]
+                return [self._deserialize_job_from_row(row) for row in rows]
 
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get active jobs: {e}") from e
@@ -150,7 +145,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
                     """
-                    SELECT job_data FROM ingestion_jobs 
+                    SELECT * FROM ingestion_jobs 
                     WHERE created_at BETWEEN ? AND ? 
                     ORDER BY created_at DESC
                 """,
@@ -158,7 +153,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                 )
                 rows = await cursor.fetchall()
 
-                return [self._deserialize_job(row["job_data"]) for row in rows]
+                return [self._deserialize_job_from_row(row) for row in rows]
 
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(
@@ -170,7 +165,8 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         try:
             async with self._conn() as db:
                 cursor = await db.execute(
-                    "DELETE FROM ingestion_jobs WHERE job_id = ?", (str(job_id),)
+                    "DELETE FROM ingestion_jobs WHERE symbol = ? AND day = ?", 
+                    (str(job_id.symbol), job_id.day)
                 )
                 await db.commit()
                 return cursor.rowcount > 0
@@ -184,12 +180,12 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             async with self._conn() as db:
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
-                    "SELECT job_data FROM ingestion_jobs ORDER BY created_at DESC LIMIT ?",
+                    "SELECT * FROM ingestion_jobs ORDER BY created_at DESC LIMIT ?",
                     (limit,),
                 )
                 rows = await cursor.fetchall()
 
-                return [self._deserialize_job(row["job_data"]) for row in rows]
+                return [self._deserialize_job_from_row(row) for row in rows]
 
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get job history: {e}") from e
@@ -213,6 +209,101 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to count jobs by state: {e}") from e
+
+    async def fetch_and_lock(self, limit: int = 1) -> List[IngestionJob]:
+        """Fetch and lock pending jobs for processing (SQLite version)."""
+        try:
+            async with self._conn() as db:
+                db.row_factory = aiosqlite.Row
+                
+                # SQLite doesn't have SELECT FOR UPDATE, so we use a transaction
+                await db.execute("BEGIN IMMEDIATE")
+                
+                cursor = await db.execute(
+                    """
+                    SELECT * FROM ingestion_jobs 
+                    WHERE state = ? 
+                    ORDER BY created_at 
+                    LIMIT ?
+                    """,
+                    (ProcessingState.PENDING.value, limit),
+                )
+                rows = await cursor.fetchall()
+                
+                if not rows:
+                    await db.rollback()
+                    return []
+                
+                # Mark jobs as IN_PROGRESS
+                job_ids = [(row["symbol"], row["day"]) for row in rows]
+                for symbol, day in job_ids:
+                    await db.execute(
+                        "UPDATE ingestion_jobs SET state = ?, updated_at = ? WHERE symbol = ? AND day = ?",
+                        (ProcessingState.IN_PROGRESS.value, datetime.now(), symbol, day),
+                    )
+                
+                await db.commit()
+                
+                # Return the jobs with updated state
+                jobs = []
+                for row in rows:
+                    job = self._deserialize_job_from_row(row)
+                    job._state = ProcessingState.IN_PROGRESS  # Update state in memory
+                    jobs.append(job)
+                
+                return jobs
+
+        except aiosqlite.Error as e:
+            raise IngestionRepositoryError(f"Failed to fetch and lock jobs: {e}") from e
+
+    def _serialize_job_to_json(self, job: IngestionJob) -> str:
+        """Serialize an IngestionJob to JSON string for new schema."""
+        job_dict = {
+            "job_id": str(job.job_id),
+            "symbols": [str(symbol) for symbol in job.symbols],
+            "start_timestamp": job.start_timestamp,
+            "end_timestamp": job.end_timestamp,
+            "provider": job.provider,
+            "feed": job.feed,
+            "state": job.state.value,
+            "created_at": job.created_at.isoformat(),
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+            "processed_symbols": list(job.processed_symbols),
+            "error_message": job.error_message,
+        }
+        return json.dumps(job_dict)
+
+    def _deserialize_job_from_row(self, row) -> IngestionJob:
+        """Deserialize database row to IngestionJob."""
+        # Parse the JSON payload
+        payload = json.loads(row["payload"]) if row["payload"] else {}
+        
+        # Create job ID from symbol and day
+        job_id = IngestionJobId(Symbol(row["symbol"]), row["day"])
+        
+        # Extract data from payload with defaults
+        symbols = [Symbol(s) for s in payload.get("symbols", [row["symbol"]])]
+        
+        # Create job
+        job = IngestionJob(
+            job_id=job_id,
+            symbols=symbols,
+            start_timestamp=payload.get("start_timestamp", 0),
+            end_timestamp=payload.get("end_timestamp", 0),
+            provider=payload.get("provider", "unknown"),
+            feed=payload.get("feed", "unknown"),
+        )
+
+        # Restore state
+        job._state = ProcessingState(row["state"])
+        job._created_at = datetime.fromisoformat(row["created_at"]) if isinstance(row["created_at"], str) else row["created_at"]
+        job._started_at = datetime.fromisoformat(payload["started_at"]) if payload.get("started_at") else None
+        job._completed_at = datetime.fromisoformat(payload["completed_at"]) if payload.get("completed_at") else None
+        job._processed_symbols = set(payload.get("processed_symbols", []))
+        job._error_message = payload.get("error_message")
+
+        return job
 
     def _serialize_job(self, job: IngestionJob) -> str:
         """Serialize an IngestionJob to JSON string."""
