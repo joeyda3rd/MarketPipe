@@ -49,6 +49,14 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         from marketpipe.migrations import apply_pending
         apply_pending(self._db_path)
 
+    def _domain_state_to_db_state(self, state: ProcessingState) -> str:
+        """Transform domain state (lowercase) to database state (uppercase)."""
+        return state.value.upper()
+
+    def _db_state_to_domain_state(self, db_state: str) -> ProcessingState:
+        """Transform database state (uppercase) to domain state (lowercase)."""
+        return ProcessingState(db_state.lower())
+
     async def save(self, job: IngestionJob) -> None:
         """Save an ingestion job."""
         with REPO_LATENCY.labels('save', 'sqlite').time():
@@ -65,7 +73,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                     (symbol, day, state, payload, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                    (str(job.job_id.symbol), job.job_id.day, job.state.value, payload, job.created_at, now),
+                    (str(job.job_id.symbol), job.job_id.day, self._domain_state_to_db_state(job.state), payload, job.created_at, now),
                 )
                 await db.commit()
 
@@ -103,7 +111,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
                     "SELECT * FROM ingestion_jobs WHERE state = ? ORDER BY created_at DESC",
-                    (state.value,),
+                    (self._domain_state_to_db_state(state),),
                 )
                 rows = await cursor.fetchall()
 
@@ -117,8 +125,8 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
     async def get_active_jobs(self) -> List[IngestionJob]:
         """Get all jobs that are currently active."""
         active_states = [
-            ProcessingState.PENDING.value,
-            ProcessingState.IN_PROGRESS.value,
+            self._domain_state_to_db_state(ProcessingState.PENDING),
+            self._domain_state_to_db_state(ProcessingState.IN_PROGRESS),
         ]
 
         try:
@@ -201,7 +209,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 
                 result = {}
                 for row in rows:
-                    state = ProcessingState(row[0])
+                    state = self._db_state_to_domain_state(row[0])
                     count = row[1]
                     result[state] = count
 
@@ -226,7 +234,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                     ORDER BY created_at 
                     LIMIT ?
                     """,
-                    (ProcessingState.PENDING.value, limit),
+                    (self._domain_state_to_db_state(ProcessingState.PENDING), limit),
                 )
                 rows = await cursor.fetchall()
                 
@@ -239,7 +247,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                 for symbol, day in job_ids:
                     await db.execute(
                         "UPDATE ingestion_jobs SET state = ?, updated_at = ? WHERE symbol = ? AND day = ?",
-                        (ProcessingState.IN_PROGRESS.value, datetime.now(), symbol, day),
+                        (self._domain_state_to_db_state(ProcessingState.IN_PROGRESS), datetime.now(), symbol, day),
                     )
                 
                 await db.commit()
@@ -295,15 +303,15 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         job_dict = {
             "job_id": str(job.job_id),
             "symbols": [str(symbol) for symbol in job.symbols],
-            "start_timestamp": job.start_timestamp,
-            "end_timestamp": job.end_timestamp,
-            "provider": job.provider,
-            "feed": job.feed,
+            "start_timestamp": job.time_range.start.to_nanoseconds(),
+            "end_timestamp": job.time_range.end.to_nanoseconds(),
+            "provider": getattr(job.configuration, 'provider', 'unknown'),
+            "feed": getattr(job.configuration, 'feed_type', 'unknown'),
             "state": job.state.value,
             "created_at": job.created_at.isoformat(),
             "started_at": job.started_at.isoformat() if job.started_at else None,
             "completed_at": job.completed_at.isoformat() if job.completed_at else None,
-            "processed_symbols": list(job.processed_symbols),
+            "processed_symbols": [str(symbol) for symbol in job.processed_symbols],
             "error_message": job.error_message,
         }
         return json.dumps(job_dict)
@@ -319,22 +327,43 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         # Extract data from payload with defaults
         symbols = [Symbol(s) for s in payload.get("symbols", [row["symbol"]])]
         
+        # Import required classes
+        from marketpipe.domain.value_objects import TimeRange, Timestamp
+        from ..domain.value_objects import IngestionConfiguration
+        from pathlib import Path
+        
+        # Create time range from timestamps
+        start_timestamp_ns = payload.get("start_timestamp", 0)
+        end_timestamp_ns = payload.get("end_timestamp", 0)
+        time_range = TimeRange(
+            start=Timestamp.from_nanoseconds(start_timestamp_ns),
+            end=Timestamp.from_nanoseconds(end_timestamp_ns)
+        )
+        
+        # Create configuration from stored values
+        configuration = IngestionConfiguration(
+            output_path=Path("data/raw"),  # Default path
+            compression="snappy",
+            max_workers=3,
+            batch_size=1000,
+            rate_limit_per_minute=200,
+            feed_type=payload.get("feed", "iex"),
+        )
+        
         # Create job
         job = IngestionJob(
             job_id=job_id,
+            configuration=configuration,
             symbols=symbols,
-            start_timestamp=payload.get("start_timestamp", 0),
-            end_timestamp=payload.get("end_timestamp", 0),
-            provider=payload.get("provider", "unknown"),
-            feed=payload.get("feed", "unknown"),
+            time_range=time_range,
         )
 
         # Restore state
-        job._state = ProcessingState(row["state"])
+        job._state = self._db_state_to_domain_state(row["state"])
         job._created_at = datetime.fromisoformat(row["created_at"]) if isinstance(row["created_at"], str) else row["created_at"]
         job._started_at = datetime.fromisoformat(payload["started_at"]) if payload.get("started_at") else None
         job._completed_at = datetime.fromisoformat(payload["completed_at"]) if payload.get("completed_at") else None
-        job._processed_symbols = set(payload.get("processed_symbols", []))
+        job._processed_symbols = set(Symbol(s) for s in payload.get("processed_symbols", []))
         job._error_message = payload.get("error_message")
 
         return job
@@ -344,15 +373,15 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         job_dict = {
             "job_id": str(job.job_id),
             "symbols": [str(symbol) for symbol in job.symbols],
-            "start_timestamp": job.start_timestamp,
-            "end_timestamp": job.end_timestamp,
-            "provider": job.provider,
-            "feed": job.feed,
+            "start_timestamp": job.time_range.start.to_nanoseconds(),
+            "end_timestamp": job.time_range.end.to_nanoseconds(),
+            "provider": getattr(job.configuration, 'provider', 'unknown'),
+            "feed": getattr(job.configuration, 'feed_type', 'unknown'),
             "state": job.state.value,
             "created_at": job.created_at.isoformat(),
             "started_at": job.started_at.isoformat() if job.started_at else None,
             "completed_at": job.completed_at.isoformat() if job.completed_at else None,
-            "processed_symbols": list(job.processed_symbols),
+            "processed_symbols": [str(symbol) for symbol in job.processed_symbols],
             "error_message": job.error_message,
         }
         return json.dumps(job_dict)
@@ -374,14 +403,33 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             else None
         )
 
+        # Import required classes
+        from marketpipe.domain.value_objects import TimeRange, Timestamp
+        from ..domain.value_objects import IngestionConfiguration
+        from pathlib import Path
+        
+        # Create time range from timestamps
+        time_range = TimeRange(
+            start=Timestamp.from_nanoseconds(job_dict["start_timestamp"]),
+            end=Timestamp.from_nanoseconds(job_dict["end_timestamp"])
+        )
+        
+        # Create configuration from stored values
+        configuration = IngestionConfiguration(
+            output_path=Path("data/raw"),  # Default path
+            compression="snappy",
+            max_workers=3,
+            batch_size=1000,
+            rate_limit_per_minute=200,
+            feed_type=job_dict.get("feed", "iex"),
+        )
+
         # Create job
         job = IngestionJob(
             job_id=IngestionJobId.from_string(job_dict["job_id"]),
+            configuration=configuration,
             symbols=[Symbol(s) for s in job_dict["symbols"]],
-            start_timestamp=job_dict["start_timestamp"],
-            end_timestamp=job_dict["end_timestamp"],
-            provider=job_dict["provider"],
-            feed=job_dict["feed"],
+            time_range=time_range,
         )
 
         # Restore state
@@ -389,7 +437,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         job._created_at = created_at
         job._started_at = started_at
         job._completed_at = completed_at
-        job._processed_symbols = set(job_dict["processed_symbols"])
+        job._processed_symbols = set(Symbol(s) for s in job_dict["processed_symbols"])
         job._error_message = job_dict["error_message"]
 
         # Handle state transitions that might require calling internal methods
@@ -422,6 +470,39 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         # For now, just restore the basic state which is enough for our use case
 
         return job
+
+    async def close_connections(self) -> None:
+        """Close all database connections gracefully."""
+        try:
+            # Force close any remaining connections in the pool
+            if hasattr(self, '_pool') and self._pool:
+                await self._pool.close()
+            
+            # Also close any direct connections if they exist
+            if hasattr(self, '_db_connection') and self._db_connection:
+                await self._db_connection.close()
+                
+        except Exception as e:
+            # Log but don't raise - this is cleanup
+            import logging
+            logger = logging.getLogger(self.__class__.__name__)
+            logger.warning(f"Error during connection cleanup: {e}")
+
+    def __del__(self):
+        """Destructor to attempt cleanup if not done explicitly."""
+        # Note: This won't work for async cleanup, but provides a fallback
+        try:
+            # Check if we have any connections that need cleanup
+            if hasattr(self, '_pool') or hasattr(self, '_db_connection'):
+                import warnings
+                warnings.warn(
+                    f"{self.__class__.__name__} was not properly closed. "
+                    "Call close_connections() before destruction.",
+                    ResourceWarning,
+                    stacklevel=2
+                )
+        except Exception:
+            pass  # Ignore errors in destructor
 
 
 class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepository):

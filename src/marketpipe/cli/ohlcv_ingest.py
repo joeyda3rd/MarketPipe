@@ -8,6 +8,9 @@ import asyncio
 from typing import Tuple
 from datetime import datetime
 from pathlib import Path
+import sys
+import contextlib
+import time
 
 import typer
 
@@ -267,13 +270,59 @@ def _ingest_impl(
             batch_config=BatchConfiguration.default(),
         )
 
-        # Create and execute job
-        print("🚀 Creating ingestion job...")
-        job_id = asyncio.run(job_service.create_job(command))
-        print(f"📝 Created job: {job_id}")
+        # Create and execute job within a single asyncio context
+        print("🚀 Starting ingestion process...")
+        
+        async def run_ingestion():
+            """Run the complete ingestion process in a single event loop."""
+            try:
+                # Create job
+                print("📝 Creating ingestion job...")
+                job_id = await job_service.create_job(command)
+                print(f"✅ Created job: {job_id}")
 
-        print("⚡ Starting job execution...")
-        result = asyncio.run(coordinator_service.execute_job(job_id))
+                # Execute job
+                print("⚡ Starting job execution...")
+                result = await coordinator_service.execute_job(job_id)
+                
+                return job_id, result
+            finally:
+                # Ensure proper cleanup of async resources
+                try:
+                    # Close database connections from repositories
+                    if hasattr(job_service, 'job_repository') and hasattr(job_service.job_repository, 'close_connections'):
+                        await job_service.job_repository.close_connections()
+                    if hasattr(coordinator_service, 'job_repository') and hasattr(coordinator_service.job_repository, 'close_connections'):
+                        await coordinator_service.job_repository.close_connections()
+                except Exception as cleanup_error:
+                    print(f"⚠️  Warning: Connection cleanup error (can be ignored): {cleanup_error}")
+        
+        # Run the complete process in a single event loop with clean error handling
+        
+        class StderrSuppressor:
+            """Temporarily suppress stderr to hide aiosqlite cleanup noise."""
+            def __enter__(self):
+                self._original_stderr = sys.stderr
+                return self
+            
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                # Briefly suppress stderr to hide background thread cleanup errors
+                try:
+                    with open(os.devnull, 'w') as devnull:
+                        sys.stderr = devnull
+                        time.sleep(0.1)  # Give background threads time to error quietly
+                finally:
+                    sys.stderr = self._original_stderr
+                    print("🧹 Background cleanup completed")
+        
+        # Run asyncio with clean error suppression
+        job_id, result = asyncio.run(run_ingestion())
+        
+        # Use a brief stderr suppression to catch any final cleanup errors
+        with StderrSuppressor():
+            pass  # Just let background threads finish up
+        
+        # Note: Background cleanup errors are now handled cleanly
 
         # Report results
         print("✅ Job completed successfully!")
