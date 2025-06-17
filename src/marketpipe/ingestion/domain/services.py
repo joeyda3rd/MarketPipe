@@ -44,8 +44,11 @@ class IngestionDomainService(DomainService):
         self._validate_time_range(request.time_range)
         self._validate_configuration(request.configuration)
 
-        # Generate unique job ID
-        job_id = IngestionJobId.generate()
+        # For multi-symbol jobs, we'll create a single job with a composite ID
+        # Use the first symbol and start date for the ID
+        primary_symbol = request.symbols[0]
+        start_date = request.time_range.start.value.date()
+        job_id = IngestionJobId(primary_symbol, start_date.isoformat())
 
         # Create the job entity
         job = IngestionJob(

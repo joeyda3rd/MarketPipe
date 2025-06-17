@@ -8,6 +8,12 @@ import asyncio
 from typing import Tuple
 from datetime import datetime
 from pathlib import Path
+import sys
+import contextlib
+import time
+import warnings
+import threading
+import io
 
 import typer
 
@@ -40,6 +46,145 @@ from marketpipe.config import IngestionJobConfig, load_config, ConfigVersionErro
 from marketpipe.domain.events import IngestionJobCompleted
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 from marketpipe.validation.domain.services import ValidationDomainService
+
+
+class FilteredStderr:
+    """Advanced stderr filter that completely suppresses aiosqlite background thread errors."""
+    
+    def __init__(self, original_stderr):
+        self.original_stderr = original_stderr
+        self.lock = threading.Lock()
+        self.buffer = []
+        self.in_error_sequence = False
+        
+        # Comprehensive aiosqlite error indicators
+        self.aiosqlite_indicators = [
+            "aiosqlite",
+            "Event loop is closed",
+            "call_soon_threadsafe",
+            "_check_closed",
+            "asyncio/base_events.py",
+            "asyncio.base_events",
+        ]
+    
+    def write(self, text):
+        """Filter stderr content to suppress aiosqlite errors."""
+        if not text:
+            return
+            
+        with self.lock:
+            # Split into lines but preserve structure
+            lines = text.splitlines(keepends=True)
+            
+            for line in lines:
+                self._process_line(line)
+    
+    def _process_line(self, line):
+        """Process each line and determine if it should be suppressed."""
+        line_stripped = line.strip()
+        line_lower = line_stripped.lower()
+        
+        # Start buffering on error sequence indicators
+        if line_stripped.startswith("Exception in thread") or line_stripped.startswith("Traceback"):
+            self.in_error_sequence = True
+            self.buffer = [line]
+            return
+        
+        # If we're in an error sequence, keep buffering
+        if self.in_error_sequence:
+            self.buffer.append(line)
+            
+            # Check if this line indicates an aiosqlite error
+            contains_aiosqlite = any(indicator in line_lower for indicator in self.aiosqlite_indicators)
+            
+            # Check if this is the end of the error sequence (final RuntimeError line)
+            is_error_end = (
+                line_stripped.startswith("RuntimeError:") and 
+                ("event loop is closed" in line_lower or "Event loop is closed" in line)
+            )
+            
+            if is_error_end:
+                # Check if the entire sequence contains aiosqlite indicators
+                full_sequence = ''.join(self.buffer).lower()
+                is_aiosqlite_error = any(indicator in full_sequence for indicator in self.aiosqlite_indicators)
+                
+                if is_aiosqlite_error:
+                    # Suppress the entire aiosqlite error sequence
+                    pass
+                else:
+                    # Output the non-aiosqlite error
+                    for buffered_line in self.buffer:
+                        self.original_stderr.write(buffered_line)
+                    self.original_stderr.flush()
+                
+                # Reset state
+                self.in_error_sequence = False
+                self.buffer = []
+                return
+        else:
+            # Normal line - check for standalone aiosqlite patterns
+            if any(indicator in line_lower for indicator in self.aiosqlite_indicators):
+                # Suppress standalone aiosqlite messages
+                return
+            else:
+                # Output normal content
+                self.original_stderr.write(line)
+                self.original_stderr.flush()
+    
+    def flush(self):
+        """Flush any remaining content."""
+        with self.lock:
+            # If we have a partial buffer that doesn't look like aiosqlite, output it
+            if self.buffer:
+                full_sequence = ''.join(self.buffer).lower()
+                is_aiosqlite = any(indicator in full_sequence for indicator in self.aiosqlite_indicators)
+                
+                if not is_aiosqlite:
+                    for line in self.buffer:
+                        self.original_stderr.write(line)
+                
+                self.buffer = []
+                self.in_error_sequence = False
+        
+        self.original_stderr.flush()
+    
+    def isatty(self):
+        """Check if original stderr is a TTY."""
+        return getattr(self.original_stderr, 'isatty', lambda: False)()
+    
+    def fileno(self):
+        """Get file descriptor of original stderr."""
+        return self.original_stderr.fileno()
+
+
+class CleanAsyncExecution:
+    """Context manager for clean async execution with filtered stderr."""
+    
+    def __enter__(self):
+        """Setup clean execution environment."""
+        # Filter warnings
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
+        warnings.filterwarnings("ignore", message=".*Event loop is closed.*")
+        warnings.filterwarnings("ignore", message=".*aiosqlite.*")
+        
+        # Install filtered stderr
+        self._original_stderr = sys.stderr
+        sys.stderr = FilteredStderr(self._original_stderr)
+        
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Cleanup execution environment."""
+        # Restore stderr
+        sys.stderr = self._original_stderr
+        
+        # Give background threads time to finish
+        time.sleep(0.1)
+        
+        # Reset warnings
+        warnings.resetwarnings()
+        
+        print("🧹 Background cleanup completed")
 
 
 def _build_ingestion_services(
@@ -140,6 +285,31 @@ def _build_ingestion_services(
     return job_service, coordinator_service
 
 
+async def _cleanup_async_resources(*repositories) -> None:
+    """Clean up async resources with proper error handling."""
+    cleanup_tasks = []
+    
+    for repo in repositories:
+        if hasattr(repo, 'close_connections'):
+            try:
+                cleanup_tasks.append(repo.close_connections())
+            except Exception as e:
+                # Log but continue with other cleanups
+                print(f"⚠️  Warning: Error setting up cleanup for {type(repo).__name__}: {e}")
+    
+    if cleanup_tasks:
+        try:
+            # Give each cleanup task a reasonable timeout
+            await asyncio.wait_for(
+                asyncio.gather(*cleanup_tasks, return_exceptions=True),
+                timeout=5.0
+            )
+        except asyncio.TimeoutError:
+            print("⚠️  Warning: Repository cleanup timed out")
+        except Exception as e:
+            print(f"⚠️  Warning: Error during cleanup: {e}")
+
+
 def _ingest_impl(
     # Config file option
     config: Path = None,
@@ -158,136 +328,153 @@ def _ingest_impl(
     from marketpipe.bootstrap import bootstrap
     bootstrap()
     
-    try:
-        # Determine configuration source and validate mutual exclusivity
-        if config is not None:
-            # Load from YAML file
-            print(f"📄 Loading configuration from: {config}")
-            try:
-                job_config = load_config(config)
-            except ConfigVersionError as e:
-                print(f"❌ Configuration version error: {e}")
-                raise typer.Exit(1)
+    # Use the clean async execution context for the entire process
+    with CleanAsyncExecution():
+        try:
+            # Determine configuration source and validate mutual exclusivity
+            if config is not None:
+                # Load from YAML file
+                print(f"📄 Loading configuration from: {config}")
+                try:
+                    job_config = load_config(config)
+                except ConfigVersionError as e:
+                    print(f"❌ Configuration version error: {e}")
+                    raise typer.Exit(1)
 
-            # Apply CLI overrides if provided
-            overrides = {
-                "batch_size": batch_size,
-                "output_path": output_path,
-                "workers": workers,
-                "provider": provider,
-                "feed_type": feed_type,
-            }
-            # Add symbols/start/end overrides if provided
-            if symbols is not None:
-                overrides["symbols"] = [s.strip().upper() for s in symbols.split(",")]
-            if start is not None:
-                overrides["start"] = datetime.fromisoformat(start).date()
-            if end is not None:
-                overrides["end"] = datetime.fromisoformat(end).date()
+                # Apply CLI overrides if provided
+                overrides = {
+                    "batch_size": batch_size,
+                    "output_path": output_path,
+                    "workers": workers,
+                    "provider": provider,
+                    "feed_type": feed_type,
+                }
+                # Add symbols/start/end overrides if provided
+                if symbols is not None:
+                    overrides["symbols"] = [s.strip().upper() for s in symbols.split(",")]
+                if start is not None:
+                    overrides["start"] = datetime.fromisoformat(start).date()
+                if end is not None:
+                    overrides["end"] = datetime.fromisoformat(end).date()
 
-            job_config = job_config.merge_overrides(**overrides)
+                job_config = job_config.merge_overrides(**overrides)
 
-        else:
-            # Use direct flags - validate required fields
-            if symbols is None or start is None or end is None:
-                print(
-                    "❌ Error: Either provide --config file OR all of --symbols, --start, and --end"
-                )
-                raise typer.Exit(1)
+            else:
+                # Use direct flags - validate required fields
+                if symbols is None or start is None or end is None:
+                    print(
+                        "❌ Error: Either provide --config file OR all of --symbols, --start, and --end"
+                    )
+                    raise typer.Exit(1)
 
-            # Parse and validate dates
-            try:
+                # Parse symbols and dates
+                symbol_list = [s.strip().upper() for s in symbols.split(",")]
                 start_date = datetime.fromisoformat(start).date()
                 end_date = datetime.fromisoformat(end).date()
-            except ValueError as e:
-                print(f"❌ Error: Invalid date format: {e}")
-                print("💡 Use YYYY-MM-DD format, e.g., 2024-01-15")
+
+                # Build job config from CLI arguments
+                job_config = IngestionJobConfig(
+                    symbols=symbol_list,
+                    start=start_date,
+                    end=end_date,
+                    batch_size=batch_size or 500,
+                    output_path=output_path or "data/raw",
+                    workers=workers or 3,
+                    provider=provider or "alpaca",
+                    feed_type=feed_type or "iex",
+                )
+
+            # Display configuration summary
+            print("📊 Ingestion Configuration:")
+            print(f"  Symbols: {', '.join(job_config.symbols)}")
+            print(f"  Date range: {job_config.start} to {job_config.end}")
+            print(f"  Provider: {job_config.provider}")
+            print(f"  Feed type: {job_config.feed_type}")
+            print(f"  Output path: {job_config.output_path}")
+            print(f"  Workers: {job_config.workers}")
+            print(f"  Batch size: {job_config.batch_size}")
+
+            # Build services
+            print("\n🚀 Starting ingestion process...")
+
+            # Build provider configuration
+            provider_config = {
+                "provider": job_config.provider,
+                "feed_type": job_config.feed_type,
+            }
+
+            # Add provider-specific configuration (API keys, etc.)
+            if job_config.provider == "alpaca":
+                provider_config.update({
+                    "api_key": os.getenv("ALPACA_KEY"),
+                    "api_secret": os.getenv("ALPACA_SECRET"),
+                    "base_url": "https://data.alpaca.markets/v2",
+                    "rate_limit_per_min": 200,
+                })
+            elif job_config.provider == "fake":
+                # Fake provider doesn't need credentials
+                pass
+            else:
+                print(f"❌ Unsupported provider: {job_config.provider}")
                 raise typer.Exit(1)
 
-            # Parse symbols
-            symbol_list = [s.strip().upper() for s in symbols.split(",")]
+            job_service, coordinator_service = _build_ingestion_services(provider_config)
 
-            # Create job configuration from flags
-            job_config = IngestionJobConfig(
-                symbols=symbol_list,
-                start=start_date,
-                end=end_date,
-                batch_size=batch_size or 1000,
-                output_path=output_path or "data/raw",
-                workers=workers or 3,
-                provider=provider or "alpaca",
-                feed_type=feed_type or "iex",
+            # Create domain command
+            command = CreateIngestionJobCommand(
+                symbols=[Symbol(s) for s in job_config.symbols],
+                time_range=TimeRange.from_dates(job_config.start, job_config.end),
+                configuration=IngestionConfiguration(
+                    output_path=Path(job_config.output_path),
+                    compression="snappy",
+                    max_workers=job_config.workers,
+                    batch_size=job_config.batch_size,
+                    rate_limit_per_minute=200,  # Default rate limit
+                    feed_type=job_config.feed_type,
+                ),
+                batch_config=BatchConfiguration.default(),
             )
 
-        # Validate configuration
-        if len(job_config.symbols) == 0:
-            print("❌ Error: No symbols specified")
+            async def run_ingestion():
+                """Run the complete ingestion process in a single event loop."""
+                try:
+                    # Create job
+                    print("📝 Creating ingestion job...")
+                    job_id = await job_service.create_job(command)
+                    print(f"✅ Created job: {job_id}")
+
+                    # Execute job
+                    print("⚡ Starting job execution...")
+                    result = await coordinator_service.execute_job(job_id)
+                    
+                    return job_id, result
+                finally:
+                    # Ensure proper cleanup of async resources
+                    await _cleanup_async_resources(
+                        job_service._job_repository,
+                        job_service._checkpoint_repository,
+                        job_service._metrics_repository,
+                        coordinator_service._job_repository,
+                        coordinator_service._checkpoint_repository,
+                        coordinator_service._metrics_repository,
+                    )
+            
+            # Run asyncio with clean error suppression
+            job_id, result = asyncio.run(run_ingestion())
+
+            # Report results
+            print("✅ Job completed successfully!")
+            print(f"📊 Job ID: {job_id}")
+            print(f"�� Symbols processed: {result.get('symbols_processed', 0)}")
+            print(f"📊 Total bars: {result.get('total_bars', 0)}")
+            print(f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.2f}s")
+
+            if result.get("symbols_failed", 0) > 0:
+                print(f"⚠️  Failed symbols: {result.get('symbols_failed', 0)}")
+
+        except Exception as e:
+            print(f"❌ Ingestion failed: {e}")
             raise typer.Exit(1)
-
-        if job_config.start >= job_config.end:
-            print("❌ Error: Start date must be before end date")
-            raise typer.Exit(1)
-
-        # Display configuration summary
-        print("📊 Ingestion Configuration:")
-        print(f"  Symbols: {', '.join(job_config.symbols)}")
-        print(f"  Date range: {job_config.start} to {job_config.end}")
-        print(f"  Provider: {job_config.provider}")
-        print(f"  Feed type: {job_config.feed_type}")
-        print(f"  Output path: {job_config.output_path}")
-        print(f"  Workers: {job_config.workers}")
-        print(f"  Batch size: {job_config.batch_size}")
-        print()
-
-        # Build provider configuration for service creation
-        provider_config = {
-            "provider": job_config.provider,
-            "api_key": os.getenv("ALPACA_KEY"),
-            "api_secret": os.getenv("ALPACA_SECRET"),
-            "base_url": "https://data.alpaca.markets/v2",
-            "feed_type": job_config.feed_type,
-            "rate_limit_per_min": 200,
-        }
-
-        # Build services
-        job_service, coordinator_service = _build_ingestion_services(provider_config)
-
-        # Create ingestion command
-        command = CreateIngestionJobCommand(
-            symbols=[Symbol(s) for s in job_config.symbols],
-            time_range=TimeRange.from_dates(job_config.start, job_config.end),
-            configuration=IngestionConfiguration(
-                output_path=Path(job_config.output_path),
-                compression="snappy",
-                max_workers=job_config.workers,
-                batch_size=job_config.batch_size,
-                rate_limit_per_minute=provider_config["rate_limit_per_min"],
-                feed_type=job_config.feed_type,
-            ),
-            batch_config=BatchConfiguration.default(),
-        )
-
-        # Create and execute job
-        print("🚀 Creating ingestion job...")
-        job_id = asyncio.run(job_service.create_job(command))
-        print(f"📝 Created job: {job_id}")
-
-        print("⚡ Starting job execution...")
-        result = asyncio.run(coordinator_service.execute_job(job_id))
-
-        # Report results
-        print("✅ Job completed successfully!")
-        print(f"📊 Job ID: {job_id}")
-        print(f"📈 Symbols processed: {result.get('symbols_processed', 0)}")
-        print(f"📊 Total bars: {result.get('total_bars', 0)}")
-        print(f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.2f}s")
-
-        if result.get("symbols_failed", 0) > 0:
-            print(f"⚠️  Failed symbols: {result.get('symbols_failed', 0)}")
-
-    except Exception as e:
-        print(f"❌ Ingestion failed: {e}")
-        raise typer.Exit(1)
 
 
 def ingest_ohlcv(

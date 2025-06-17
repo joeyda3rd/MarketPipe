@@ -130,11 +130,13 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
                 started = dt.datetime.utcnow()
                 try:
                     # Re-use ingestion command implementation
+                    # Fix: For single day backfill, start=gap_day, end=gap_day+1
+                    next_day = gap_day + dt.timedelta(days=1)
                     _ingest_impl(
                         config=str(config) if config else None,
                         symbols=sym,
                         start=gap_day.isoformat(),
-                        end=gap_day.isoformat(),
+                        end=next_day.isoformat(),  # Use next day for end to satisfy start < end validation
                         provider=provider,
                         # leave other overrides None to use config/defaults
                     )

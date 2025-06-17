@@ -14,8 +14,8 @@ from ..domain.value_objects import ValidationResult
 class CsvReportRepository:
     """Repository for saving validation reports as CSV files."""
 
-    def __init__(self, root: Path = Path("data/validation_reports")):
-        self.root = root
+    def __init__(self, root: Path | str = Path("data/validation_reports")):
+        self.root = Path(root)  # Ensure root is always a Path object
         self.log = logging.getLogger(self.__class__.__name__)
 
     def save(self, job_id: str, result: ValidationResult) -> Path:

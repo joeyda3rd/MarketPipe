@@ -194,6 +194,23 @@ cython_debug/
 .cursorindexingignore
 .claude/
 
-
+# MarketPipe specific files
 #data lake
 data/
+data_backup*
+
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Environment files
+*.env
+!.env.example
