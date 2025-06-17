@@ -93,7 +93,7 @@ def metrics(
 
         if list_metrics:
             # List all available metrics
-            metrics_list = metrics_repo.list_metric_names()
+            metrics_list = asyncio.run(metrics_repo.list_metric_names())
             if not metrics_list:
                 print("📊 No metrics found in database")
                 return
@@ -141,7 +141,7 @@ def metrics(
                     print(f"... and {len(averages) - 20} earlier averages")
             else:
                 # Show averages for all metrics
-                metrics_list = metrics_repo.list_metric_names()
+                metrics_list = asyncio.run(metrics_repo.list_metric_names())
                 print(f"📊 Average metrics over {avg} windows:")
                 print("=" * 50)
 
@@ -195,7 +195,7 @@ def metrics(
             return
 
         # If no specific option, show recent metrics summary
-        metrics_list = metrics_repo.list_metric_names()
+        metrics_list = asyncio.run(metrics_repo.list_metric_names())
         if not metrics_list:
             print("📊 No metrics found in database")
             print("💡 Try: marketpipe metrics --port 8000  # Start async metrics server")
