@@ -145,11 +145,16 @@ def test_full_pipeline_end_to_end(tmp_path, monkeypatch):
         # Mock metrics repository
         mock_repo_instance = Mock()
         mock_metrics_repo.return_value = mock_repo_instance
-        mock_repo_instance.list_metric_names.return_value = [
-            "ingest_jobs",
-            "validation_jobs",
-            "aggregation_jobs",
-        ]
+        
+        # Mock async method
+        async def mock_list_metric_names():
+            return [
+                "ingest_jobs",
+                "validation_jobs",
+                "aggregation_jobs",
+            ]
+        
+        mock_repo_instance.list_metric_names = mock_list_metric_names
 
         result = runner.invoke(app, ["metrics", "--list"], catch_exceptions=False)
 

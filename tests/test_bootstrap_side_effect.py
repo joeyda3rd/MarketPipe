@@ -265,10 +265,19 @@ class TestCliCommandBootstrap:
                  patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg, \
                  patch("marketpipe.metrics.SqliteMetricsRepository") as mock_repo:
                 
-                # Mock empty metrics list
-                mock_repo.return_value.list_metric_names.return_value = []
+                # Mock empty metrics list - need to return an async function
+                async def mock_list_metric_names():
+                    return []
+                
+                mock_repo.return_value.list_metric_names = mock_list_metric_names
                 
                 result = runner.invoke(app, ["metrics", "--list"])
+                
+                # Debug output for failing test
+                if result.exit_code != 0:
+                    print(f"Exit code: {result.exit_code}")
+                    print(f"Output: {result.output}")
+                    print(f"Exception: {result.exception}")
                 
                 # Command should succeed
                 assert result.exit_code == 0
