@@ -1,0 +1,40 @@
+# Example Polygon.io configuration for MarketPipe
+# Copy this file and customize with your API credentials
+
+# Polygon.io provider configuration
+polygon:
+  # API key - will be loaded from POLYGON_API_KEY environment variable
+  api_key: # Will be loaded from POLYGON_API_KEY in .env file
+  base_url: https://api.polygon.io
+  rate_limit_per_min: 50  # Conservative limit for free tier (5 req/sec = 300/min)
+  max_results: 50000      # Maximum results per API request
+  timeout: 30.0
+  max_retries: 3
+
+# Global pipeline configuration
+symbols:
+  - AAPL
+  - GOOGL
+  - MSFT
+  - AMZN
+  - TSLA
+
+start: "2025-01-02"
+end: "2025-01-03"
+output_path: "./data"
+compression: snappy
+workers: 2
+
+# Provider override for CLI
+provider: polygon
+
+# Optional: Enable metrics collection
+# metrics:
+#   enabled: true
+#   port: 8000
+#   multiprocess_dir: "/tmp/prometheus_multiproc"
+
+# Optional: State management for checkpointing
+# state:
+#   backend: sqlite
+#   path: "./polygon_ingestion_state.db" 

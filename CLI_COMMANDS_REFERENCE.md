@@ -57,6 +57,18 @@ python -m marketpipe ingest-ohlcv --provider iex --symbols AAPL --start 2024-01-
 ```
 *Ingest data from IEX Cloud*
 
+```bash
+export FINNHUB_TOKEN="your_token_here"
+python -m marketpipe ingest-ohlcv --provider finnhub --symbols AAPL --start 2024-01-01 --end 2024-01-02 --batch-size 100
+```
+*Ingest data from Finnhub*
+
+```bash
+export POLYGON_API_KEY="your_api_key_here"
+python -m marketpipe ingest-ohlcv --provider polygon --symbols AAPL --start 2024-01-01 --end 2024-01-02 --batch-size 200
+```
+*Ingest data from Polygon.io*
+
 #### Advanced Ingestion Options
 
 ```bash
@@ -137,6 +149,8 @@ python -m marketpipe query "SELECT * FROM bars_15m WHERE symbol='GOOGL' ORDER BY
 
 ### Metrics and Monitoring Commands
 
+#### Basic Metrics Server
+
 ```bash
 python -m marketpipe metrics --port 8000
 ```
@@ -146,6 +160,8 @@ python -m marketpipe metrics --port 8000
 python -m marketpipe metrics --port 8080 --legacy-metrics
 ```
 *Start legacy blocking metrics server*
+
+#### Metrics Exploration
 
 ```bash
 python -m marketpipe metrics --list
@@ -162,6 +178,8 @@ python -m marketpipe metrics --metric validation_errors --since "2024-01-01 10:0
 ```
 *Show metric history since specific timestamp*
 
+#### Metrics Analysis and Visualization
+
 ```bash
 python -m marketpipe metrics --avg 1h --plot
 ```
@@ -171,6 +189,21 @@ python -m marketpipe metrics --avg 1h --plot
 python -m marketpipe metrics --metric aggregation_latency --avg 1d --plot
 ```
 *Show daily averages for specific metric with plot*
+
+```bash
+python -m marketpipe metrics --avg 30m
+```
+*Show 30-minute averages for all metrics*
+
+```bash
+python -m marketpipe metrics --metric ingestion_latency --plot
+```
+*Show sparkline plot for specific metric*
+
+```bash
+python -m marketpipe metrics --since "2024-01-01" --plot
+```
+*Show metrics since date with sparklines*
 
 ### Backfill Commands
 
@@ -193,6 +226,16 @@ python -m marketpipe ohlcv backfill backfill --config config/example_config.yaml
 python -m marketpipe ohlcv backfill backfill --symbol TSLA --lookback 14 --provider alpaca
 ```
 *Backfill with real provider (requires credentials)*
+
+```bash
+python -m marketpipe ohlcv backfill backfill --symbol NVDA --lookback 7 --provider finnhub
+```
+*Backfill with Finnhub provider*
+
+```bash
+python -m marketpipe ohlcv backfill backfill --symbol AMD --lookback 7 --provider polygon
+```
+*Backfill with Polygon.io provider*
 
 ### Data Pruning Commands
 
@@ -281,6 +324,8 @@ python -m marketpipe prune [type] [age] [options]
 - `--provider fake` (synthetic data, no credentials)
 - `--provider alpaca` (requires ALPACA_KEY, ALPACA_SECRET)
 - `--provider iex` (requires IEX_TOKEN)
+- `--provider finnhub` (requires FINNHUB_TOKEN)
+- `--provider polygon` (requires POLYGON_API_KEY)
 
 ### Time Windows (for pruning/metrics)
 - `30d` (30 days)
@@ -294,6 +339,8 @@ python -m marketpipe prune [type] [age] [options]
 export ALPACA_KEY="your_alpaca_api_key"
 export ALPACA_SECRET="your_alpaca_secret_key"
 export IEX_TOKEN="your_iex_cloud_token"
+export FINNHUB_TOKEN="your_finnhub_token"
+export POLYGON_API_KEY="your_polygon_api_key"
 export DATABASE_URL="postgresql://user:pass@localhost:5432/marketpipe"  # Optional: Use PostgreSQL instead of SQLite
 ```
 
@@ -337,6 +384,8 @@ python scripts/comprehensive_data_pipeline.py --provider fake
 
 # Execute with real provider (requires credentials)
 python scripts/comprehensive_data_pipeline.py --provider alpaca
+python scripts/comprehensive_data_pipeline.py --provider finnhub
+python scripts/comprehensive_data_pipeline.py --provider polygon
 ```
 
 This script demonstrates:

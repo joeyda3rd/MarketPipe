@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from .adapters import AlpacaMarketDataAdapter
+from .adapters import AlpacaMarketDataAdapter, FinnhubMarketDataAdapter, PolygonMarketDataAdapter
 from .iex_adapter import IEXMarketDataAdapter
 from .fake_adapter import FakeMarketDataAdapter
 from .provider_registry import provider, register, get, list_providers
@@ -15,6 +15,8 @@ from .parquet_storage import ParquetDataStorage
 __all__ = [
     # Adapters (Anti-corruption layer)
     "AlpacaMarketDataAdapter",
+    "FinnhubMarketDataAdapter",
+    "PolygonMarketDataAdapter",
     "IEXMarketDataAdapter",
     "FakeMarketDataAdapter",
     # Provider registry and loading

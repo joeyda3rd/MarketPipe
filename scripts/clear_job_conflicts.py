@@ -4,16 +4,19 @@ Simple script to clear job scheduling conflicts by updating the database directl
 """
 
 import sqlite3
+import sys
+from datetime import datetime
 from pathlib import Path
 
 def clear_job_conflicts():
     """Clear all job records to resolve scheduling conflicts."""
     
-    # Find the database
-    db_path = "ingestion_jobs.db"
-    if not Path(db_path).exists():
-        print("❌ No ingestion_jobs.db found")
-        return False
+    # Use the new default path
+    db_path = Path("data/db/ingestion_jobs.db")
+    
+    if not db_path.exists():
+        print("❌ No ingestion_jobs.db found at data/db/ingestion_jobs.db")
+        return
     
     try:
         conn = sqlite3.connect(db_path)

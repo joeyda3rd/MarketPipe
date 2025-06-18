@@ -1,0 +1,38 @@
+# Example Finnhub configuration for MarketPipe
+# Get your free API key at: https://finnhub.io/register
+
+providers:
+  finnhub:
+    provider: finnhub
+    api_key: YOUR_FINNHUB_API_KEY  # Set this in your .env file as FINNHUB_API_KEY
+    base_url: https://finnhub.io/api/v1
+    rate_limit_per_min: 60   # Free tier: 60 requests per minute
+    rate_limit_per_sec: 30   # Global QPS limit: 30 requests per second
+    # Note: Dual rate limiting protects against both plan limits and burst limits
+
+# Ingestion configuration
+symbols:
+  - AAPL
+  - GOOGL
+  - MSFT
+  - TSLA
+  - NVDA
+  # Note: Symbols with dots (e.g., BRK.B, BF.B) are supported as-is
+
+start: "2024-01-02"
+end: "2024-01-03"
+# Note: Large date ranges (>30 days) are automatically chunked into monthly segments
+
+output_path: "./data"
+compression: snappy
+workers: 2  # Keep low due to rate limits
+
+# Optional: Enable metrics collection
+metrics:
+  enabled: true
+  port: 8000
+
+# Optional: State management for resumable ingestion
+state:
+  backend: sqlite
+  path: "./finnhub_state.db" 

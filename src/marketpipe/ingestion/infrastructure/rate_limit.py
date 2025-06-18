@@ -5,6 +5,7 @@ import asyncio
 import threading
 import time
 from typing import Optional
+import logging
 
 from prometheus_client import Counter
 
@@ -246,34 +247,83 @@ class RateLimiter:
             self._sync_condition.notify_all()
 
 
+class DualRateLimiter:
+    """
+    Rate limiter that enforces both per-minute and per-second limits.
+    
+    This is useful for APIs like Finnhub that have both:
+    - A plan-based limit (e.g., 60 requests/minute)
+    - A burst/QPS limit (e.g., 30 requests/second)
+    """
+    
+    def __init__(
+        self,
+        minute_limit: int,
+        second_limit: int,
+        minute_window: float = 60.0,
+        second_window: float = 1.0,
+    ):
+        """
+        Initialize dual rate limiter.
+        
+        Args:
+            minute_limit: Max requests per minute
+            second_limit: Max requests per second  
+            minute_window: Window size for minute limit (default: 60.0)
+            second_window: Window size for second limit (default: 1.0)
+        """
+        self.minute_limiter = RateLimiter(minute_limit, minute_window)
+        self.second_limiter = RateLimiter(second_limit, second_window)
+        self.log = logging.getLogger(self.__class__.__name__)
+    
+    def acquire(self) -> None:
+        """Acquire from both rate limiters (synchronous)."""
+        # Acquire from the more restrictive limiter first
+        self.second_limiter.acquire()
+        self.minute_limiter.acquire()
+    
+    async def async_acquire(self) -> None:
+        """Acquire from both rate limiters (asynchronous)."""
+        # Acquire from the more restrictive limiter first
+        await self.second_limiter.async_acquire()
+        await self.minute_limiter.async_acquire()
+
+
 def create_rate_limiter_from_config(
     rate_limit_per_min: Optional[int] = None,
-    burst_size: Optional[int] = None,
-    provider_name: str = "unknown"
-) -> Optional[RateLimiter]:
-    """Create a RateLimiter from configuration values.
+    rate_limit_per_sec: Optional[int] = None,
+    provider_name: str = "unknown",
+) -> Optional[RateLimiter | DualRateLimiter]:
+    """
+    Create appropriate rate limiter from configuration.
     
     Args:
-        rate_limit_per_min: Rate limit in requests per minute
-        burst_size: Maximum burst size (defaults to rate_limit_per_min if not specified)
-        provider_name: Provider name for metrics
+        rate_limit_per_min: Requests per minute limit
+        rate_limit_per_sec: Requests per second limit (for dual limiting)
+        provider_name: Provider name for logging
         
     Returns:
-        RateLimiter instance or None if rate limiting is disabled
+        RateLimiter, DualRateLimiter, or None if no limits specified
     """
-    if rate_limit_per_min is None or rate_limit_per_min <= 0:
+    if rate_limit_per_min and rate_limit_per_sec:
+        # Dual rate limiting for providers with both limits
+        logging.getLogger(__name__).info(
+            f"Creating dual rate limiter for {provider_name}: "
+            f"{rate_limit_per_min} req/min + {rate_limit_per_sec} req/sec"
+        )
+        return DualRateLimiter(
+            minute_limit=rate_limit_per_min,
+            second_limit=rate_limit_per_sec
+        )
+    elif rate_limit_per_min:
+        # Standard per-minute rate limiting
+        logging.getLogger(__name__).info(
+            f"Creating rate limiter for {provider_name}: {rate_limit_per_min} req/min"
+        )
+        return RateLimiter(rate_limit_per_min, 60.0)
+    else:
+        # No rate limiting
         return None
-        
-    # Convert per-minute to per-second
-    refill_rate = rate_limit_per_min / 60.0
-    
-    # Default burst size to rate limit if not specified
-    capacity = burst_size if burst_size is not None else rate_limit_per_min
-    
-    limiter = RateLimiter(capacity=capacity, refill_rate=refill_rate)
-    limiter.set_provider_name(provider_name)
-    
-    return limiter
 
 
 __all__ = ["RateLimiter", "create_rate_limiter_from_config", "RATE_LIMITER_WAITS"]

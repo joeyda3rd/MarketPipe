@@ -223,7 +223,7 @@ def _build_ingestion_services(
 
     # Repository setup
     core_db_path = str(data_dir / "db" / "core.db")
-    job_repo = SqliteIngestionJobRepository(str(data_dir / "ingestion_jobs.db"))
+    job_repo = SqliteIngestionJobRepository()  # Use default path: data/db/ingestion_jobs.db
     checkpoint_repo = SqliteCheckpointRepository(core_db_path)
     metrics_repo = SqliteMetricsRepository(str(data_dir / "metrics.db"))
 
@@ -411,6 +411,13 @@ def _ingest_impl(
                     "base_url": "https://data.alpaca.markets/v2",
                     "rate_limit_per_min": 200,
                 })
+            elif job_config.provider == "finnhub":
+                provider_config.update({
+                    "api_key": os.getenv("FINNHUB_API_KEY"),
+                    "base_url": "https://finnhub.io/api/v1",
+                    "rate_limit_per_min": 60,  # Free tier limit
+                    "rate_limit_per_sec": 30,  # Global QPS limit
+                })
             elif job_config.provider == "fake":
                 # Fake provider doesn't need credentials
                 pass
@@ -465,7 +472,7 @@ def _ingest_impl(
             # Report results
             print("✅ Job completed successfully!")
             print(f"📊 Job ID: {job_id}")
-            print(f"�� Symbols processed: {result.get('symbols_processed', 0)}")
+            print(f"📊 Symbols processed: {result.get('symbols_processed', 0)}")
             print(f"📊 Total bars: {result.get('total_bars', 0)}")
             print(f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.2f}s")
 

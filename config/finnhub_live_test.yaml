@@ -1,0 +1,27 @@
+# Live Finnhub test configuration using demo API key
+# This uses Finnhub's demo key - replace with your own for production use
+
+config_version: "1"
+
+finnhub:
+  # API key - using demo key for testing
+  key: demo  # Demo key for testing - replace with your real key in .env file
+  base_url: https://finnhub.io/api/v1
+  rate_limit_per_min: 60   # Free tier: 60 requests per minute
+
+# Test with a small amount of recent data
+symbols:
+  - AAPL
+
+# Recent date range (just yesterday to today for testing)
+start: "2024-12-11"
+end: "2024-12-12"
+
+output_path: "./data/finnhub_test"
+compression: snappy
+workers: 1  # Single worker for testing
+
+# Enable metrics to monitor the live data fetch
+metrics:
+  enabled: true
+  port: 8001  # Different port to avoid conflicts 

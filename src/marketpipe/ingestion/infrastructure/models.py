@@ -19,6 +19,17 @@ class ClientConfig(BaseModel):
     user_agent: str = "MarketPipe/0.1"
 
 
+class PolygonClientConfig(ClientConfig):
+    """Configuration for Polygon.io API client."""
+    
+    api_key: str
+    base_url: str = "https://api.polygon.io"
+    rate_limit_per_min: int = 50  # Free tier: 5 req/sec ≈ 300/min; conservative default
+    max_results: int = 50_000     # API hard limit per request
+    timeout: float = 30.0
+    max_retries: int = 3
+
+
 class OHLCVRow(BaseModel):
     """Stub schema for OHLCV data rows."""
 
@@ -32,4 +43,4 @@ class OHLCVRow(BaseModel):
     vwap: float | None = None
 
 
-__all__ = ["ClientConfig", "OHLCVRow"]
+__all__ = ["ClientConfig", "PolygonClientConfig", "OHLCVRow"]

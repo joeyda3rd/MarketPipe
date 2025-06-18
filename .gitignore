@@ -213,4 +213,4 @@ temp/
 
 # Environment files
 *.env
-!.env.example
+!.env.example.env.backup

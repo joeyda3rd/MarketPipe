@@ -9,6 +9,8 @@ from contextlib import asynccontextmanager
 from http.server import HTTPServer
 from threading import Thread
 from typing import Optional
+from pathlib import Path
+import tempfile
 
 from prometheus_client import (
     start_http_server,
@@ -46,8 +48,10 @@ class AsyncMetricsServer:
         self._registry = CollectorRegistry()
         
         # Setup multiprocess collector if available
-        if "PROMETHEUS_MULTIPROC_DIR" in os.environ:
+        multiproc_dir = setup_multiprocess_metrics_dir()
+        if multiproc_dir:
             MultiProcessCollector(self._registry)
+            logger.info(f"Using multiprocess metrics directory: {multiproc_dir}")
         else:
             # For single process, use the default registry
             from prometheus_client import REGISTRY
@@ -272,48 +276,64 @@ def metrics_app(environ, start_response):
 
 
 def run(port: int = 8000, legacy: bool = False) -> None:
-    """Run metrics server (legacy blocking mode).
+    """Run the metrics server.
     
     Args:
-        port: Port to run server on
-        legacy: Use legacy blocking implementation for backward compatibility
+        port: Port to bind to
+        legacy: Use legacy WSGI mode instead of async mode
     """
+    # Set up multiprocess directory
+    multiproc_dir = setup_multiprocess_metrics_dir()
+    logger.info(f"Using multiprocess metrics directory: {multiproc_dir}")
+    
     if legacy:
-        # Legacy blocking mode
-        if "PROMETHEUS_MULTIPROC_DIR" in os.environ:
-            # Use multiprocess mode
-            httpd = make_server("", port, metrics_app)
-            logger.info(f"Prometheus metrics server (multiprocess mode) serving on port {port}")
-            print(f"Prometheus metrics server (multiprocess mode) serving on port {port}")
-            httpd.serve_forever()
-        else:
-            # Use regular single-process mode
-            start_http_server(port=port)
-            logger.info(f"Prometheus metrics server (single process mode) serving on port {port}")
-            print(f"Prometheus metrics server (single process mode) serving on port {port}")
-            # Block forever to maintain legacy behavior
-            try:
-                while True:
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                logger.info("Legacy metrics server stopped")
-                print("Metrics server stopped")
+        # Legacy multiprocess mode
+        logger.info(f"Prometheus metrics server (legacy mode) serving on port {port}")
+        print(f"Prometheus metrics server (legacy mode) serving on port {port}")
+        
+        from wsgiref.simple_server import make_server
+        server = make_server("", port, metrics_app)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            logger.info("Prometheus metrics server stopped")
+            print("Prometheus metrics server stopped")
     else:
-        # New async mode - run in asyncio context
+        # Modern async mode
+        logger.info(f"Prometheus metrics server (async mode) serving on port {port}")
+        print(f"Prometheus metrics server (async mode) serving on port {port}")
+        
         async def run_async():
-            server = await start_async_server(port=port)
-            try:
-                # Keep server running until interrupted
-                while True:
-                    await asyncio.sleep(1)
-            except KeyboardInterrupt:
-                logger.info("Shutting down async metrics server...")
-                print("\nShutting down async metrics server...")
-            finally:
-                await stop_async_server()
+            server = AsyncMetricsServer(port=port)
+            async with server.run_context():
+                try:
+                    # Keep the server running
+                    while True:
+                        await asyncio.sleep(1)
+                except KeyboardInterrupt:
+                    logger.info("Prometheus metrics server stopping...")
+                    print("Prometheus metrics server stopping...")
         
         try:
             asyncio.run(run_async())
         except KeyboardInterrupt:
-            logger.info("Async metrics server stopped")
-            print("Async metrics server stopped")
+            logger.info("Prometheus metrics server stopped")
+            print("Prometheus metrics server stopped")
+
+
+def setup_multiprocess_metrics_dir() -> str:
+    """Set up Prometheus multiprocess directory with proper default location.
+    
+    Returns:
+        str: Path to the multiprocess directory
+    """
+    if "PROMETHEUS_MULTIPROC_DIR" in os.environ:
+        # Use existing environment variable
+        multiproc_dir = os.environ["PROMETHEUS_MULTIPROC_DIR"]
+    else:
+        # Set up default location in data/metrics/multiprocess
+        multiproc_dir = Path("data/metrics/multiprocess")
+        multiproc_dir.mkdir(parents=True, exist_ok=True)
+        os.environ["PROMETHEUS_MULTIPROC_DIR"] = str(multiproc_dir)
+        
+    return str(multiproc_dir)

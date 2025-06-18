@@ -39,8 +39,13 @@ REPO_LATENCY = Histogram(
 class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
     """SQLite implementation of ingestion job repository."""
 
-    def __init__(self, db_path: Optional[Path] = None):
-        self._db_path = db_path or Path("ingestion_jobs.db")
+    def __init__(self, db_path: str | Path | None = None):
+        """Initialize repository with database path.
+        
+        Args:
+            db_path: Path to SQLite database file. Defaults to data/db/ingestion_jobs.db
+        """
+        self._db_path = db_path or Path("data/db/ingestion_jobs.db")
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
 
@@ -508,8 +513,13 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepository):
     """SQLite implementation of checkpoint repository."""
 
-    def __init__(self, db_path: Optional[Path] = None):
-        self._db_path = db_path or Path("ingestion_checkpoints.db")
+    def __init__(self, db_path: str | Path | None = None):
+        """Initialize repository with database path.
+        
+        Args:
+            db_path: Path to SQLite database file. Defaults to data/db/ingestion_checkpoints.db
+        """
+        self._db_path = db_path or Path("data/db/ingestion_checkpoints.db")
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
 
@@ -696,8 +706,13 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
 class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
     """SQLite implementation of metrics repository."""
 
-    def __init__(self, db_path: Optional[Path] = None):
-        self._db_path = db_path or Path("ingestion_metrics.db")
+    def __init__(self, db_path: str | Path | None = None):
+        """Initialize repository with database path.
+        
+        Args:
+            db_path: Path to SQLite database file. Defaults to data/db/ingestion_metrics.db
+        """
+        self._db_path = db_path or Path("data/db/ingestion_metrics.db")
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
 

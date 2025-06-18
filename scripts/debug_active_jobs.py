@@ -14,28 +14,25 @@ from pathlib import Path
 from datetime import datetime
 import json
 
+def find_database():
+    """Find the ingestion jobs database."""
+    # Use the standard location
+    db_path = Path("data/db/ingestion_jobs.db")
+    
+    if db_path.exists():
+        print(f"📁 Using database: {db_path}")
+        return str(db_path)
+    else:
+        print("❌ No ingestion_jobs.db found at data/db/ingestion_jobs.db")
+        print("   Try running a MarketPipe command first to create the database")
+        return None
+
 def check_active_jobs():
     """Check what active jobs exist in the database."""
     
-    # Check for SQLite database
-    db_files = [
-        "ingestion_jobs.db",
-        "data/db/ingestion_jobs.db", 
-        "data/ingestion_jobs.db"
-    ]
-    
-    db_path = None
-    for db_file in db_files:
-        if Path(db_file).exists():
-            db_path = db_file
-            break
-    
+    db_path = find_database()
     if not db_path:
-        print("❌ No ingestion jobs database found")
-        print("💡 Checked for:", ", ".join(db_files))
         return
-    
-    print(f"📁 Using database: {db_path}")
     
     try:
         conn = sqlite3.connect(db_path)
@@ -131,20 +128,8 @@ def check_active_jobs():
 def clear_active_jobs():
     """Clear active jobs to resolve conflicts."""
     
-    db_files = [
-        "ingestion_jobs.db",
-        "data/db/ingestion_jobs.db", 
-        "data/ingestion_jobs.db"
-    ]
-    
-    db_path = None
-    for db_file in db_files:
-        if Path(db_file).exists():
-            db_path = db_file
-            break
-    
+    db_path = find_database()
     if not db_path:
-        print("❌ No ingestion jobs database found")
         return
     
     try:
