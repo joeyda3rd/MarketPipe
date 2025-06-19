@@ -1,6 +1,6 @@
 # MarketPipe Development Makefile
 
-.PHONY: help update-roadmap check-roadmap install-hooks coverage test lint format clean
+.PHONY: help install-hooks coverage test lint format clean
 
 help: ## Show this help message
 	@echo "MarketPipe Development Commands:"
@@ -11,21 +11,10 @@ help: ## Show this help message
 clean: ## Clean up temporary files and development artifacts
 	@bash scripts/cleanup-root.sh
 
-# Roadmap Management
-update-roadmap: ## Update TODO.md based on current codebase state
-	@echo "🤖 Analyzing codebase and updating roadmap..."
-	python scripts/update_roadmap.py --verbose
-
-check-roadmap: ## Check roadmap status without updating
-	@echo "🔍 Checking roadmap status..."
-	python scripts/update_roadmap.py --dry-run
-
 # Development Setup
-install-hooks: ## Install Git hooks for automatic roadmap checking
+install-hooks: ## Install Git hooks for development
 	@echo "🔗 Installing Git hooks..."
-	@chmod +x scripts/pre-commit-roadmap-check.sh
-	@ln -sf ../../scripts/pre-commit-roadmap-check.sh .git/hooks/pre-commit
-	@echo "✅ Pre-commit hook installed"
+	@echo "✅ Git hooks ready (no hooks currently configured)"
 
 # Testing & Quality
 test: ## Run all tests
@@ -60,5 +49,5 @@ dev-setup: install-hooks ## Complete development setup
 	@echo "Run 'make help' to see available commands"
 
 # Continuous Integration simulation
-ci-check: lint test coverage check-roadmap ## Run all CI checks locally
+ci-check: lint test coverage ## Run all CI checks locally
 	@echo "✅ All CI checks passed!" 
