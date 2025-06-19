@@ -60,8 +60,9 @@ def list_providers() -> list[str]:
     return sorted(_REGISTRY)
 
 
-# Import dummy provider to trigger registration
+# Import providers to trigger registration
 from . import dummy
+from . import polygon
 
 __all__ = [
     "SymbolProviderBase",
