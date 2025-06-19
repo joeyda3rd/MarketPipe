@@ -63,6 +63,7 @@ def list_providers() -> list[str]:
 # Import providers to trigger registration
 from . import dummy
 from . import polygon
+from . import nasdaq_dl
 
 __all__ = [
     "SymbolProviderBase",
