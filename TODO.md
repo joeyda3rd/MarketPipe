@@ -79,7 +79,7 @@
 - [x] 🟡 **Complete SqliteMetricsRepository** _(history tracking, performance trends)_ ✅ **COMPLETED** - Full implementation with get_metrics_history, get_average_metrics, get_performance_trends
 - [x] 🟡 **Add metrics CLI command** _(simple performance reports)_ ✅ **COMPLETED** - Enhanced CLI with --metric, --since, --avg, --plot, --list options
 - [x] 🟢 **Implement event bus monitoring** _(track published/consumed events)_ ✅ **COMPLETED** - Event-driven metrics collection via domain event handlers
-- [ ] 🟢 **Add `provider` and `feed` labels to Parquet-write & retention metrics** _(improves multi-provider visibility)_
+- [x] 🟢 **Add `provider` and `feed` labels to Parquet-write & retention metrics** _(improves multi-provider visibility)_
 - [ ] 🔵 **Add Grafana dashboard config** _(visualization templates)_
 
 ## 🧑‍💻 Developer Experience
@@ -99,15 +99,15 @@
 
 - [x] 🟡 **Rename CLI commands for clarity** _(mp ingest-ohlcv, mp backfill-ohlcv, mp aggregate-ohlcv, mp validate-ohlcv)_ ✅ **COMPLETED** - CLI commands renamed with OHLCV sub-app, convenience commands, and deprecation warnings
 - [x] 🟡 **Split monolithic CLI into sub-modules** _(create `marketpipe.cli.ingest`, `.validate`, `.aggregate`, `.query`, register with root Typer app)_ ✅ **COMPLETED** - CLI modularized into separate modules with proper service imports and ≥70% test coverage
-- [ ] 🟡 **Implement backfill command** _(historical data ingestion with gap detection)_
+- [x] 🟡 **Implement backfill command** _(historical data ingestion with gap detection)_
 - [x] 🟡 **Add `prune` commands & retention scripts** _( `mp prune parquet --older-than 5y`, `mp prune sqlite --older-than 18m`; sample cron/systemd units; update metrics)_ ✅ **COMPLETED** - Full data retention utilities with dry-run mode, metrics integration, domain events, comprehensive testing
 - [x] 🟢 **Add data loader Python API** _(load_ohlcv() function for research/backtesting)_ ✅ **PARTIALLY COMPLETED** - ParquetStorageEngine.load_symbol_data(), DuckDBAggregationEngine.get_aggregated_data() provide data loading capabilities. Missing: unified load_ohlcv() research API
 - [ ] 🔵 **Scheduler integration** _(crontab examples, systemd timers)_
 
 ## 🔄 Additional Providers
 
-- [ ] 🟡 **Add Finnhub provider** _(implement FinnhubMarketDataAdapter)_
-- [ ] 🟡 **Add Polygon provider** _(implement PolygonMarketDataAdapter)_
+- [x] 🟡 **Add Finnhub provider** _(implement FinnhubMarketDataAdapter)_
+- [x] 🟡 **Add Polygon provider** _(implement PolygonMarketDataAdapter)_
 - [ ] 🟢 **Provider feature matrix** _(document capabilities, rate limits, costs)_
 - [ ] 🔵 **Multi-provider data reconciliation** _(cross-validate data quality)_
 

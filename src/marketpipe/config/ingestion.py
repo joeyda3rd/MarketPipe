@@ -92,11 +92,11 @@ class IngestionJobConfig(BaseModel):
             # If no providers are registered (e.g., in test environment),
             # fall back to known providers
             if not valid_providers:
-                valid_providers = {"alpaca", "iex", "fake", "polygon"}
+                valid_providers = {"alpaca", "iex", "fake", "polygon", "finnhub"}
                 
         except ImportError:
             # Fallback for cases where registry isn't available
-            valid_providers = {"alpaca", "iex", "fake", "polygon"}
+            valid_providers = {"alpaca", "iex", "fake", "polygon", "finnhub"}
 
         if v.lower() not in valid_providers:
             raise ValueError(
