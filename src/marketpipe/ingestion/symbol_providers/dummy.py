@@ -4,6 +4,7 @@ import datetime as _dt
 from typing import List
 
 from marketpipe.domain import SymbolRecord
+from marketpipe.domain.symbol import safe_create
 from .base import SymbolProviderBase
 from . import register
 
@@ -32,4 +33,9 @@ class DummyProvider(SymbolProviderBase):
 
     def _map_to_records(self, payload) -> List[SymbolRecord]:
         """Convert payload to SymbolRecord objects."""
-        return [SymbolRecord(**row) for row in payload] 
+        out = []
+        for row in payload:
+            rec = safe_create(row, provider=self.name)
+            if rec:
+                out.append(rec)
+        return out 

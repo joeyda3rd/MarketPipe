@@ -41,6 +41,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from marketpipe.domain import SymbolRecord, AssetClass, Status
+from marketpipe.domain.symbol import safe_create
 from .base import SymbolProviderBase
 from . import register
 
@@ -153,69 +154,66 @@ class PolygonSymbolProvider(SymbolProviderBase):
         records: List[SymbolRecord] = []
         
         for row in payload:
-            try:
-                # Map exchange code to MIC, fallback to truncated uppercase
-                primary_exchange = row.get("primary_exchange", "")
-                mic = MIC_MAP.get(primary_exchange, primary_exchange[:4].upper())
-                
-                # Map asset type to AssetClass enum
-                asset_type = row.get("type", "CS")
-                asset_class = ASSET_MAP.get(asset_type, AssetClass.EQUITY)
-                
-                # Map active status to Status enum
-                is_active = row.get("active", True)
-                status = Status.ACTIVE if is_active else Status.DELISTED
-                
-                # Parse list date if available
-                list_date_str = row.get("list_date")
-                first_trade_date = None
-                if list_date_str:
-                    try:
-                        first_trade_date = _dt.date.fromisoformat(list_date_str)
-                    except (ValueError, TypeError):
-                        # Invalid date format, keep as None
-                        pass
-                
-                # Extract currency, default to USD
-                currency = row.get("currency_name", "USD")
-                if isinstance(currency, str):
-                    currency = currency[:3].upper()
-                else:
-                    currency = "USD"
-                
-                # Extract country from locale
-                country = None
-                locale = row.get("locale")
-                if locale and isinstance(locale, str) and len(locale) >= 2:
-                    country = locale[:2].upper()
-                
-                # Create SymbolRecord with validation
-                record = SymbolRecord(
-                    ticker=row["ticker"].upper(),
-                    exchange_mic=mic,
-                    asset_class=asset_class,
-                    currency=currency,
-                    status=status,
-                    company_name=row.get("name"),
-                    shares_outstanding=row.get("share_class_shares_outstanding"),
-                    first_trade_date=first_trade_date,
-                    delist_date=None,  # Polygon doesn't provide delisting date directly
-                    as_of=self.as_of,
-                    figi=row.get("figi") or None,
-                    country=country,
-                    cusip=row.get("cusip") or None,
-                    isin=row.get("isin") or None,
-                    cik=row.get("cik") or None,
-                    sector=row.get("sector") or None,
-                    industry=row.get("industry") or None,
-                    meta=row,  # Preserve original provider data
-                )
-                
-                records.append(record)
-                
-            except Exception:
-                # Log validation error but continue processing other records
-                # In production, this would use proper logging
-                continue
+            # Map exchange code to MIC, fallback to truncated uppercase
+            primary_exchange = row.get("primary_exchange", "")
+            mic = MIC_MAP.get(primary_exchange, primary_exchange[:4].upper())
+            
+            # Map asset type to AssetClass enum
+            asset_type = row.get("type", "CS")
+            asset_class = ASSET_MAP.get(asset_type, AssetClass.EQUITY)
+            
+            # Map active status to Status enum
+            is_active = row.get("active", True)
+            status = Status.ACTIVE if is_active else Status.DELISTED
+            
+            # Parse list date if available
+            list_date_str = row.get("list_date")
+            first_trade_date = None
+            if list_date_str:
+                try:
+                    first_trade_date = _dt.date.fromisoformat(list_date_str)
+                except (ValueError, TypeError):
+                    # Invalid date format, keep as None
+                    pass
+            
+            # Extract currency, default to USD
+            currency = row.get("currency_name", "USD")
+            if isinstance(currency, str):
+                currency = currency[:3].upper()
+            else:
+                currency = "USD"
+            
+            # Extract country from locale
+            country = None
+            locale = row.get("locale")
+            if locale and isinstance(locale, str) and len(locale) >= 2:
+                country = locale[:2].upper()
+            
+            # Build record kwargs for safe_create
+            record_kwargs = {
+                "ticker": row["ticker"].upper(),
+                "exchange_mic": mic,
+                "asset_class": asset_class,
+                "currency": currency,
+                "status": status,
+                "company_name": row.get("name"),
+                "shares_outstanding": row.get("share_class_shares_outstanding"),
+                "first_trade_date": first_trade_date,
+                "delist_date": None,  # Polygon doesn't provide delisting date directly
+                "as_of": self.as_of,
+                "figi": row.get("figi") or None,
+                "country": country,
+                "cusip": row.get("cusip") or None,
+                "isin": row.get("isin") or None,
+                "cik": row.get("cik") or None,
+                "sector": row.get("sector") or None,
+                "industry": row.get("industry") or None,
+                "meta": row,  # Preserve original provider data
+            }
+            
+            # Use safe_create to handle validation errors
+            rec = safe_create(record_kwargs, provider=self.name)
+            if rec:
+                records.append(rec)
         
         return records 

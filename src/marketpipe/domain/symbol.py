@@ -28,10 +28,11 @@ Usage:
 from __future__ import annotations
 
 import datetime
+import logging
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 
 class AssetClass(str, Enum):
@@ -375,4 +376,44 @@ class SymbolRecord(BaseModel):
         if data.get("as_of") and isinstance(data["as_of"], str):
             data["as_of"] = datetime.date.fromisoformat(data["as_of"])
             
-        return cls(**data) 
+        return cls(**data)
+
+# Validation logging helper
+_val_logger = logging.getLogger("marketpipe.symbols.validation")
+
+
+def safe_create(record_kwargs: dict, *, provider: str) -> Optional[SymbolRecord]:
+    """Safely create a SymbolRecord with structured validation error logging.
+    
+    Wraps SymbolRecord instantiation to catch ValidationError exceptions and emit
+    structured log messages containing provider name, ticker, field name, and error
+    message. This allows symbol providers to continue processing when individual
+    records fail validation.
+    
+    Args:
+        record_kwargs: Dictionary of field values for SymbolRecord constructor
+        provider: Name of the symbol provider for error logging context
+        
+    Returns:
+        SymbolRecord instance if validation passes, None if validation fails
+        
+    Logs:
+        WARNING level message to "marketpipe.symbols.validation" logger when
+        validation fails, containing provider, ticker, field, and error details
+    """
+    try:
+        return SymbolRecord(**record_kwargs)
+    except ValidationError as err:
+        # Extract first validation error for logging
+        first_error = err.errors()[0] if err.errors() else {}
+        field_path = ".".join(str(loc) for loc in first_error.get("loc", []))
+        error_msg = first_error.get("msg", "Unknown validation error")
+        
+        _val_logger.warning(
+            "provider=%s ticker=%s field=%s error=%s",
+            provider,
+            record_kwargs.get("ticker", "UNKNOWN"),
+            field_path,
+            error_msg,
+        )
+        return None 

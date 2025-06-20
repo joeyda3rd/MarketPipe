@@ -43,6 +43,7 @@ from typing import List
 import httpx
 
 from marketpipe.domain import SymbolRecord, AssetClass, Status
+from marketpipe.domain.symbol import safe_create
 from .base import SymbolProviderBase
 from . import register
 
@@ -132,17 +133,12 @@ class NasdaqDailyListProvider(SymbolProviderBase):
         records: List[SymbolRecord] = []
         
         for row in data_rows:
-            try:
-                record = self._parse_row(
-                    row, header, effective_as_of, 
-                    include_etfs, skip_test_issues
-                )
-                if record:
-                    records.append(record)
-            except Exception as e:
-                # Log validation error but continue processing other rows
-                # In production, this would use proper logging
-                continue
+            record = self._parse_row(
+                row, header, effective_as_of, 
+                include_etfs, skip_test_issues
+            )
+            if record:
+                records.append(record)
         
         return records
     
@@ -240,16 +236,16 @@ class NasdaqDailyListProvider(SymbolProviderBase):
         company_name_raw = data.get("Security Name", "").strip()
         company_name = company_name_raw if company_name_raw else None
         
-        # Create SymbolRecord with validation
-        return SymbolRecord(
-            ticker=ticker,
-            exchange_mic=exchange_mic,
-            asset_class=asset_class,
-            currency="USD",  # All Nasdaq listings are USD
-            status=Status.ACTIVE,  # Daily list contains active securities
-            company_name=company_name,
-            as_of=as_of,
-            meta={
+        # Build record kwargs for safe_create
+        record_kwargs = {
+            "ticker": ticker,
+            "exchange_mic": exchange_mic,
+            "asset_class": asset_class,
+            "currency": "USD",  # All Nasdaq listings are USD
+            "status": Status.ACTIVE,  # Daily list contains active securities
+            "company_name": company_name,
+            "as_of": as_of,
+            "meta": {
                 "market_category": market_category,
                 "test_issue": data.get("Test Issue", "").strip(),
                 "financial_status": data.get("Financial Status", "").strip(),
@@ -258,4 +254,7 @@ class NasdaqDailyListProvider(SymbolProviderBase):
                 "nextshares": data.get("NextShares", "").strip(),
                 "source": "nasdaq_daily_list",
             }
-        ) 
+        }
+        
+        # Use safe_create to handle validation errors
+        return safe_create(record_kwargs, provider=self.name) 
