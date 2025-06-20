@@ -10,15 +10,16 @@ import duckdb
 from pathlib import Path
 
 
-def normalize_stage(db_path: str, connection: duckdb.DuckDBPyConnection | None = None) -> None:
+def normalize_stage(db_path: str | duckdb.DuckDBPyConnection, connection: duckdb.DuckDBPyConnection | None = None, output_table: str = "symbols_master") -> None:
     """Execute symbol normalization SQL against a DuckDB database.
     
-    Reads the symbols_stage table and creates/replaces symbols_master
+    Reads the symbols_stage table and creates/replaces the specified output table
     with deduped rows and assigned surrogate IDs.
     
     Args:
-        db_path: Path to DuckDB database file, or ":memory:" for in-memory DB
+        db_path: Path to DuckDB database file, ":memory:" for in-memory DB, or DuckDB connection
         connection: Optional existing DuckDB connection to reuse
+        output_table: Name of the output table to create (default: "symbols_master")
         
     Raises:
         duckdb.Error: If SQL execution fails
@@ -30,7 +31,14 @@ def normalize_stage(db_path: str, connection: duckdb.DuckDBPyConnection | None =
     
     sql_script = sql_file.read_text(encoding="utf-8")
     
-    if connection is not None:
+    # Replace the output table name in the SQL script
+    sql_script = sql_script.replace("symbols_master", output_table)
+    
+    # Handle different input types for db_path
+    if isinstance(db_path, duckdb.DuckDBPyConnection):
+        # db_path is actually a connection
+        db_path.execute(sql_script)
+    elif connection is not None:
         # Use existing connection
         connection.execute(sql_script)
     else:

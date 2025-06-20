@@ -11,7 +11,7 @@ import duckdb
 from pathlib import Path
 
 
-def refresh(db_path: str, connection: duckdb.DuckDBPyConnection | None = None) -> None:
+def refresh(db_path: str | duckdb.DuckDBPyConnection, connection: duckdb.DuckDBPyConnection | None = None) -> None:
     """Create or refresh symbol views against a DuckDB database.
     
     Creates/replaces v_symbol_history and v_symbol_latest views
@@ -32,7 +32,11 @@ def refresh(db_path: str, connection: duckdb.DuckDBPyConnection | None = None) -
     
     sql_script = sql_file.read_text(encoding="utf-8")
     
-    if connection is not None:
+    # Handle different input types for db_path
+    if isinstance(db_path, duckdb.DuckDBPyConnection):
+        # db_path is actually a connection
+        _validate_and_refresh(db_path, sql_script)
+    elif connection is not None:
         # Use existing connection
         _validate_and_refresh(connection, sql_script)
     else:
