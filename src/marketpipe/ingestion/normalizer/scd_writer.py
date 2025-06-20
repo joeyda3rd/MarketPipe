@@ -307,6 +307,10 @@ def _add_partition_columns(table: pa.Table) -> pa.Table:
     # Convert to pandas to easily extract year/month
     df = table.to_pandas()
     
+    # Check for column name collisions with partition columns
+    if 'year' in df.columns or 'month' in df.columns:
+        raise ValueError("Data contains 'year' or 'month' columns that would conflict with partitioning")
+    
     # Ensure valid_from is datetime type
     if not pd.api.types.is_datetime64_any_dtype(df['valid_from']):
         df['valid_from'] = pd.to_datetime(df['valid_from'])

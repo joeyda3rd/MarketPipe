@@ -8,6 +8,7 @@ from typing import Any
 import duckdb
 import pandas as pd
 import pytest
+from unittest.mock import patch
 
 from marketpipe.ingestion.normalizer.scd_writer import (
     attach_symbols_master,
@@ -483,3 +484,76 @@ class TestSCDWriter:
         # Verify data is accessible
         result = empty_db.sql("SELECT COUNT(*) FROM symbols_master").fetchone()[0]
         assert result == 2 
+
+    def test_rollback_on_parquet_write_failure(self, empty_db, temp_data_dir, sample_snapshot_data):
+        """Test that database changes are not committed if Parquet write fails."""
+        # Setup test data similar to second_load test
+        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
+        
+        # Create diff tables with some changes
+        empty_db.execute("""
+            CREATE TABLE diff_insert AS
+            SELECT 'MSFT-NASDAQ' as natural_key, 'MSFT' as symbol, 'Microsoft Corp' as company_name,
+                   'NASDAQ' as exchange, 'stock' as asset_type, 'active' as status,
+                   3000000000000 as market_cap, 'Technology' as sector, 'Software' as industry,
+                   'US' as country, 'USD' as currency, DATE '2024-01-15' as as_of
+        """)
+        
+        empty_db.execute("""
+            CREATE TABLE diff_update AS
+            SELECT 1 as id, 'AAPL-NASDAQ' as natural_key, 'AAPL' as symbol, 'Apple Inc. (Updated)' as company_name,
+                   'NASDAQ' as exchange, 'stock' as asset_type, 'active' as status,
+                   3000000000000 as market_cap, 'Technology' as sector, 'Consumer Electronics' as industry,
+                   'US' as country, 'USD' as currency, DATE '2024-01-15' as as_of
+        """)
+        
+        empty_db.execute("CREATE TABLE diff_unchanged AS SELECT * FROM symbols_snapshot WHERE 1=0")
+        
+        # Attach symbols_master with initial data
+        attach_symbols_master(empty_db, temp_data_dir)
+        
+        # Add some initial data to symbols_master to test rollback
+        empty_db.execute("""
+            INSERT INTO symbols_master 
+            (id, natural_key, symbol, company_name, exchange, asset_type, status, market_cap, 
+             sector, industry, country, currency, valid_from, valid_to, created_at, as_of)
+            VALUES 
+            (1, 'AAPL-NASDAQ', 'AAPL', 'Apple Inc.', 'NASDAQ', 'stock', 'active', 3000000000000,
+             'Technology', 'Consumer Electronics', 'US', 'USD', '2024-01-15', NULL, CURRENT_TIMESTAMP, '2024-01-15'),
+            (2, 'GOOGL-NASDAQ', 'GOOGL', 'Alphabet Inc.', 'NASDAQ', 'stock', 'active', 2000000000000,
+             'Technology', 'Internet Software & Services', 'US', 'USD', '2024-01-15', NULL, CURRENT_TIMESTAMP, '2024-01-15')
+        """)
+        
+        # Mock the write operation to fail
+        with patch('pyarrow.dataset.write_dataset', side_effect=Exception("Simulated write failure")):
+            # Attempt SCD update - should fail
+            with pytest.raises(RuntimeError, match="Failed to write Parquet dataset"):
+                run_scd_update(empty_db, temp_data_dir)
+        
+        # Verify that database state was not modified (diff tables should still exist and unchanged)
+        insert_count = empty_db.sql("SELECT COUNT(*) FROM diff_insert").fetchone()[0]
+        update_count = empty_db.sql("SELECT COUNT(*) FROM diff_update").fetchone()[0]
+        
+        # Should still have the original diff data
+        assert insert_count == 1  # MSFT insert
+        assert update_count == 1  # AAPL update
+        
+        # symbols_master should be unchanged (still has original data)
+        master_count = empty_db.sql("SELECT COUNT(*) FROM symbols_master").fetchone()[0]
+        assert master_count == 2  # Original AAPL and GOOGL
+
+    def test_partition_column_collision_detection(self):
+        """Test that partition column collisions are detected."""
+        import pyarrow as pa
+        
+        # Create a table with 'year' column that would collide
+        df = pd.DataFrame({
+            'valid_from': ['2024-01-15'],
+            'year': [2024],  # This should cause collision
+            'symbol': ['TEST']
+        })
+        table = pa.Table.from_pandas(df, preserve_index=False)
+        
+        with pytest.raises(ValueError, match="Data contains 'year' or 'month' columns that would conflict with partitioning"):
+            _add_partition_columns(table) 
