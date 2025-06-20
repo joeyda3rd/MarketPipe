@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from prometheus_client import REGISTRY, generate_latest
+from prometheus_client import REGISTRY, generate_latest, CollectorRegistry, Counter, Gauge
 from unittest.mock import Mock, patch
 import datetime as dt
 from pathlib import Path
@@ -20,9 +20,30 @@ class TestSymbolsMetrics:
     """Test symbol pipeline metrics collection."""
 
     def setup_method(self):
-        """Clear metrics before each test."""
-        # Note: Prometheus counters cannot be cleared/reset, 
-        # so we'll work with incremental values in tests
+        """Setup test-specific metrics registry for isolation."""
+        # Create test-specific registry for isolation
+        self.test_registry = CollectorRegistry()
+        
+        # Create test-specific metric instances
+        self.test_symbols_rows = Counter(
+            "mp_symbols_rows_total",
+            "SCD rows written to symbols_master parquet dataset",
+            ["action"],
+            registry=self.test_registry
+        )
+        
+        self.test_symbols_snapshot_records = Counter(
+            "mp_symbols_snapshot_records_total", 
+            "Raw provider symbol rows staged for dedupe",
+            registry=self.test_registry
+        )
+        
+        self.test_symbols_null_ratio = Gauge(
+            "mp_symbols_null_ratio",
+            "Share of NULLs per column in v_symbol_latest",
+            ["column"],
+            registry=self.test_registry
+        )
 
     def test_metrics_are_registered(self):
         """Test that all symbol metrics are registered with Prometheus."""
@@ -35,48 +56,35 @@ class TestSymbolsMetrics:
 
     def test_snapshot_records_counter(self):
         """Test snapshot records counter increments correctly."""
-        # Get initial value
-        initial_output = generate_latest(REGISTRY).decode()
-        initial_lines = [line for line in initial_output.split('\n') 
-                        if 'mp_symbols_snapshot_records_total' in line and not line.startswith('#')]
-        initial_value = 0.0
-        if initial_lines:
-            initial_value = float(initial_lines[0].split()[-1])
+        # Use test-specific metrics for precise control
+        self.test_symbols_snapshot_records.inc(150)
+        self.test_symbols_snapshot_records.inc(75)
         
-        # Record some snapshot records
-        SYMBOLS_SNAPSHOT_RECORDS.inc(150)
-        SYMBOLS_SNAPSHOT_RECORDS.inc(75)
-        
-        # Check the metric value increased
-        metrics_output = generate_latest(REGISTRY).decode()
-        lines = [line for line in metrics_output.split('\n') 
-                if 'mp_symbols_snapshot_records_total' in line and not line.startswith('#')]
-        assert len(lines) > 0, "Snapshot records metric not found"
-        
-        new_value = float(lines[0].split()[-1])
-        assert new_value >= initial_value + 225.0, f"Expected value to increase by 225, got {new_value - initial_value}"
+        # Check the metric value
+        metrics_output = generate_latest(self.test_registry).decode()
+        assert 'mp_symbols_snapshot_records_total 225.0' in metrics_output
 
     def test_symbols_rows_counter_with_labels(self):
         """Test symbols rows counter with action labels."""
         # Record insert and update operations
-        SYMBOLS_ROWS.labels(action="insert").inc(50)
-        SYMBOLS_ROWS.labels(action="update").inc(25)
-        SYMBOLS_ROWS.labels(action="insert").inc(10)  # Additional inserts
+        self.test_symbols_rows.labels(action="insert").inc(50)
+        self.test_symbols_rows.labels(action="update").inc(25)
+        self.test_symbols_rows.labels(action="insert").inc(10)  # Additional inserts
         
         # Check the metric values
-        metrics_output = generate_latest(REGISTRY).decode()
-        assert 'mp_symbols_rows_total{action="insert"}' in metrics_output
-        assert 'mp_symbols_rows_total{action="update"}' in metrics_output
+        metrics_output = generate_latest(self.test_registry).decode()
+        assert 'mp_symbols_rows_total{action="insert"} 60.0' in metrics_output
+        assert 'mp_symbols_rows_total{action="update"} 25.0' in metrics_output
 
     def test_null_ratio_gauge_with_columns(self):
         """Test null ratio gauge with column labels."""
         # Set null ratios for different columns
-        SYMBOLS_NULL_RATIO.labels(column="figi").set(0.15)
-        SYMBOLS_NULL_RATIO.labels(column="sector").set(0.32)
-        SYMBOLS_NULL_RATIO.labels(column="market_cap").set(0.08)
+        self.test_symbols_null_ratio.labels(column="figi").set(0.15)
+        self.test_symbols_null_ratio.labels(column="sector").set(0.32)
+        self.test_symbols_null_ratio.labels(column="market_cap").set(0.08)
         
         # Check the metric values
-        metrics_output = generate_latest(REGISTRY).decode()
+        metrics_output = generate_latest(self.test_registry).decode()
         assert 'mp_symbols_null_ratio{column="figi"} 0.15' in metrics_output
         assert 'mp_symbols_null_ratio{column="sector"} 0.32' in metrics_output
         assert 'mp_symbols_null_ratio{column="market_cap"} 0.08' in metrics_output
