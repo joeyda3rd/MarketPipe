@@ -13,6 +13,8 @@ import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.parquet
 
+from marketpipe.metrics import SYMBOLS_ROWS
+
 logger = logging.getLogger(__name__)
 
 
@@ -297,6 +299,12 @@ def run_scd_update(
             logger.debug("Updated table statistics")
     except Exception as e:
         logger.warning(f"Failed to update table statistics: {e}")
+    
+    # Record metrics for SCD operations
+    if stats["rows_inserted"] > 0:
+        SYMBOLS_ROWS.labels(action="insert").inc(stats["rows_inserted"])
+    if stats["rows_updated"] > 0:
+        SYMBOLS_ROWS.labels(action="update").inc(stats["rows_updated"])
     
     logger.info(f"SCD-2 update completed: {stats}")
     return stats

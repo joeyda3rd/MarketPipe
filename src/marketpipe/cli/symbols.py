@@ -1,133 +1,250 @@
+"""Symbols CLI commands for managing symbol master data."""
+
 from __future__ import annotations
 
-import datetime as _dt
-import os
+import asyncio
+import sys
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
 import typer
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 
+from marketpipe.ingestion.pipeline.symbol_pipeline import run_symbol_pipeline
+from marketpipe.ingestion.symbol_providers import list_providers
+
+console = Console()
+
+# Create the Typer app instance that the main CLI imports
 app = typer.Typer(help="Symbol-master related commands.")
 
+def validate_date_format(date_string: str, flag_name: str) -> date:
+    """Validate date format and return date object."""
+    try:
+        return datetime.strptime(date_string, "%Y-%m-%d").date()
+    except ValueError:
+        console.print(f"❌ Invalid date format for {flag_name}: {date_string}. Use YYYY-MM-DD.", style="red")
+        raise typer.Exit(1)
+
+def validate_backfill_range(backfill_date: date, snapshot_date: date) -> None:
+    """Validate backfill date range and provide warnings."""
+    if backfill_date > snapshot_date:
+        console.print(f"❌ Backfill date {backfill_date} cannot be after snapshot date {snapshot_date}.", style="red")
+        raise typer.Exit(1)
+    
+    # Calculate number of days
+    days_to_process = (snapshot_date - backfill_date).days + 1
+    
+    if days_to_process > 365:
+        console.print(f"⚠️  Large backfill detected: {days_to_process} days ({days_to_process/365:.1f} years).", style="yellow")
+        console.print("This may take a significant amount of time. Consider breaking into smaller chunks.", style="yellow")
+        
+        # Ask for confirmation for very large backfills
+        if days_to_process > 1825:  # 5 years
+            if not typer.confirm(f"Process {days_to_process} days? This is approximately {days_to_process/365:.1f} years of data."):
+                console.print("Backfill cancelled by user.", style="yellow")
+                raise typer.Exit(0)
+
+def check_diff_only_precondition(db_path: Path) -> None:
+    """Check that symbols_snapshot table exists for diff-only mode."""
+    import duckdb
+    
+    try:
+        with duckdb.connect(str(db_path)) as conn:
+            # Check if symbols_snapshot table exists and has data
+            result = conn.execute("SELECT COUNT(*) FROM symbols_snapshot").fetchone()
+            if result[0] == 0:
+                console.print("❌ --diff-only requires existing symbols_snapshot table with data.", style="red")
+                console.print("Run without --diff-only first to create initial snapshot.", style="yellow")
+                raise typer.Exit(1)
+    except Exception as e:
+        if "Table with name symbols_snapshot does not exist" in str(e):
+            console.print("❌ --diff-only requires existing symbols_snapshot table.", style="red")
+            console.print("Run without --diff-only first to create initial snapshot.", style="yellow")
+            raise typer.Exit(1)
+        else:
+            # Re-raise other database errors
+            raise
+
+def show_progress_summary(current_date: date, total_days: int, current_day: int, 
+                         inserts: int, updates: int, verbose: bool = True) -> None:
+    """Show progress summary for backfill operations."""
+    if verbose or total_days <= 50:
+        # Show detailed progress for small backfills or when verbose
+        console.print(f"[{current_day}/{total_days}] {current_date}: {inserts} inserts, {updates} updates", style="green")
+    elif current_day % 10 == 0 or current_day == total_days:
+        # Show summary every 10 days for large backfills
+        console.print(f"[{current_day}/{total_days}] Processed through {current_date}: {inserts} inserts, {updates} updates", style="green")
 
 @app.command("update")
 def update(
-    provider: Optional[list[str]] = typer.Option(
-        None,
-        "--provider",
-        "-p",
-        help="Symbol provider(s) to ingest. Omit for all.",
+    providers: list[str] = typer.Option(
+        ..., "--provider", "-p",
+        help="Symbol provider(s) to use. Available: " + ", ".join(list_providers())
     ),
-    db: Optional[Path] = typer.Option(
-        None,
-        "--db",
-        help="DuckDB database path.",
-        exists=False,
+    snapshot_as_of: str = typer.Option(
+        str(date.today()),
+        "--snapshot-as-of",
+        help="Snapshot date (YYYY-MM-DD). Default: today"
+    ),
+    db_path: Optional[Path] = typer.Option(
+        None, "--db",
+        help="Database path. Default: warehouse.duckdb"
     ),
     data_dir: Optional[Path] = typer.Option(
-        None,
-        "--data-dir",
-        help="Parquet dataset root.",
-        exists=False,
-    ),
-    backfill: Optional[str] = typer.Option(
-        None,
-        help="Back-fill symbols starting this date (YYYY-MM-DD).",
-    ),
-    snapshot_as_of: Optional[str] = typer.Option(
-        None,
-        "--snapshot-as-of",
-        help="Override provider snapshot date (YYYY-MM-DD).",
+        None, "--data-dir",
+        help="Data directory for Parquet files. Default: ./data"
     ),
     dry_run: bool = typer.Option(
-        False, help="Run pipeline but skip DB / Parquet writes."
+        False, "--dry-run",
+        help="Run pipeline in-memory only, no file writes, print summary"
     ),
     diff_only: bool = typer.Option(
-        False, help="Skip provider fetch; run diff + SCD update only."
+        False, "--diff-only",
+        help="Skip provider fetch, assume valid symbols_snapshot table exists"
+    ),
+    backfill: Optional[str] = typer.Option(
+        None, "--backfill",
+        help="Loop pipeline over each day from DATE to --snapshot-as-of (YYYY-MM-DD)"
     ),
     execute: bool = typer.Option(
-        False,
-        help="Perform writes; without this flag command is read-only.",
+        False, "--execute",
+        help="Actually run the pipeline (required for non-dry-run operations)"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v",
+        help="Show detailed progress for each day in backfill"
     ),
 ) -> None:
-    """
-    Fetch symbol snapshots, diff against master table, and (optionally)
-    update the SCD-history Parquet dataset.
-    """
-
-    # ------- Flag exclusivity handling ------ #
-    if dry_run and execute:
-        typer.secho(
-            "⚠️  Both --dry-run and --execute specified. --execute takes precedence.",
-            fg=typer.colors.YELLOW,
-        )
-        dry_run = False  # --execute wins
-
-    # ------- Apply defaults for environment variables ------ #
-    if db is None:
-        db = Path(os.getenv("MP_DB", "warehouse.duckdb"))
-    if data_dir is None:
-        data_dir = Path(os.getenv("MP_DATA_DIR", "warehouse/symbols_master"))
-    if snapshot_as_of is None:
-        snapshot_as_of = _dt.date.today().isoformat()
-
-    # ------- Date validation ------ #
-    def _parse_date(date_str: str, field_name: str) -> _dt.date:
-        """Parse date string with validation."""
-        try:
-            return _dt.datetime.strptime(date_str, "%Y-%m-%d").date()
-        except ValueError:
-            typer.secho(f"Invalid date format for {field_name}: {date_str}. Use YYYY-MM-DD.", fg=typer.colors.RED)
-            raise typer.Exit(code=1)
-
-    if backfill:
-        _parse_date(backfill, "--backfill")
-    _parse_date(snapshot_as_of, "--snapshot-as-of")
-
-    # ------- Sanity checks on CLI input ------ #
-    # Lazy import to avoid slow startup for help text
-    from marketpipe.ingestion.symbol_providers import list_providers
-    avail = set(list_providers())
-    chosen = set(provider) if provider else avail
-    unknown = chosen - avail
-    if unknown:
-        typer.secho(f"Unknown provider(s): {', '.join(sorted(unknown))}", fg=typer.colors.RED)
-        raise typer.Exit(code=1)
-
-    plan = {
-        "providers": sorted(chosen),
-        "db": str(db),
-        "data_dir": str(data_dir),
-        "backfill": backfill if backfill else "-",
-        "snapshot_as_of": snapshot_as_of,
-        "dry_run": dry_run,
-        "diff_only": diff_only,
-        "execute": execute,
-    }
-    typer.echo("Symbol update plan:")
-    for k, v in plan.items():
-        typer.echo(f"  • {k:>15}: {v}")
-
-    if not execute:
-        typer.secho(
-            "\nDry preview complete. Re-run with --execute to perform writes.",
-            fg=typer.colors.YELLOW,
-        )
-        raise typer.Exit()
-
-    # Import and run the actual pipeline
-    from marketpipe.ingestion.pipeline.symbol_pipeline import run_symbol_pipeline
+    """Update symbol master data from configured providers.
     
-    typer.echo()
-    snapshot_date = _dt.date.fromisoformat(snapshot_as_of)
+    This command fetches symbol data from external providers, normalizes it,
+    and updates the symbol master tables with SCD-2 change tracking.
+    
+    Examples:
+        mp symbols update -p polygon --execute
+        mp symbols update -p nasdaq_dl --dry-run
+        mp symbols update -p polygon --backfill 2025-01-01 --execute
+        mp symbols update -p polygon --diff-only --execute
+    """
+    
+    # Validate flag combinations BEFORE checking execute precedence
+    if dry_run and diff_only:
+        console.print("❌ `--diff-only` implies DB writes; cannot combine with --dry-run.", style="red")
+        raise typer.Exit(1)
+    
+    if backfill and diff_only:
+        console.print("❌ Back-fill requires provider fetch -> cannot use --diff-only.", style="red")
+        raise typer.Exit(1)
+    
+    # Parse and validate dates
+    snapshot_date = validate_date_format(snapshot_as_of, "--snapshot-as-of")
+    
+    backfill_date = None
+    if backfill:
+        backfill_date = validate_date_format(backfill, "--backfill")
+        validate_backfill_range(backfill_date, snapshot_date)
+    
+    # Set defaults
+    if db_path is None:
+        db_path = Path("warehouse.duckdb")
+    if data_dir is None:
+        data_dir = Path("./data")
+    
+    # Check diff-only precondition
+    if diff_only:
+        check_diff_only_precondition(db_path)
+    
+    # Handle --execute precedence over --dry-run
+    if execute and dry_run:
+        console.print("⚠️  --execute takes precedence over --dry-run.", style="yellow")
+        dry_run = False
+    
+    # If not executing, show preview and exit
+    if not execute:
+        console.print("🔍 Dry preview mode:", style="blue")
+        console.print(f"  Providers: {', '.join(providers)}")
+        console.print(f"  Snapshot date: {snapshot_date}")
+        if backfill_date:
+            days_count = (snapshot_date - backfill_date).days + 1
+            console.print(f"  Backfill: {backfill_date} to {snapshot_date} ({days_count} days)")
+        console.print(f"  Database: {db_path}")
+        console.print(f"  Data directory: {data_dir}")
+        console.print(f"  Dry run: {dry_run}")
+        console.print(f"  Diff only: {diff_only}")
+        console.print("💡 Dry preview complete. Re-run with --execute to run the pipeline.")
+        return
+    
+    # Determine date range for processing
+    if backfill_date:
+        # Generate list of dates from backfill_date to snapshot_date (inclusive)
+        dates_to_process = []
+        current = backfill_date
+        while current <= snapshot_date:
+            dates_to_process.append(current)
+            current += timedelta(days=1)
+    else:
+        # Single date processing
+        dates_to_process = [snapshot_date]
+    
+    total_days = len(dates_to_process)
+    console.print(f"🚀 Starting symbol update pipeline for {total_days} date(s)...")
+    
+    # Process each date
+    total_inserts = 0
+    total_updates = 0
+    
     try:
-        run_symbol_pipeline(
-            db_path=db,
-            data_dir=data_dir,
-            provider_names=sorted(chosen),
-            snapshot_as_of=snapshot_date,
-        )
-        typer.secho("✅ Pipeline complete.", fg=typer.colors.GREEN)
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeElapsedColumn(),
+            console=console,
+            transient=False
+        ) as progress:
+            
+            if total_days > 1:
+                task = progress.add_task(f"Processing {total_days} dates", total=total_days)
+            
+            for day_num, process_date in enumerate(dates_to_process, 1):
+                if total_days > 1:
+                    progress.update(task, description=f"Processing {process_date}")
+                
+                # Run pipeline for this date
+                inserts, updates = run_symbol_pipeline(
+                    provider_names=providers,
+                    snapshot_as_of=process_date,
+                    db_path=db_path,
+                    data_dir=data_dir,
+                    dry_run=dry_run,
+                    diff_only=diff_only,
+                )
+                
+                total_inserts += inserts
+                total_updates += updates
+                
+                # Show progress summary
+                show_progress_summary(
+                    process_date, total_days, day_num, 
+                    inserts, updates, verbose
+                )
+                
+                if total_days > 1:
+                    progress.update(task, advance=1)
+        
+        # Final summary
+        console.print(f"✅ Finished {total_days} run(s):", style="green bold")
+        console.print(f"  Total inserts: {total_inserts}")
+        console.print(f"  Total updates: {total_updates}")
+        if dry_run:
+            console.print("  Mode: Dry run (no files written)")
+        elif diff_only:
+            console.print("  Mode: Diff only (no provider fetch)")
+        
     except Exception as e:
-        typer.secho(f"❌ Pipeline failed: {e}", fg=typer.colors.RED)
-        raise typer.Exit(code=1) 
+        console.print(f"❌ Pipeline failed: {e}", style="red")
+        raise typer.Exit(1) 
