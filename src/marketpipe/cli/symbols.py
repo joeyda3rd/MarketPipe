@@ -120,10 +120,14 @@ def update(
     
     typer.echo()
     snapshot_date = _dt.date.fromisoformat(snapshot_as_of)
-    run_symbol_pipeline(
-        db_path=db,
-        data_dir=data_dir,
-        provider_names=sorted(chosen),
-        snapshot_as_of=snapshot_date,
-    )
-    typer.secho("✅ Pipeline complete.", fg=typer.colors.GREEN) 
+    try:
+        run_symbol_pipeline(
+            db_path=db,
+            data_dir=data_dir,
+            provider_names=sorted(chosen),
+            snapshot_as_of=snapshot_date,
+        )
+        typer.secho("✅ Pipeline complete.", fg=typer.colors.GREEN)
+    except Exception as e:
+        typer.secho(f"❌ Pipeline failed: {e}", fg=typer.colors.RED)
+        raise typer.Exit(code=1) 
