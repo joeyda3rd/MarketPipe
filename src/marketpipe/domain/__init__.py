@@ -28,6 +28,7 @@ from .market_data import (
     MarketDataUnavailableError,
     InvalidSymbolError,
 )
+from .symbol import SymbolRecord, AssetClass, Status
 
 __all__ = [
     # Base classes
@@ -54,4 +55,8 @@ __all__ = [
     "ProviderMetadata",
     "MarketDataUnavailableError",
     "InvalidSymbolError",
+    # Symbol Master
+    "SymbolRecord",
+    "AssetClass", 
+    "Status",
 ]

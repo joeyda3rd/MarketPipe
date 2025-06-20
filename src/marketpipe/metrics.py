@@ -57,6 +57,24 @@ from marketpipe.ingestion.infrastructure.rate_limit import RATE_LIMITER_WAITS
 # Event loop lag monitoring (imported from metrics_server module)
 from marketpipe.metrics_server import EVENT_LOOP_LAG
 
+# Symbol pipeline metrics
+SYMBOLS_ROWS = Counter(
+    "mp_symbols_rows_total",
+    "SCD rows written to symbols_master parquet dataset",
+    ["action"]
+)
+
+SYMBOLS_SNAPSHOT_RECORDS = Counter(
+    "mp_symbols_snapshot_records_total",
+    "Raw provider symbol rows staged for dedupe"
+)
+
+SYMBOLS_NULL_RATIO = Gauge(
+    "mp_symbols_null_ratio",
+    "Share of NULLs per column in v_symbol_latest",
+    ["column"]
+)
+
 # Backfill metrics
 BACKFILL_GAPS_FOUND_TOTAL = Counter(
     "mp_backfill_gaps_found_total",
@@ -100,6 +118,11 @@ __all__ = [
     "BACKFILL_GAP_LATENCY_SECONDS",
     "DATA_PRUNED_BYTES_TOTAL",
     "DATA_PRUNED_ROWS_TOTAL",
+    # Symbol pipeline metrics
+    "SYMBOLS_ROWS",
+    "SYMBOLS_SNAPSHOT_RECORDS",
+    "SYMBOLS_NULL_RATIO",
+    # Repository and utilities
     "record_metric",
     "MetricPoint",
     "TrendPoint",
