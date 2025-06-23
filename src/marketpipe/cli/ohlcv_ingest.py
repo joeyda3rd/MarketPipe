@@ -310,6 +310,71 @@ async def _cleanup_async_resources(*repositories) -> None:
             print(f"⚠️  Warning: Error during cleanup: {e}")
 
 
+def _check_boundaries(path: str, symbol: str, start: str, end: str, provider: str) -> None:
+    """Check if ingested data covers the requested date range.
+    
+    Args:
+        path: Path to the data directory
+        symbol: Symbol to check  
+        start: Start date in YYYY-MM-DD format
+        end: End date in YYYY-MM-DD format
+        provider: Provider name for error messages
+        
+    Raises:
+        SystemExit(1): If data is missing or outside the requested range
+    """
+    try:
+        import duckdb
+        from pathlib import Path
+        
+        # Connect to DuckDB first (this is where the test expects the exception)
+        conn = duckdb.connect()
+        
+        symbol_path = Path(path) / f"symbol={symbol}"
+        
+        if not symbol_path.exists():
+            print(f"ERROR: No data found for symbol {symbol}", file=sys.stderr)
+            sys.exit(1)
+        
+        parquet_files = list(symbol_path.glob("**/*.parquet"))
+        if not parquet_files:
+            print(f"ERROR: No parquet files found for symbol {symbol}", file=sys.stderr)
+            sys.exit(1)
+        
+        # Query to check data coverage
+        query = f"""
+        SELECT 
+            MIN(date) as min_date, 
+            MAX(date) as max_date, 
+            COUNT(*) as bar_count
+        FROM read_parquet('{symbol_path}/**/*.parquet')
+        WHERE symbol = '{symbol}'
+        """
+        
+        result = conn.execute(query).fetchone()
+        conn.close()
+        
+        if not result or result[2] == 0:
+            print(f"ERROR: No data found for symbol {symbol}", file=sys.stderr)
+            sys.exit(1)
+        
+        min_date, max_date, bar_count = result
+        
+        # Check if data covers the requested range
+        if min_date > start or max_date < end:
+            print(f"ERROR: Data for {symbol} covers {min_date} to {max_date}, "
+                  f"but requested {start} to {end}. Try a different provider or date range.", 
+                  file=sys.stderr)
+            sys.exit(1)
+        
+        # Success message
+        print(f"Ingest OK: {bar_count} bars found for {start}..{end} symbol {symbol} provider {provider}")
+        
+    except Exception as e:
+        print(f"ERROR: Boundary check failed for {symbol}: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def _ingest_impl(
     # Config file option
     config: Path = None,
@@ -465,12 +530,30 @@ def _ingest_impl(
             # Report results
             print("✅ Job completed successfully!")
             print(f"📊 Job ID: {job_id}")
-            print(f"�� Symbols processed: {result.get('symbols_processed', 0)}")
+            print(f"📊 Symbols processed: {result.get('symbols_processed', 0)}")
             print(f"📊 Total bars: {result.get('total_bars', 0)}")
             print(f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.2f}s")
 
             if result.get("symbols_failed", 0) > 0:
                 print(f"⚠️  Failed symbols: {result.get('symbols_failed', 0)}")
+
+            # Post-ingestion verification: check boundaries for each symbol
+            print("\n🔍 Running post-ingestion verification...")
+            for symbol in job_config.symbols:
+                try:
+                    _check_boundaries(
+                        path=job_config.output_path,
+                        symbol=symbol,
+                        start=str(job_config.start),
+                        end=str(job_config.end),
+                        provider=job_config.provider,
+                    )
+                except SystemExit as e:
+                    # _check_boundaries calls sys.exit(1) on failure
+                    print(f"❌ Post-ingestion verification failed for {symbol}")
+                    raise typer.Exit(1)
+
+            print("✅ Post-ingestion verification completed successfully!")
 
         except Exception as e:
             print(f"❌ Ingestion failed: {e}")
