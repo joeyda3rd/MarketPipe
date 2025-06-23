@@ -18,7 +18,7 @@ from marketpipe.security.mask import safe_for_log
 from .alpaca_client import AlpacaClient
 from .models import ClientConfig
 from .auth import HeaderTokenAuth
-from .rate_limit import RateLimiter, create_rate_limiter_from_config
+from .rate_limit import create_rate_limiter_from_config
 from .provider_registry import provider
 
 
@@ -51,8 +51,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         )
         self._auth = HeaderTokenAuth(api_key, api_secret)
         self._rate_limiter = create_rate_limiter_from_config(
-            rate_limit_per_min=rate_limit_per_min,
-            provider_name="alpaca"
+            rate_limit_per_min=rate_limit_per_min, provider_name="alpaca"
         )
 
         self._alpaca_client = AlpacaClient(
@@ -108,7 +107,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
             safe_msg = safe_for_log(
                 f"Failed to fetch data for {symbol}: {e}",
                 self._api_key,
-                self._api_secret
+                self._api_secret,
             )
             raise MarketDataProviderError(safe_msg) from e
 
@@ -127,7 +126,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
                 safe_msg = safe_for_log(
                     f"Failed to translate bar for {symbol}: {e}",
                     self._api_key,
-                    self._api_secret
+                    self._api_secret,
                 )
                 self._logger.warning(safe_msg)
                 continue
@@ -206,14 +205,12 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
             # Extract values from Alpaca format
             # Alpaca returns bars with these fields: timestamp, open, high, low, close, volume
 
-            # Handle timestamp - Alpaca returns nanoseconds
+            # Handle timestamp - AlpacaClient already converts ISO string to nanoseconds
             timestamp_ns = alpaca_bar.get("timestamp", alpaca_bar.get("t", 0))
+            # Convert nanoseconds to seconds for datetime creation
             timestamp_seconds = timestamp_ns / 1_000_000_000
-            # Older test data expects a timestamp approximately 160 minutes behind
-            # the true UTC conversion. Apply an offset for backward compatibility.
-            timestamp_dt = datetime.fromtimestamp(
-                timestamp_seconds - 9600, tz=timezone.utc
-            )
+            # Create UTC datetime from timestamp
+            timestamp_dt = datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc)
 
             # Extract OHLCV values with proper type conversion
             open_price = self._safe_decimal(
