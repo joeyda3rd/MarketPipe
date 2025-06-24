@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
 
-from marketpipe.domain.entities import OHLCVBar, EntityId
-from marketpipe.domain.value_objects import Symbol, Price, Timestamp, Volume, TimeRange
+from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
+from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
 
 
 class FakeMarketDataAdapter(IMarketDataProvider):
@@ -33,9 +33,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         """Set the bars data that will be returned for a symbol."""
         self._bars_data[symbol] = bars
 
-    def set_failure_mode(
-        self, should_fail: bool, message: str = "Simulated failure"
-    ) -> None:
+    def set_failure_mode(self, should_fail: bool, message: str = "Simulated failure") -> None:
         """Configure the adapter to simulate failures."""
         self._should_fail = should_fail
         self._failure_message = message

@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import List, Optional, Tuple
-from dataclasses import dataclass
 
 import duckdb
 
@@ -108,9 +108,7 @@ class IngestionVerificationService:
         """Verify data for a single symbol."""
         try:
             # Query the written Parquet files
-            actual_start, actual_end, total_bars = self._query_symbol_bounds(
-                symbol, output_path
-            )
+            actual_start, actual_end, total_bars = self._query_symbol_bounds(symbol, output_path)
 
             if total_bars == 0:
                 return VerificationResult(
@@ -253,9 +251,7 @@ class IngestionVerificationService:
             print(f"  {status} {result.symbol}: {result.total_bars:,} bars")
 
             if result.actual_start and result.actual_end:
-                print(
-                    f"      Actual range: {result.actual_start} to {result.actual_end}"
-                )
+                print(f"      Actual range: {result.actual_start} to {result.actual_end}")
             else:
                 print("      No data found")
 

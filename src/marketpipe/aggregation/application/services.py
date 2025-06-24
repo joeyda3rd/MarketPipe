@@ -2,24 +2,23 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from datetime import date
+from pathlib import Path
 
-from marketpipe.domain.events import IngestionJobCompleted
 from marketpipe.bootstrap import get_event_bus
+from marketpipe.domain.events import IngestionJobCompleted
 from marketpipe.domain.value_objects import Symbol
+
+from ..domain.events import AggregationCompleted, AggregationFailed
 from ..domain.services import AggregationDomainService
 from ..domain.value_objects import DEFAULT_SPECS
-from ..domain.events import AggregationCompleted, AggregationFailed
 from ..infrastructure.duckdb_engine import DuckDBAggregationEngine
 
 
 class AggregationRunnerService:
     """Application service for coordinating aggregation operations."""
 
-    def __init__(
-        self, engine: DuckDBAggregationEngine, domain: AggregationDomainService
-    ):
+    def __init__(self, engine: DuckDBAggregationEngine, domain: AggregationDomainService):
         """Initialize aggregation runner service.
 
         Args:
@@ -33,15 +32,15 @@ class AggregationRunnerService:
     def _extract_provider_feed_info(self, event: IngestionJobCompleted) -> tuple[str, str]:
         """Extract provider and feed information from event or defaults."""
         # Try to get provider/feed from event attributes
-        provider = getattr(event, 'provider', 'unknown')
-        feed = getattr(event, 'feed', 'unknown')
-        
+        provider = getattr(event, "provider", "unknown")
+        feed = getattr(event, "feed", "unknown")
+
         # If not available in event, try to infer from job context or use defaults
-        if provider == 'unknown' or feed == 'unknown':
+        if provider == "unknown" or feed == "unknown":
             # For now, use defaults - in the future we could look up job configuration
-            provider = "unknown" 
+            provider = "unknown"
             feed = "unknown"
-            
+
         return provider, feed
 
     def handle_ingestion_completed(self, event: IngestionJobCompleted) -> None:
@@ -62,9 +61,7 @@ class AggregationRunnerService:
             record_metric("aggregation_jobs_started", 1, provider=provider, feed=feed)
 
             # Generate SQL for each frame
-            sql_pairs = [
-                (spec, self._domain.duckdb_sql(spec)) for spec in DEFAULT_SPECS
-            ]
+            sql_pairs = [(spec, self._domain.duckdb_sql(spec)) for spec in DEFAULT_SPECS]
 
             # Run aggregation
             result = self._engine.aggregate_job(event.job_id, sql_pairs)
@@ -77,12 +74,17 @@ class AggregationRunnerService:
             # Record success metrics
             frames_processed = len(DEFAULT_SPECS)
             record_metric("aggregation_jobs_success", 1, provider=provider, feed=feed)
-            record_metric("aggregation_frames_processed", frames_processed, provider=provider, feed=feed)
+            record_metric(
+                "aggregation_frames_processed", frames_processed, provider=provider, feed=feed
+            )
 
             # If engine returns row counts, record those too
             if hasattr(result, "total_rows_aggregated"):
                 record_metric(
-                    "aggregation_rows_processed", result.total_rows_aggregated, provider=provider, feed=feed
+                    "aggregation_rows_processed",
+                    result.total_rows_aggregated,
+                    provider=provider,
+                    feed=feed,
                 )
 
             # Publish success event
@@ -141,9 +143,7 @@ class AggregationRunnerService:
         Returns:
             Configured aggregation runner service
         """
-        engine = DuckDBAggregationEngine(
-            raw_root=Path("data/raw"), agg_root=Path("data/agg")
-        )
+        engine = DuckDBAggregationEngine(raw_root=Path("data/raw"), agg_root=Path("data/agg"))
         domain = AggregationDomainService()
 
         return cls(engine=engine, domain=domain)

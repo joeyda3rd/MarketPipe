@@ -4,18 +4,19 @@
 from __future__ import annotations
 
 import random
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-from marketpipe.domain.entities import OHLCVBar, EntityId
-from marketpipe.domain.value_objects import Symbol, Price, Timestamp, Volume, TimeRange
+from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import (
     IMarketDataProvider,
-    ProviderMetadata,
-    MarketDataUnavailableError,
     InvalidSymbolError,
+    MarketDataUnavailableError,
+    ProviderMetadata,
 )
+from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
+
 from .provider_registry import provider
 
 
@@ -82,9 +83,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
 
         # Check if symbol is supported
         if symbol.value not in self._supported_symbols:
-            raise InvalidSymbolError(
-                f"Symbol {symbol.value} not supported by fake provider"
-            )
+            raise InvalidSymbolError(f"Symbol {symbol.value} not supported by fake provider")
 
         # Generate bars for the time range
         bars = []
@@ -111,9 +110,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
 
         return bars
 
-    def _generate_bar(
-        self, symbol: Symbol, timestamp: datetime, base_price: float
-    ) -> OHLCVBar:
+    def _generate_bar(self, symbol: Symbol, timestamp: datetime, base_price: float) -> OHLCVBar:
         """Generate a single OHLCV bar."""
         # Generate intrabar price movement
         volatility = self._volatility * base_price
@@ -133,9 +130,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         low_price = min(low_price, open_price, close_price)
 
         # Generate volume (log-normal distribution)
-        volume = int(
-            random.lognormvariate(8, 1.5)
-        )  # Mean around 3000, realistic variance
+        volume = int(random.lognormvariate(8, 1.5))  # Mean around 3000, realistic variance
 
         return OHLCVBar(
             id=EntityId.generate(),
@@ -176,7 +171,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         batch_size: int = 1000,
     ) -> List[OHLCVBar]:
         """Legacy method for backward compatibility."""
-        from marketpipe.domain.value_objects import Timestamp, TimeRange
+        from marketpipe.domain.value_objects import TimeRange, Timestamp
 
         start_ts = Timestamp.from_nanoseconds(start_timestamp)
         end_ts = Timestamp.from_nanoseconds(end_timestamp)

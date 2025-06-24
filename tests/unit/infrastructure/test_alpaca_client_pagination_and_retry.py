@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-import types
 import asyncio
+import types
 
 import httpx
 
@@ -53,9 +53,7 @@ class TestAlpacaClientPaginationHandling:
         def mock_get(url, params=None, headers=None, timeout=None):
             headers_seen.append(headers)
             body = pages.pop(0)
-            return types.SimpleNamespace(
-                status_code=200, json=lambda: body, text=str(body)
-            )
+            return types.SimpleNamespace(status_code=200, json=lambda: body, text=str(body))
 
         monkeypatch.setattr(httpx, "get", mock_get)
 
@@ -103,9 +101,7 @@ class TestAlpacaClientPaginationHandling:
 
         def mock_get(url, params=None, headers=None, timeout=None):
             body = pages.pop(0)
-            return types.SimpleNamespace(
-                status_code=200, json=lambda: body, text=str(body)
-            )
+            return types.SimpleNamespace(status_code=200, json=lambda: body, text=str(body))
 
         monkeypatch.setattr(httpx, "get", mock_get)
 
@@ -217,9 +213,7 @@ class TestAlpacaClientRateLimitHandling:
                     }
                 ]
             }
-            return types.SimpleNamespace(
-                status_code=200, json=lambda: body, text=str(body)
-            )
+            return types.SimpleNamespace(status_code=200, json=lambda: body, text=str(body))
 
         monkeypatch.setattr(httpx, "get", mock_get)
 
@@ -240,9 +234,7 @@ class TestAlpacaClientRateLimitHandling:
         assert len(calls) == 2  # First call failed, second succeeded
         assert len(sleeps) == 1  # One sleep between retries
 
-    def test_client_applies_exponential_backoff_for_rate_limit_retries(
-        self, monkeypatch
-    ):
+    def test_client_applies_exponential_backoff_for_rate_limit_retries(self, monkeypatch):
         """Test that client applies exponential backoff for rate limit retries."""
         attempt_count = 0
 
@@ -271,9 +263,7 @@ class TestAlpacaClientRateLimitHandling:
                     }
                 ]
             }
-            return types.SimpleNamespace(
-                status_code=200, json=lambda: body, text=str(body)
-            )
+            return types.SimpleNamespace(status_code=200, json=lambda: body, text=str(body))
 
         monkeypatch.setattr(httpx, "get", mock_get)
 

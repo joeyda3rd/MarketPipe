@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import List, Set
 
 
 class GapDetectorService:  # pylint: disable=too-few-public-methods
@@ -40,8 +40,7 @@ class GapDetectorService:  # pylint: disable=too-few-public-methods
         """Return all trading days in *[start, end]* with **no** parquet file."""
         existing = self._existing_days(symbol, start, end)
         expected: Set[dt.date] = {
-            start + dt.timedelta(days=i)
-            for i in range((end - start).days + 1)
+            start + dt.timedelta(days=i) for i in range((end - start).days + 1)
         }
         return sorted(expected - existing)
 
@@ -88,7 +87,11 @@ class GapDetectorService:  # pylint: disable=too-few-public-methods
                     continue
                 # Quick bounding box check
                 first_of_month = dt.date(year, month, 1)
-                last_of_month = (first_of_month.replace(day=28) + dt.timedelta(days=4)).replace(day=1) - dt.timedelta(days=1)  # noqa: E501
+                last_of_month = (first_of_month.replace(day=28) + dt.timedelta(days=4)).replace(
+                    day=1
+                ) - dt.timedelta(
+                    days=1
+                )  # noqa: E501
                 if last_of_month < start or first_of_month > end:
                     continue
                 for file in month_path.glob("day=*.parquet"):
@@ -102,4 +105,4 @@ class GapDetectorService:  # pylint: disable=too-few-public-methods
         return existing
 
 
-__all__ = ["GapDetectorService"] 
+__all__ = ["GapDetectorService"]

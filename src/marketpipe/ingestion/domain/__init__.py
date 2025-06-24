@@ -4,15 +4,15 @@
 from __future__ import annotations
 
 from .entities import IngestionJob, IngestionJobId, ProcessingState
-from .value_objects import (
-    IngestionConfiguration,
-    IngestionPartition,
-    BatchConfiguration,
-)
-from .events import IngestionJobStarted, IngestionJobCompleted, IngestionBatchProcessed
-from .repositories import IIngestionJobRepository, IIngestionCheckpointRepository
+from .events import IngestionBatchProcessed, IngestionJobCompleted, IngestionJobStarted
+from .repositories import IIngestionCheckpointRepository, IIngestionJobRepository
 from .services import IngestionDomainService
 from .storage import IDataStorage
+from .value_objects import (
+    BatchConfiguration,
+    IngestionConfiguration,
+    IngestionPartition,
+)
 
 __all__ = [
     # Entities

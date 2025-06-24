@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
-import pandas as pd
 import duckdb
+import pandas as pd
 import pyarrow as pa
 
-from marketpipe.aggregation.domain.value_objects import FrameSpec
 from marketpipe.aggregation.domain.services import AggregationDomainService
+from marketpipe.aggregation.domain.value_objects import FrameSpec
 
 
 def test_duckdb_sql():
@@ -35,8 +35,7 @@ def test_duckdb_sql_execution():
         {
             "symbol": ["AAPL"] * 10,
             "ts_ns": [
-                1640995800000000000 + i * 60000000000  # 1-minute intervals
-                for i in range(10)
+                1640995800000000000 + i * 60000000000 for i in range(10)  # 1-minute intervals
             ],
             "open": [100.0 + i for i in range(10)],
             "high": [101.0 + i for i in range(10)],
@@ -70,30 +69,22 @@ def test_duckdb_sql_execution():
     first_bar = result.iloc[0]
     assert first_bar["symbol"] == "AAPL"
     assert first_bar["open"] == 100.0  # First open (bar 0)
-    assert (
-        first_bar["high"] == 105.0
-    )  # Max high from bars 0-4 (101, 102, 103, 104, 105)
+    assert first_bar["high"] == 105.0  # Max high from bars 0-4 (101, 102, 103, 104, 105)
     assert first_bar["low"] == 99.0  # Min low from bars 0-4 (99, 100, 101, 102, 103)
     assert (
         first_bar["close"] == 104.5
     )  # Last close from bars 0-4 (100.5, 101.5, 102.5, 103.5, 104.5)
-    assert (
-        first_bar["volume"] == 6000.0
-    )  # Sum of volumes from bars 0-4 (1000+1100+1200+1300+1400)
+    assert first_bar["volume"] == 6000.0  # Sum of volumes from bars 0-4 (1000+1100+1200+1300+1400)
 
     # Test aggregation logic for second 5-minute bar (bars 5-9)
     second_bar = result.iloc[1]
     assert second_bar["symbol"] == "AAPL"
     assert second_bar["open"] == 105.0  # First open (bar 5)
-    assert (
-        second_bar["high"] == 110.0
-    )  # Max high from bars 5-9 (106, 107, 108, 109, 110)
+    assert second_bar["high"] == 110.0  # Max high from bars 5-9 (106, 107, 108, 109, 110)
     assert second_bar["low"] == 104.0  # Min low from bars 5-9 (104, 105, 106, 107, 108)
     assert (
         second_bar["close"] == 109.5
     )  # Last close from bars 5-9 (105.5, 106.5, 107.5, 108.5, 109.5)
-    assert (
-        second_bar["volume"] == 8500.0
-    )  # Sum of volumes from bars 5-9 (1500+1600+1700+1800+1900)
+    assert second_bar["volume"] == 8500.0  # Sum of volumes from bars 5-9 (1500+1600+1700+1800+1900)
 
     con.close()

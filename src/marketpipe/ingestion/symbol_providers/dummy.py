@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-import datetime as _dt
 from typing import List
 
 from marketpipe.domain import SymbolRecord
 from marketpipe.domain.symbol import safe_create
-from .base import SymbolProviderBase
+
 from . import register
+from .base import SymbolProviderBase
 
 
 @register("dummy")
 class DummyProvider(SymbolProviderBase):
     """Dummy provider for testing symbol provider framework.
-    
+
     Returns static test data without any network calls.
     Useful for unit tests and development.
     """
@@ -38,4 +38,4 @@ class DummyProvider(SymbolProviderBase):
             rec = safe_create(row, provider=self.name)
             if rec:
                 out.append(rec)
-        return out 
+        return out

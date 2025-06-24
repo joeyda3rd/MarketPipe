@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import os
 import tempfile
-from typing import Dict, List
 
-import pytest
 import pyarrow.parquet as pq
+import pytest
 
 from marketpipe.ingestion.writer import write_parquet
 
@@ -31,19 +30,19 @@ class TestWriteParquet:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             result_path = write_parquet(rows, temp_dir)
-            
+
             # Check that file was created
             assert os.path.exists(result_path)
-            
+
             # Check path structure
             expected_path = os.path.join(
                 temp_dir, "symbol=TEST", "year=2022", "month=01", "day=01.parquet"
             )
             assert result_path == expected_path
-            
+
             # Verify file was created and has content
             assert os.path.getsize(result_path) > 0
-            
+
             # Verify we can read metadata without schema conflicts
             metadata = pq.read_metadata(result_path)
             assert metadata.num_rows == 1
@@ -71,11 +70,11 @@ class TestWriteParquet:
         with tempfile.TemporaryDirectory() as temp_dir:
             # Write first time
             path1 = write_parquet(rows, temp_dir)
-            
+
             # Write again without overwrite - should return same path
             path2 = write_parquet(rows, temp_dir, overwrite=False)
             assert path1 == path2
-            
+
             # Write with overwrite should work
             path3 = write_parquet(rows, temp_dir, overwrite=True)
             assert path1 == path3
@@ -98,10 +97,10 @@ class TestWriteParquet:
             # Test with different compression
             result_path = write_parquet(rows, temp_dir, compression="gzip")
             assert os.path.exists(result_path)
-            
+
             # Verify file was created and has content
             assert os.path.getsize(result_path) > 0
-            
+
             # Verify we can read metadata
             metadata = pq.read_metadata(result_path)
             assert metadata.num_rows == 1
@@ -122,14 +121,14 @@ class TestWriteParquet:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             result_path = write_parquet(rows, temp_dir)
-            
+
             # Check that directories were created
             expected_dirs = [
                 os.path.join(temp_dir, "symbol=AAPL"),
                 os.path.join(temp_dir, "symbol=AAPL", "year=2023"),
                 os.path.join(temp_dir, "symbol=AAPL", "year=2023", "month=01"),
             ]
-            
+
             for expected_dir in expected_dirs:
                 assert os.path.exists(expected_dir)
-                assert os.path.isdir(expected_dir) 
+                assert os.path.isdir(expected_dir)

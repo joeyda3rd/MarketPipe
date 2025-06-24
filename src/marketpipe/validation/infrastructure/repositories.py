@@ -3,10 +3,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-import pandas as pd
-from typing import List, Optional
 import logging
+from pathlib import Path
+from typing import List, Optional
+
+import pandas as pd
 
 from ..domain.value_objects import ValidationResult
 
@@ -137,8 +138,7 @@ class CsvReportRepository:
         if "reason" in df.columns and not df.empty:
             error_counts = df["reason"].value_counts().head(5)
             summary["most_common_errors"] = [
-                {"reason": reason, "count": count}
-                for reason, count in error_counts.items()
+                {"reason": reason, "count": count} for reason, count in error_counts.items()
             ]
 
         return summary

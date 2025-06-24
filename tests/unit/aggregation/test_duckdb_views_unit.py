@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import duckdb
 import pandas as pd
 import pytest
-import duckdb
 
 from marketpipe.aggregation.infrastructure import duckdb_views
 
@@ -234,9 +234,7 @@ def test_validate_views_all_accessible():
     with patch.object(duckdb_views, "ensure_views"):
         with patch.object(duckdb_views, "_get_connection") as mock_get_conn:
             mock_conn = MagicMock()
-            mock_conn.execute.return_value.fetch_df.return_value = pd.DataFrame(
-                {"count": [0]}
-            )
+            mock_conn.execute.return_value.fetch_df.return_value = pd.DataFrame({"count": [0]})
             mock_get_conn.return_value = mock_conn
 
             status = duckdb_views.validate_views()
@@ -326,9 +324,7 @@ def test_query_logging(caplog):
     with patch.object(duckdb_views, "ensure_views"):
         with patch.object(duckdb_views, "_get_connection") as mock_get_conn:
             mock_conn = MagicMock()
-            mock_conn.execute.return_value.fetch_df.return_value = pd.DataFrame(
-                {"count": [1]}
-            )
+            mock_conn.execute.return_value.fetch_df.return_value = pd.DataFrame({"count": [1]})
             mock_get_conn.return_value = mock_conn
 
             duckdb_views.query("SELECT COUNT(*) FROM bars_5m")

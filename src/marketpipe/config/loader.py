@@ -6,29 +6,30 @@ from __future__ import annotations
 import os
 import warnings
 from pathlib import Path
-from typing import Dict, Any, Union
+from typing import Any, Dict, Union
 
 import yaml
 
-from .ingestion import IngestionJobConfig, CURRENT_CONFIG_VERSION, MIN_SUPPORTED_VERSION
+from .ingestion import CURRENT_CONFIG_VERSION, MIN_SUPPORTED_VERSION, IngestionJobConfig
 
 PathLike = Union[str, Path]
 
 
 class ConfigVersionError(RuntimeError):
     """Error when configuration version is incompatible."""
+
     pass
 
 
 def load_config(path: PathLike) -> IngestionJobConfig:
     """Load and validate configuration from YAML file with version checking.
-    
+
     Args:
         path: Path to YAML configuration file
-        
+
     Returns:
         IngestionJobConfig instance
-        
+
     Raises:
         ConfigVersionError: If config version is missing, too old, or incompatible
         FileNotFoundError: If the YAML file doesn't exist
@@ -39,7 +40,7 @@ def load_config(path: PathLike) -> IngestionJobConfig:
         raise FileNotFoundError(f"Configuration file not found: {path}")
 
     try:
-        with open(yaml_path, "r") as f:
+        with open(yaml_path) as f:
             yaml_content = f.read()
 
         # Expand environment variables
@@ -48,9 +49,7 @@ def load_config(path: PathLike) -> IngestionJobConfig:
         # Load YAML
         cfg_dict = yaml.safe_load(expanded_content)
         if not isinstance(cfg_dict, dict):
-            raise ValueError(
-                "YAML file must contain a dictionary at the root level"
-            )
+            raise ValueError("YAML file must contain a dictionary at the root level")
 
         # Convert kebab-case to snake_case for compatibility first
         normalized_data = _normalize_yaml_keys(cfg_dict)
@@ -59,7 +58,7 @@ def load_config(path: PathLike) -> IngestionJobConfig:
         ver = str(normalized_data.get("config_version", ""))
         if not ver:
             raise ConfigVersionError(
-                "config_version missing. Add `config_version: \"1\"` to your YAML."
+                'config_version missing. Add `config_version: "1"` to your YAML.'
             )
 
         if ver < MIN_SUPPORTED_VERSION:
@@ -119,4 +118,4 @@ def _normalize_yaml_keys(data: Dict[str, Any]) -> Dict[str, Any]:
         normalized_key = key_mapping.get(key, key)
         normalized[normalized_key] = value
 
-    return normalized 
+    return normalized

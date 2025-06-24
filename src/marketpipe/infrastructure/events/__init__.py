@@ -9,4 +9,4 @@ from .publishers import InMemoryEventPublisher
 
 __all__ = [
     "InMemoryEventPublisher",
-] 
+]

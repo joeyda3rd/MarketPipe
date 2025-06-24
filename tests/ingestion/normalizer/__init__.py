@@ -1,1 +1,1 @@
-"""Tests for symbol normalization module.""" 
+"""Tests for symbol normalization module."""

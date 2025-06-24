@@ -3,28 +3,30 @@
 
 from __future__ import annotations
 
-import os
 import asyncio
-from typing import List, Optional
-from datetime import datetime, timedelta
+import os
+from datetime import datetime
 from pathlib import Path
+from typing import List, Optional
 
 import typer
 
 from marketpipe.ingestion.infrastructure.provider_registry import list_providers
-from marketpipe.metrics_server import run as metrics_server_run, start_async_server, stop_async_server
+from marketpipe.metrics_server import (
+    run as metrics_server_run,
+)
+from marketpipe.metrics_server import (
+    start_async_server,
+    stop_async_server,
+)
 
 
 def metrics(
-    port: int = typer.Option(
-        None, "--port", "-p", help="Port to run Prometheus metrics server"
-    ),
+    port: int = typer.Option(None, "--port", "-p", help="Port to run Prometheus metrics server"),
     legacy_metrics: bool = typer.Option(
         False, "--legacy-metrics", help="Use legacy blocking metrics server"
     ),
-    metric: str = typer.Option(
-        None, "--metric", "-m", help="Show specific metric history"
-    ),
+    metric: str = typer.Option(None, "--metric", "-m", help="Show specific metric history"),
     since: str = typer.Option(
         None, "--since", help="Show metrics since timestamp (e.g., '2024-01-01 10:00')"
     ),
@@ -35,7 +37,7 @@ def metrics(
     list_metrics: bool = typer.Option(False, "--list", help="List available metrics"),
 ):
     """Manage and view MarketPipe metrics.
-    
+
     Examples:
         marketpipe metrics --port 8000                 # Start async Prometheus server
         marketpipe metrics --port 8000 --legacy-metrics # Start legacy blocking server
@@ -44,8 +46,9 @@ def metrics(
         marketpipe metrics --avg 1h --plot             # Show hourly averages with plot
     """
     from marketpipe.bootstrap import bootstrap
+
     bootstrap()
-    
+
     try:
         from marketpipe.metrics import SqliteMetricsRepository
 
@@ -58,7 +61,7 @@ def metrics(
             else:
                 print(f"📊 Starting async metrics server on http://localhost:{port}/metrics")
                 print("Press Ctrl+C to stop the server")
-                
+
                 # Run async server
                 async def run_async_server():
                     server = await start_async_server(port=port)
@@ -69,7 +72,7 @@ def metrics(
                         print("\n📊 Shutting down async metrics server...")
                     finally:
                         await stop_async_server()
-                
+
                 try:
                     asyncio.run(run_async_server())
                 except KeyboardInterrupt:
@@ -77,9 +80,7 @@ def metrics(
             return
 
         # Setup metrics repository
-        metrics_repo = SqliteMetricsRepository(
-            os.getenv("METRICS_DB_PATH", "data/metrics.db")
-        )
+        metrics_repo = SqliteMetricsRepository(os.getenv("METRICS_DB_PATH", "data/metrics.db"))
 
         # Parse since timestamp if provided
         since_ts = None
@@ -254,6 +255,7 @@ def migrate(
     """Apply any pending SQLite migrations."""
     try:
         from marketpipe.migrations import apply_pending
+
         apply_pending(path)
         typer.echo("✅ Migrations up-to-date")
     except Exception as e:
@@ -305,4 +307,4 @@ def _create_sparkline(values: List[float]) -> str:
         char_index = min(int(norm * len(chars)), len(chars) - 1)
         normalized.append(chars[char_index])
 
-    return "".join(normalized) 
+    return "".join(normalized)

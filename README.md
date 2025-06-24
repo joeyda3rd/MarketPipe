@@ -74,8 +74,64 @@ flowchart TD
 
 ## Installation
 
+### Production Installation
 ```bash
-pip install -e .
+pip install marketpipe
+```
+
+### Development Installation
+```bash
+git clone https://github.com/yourorg/marketpipe.git
+cd marketpipe
+pip install -e '.[dev]'
+```
+
+### Development Tools
+MarketPipe includes comprehensive development tooling:
+
+```bash
+# Code formatting
+black src/ tests/
+
+# Linting
+ruff check src/ tests/
+
+# Type checking
+mypy src/marketpipe/
+
+# Testing
+pytest
+
+# Coverage
+pytest --cov=marketpipe --cov-report=html
+
+# Dead code detection
+vulture src/ --min-confidence 70
+
+# Pre-commit hooks
+pre-commit install
+pre-commit run --all-files
+```
+
+### Test Fixtures and Data Management
+
+MarketPipe maintains minimal, version-controlled test fixtures in `tests/resources/`:
+
+- **Fixture Format**: JSON and small Parquet files under 100KB each
+- **Sample Data**: Representative OHLCV data for testing validation and processing
+- **Size Limits**: All fixtures must be under 100KB to keep repository lightweight
+
+**Large Data Storage**: 
+- Production data and large samples are stored outside version control in `archive/`
+- Raw data outputs go to `data/output/` (gitignored)
+- Historical test data is preserved in `archive/private/` for reference
+
+**Creating New Fixtures**:
+```bash
+# Generate minimal test data
+python tools/date_calculator.py --recent
+python -m marketpipe ohlcv ingest --symbols AAPL --start 2024-01-01 --end 2024-01-02 --output tests/resources/temp
+# Then manually trim to <100KB and move to tests/resources/
 ```
 
 ## Quick Start

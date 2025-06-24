@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-import os
 import datetime as dt
+import os
 
 # Load environment variables from .env file
 try:

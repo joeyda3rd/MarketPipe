@@ -3,21 +3,22 @@
 
 from __future__ import annotations
 
-import pytest
-import tempfile
-import os
 import asyncio
+import os
+import tempfile
 from datetime import datetime, timezone
 
+import pytest
+
 from marketpipe.metrics import (
-    SqliteMetricsRepository,
+    AGG_ROWS,
+    INGEST_ROWS,
+    PROCESSING_TIME,
+    VALIDATION_ERRORS,
     MetricPoint,
+    SqliteMetricsRepository,
     TrendPoint,
     record_metric,
-    INGEST_ROWS,
-    VALIDATION_ERRORS,
-    AGG_ROWS,
-    PROCESSING_TIME,
 )
 
 
@@ -132,9 +133,7 @@ def test_record_metric_function_updates_prometheus_and_sqlite(temp_db):
 
         # Verify metrics were stored
         ingest_points = asyncio.run(repo.get_metrics_history("ingest_test_metric"))
-        validation_points = asyncio.run(
-            repo.get_metrics_history("validation_test_metric")
-        )
+        validation_points = asyncio.run(repo.get_metrics_history("validation_test_metric"))
 
         assert len(ingest_points) >= 1
         assert len(validation_points) >= 1
@@ -176,9 +175,7 @@ def test_prometheus_metrics_integration():
     """Test that new Prometheus metrics are properly defined."""
     # Test that new metrics exist and can be incremented
     initial_ingest = INGEST_ROWS.labels(symbol="TEST")._value._value
-    initial_validation = VALIDATION_ERRORS.labels(
-        symbol="TEST", error_type="test"
-    )._value._value
+    initial_validation = VALIDATION_ERRORS.labels(symbol="TEST", error_type="test")._value._value
     initial_agg = AGG_ROWS.labels(frame="1m", symbol="TEST")._value._value
 
     # Increment metrics
@@ -224,9 +221,7 @@ async def test_trend_point_dataclass():
     start = datetime.now(timezone.utc)
     end = datetime.now(timezone.utc)
 
-    trend = TrendPoint(
-        bucket_start=start, bucket_end=end, average_value=25.5, sample_count=10
-    )
+    trend = TrendPoint(bucket_start=start, bucket_end=end, average_value=25.5, sample_count=10)
 
     assert trend.bucket_start == start
     assert trend.bucket_end == end

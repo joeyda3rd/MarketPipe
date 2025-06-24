@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import datetime as _dt
+from abc import ABC, abstractmethod
 from typing import Any, List
 
 from marketpipe.domain import SymbolRecord
@@ -12,8 +12,8 @@ class SymbolProviderBase(ABC):
     Abstract base class for symbol-list providers.
 
     Subclasses **must**:
-      • declare a unique `name` class attribute (lower-snake).  
-      • implement `async _fetch_raw(...)` that contacts the API or reads a file.  
+      • declare a unique `name` class attribute (lower-snake).
+      • implement `async _fetch_raw(...)` that contacts the API or reads a file.
       • implement `_map_to_records(...)` that converts raw payload to `SymbolRecord`.
     """
 
@@ -22,7 +22,7 @@ class SymbolProviderBase(ABC):
 
     def __init__(self, *, as_of: _dt.date | None = None, **provider_cfg: Any) -> None:
         self.as_of = as_of or _dt.date.today()
-        self.cfg = provider_cfg            # token, base_url, etc.
+        self.cfg = provider_cfg  # token, base_url, etc.
 
     # ---------- public API --------------------------------------------------
 
@@ -36,12 +36,12 @@ class SymbolProviderBase(ABC):
     # ---------- mandatory hooks for subclasses ------------------------------
 
     @abstractmethod
-    async def _fetch_raw(self) -> Any: 
+    async def _fetch_raw(self) -> Any:
         """Fetch raw data from provider source (API, file, etc.)."""
         ...
 
     @abstractmethod
-    def _map_to_records(self, payload: Any) -> List[SymbolRecord]: 
+    def _map_to_records(self, payload: Any) -> List[SymbolRecord]:
         """Convert raw payload to list of validated SymbolRecord objects."""
         ...
 
@@ -50,4 +50,5 @@ class SymbolProviderBase(ABC):
     def fetch_symbols_sync(self) -> List[SymbolRecord]:
         """Blocking wrapper for non-async call sites."""
         import anyio
-        return anyio.run(self.fetch_symbols) 
+
+        return anyio.run(self.fetch_symbols)

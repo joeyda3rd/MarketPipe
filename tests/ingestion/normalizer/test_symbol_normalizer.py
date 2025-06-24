@@ -6,20 +6,21 @@ using in-memory databases with fixture data.
 
 from __future__ import annotations
 
+from datetime import date
+
 import duckdb
 import pytest
-from datetime import date
 
 # Importing the normalize_stage function is available but we'll test hermetically with inline SQL
 
 
 class TestSymbolNormalizer:
     """Test suite for symbol normalization functionality."""
-    
+
     @pytest.fixture
     def fixture_rows(self) -> list[dict]:
         """Six staged rows covering all deduplication scenarios.
-        
+
         Returns:
             List of symbol records representing various dedup scenarios:
             - Two providers with same FIGI (latest as_of wins)
@@ -79,7 +80,6 @@ class TestSymbolNormalizer:
                 "provider": "polygon",
                 "as_of": date(2024, 1, 14),  # Earlier as_of, should lose
             },
-            
             # Scenario 2: Same ticker/MIC, both FIGI null - finnhub has later as_of, should win
             {
                 "ticker": "TSLA",
@@ -131,7 +131,6 @@ class TestSymbolNormalizer:
                 "provider": "iex",
                 "as_of": date(2024, 1, 14),  # Earlier as_of, should lose
             },
-            
             # Scenario 3: Unique symbol - should always be included
             {
                 "ticker": "GOOGL",
@@ -158,7 +157,6 @@ class TestSymbolNormalizer:
                 "provider": "alpaca",
                 "as_of": date(2024, 1, 15),
             },
-            
             # Scenario 4: Duplicate of GOOGL with older as_of - should be filtered out
             {
                 "ticker": "GOOGL",
@@ -186,7 +184,7 @@ class TestSymbolNormalizer:
                 "as_of": date(2024, 1, 10),  # Much earlier as_of, should lose
             },
         ]
-    
+
     def _run_normalization_sql(self, conn: duckdb.DuckDBPyConnection) -> None:
         """Run the symbol normalization SQL directly in the connection."""
         # Embedded SQL script for hermetic testing
@@ -238,14 +236,15 @@ class TestSymbolNormalizer:
         )
         SELECT * FROM with_ids;
         """
-        
+
         # Execute the normalization SQL
         conn.execute(normalization_sql)
-    
+
     def _setup_stage_table(self, conn: duckdb.DuckDBPyConnection, rows: list[dict]) -> None:
         """Create and populate symbols_stage table in DuckDB connection."""
         # Create table with all expected columns
-        conn.execute("""
+        conn.execute(
+            """
             CREATE OR REPLACE TABLE symbols_stage (
                 ticker VARCHAR,
                 name VARCHAR,
@@ -271,59 +270,59 @@ class TestSymbolNormalizer:
                 provider VARCHAR,
                 as_of DATE
             )
-        """)
-        
+        """
+        )
+
         # Insert fixture data
         for row in rows:
             placeholders = ", ".join(["?" for _ in row.values()])
             columns = ", ".join(row.keys())
             conn.execute(
-                f"INSERT INTO symbols_stage ({columns}) VALUES ({placeholders})",
-                list(row.values())
+                f"INSERT INTO symbols_stage ({columns}) VALUES ({placeholders})", list(row.values())
             )
-    
+
     def test_dedup_count(self, fixture_rows: list[dict]) -> None:
         """Test that deduplication produces expected number of unique symbols.
-        
+
         Expected result: 3 unique symbols from 6 input rows
         - AAPL (FIGI BBG000B9XRY4): 2 rows -> 1 (latest as_of wins)
-        - TSLA (ticker|MIC): 2 rows -> 1 (latest as_of wins)  
+        - TSLA (ticker|MIC): 2 rows -> 1 (latest as_of wins)
         - GOOGL (FIGI BBG009S39JX6): 2 rows -> 1 (latest as_of wins)
         """
         with duckdb.connect(":memory:") as conn:
             self._setup_stage_table(conn, fixture_rows)
             self._run_normalization_sql(conn)
-            
+
             result = conn.execute("SELECT COUNT(*) FROM symbols_master").fetchone()
             assert result[0] == 3, "Expected exactly 3 deduplicated symbols"
-    
+
     def test_id_stability(self, fixture_rows: list[dict]) -> None:
         """Test that surrogate IDs are stable across multiple runs.
-        
+
         Running the normalizer twice on the same staging data should
         produce identical ID assignments.
         """
         with duckdb.connect(":memory:") as conn:
             self._setup_stage_table(conn, fixture_rows)
-            
+
             # First run
             self._run_normalization_sql(conn)
             first_run = conn.execute(
                 "SELECT id, natural_key FROM symbols_master ORDER BY id"
             ).fetchall()
-            
+
             # Second run (recreate stage table first)
             self._setup_stage_table(conn, fixture_rows)
             self._run_normalization_sql(conn)
             second_run = conn.execute(
                 "SELECT id, natural_key FROM symbols_master ORDER BY id"
             ).fetchall()
-            
+
             assert first_run == second_run, "IDs should be stable across reruns"
-    
+
     def test_natural_key_choice(self, fixture_rows: list[dict]) -> None:
         """Test that correct row is chosen for FIGI and ticker/MIC ties.
-        
+
         For AAPL (same FIGI): alpaca should win (as_of 2024-01-15 > 2024-01-14)
         For TSLA (same ticker/MIC): finnhub should win (as_of 2024-01-15 > 2024-01-14)
         For GOOGL (same FIGI): alpaca should win (as_of 2024-01-15 > 2024-01-10)
@@ -331,86 +330,86 @@ class TestSymbolNormalizer:
         with duckdb.connect(":memory:") as conn:
             self._setup_stage_table(conn, fixture_rows)
             self._run_normalization_sql(conn)
-            
-            results = conn.execute("""
+
+            results = conn.execute(
+                """
                 SELECT ticker, provider, figi, natural_key, as_of
                 FROM symbols_master 
                 ORDER BY ticker
-            """).fetchall()
-            
+            """
+            ).fetchall()
+
             # Should have exactly 3 results
             assert len(results) == 3
-            
+
             # AAPL: alpaca should win (latest as_of)
             aapl = next((r for r in results if r[0] == "AAPL"), None)
             assert aapl is not None, "AAPL should be present"
             assert aapl[1] == "alpaca", "alpaca should win AAPL tie (latest as_of)"
             assert aapl[2] == "BBG000B9XRY4", "AAPL should use FIGI as natural key"
-            
+
             # TSLA: finnhub should win (latest as_of)
             tsla = next((r for r in results if r[0] == "TSLA"), None)
             assert tsla is not None, "TSLA should be present"
             assert tsla[1] == "finnhub", "finnhub should win TSLA tie (latest as_of)"
             assert tsla[3] == "TSLA|XNAS", "TSLA should use ticker|MIC as natural key"
-            
+
             # GOOGL: alpaca should win (latest as_of)
             googl = next((r for r in results if r[0] == "GOOGL"), None)
             assert googl is not None, "GOOGL should be present"
             assert googl[1] == "alpaca", "alpaca should win GOOGL tie (latest as_of)"
             assert googl[2] == "BBG009S39JX6", "GOOGL should use FIGI as natural key"
-    
+
     def test_all_columns_preserved(self, fixture_rows: list[dict]) -> None:
         """Test that all original columns are preserved in output."""
         with duckdb.connect(":memory:") as conn:
             self._setup_stage_table(conn, fixture_rows)
             self._run_normalization_sql(conn)
-            
+
             # Get column names from both tables
-            stage_columns = [
-                row[0] for row in conn.execute("DESCRIBE symbols_stage").fetchall()
-            ]
-            master_columns = [
-                row[0] for row in conn.execute("DESCRIBE symbols_master").fetchall()
-            ]
-            
+            stage_columns = [row[0] for row in conn.execute("DESCRIBE symbols_stage").fetchall()]
+            master_columns = [row[0] for row in conn.execute("DESCRIBE symbols_master").fetchall()]
+
             # Master should have all stage columns plus id and natural_key
             expected_columns = set(stage_columns) | {"id", "natural_key"}
             actual_columns = set(master_columns)
-            
+
             assert actual_columns == expected_columns, (
                 f"Missing columns: {expected_columns - actual_columns}, "
                 f"Extra columns: {actual_columns - expected_columns}"
             )
-    
+
     def test_dense_id_assignment(self, fixture_rows: list[dict]) -> None:
         """Test that IDs are dense integers starting from 1."""
         with duckdb.connect(":memory:") as conn:
             self._setup_stage_table(conn, fixture_rows)
             self._run_normalization_sql(conn)
-            
+
             ids = conn.execute("SELECT id FROM symbols_master ORDER BY id").fetchall()
             id_values = [row[0] for row in ids]
-            
+
             # Should be dense sequence starting from 1
             expected_ids = list(range(1, len(id_values) + 1))
             assert id_values == expected_ids, "IDs should be dense sequence starting from 1"
-    
+
     def test_natural_key_deterministic_ordering(self, fixture_rows: list[dict]) -> None:
         """Test that natural keys determine ID ordering consistently."""
         with duckdb.connect(":memory:") as conn:
             self._setup_stage_table(conn, fixture_rows)
             self._run_normalization_sql(conn)
-            
-            results = conn.execute("""
+
+            results = conn.execute(
+                """
                 SELECT id, natural_key FROM symbols_master ORDER BY id
-            """).fetchall()
-            
+            """
+            ).fetchall()
+
             # Natural keys should be in sorted order
             natural_keys = [row[1] for row in results]
             sorted_keys = sorted(natural_keys)
-            
+
             assert natural_keys == sorted_keys, "Natural keys should determine ID ordering"
-    
+
     def test_provider_tie_breaking(self) -> None:
         """Test provider ASC tie-breaking when as_of dates are identical."""
         tie_rows = [
@@ -465,15 +464,17 @@ class TestSymbolNormalizer:
                 "as_of": date(2024, 1, 15),  # Same as_of date
             },
         ]
-        
+
         with duckdb.connect(":memory:") as conn:
             self._setup_stage_table(conn, tie_rows)
             self._run_normalization_sql(conn)
-            
-            result = conn.execute("""
+
+            result = conn.execute(
+                """
                 SELECT provider, name FROM symbols_master WHERE ticker = 'MSFT'
-            """).fetchone()
-            
+            """
+            ).fetchone()
+
             assert result is not None, "MSFT should be present"
             assert result[0] == "a_provider", "a_provider should win tie (alphabetically first)"
-            assert "Provider A" in result[1], "Should have Provider A's name" 
+            assert "Provider A" in result[1], "Should have Provider A's name"

@@ -3,8 +3,8 @@
 
 import pytest
 
+from marketpipe.validation.domain.value_objects import BarError, ValidationResult
 from marketpipe.validation.infrastructure.repositories import CsvReportRepository
-from marketpipe.validation.domain.value_objects import ValidationResult, BarError
 
 
 @pytest.fixture

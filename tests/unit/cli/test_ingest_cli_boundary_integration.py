@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
+
 from marketpipe.cli import app
 
 
@@ -26,8 +27,7 @@ class TestIngestCLIBoundaryIntegration:
         # Should fail with error about missing required fields
         assert result.exit_code == 1
         assert (
-            "Either provide --config file OR all of --symbols, --start, and --end"
-            in result.stdout
+            "Either provide --config file OR all of --symbols, --start, and --end" in result.stdout
         )
 
     def test_cli_requires_symbols_without_config(self):
@@ -49,8 +49,7 @@ class TestIngestCLIBoundaryIntegration:
         # Should fail with error about missing symbols
         assert result.exit_code == 1
         assert (
-            "Either provide --config file OR all of --symbols, --start, and --end"
-            in result.stdout
+            "Either provide --config file OR all of --symbols, --start, and --end" in result.stdout
         )
 
     @patch("marketpipe.cli.ohlcv_ingest._check_boundaries")
@@ -76,7 +75,7 @@ class TestIngestCLIBoundaryIntegration:
         mock_config.workers = 1
         mock_config.batch_size = 100
         mock_config.feed_type = "test"
-        
+
         # Make merge_overrides return the same config object
         mock_config.merge_overrides.return_value = mock_config
         mock_load_config.return_value = mock_config
@@ -97,17 +96,17 @@ class TestIngestCLIBoundaryIntegration:
 
         # Create test config file
         config_file = tmp_path / "test_config.yaml"
-        config_file.write_text("""
+        config_file.write_text(
+            """
 symbols: [AAPL]
 start: "2024-01-01"
 end: "2024-01-02"
 provider: fake
 output_path: test_output
-""")
-
-        self.runner.invoke(
-            app, ["ohlcv", "ingest", "--config", str(config_file)]
+"""
         )
+
+        self.runner.invoke(app, ["ohlcv", "ingest", "--config", str(config_file)])
 
         # Verify boundary check was called
         mock_check_boundaries.assert_called_once_with(

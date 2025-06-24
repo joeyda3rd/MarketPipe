@@ -3,60 +3,57 @@
 
 from __future__ import annotations
 
-import os
 import asyncio
-from typing import Tuple
-from datetime import datetime
-from pathlib import Path
+import os
 import sys
-import contextlib
+import threading
 import time
 import warnings
-import threading
-import io
+from datetime import datetime
+from pathlib import Path
+from typing import Tuple
 
 import typer
 
+from marketpipe.config import ConfigVersionError, IngestionJobConfig, load_config
 from marketpipe.domain.value_objects import Symbol, TimeRange
-from marketpipe.ingestion.application.services import (
-    IngestionJobService,
-    IngestionCoordinatorService,
+from marketpipe.infrastructure.events import InMemoryEventPublisher
+from marketpipe.infrastructure.repositories.sqlite_domain import (
+    SqliteOHLCVRepository,
+    SqliteSymbolBarsRepository,
 )
+from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 from marketpipe.ingestion.application.commands import CreateIngestionJobCommand
+from marketpipe.ingestion.application.services import (
+    IngestionCoordinatorService,
+    IngestionJobService,
+)
 from marketpipe.ingestion.domain.services import (
     IngestionDomainService,
     IngestionProgressTracker,
 )
 from marketpipe.ingestion.domain.value_objects import (
-    IngestionConfiguration,
     BatchConfiguration,
+    IngestionConfiguration,
 )
 from marketpipe.ingestion.infrastructure.provider_loader import build_provider
 from marketpipe.ingestion.infrastructure.repositories import (
-    SqliteIngestionJobRepository,
     SqliteCheckpointRepository,
+    SqliteIngestionJobRepository,
     SqliteMetricsRepository,
 )
-from marketpipe.infrastructure.repositories.sqlite_domain import (
-    SqliteSymbolBarsRepository,
-    SqliteOHLCVRepository,
-)
-from marketpipe.infrastructure.events import InMemoryEventPublisher
-from marketpipe.config import IngestionJobConfig, load_config, ConfigVersionError
-from marketpipe.domain.events import IngestionJobCompleted
-from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 from marketpipe.validation.domain.services import ValidationDomainService
 
 
 class FilteredStderr:
     """Advanced stderr filter that completely suppresses aiosqlite background thread errors."""
-    
+
     def __init__(self, original_stderr):
         self.original_stderr = original_stderr
         self.lock = threading.Lock()
         self.buffer = []
         self.in_error_sequence = False
-        
+
         # Comprehensive aiosqlite error indicators
         self.aiosqlite_indicators = [
             "aiosqlite",
@@ -66,48 +63,51 @@ class FilteredStderr:
             "asyncio/base_events.py",
             "asyncio.base_events",
         ]
-    
+
     def write(self, text):
         """Filter stderr content to suppress aiosqlite errors."""
         if not text:
             return
-            
+
         with self.lock:
             # Split into lines but preserve structure
             lines = text.splitlines(keepends=True)
-            
+
             for line in lines:
                 self._process_line(line)
-    
+
     def _process_line(self, line):
         """Process each line and determine if it should be suppressed."""
         line_stripped = line.strip()
         line_lower = line_stripped.lower()
-        
+
         # Start buffering on error sequence indicators
         if line_stripped.startswith("Exception in thread") or line_stripped.startswith("Traceback"):
             self.in_error_sequence = True
             self.buffer = [line]
             return
-        
+
         # If we're in an error sequence, keep buffering
         if self.in_error_sequence:
             self.buffer.append(line)
-            
+
             # Check if this line indicates an aiosqlite error
-            contains_aiosqlite = any(indicator in line_lower for indicator in self.aiosqlite_indicators)
-            
-            # Check if this is the end of the error sequence (final RuntimeError line)
-            is_error_end = (
-                line_stripped.startswith("RuntimeError:") and 
-                ("event loop is closed" in line_lower or "Event loop is closed" in line)
+            contains_aiosqlite = any(
+                indicator in line_lower for indicator in self.aiosqlite_indicators
             )
-            
+
+            # Check if this is the end of the error sequence (final RuntimeError line)
+            is_error_end = line_stripped.startswith("RuntimeError:") and (
+                "event loop is closed" in line_lower or "Event loop is closed" in line
+            )
+
             if is_error_end:
                 # Check if the entire sequence contains aiosqlite indicators
-                full_sequence = ''.join(self.buffer).lower()
-                is_aiosqlite_error = any(indicator in full_sequence for indicator in self.aiosqlite_indicators)
-                
+                full_sequence = "".join(self.buffer).lower()
+                is_aiosqlite_error = any(
+                    indicator in full_sequence for indicator in self.aiosqlite_indicators
+                )
+
                 if is_aiosqlite_error:
                     # Suppress the entire aiosqlite error sequence
                     pass
@@ -116,7 +116,7 @@ class FilteredStderr:
                     for buffered_line in self.buffer:
                         self.original_stderr.write(buffered_line)
                     self.original_stderr.flush()
-                
+
                 # Reset state
                 self.in_error_sequence = False
                 self.buffer = []
@@ -130,28 +130,30 @@ class FilteredStderr:
                 # Output normal content
                 self.original_stderr.write(line)
                 self.original_stderr.flush()
-    
+
     def flush(self):
         """Flush any remaining content."""
         with self.lock:
             # If we have a partial buffer that doesn't look like aiosqlite, output it
             if self.buffer:
-                full_sequence = ''.join(self.buffer).lower()
-                is_aiosqlite = any(indicator in full_sequence for indicator in self.aiosqlite_indicators)
-                
+                full_sequence = "".join(self.buffer).lower()
+                is_aiosqlite = any(
+                    indicator in full_sequence for indicator in self.aiosqlite_indicators
+                )
+
                 if not is_aiosqlite:
                     for line in self.buffer:
                         self.original_stderr.write(line)
-                
+
                 self.buffer = []
                 self.in_error_sequence = False
-        
+
         self.original_stderr.flush()
-    
+
     def isatty(self):
         """Check if original stderr is a TTY."""
-        return getattr(self.original_stderr, 'isatty', lambda: False)()
-    
+        return getattr(self.original_stderr, "isatty", lambda: False)()
+
     def fileno(self):
         """Get file descriptor of original stderr."""
         return self.original_stderr.fileno()
@@ -159,31 +161,31 @@ class FilteredStderr:
 
 class CleanAsyncExecution:
     """Context manager for clean async execution with filtered stderr."""
-    
+
     def __enter__(self):
         """Setup clean execution environment."""
         # Filter warnings
         warnings.filterwarnings("ignore", category=RuntimeWarning)
         warnings.filterwarnings("ignore", message=".*Event loop is closed.*")
         warnings.filterwarnings("ignore", message=".*aiosqlite.*")
-        
+
         # Install filtered stderr
         self._original_stderr = sys.stderr
         sys.stderr = FilteredStderr(self._original_stderr)
-        
+
         return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
+
+    def __exit__(self, _exc_type, _exc_val, _exc_tb):
         """Cleanup execution environment."""
         # Restore stderr
         sys.stderr = self._original_stderr
-        
+
         # Give background threads time to finish
         time.sleep(0.1)
-        
+
         # Reset warnings
         warnings.resetwarnings()
-        
+
         print("🧹 Background cleanup completed")
 
 
@@ -243,11 +245,7 @@ def _build_ingestion_services(
 
         async def validate_bars(self, bars):
             # Extract symbol from first bar or use default
-            symbol = (
-                bars[0].symbol.value
-                if bars and hasattr(bars[0], "symbol")
-                else "UNKNOWN"
-            )
+            symbol = bars[0].symbol.value if bars and hasattr(bars[0], "symbol") else "UNKNOWN"
             result = self._domain_service.validate_bars(symbol, bars)
 
             # Convert to expected format
@@ -288,21 +286,20 @@ def _build_ingestion_services(
 async def _cleanup_async_resources(*repositories) -> None:
     """Clean up async resources with proper error handling."""
     cleanup_tasks = []
-    
+
     for repo in repositories:
-        if hasattr(repo, 'close_connections'):
+        if hasattr(repo, "close_connections"):
             try:
                 cleanup_tasks.append(repo.close_connections())
             except Exception as e:
                 # Log but continue with other cleanups
                 print(f"⚠️  Warning: Error setting up cleanup for {type(repo).__name__}: {e}")
-    
+
     if cleanup_tasks:
         try:
             # Give each cleanup task a reasonable timeout
             await asyncio.wait_for(
-                asyncio.gather(*cleanup_tasks, return_exceptions=True),
-                timeout=5.0
+                asyncio.gather(*cleanup_tasks, return_exceptions=True), timeout=5.0
             )
         except asyncio.TimeoutError:
             print("⚠️  Warning: Repository cleanup timed out")
@@ -312,35 +309,36 @@ async def _cleanup_async_resources(*repositories) -> None:
 
 def _check_boundaries(path: str, symbol: str, start: str, end: str, provider: str) -> None:
     """Check if ingested data covers the requested date range.
-    
+
     Args:
         path: Path to the data directory
-        symbol: Symbol to check  
+        symbol: Symbol to check
         start: Start date in YYYY-MM-DD format
         end: End date in YYYY-MM-DD format
         provider: Provider name for error messages
-        
+
     Raises:
         SystemExit(1): If data is missing or outside the requested range
     """
     try:
-        import duckdb
         from pathlib import Path
-        
+
+        import duckdb
+
         # Connect to DuckDB first (this is where the test expects the exception)
         conn = duckdb.connect()
-        
+
         symbol_path = Path(path) / f"symbol={symbol}"
-        
+
         if not symbol_path.exists():
             print(f"ERROR: No data found for symbol {symbol}", file=sys.stderr)
             sys.exit(1)
-        
+
         parquet_files = list(symbol_path.glob("**/*.parquet"))
         if not parquet_files:
             print(f"ERROR: No parquet files found for symbol {symbol}", file=sys.stderr)
             sys.exit(1)
-        
+
         # Query to check data coverage
         query = f"""
         SELECT 
@@ -350,26 +348,30 @@ def _check_boundaries(path: str, symbol: str, start: str, end: str, provider: st
         FROM read_parquet('{symbol_path}/**/*.parquet')
         WHERE symbol = '{symbol}'
         """
-        
+
         result = conn.execute(query).fetchone()
         conn.close()
-        
+
         if not result or result[2] == 0:
             print(f"ERROR: No data found for symbol {symbol}", file=sys.stderr)
             sys.exit(1)
-        
+
         min_date, max_date, bar_count = result
-        
+
         # Check if data covers the requested range
         if min_date > start or max_date < end:
-            print(f"ERROR: Data for {symbol} covers {min_date} to {max_date}, "
-                  f"but requested {start} to {end}. Try a different provider or date range.", 
-                  file=sys.stderr)
+            print(
+                f"ERROR: Data for {symbol} covers {min_date} to {max_date}, "
+                f"but requested {start} to {end}. Try a different provider or date range.",
+                file=sys.stderr,
+            )
             sys.exit(1)
-        
+
         # Success message
-        print(f"Ingest OK: {bar_count} bars found for {start}..{end} symbol {symbol} provider {provider}")
-        
+        print(
+            f"Ingest OK: {bar_count} bars found for {start}..{end} symbol {symbol} provider {provider}"
+        )
+
     except Exception as e:
         print(f"ERROR: Boundary check failed for {symbol}: {e}", file=sys.stderr)
         sys.exit(1)
@@ -391,8 +393,9 @@ def _ingest_impl(
 ):
     """Implementation of the ingest functionality."""
     from marketpipe.bootstrap import bootstrap
+
     bootstrap()
-    
+
     # Use the clean async execution context for the entire process
     with CleanAsyncExecution():
         try:
@@ -443,7 +446,7 @@ def _ingest_impl(
                     start=start_date,
                     end=end_date,
                     batch_size=batch_size or 500,
-                    output_path=output_path or "data/raw",
+                    output_path=output_path or "data/output",
                     workers=workers or 3,
                     provider=provider or "alpaca",
                     feed_type=feed_type or "iex",
@@ -470,12 +473,14 @@ def _ingest_impl(
 
             # Add provider-specific configuration (API keys, etc.)
             if job_config.provider == "alpaca":
-                provider_config.update({
-                    "api_key": os.getenv("ALPACA_KEY"),
-                    "api_secret": os.getenv("ALPACA_SECRET"),
-                    "base_url": "https://data.alpaca.markets/v2",
-                    "rate_limit_per_min": 200,
-                })
+                provider_config.update(
+                    {
+                        "api_key": os.getenv("ALPACA_KEY"),
+                        "api_secret": os.getenv("ALPACA_SECRET"),
+                        "base_url": "https://data.alpaca.markets/v2",
+                        "rate_limit_per_min": 200,
+                    }
+                )
             elif job_config.provider == "fake":
                 # Fake provider doesn't need credentials
                 pass
@@ -511,7 +516,7 @@ def _ingest_impl(
                     # Execute job
                     print("⚡ Starting job execution...")
                     result = await coordinator_service.execute_job(job_id)
-                    
+
                     return job_id, result
                 finally:
                     # Ensure proper cleanup of async resources
@@ -523,7 +528,7 @@ def _ingest_impl(
                         coordinator_service._checkpoint_repository,
                         coordinator_service._metrics_repository,
                     )
-            
+
             # Run asyncio with clean error suppression
             job_id, result = asyncio.run(run_ingestion())
 
@@ -548,7 +553,7 @@ def _ingest_impl(
                         end=str(job_config.end),
                         provider=job_config.provider,
                     )
-                except SystemExit as e:
+                except SystemExit:
                     # _check_boundaries calls sys.exit(1) on failure
                     print(f"❌ Post-ingestion verification failed for {symbol}")
                     raise typer.Exit(1)
@@ -581,18 +586,14 @@ def ingest_ohlcv(
     batch_size: int = typer.Option(
         None, "--batch-size", help="Bars per request (overrides config)"
     ),
-    output_path: str = typer.Option(
-        None, "--output", help="Output directory (overrides config)"
-    ),
+    output_path: str = typer.Option(None, "--output", help="Output directory (overrides config)"),
     workers: int = typer.Option(
         None, "--workers", help="Number of worker threads (overrides config)"
     ),
     provider: str = typer.Option(
         None, "--provider", help="Market data provider (overrides config)"
     ),
-    feed_type: str = typer.Option(
-        None, "--feed-type", help="Data feed type (overrides config)"
-    ),
+    feed_type: str = typer.Option(None, "--feed-type", help="Data feed type (overrides config)"),
 ):
     """Ingest OHLCV data from market data providers."""
     _ingest_impl(
@@ -629,18 +630,14 @@ def ingest_ohlcv_convenience(
     batch_size: int = typer.Option(
         None, "--batch-size", help="Bars per request (overrides config)"
     ),
-    output_path: str = typer.Option(
-        None, "--output", help="Output directory (overrides config)"
-    ),
+    output_path: str = typer.Option(None, "--output", help="Output directory (overrides config)"),
     workers: int = typer.Option(
         None, "--workers", help="Number of worker threads (overrides config)"
     ),
     provider: str = typer.Option(
         None, "--provider", help="Market data provider (overrides config)"
     ),
-    feed_type: str = typer.Option(
-        None, "--feed-type", help="Data feed type (overrides config)"
-    ),
+    feed_type: str = typer.Option(None, "--feed-type", help="Data feed type (overrides config)"),
 ):
     """Ingest OHLCV data from market data providers (convenience command)."""
     _ingest_impl(
@@ -677,18 +674,14 @@ def ingest_deprecated(
     batch_size: int = typer.Option(
         None, "--batch-size", help="Bars per request (overrides config)"
     ),
-    output_path: str = typer.Option(
-        None, "--output", help="Output directory (overrides config)"
-    ),
+    output_path: str = typer.Option(None, "--output", help="Output directory (overrides config)"),
     workers: int = typer.Option(
         None, "--workers", help="Number of worker threads (overrides config)"
     ),
     provider: str = typer.Option(
         None, "--provider", help="Market data provider (overrides config)"
     ),
-    feed_type: str = typer.Option(
-        None, "--feed-type", help="Data feed type (overrides config)"
-    ),
+    feed_type: str = typer.Option(None, "--feed-type", help="Data feed type (overrides config)"),
 ):
     """[DEPRECATED] Use 'ingest-ohlcv' or 'ohlcv ingest' instead."""
     print("⚠️  Warning: 'ingest' is deprecated. Use 'ingest-ohlcv' or 'ohlcv ingest' instead.")
@@ -702,4 +695,4 @@ def ingest_deprecated(
         workers=workers,
         provider=provider,
         feed_type=feed_type,
-    ) 
+    )

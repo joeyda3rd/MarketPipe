@@ -3,19 +3,20 @@
 
 from __future__ import annotations
 
-import pytest
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from unittest.mock import patch
 
-from src.marketpipe.domain.aggregates import SymbolBarsAggregate, DailySummary
-from src.marketpipe.domain.entities import OHLCVBar, EntityId
-from src.marketpipe.domain.value_objects import Symbol, Timestamp, Price, Volume
+import pytest
+
+from src.marketpipe.domain.aggregates import DailySummary, SymbolBarsAggregate
+from src.marketpipe.domain.entities import EntityId, OHLCVBar
 from src.marketpipe.domain.events import (
-    BarCollectionStarted,
     BarCollectionCompleted,
+    BarCollectionStarted,
     MarketDataReceived,
 )
+from src.marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
 
 
 @pytest.fixture
@@ -112,9 +113,7 @@ class TestSymbolBarsAggregate:
         assert events[1].timestamp == sample_bar.timestamp
         assert events[1].record_count == 1
 
-    def test_add_bar_maintains_running_totals(
-        self, aggregate, sample_bar, sample_bar_2
-    ):
+    def test_add_bar_maintains_running_totals(self, aggregate, sample_bar, sample_bar_2):
         """Test that adding bars maintains running totals."""
         # Add first bar
         aggregate.add_bar(sample_bar)
@@ -127,8 +126,7 @@ class TestSymbolBarsAggregate:
         assert aggregate._running_high == sample_bar_2.high_price  # Higher
         assert aggregate._running_low == sample_bar.low_price  # Lower from first bar
         assert (
-            aggregate._running_volume.value
-            == sample_bar.volume.value + sample_bar_2.volume.value
+            aggregate._running_volume.value == sample_bar.volume.value + sample_bar_2.volume.value
         )
 
     def test_add_bar_duplicate_timestamp_raises_error(self, aggregate, sample_bar):
@@ -163,9 +161,7 @@ class TestSymbolBarsAggregate:
             volume=sample_bar.volume,
         )
 
-        with pytest.raises(
-            ValueError, match="Bar symbol .* doesn't match aggregate symbol"
-        ):
+        with pytest.raises(ValueError, match="Bar symbol .* doesn't match aggregate symbol"):
             aggregate.add_bar(wrong_symbol_bar)
 
     def test_add_bar_wrong_date_raises_error(self, aggregate, sample_bar):
@@ -173,9 +169,7 @@ class TestSymbolBarsAggregate:
         wrong_date_bar = OHLCVBar(
             id=EntityId.generate(),
             symbol=sample_bar.symbol,
-            timestamp=Timestamp(
-                datetime(2024, 1, 16, 9, 30, 0, tzinfo=timezone.utc)
-            ),  # Wrong date
+            timestamp=Timestamp(datetime(2024, 1, 16, 9, 30, 0, tzinfo=timezone.utc)),  # Wrong date
             open_price=sample_bar.open_price,
             high_price=sample_bar.high_price,
             low_price=sample_bar.low_price,
@@ -183,9 +177,7 @@ class TestSymbolBarsAggregate:
             volume=sample_bar.volume,
         )
 
-        with pytest.raises(
-            ValueError, match="Bar date .* doesn't match aggregate date"
-        ):
+        with pytest.raises(ValueError, match="Bar date .* doesn't match aggregate date"):
             aggregate.add_bar(wrong_date_bar)
 
     def test_add_bar_after_completion_raises_error(self, aggregate, sample_bar):
@@ -207,9 +199,7 @@ class TestSymbolBarsAggregate:
         with pytest.raises(ValueError, match="Cannot add bars to completed collection"):
             aggregate.add_bar(new_bar)
 
-    def test_close_day_completes_and_returns_summary(
-        self, aggregate, sample_bar, sample_bar_2
-    ):
+    def test_close_day_completes_and_returns_summary(self, aggregate, sample_bar, sample_bar_2):
         """Test that close_day completes collection and returns daily summary."""
         # Add bars
         aggregate.add_bar(sample_bar)
@@ -229,9 +219,7 @@ class TestSymbolBarsAggregate:
         assert summary.close_price == sample_bar_2.close_price
         assert summary.high_price == sample_bar_2.high_price  # Higher of the two
         assert summary.low_price == sample_bar.low_price  # Lower of the two
-        assert (
-            summary.volume.value == sample_bar.volume.value + sample_bar_2.volume.value
-        )
+        assert summary.volume.value == sample_bar.volume.value + sample_bar_2.volume.value
         assert summary.bar_count == 2
         assert summary.vwap is not None  # Should calculate VWAP
 
@@ -246,9 +234,7 @@ class TestSymbolBarsAggregate:
         with pytest.raises(ValueError, match="Cannot close day with no bars"):
             aggregate.close_day()
 
-    def test_calculate_daily_summary_without_completion(
-        self, aggregate, sample_bar, sample_bar_2
-    ):
+    def test_calculate_daily_summary_without_completion(self, aggregate, sample_bar, sample_bar_2):
         """Test that calculate_daily_summary works without completing collection."""
         # Add bars
         aggregate.add_bar(sample_bar)
@@ -360,9 +346,7 @@ class TestSymbolBarsAggregate:
             bar = OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 9, 30 + minute, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 9, 30 + minute, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("100.00")),
                 high_price=Price(Decimal("100.00")),
                 low_price=Price(Decimal("100.00")),

@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
 
 from ..domain.entities import IngestionJobId, ProcessingState
 

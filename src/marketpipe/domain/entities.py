@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import Optional
 from uuid import UUID, uuid4
 
-from .value_objects import Symbol, Timestamp, Price, Volume
+from .value_objects import Price, Symbol, Timestamp, Volume
 
 
 @dataclass(frozen=True)
@@ -238,8 +238,6 @@ class OHLCVBar(Entity):
         """
         self._vwap = vwap
         self._increment_version()
-
-
 
     def __str__(self) -> str:
         """String representation of the OHLCV bar."""

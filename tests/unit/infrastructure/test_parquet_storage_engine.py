@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-import pytest
 from datetime import date
 from pathlib import Path
 from unittest.mock import patch
+
 import pandas as pd
+import pytest
 
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 
@@ -82,9 +83,7 @@ class TestParquetStorageEngineWrite:
             job_id="job1",
         )
 
-        expected_path = (
-            tmp_path / "frame=1m" / "symbol=AAPL" / "date=2022-01-01" / "job1.parquet"
-        )
+        expected_path = tmp_path / "frame=1m" / "symbol=AAPL" / "date=2022-01-01" / "job1.parquet"
         assert output_path == expected_path
         assert expected_path.exists()
 
@@ -106,13 +105,9 @@ class TestParquetStorageEngineWrite:
                 job_id="job1",
             )
 
-    def test_write_missing_required_columns_raises_error(
-        self, engine: ParquetStorageEngine
-    ):
+    def test_write_missing_required_columns_raises_error(self, engine: ParquetStorageEngine):
         """Test that missing required columns raises ValueError."""
-        invalid_df = pd.DataFrame(
-            {"ts_ns": [1, 2], "open": [1, 2]}
-        )  # Missing required columns
+        invalid_df = pd.DataFrame({"ts_ns": [1, 2], "open": [1, 2]})  # Missing required columns
 
         with pytest.raises(ValueError, match="DataFrame missing required columns"):
             engine.write(
@@ -147,9 +142,7 @@ class TestParquetStorageEngineWrite:
                 overwrite=False,
             )
 
-    def test_write_with_overwrite(
-        self, engine: ParquetStorageEngine, sample_df: pd.DataFrame
-    ):
+    def test_write_with_overwrite(self, engine: ParquetStorageEngine, sample_df: pd.DataFrame):
         """Test overwriting existing file."""
         # Write first time
         engine.write(
@@ -198,14 +191,10 @@ class TestParquetStorageEngineWrite:
             )
 
         # File should not exist after cleanup
-        expected_path = (
-            tmp_path / "frame=1m" / "symbol=AAPL" / "date=2022-01-01" / "job1.parquet"
-        )
+        expected_path = tmp_path / "frame=1m" / "symbol=AAPL" / "date=2022-01-01" / "job1.parquet"
         assert not expected_path.exists()
 
-    def test_append_to_job_new_file(
-        self, engine: ParquetStorageEngine, sample_df: pd.DataFrame
-    ):
+    def test_append_to_job_new_file(self, engine: ParquetStorageEngine, sample_df: pd.DataFrame):
         """Test appending to non-existent job file creates new file."""
         output_path = engine.append_to_job(
             sample_df,
@@ -263,9 +252,7 @@ class TestParquetStorageEngineWrite:
 class TestParquetStorageEngineRead:
     """Test read operations."""
 
-    def test_load_partition_existing(
-        self, engine: ParquetStorageEngine, sample_df: pd.DataFrame
-    ):
+    def test_load_partition_existing(self, engine: ParquetStorageEngine, sample_df: pd.DataFrame):
         """Test loading existing partition."""
         # Write data
         engine.write(
@@ -374,9 +361,7 @@ class TestParquetStorageEngineRead:
 
         assert result == {}
 
-    def test_load_symbol_data_basic(
-        self, engine: ParquetStorageEngine, sample_df: pd.DataFrame
-    ):
+    def test_load_symbol_data_basic(self, engine: ParquetStorageEngine, sample_df: pd.DataFrame):
         """Test loading symbol data across dates."""
         # Write data for multiple dates
         engine.write(
@@ -438,9 +423,7 @@ class TestParquetStorageEngineRead:
 class TestParquetStorageEngineUtilities:
     """Test utility operations."""
 
-    def test_delete_job_existing(
-        self, engine: ParquetStorageEngine, sample_df: pd.DataFrame
-    ):
+    def test_delete_job_existing(self, engine: ParquetStorageEngine, sample_df: pd.DataFrame):
         """Test deleting existing job files."""
         # Write data for multiple symbols
         engine.write(
@@ -503,9 +486,7 @@ class TestParquetStorageEngineUtilities:
 
         assert job_ids == []
 
-    def test_get_storage_stats(
-        self, engine: ParquetStorageEngine, sample_df: pd.DataFrame
-    ):
+    def test_get_storage_stats(self, engine: ParquetStorageEngine, sample_df: pd.DataFrame):
         """Test getting storage statistics."""
         # Write some data
         engine.write(
@@ -569,11 +550,7 @@ class TestParquetStorageEngineUtilities:
 
         # Create corrupted file
         corrupted_path = (
-            tmp_path
-            / "frame=1m"
-            / "symbol=AAPL"
-            / "date=2022-01-02"
-            / "corrupted.parquet"
+            tmp_path / "frame=1m" / "symbol=AAPL" / "date=2022-01-02" / "corrupted.parquet"
         )
         corrupted_path.parent.mkdir(parents=True, exist_ok=True)
         corrupted_path.write_text("invalid parquet data")
@@ -599,9 +576,7 @@ class TestParquetStorageEngineErrorHandling:
     ):
         """Test that read errors are handled gracefully."""
         # Create a file that will cause read error
-        file_path = (
-            tmp_path / "frame=1m" / "symbol=AAPL" / "date=2022-01-01" / "job1.parquet"
-        )
+        file_path = tmp_path / "frame=1m" / "symbol=AAPL" / "date=2022-01-01" / "job1.parquet"
         file_path.parent.mkdir(parents=True)
         file_path.touch()
 
@@ -618,9 +593,7 @@ class TestParquetStorageEngineErrorHandling:
     ):
         """Test that job bar loading handles read errors gracefully."""
         # Create a file that will cause read error
-        file_path = (
-            tmp_path / "frame=1m" / "symbol=AAPL" / "date=2022-01-01" / "job1.parquet"
-        )
+        file_path = tmp_path / "frame=1m" / "symbol=AAPL" / "date=2022-01-01" / "job1.parquet"
         file_path.parent.mkdir(parents=True)
         file_path.touch()
 
@@ -689,9 +662,7 @@ def test_job_roundtrip(tmp_path: Path):
     )
 
     # Write data
-    engine.write(
-        df, frame="1m", symbol="AAPL", trading_day=date(2025, 6, 1), job_id="jobX"
-    )
+    engine.write(df, frame="1m", symbol="AAPL", trading_day=date(2025, 6, 1), job_id="jobX")
 
     # Load by job
     dfs = engine.load_job_bars("jobX")

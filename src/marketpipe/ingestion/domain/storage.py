@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from marketpipe.domain.entities import OHLCVBar
+
 from .value_objects import IngestionConfiguration, IngestionPartition
 
 

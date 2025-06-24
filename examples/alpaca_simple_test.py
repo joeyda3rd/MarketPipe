@@ -4,8 +4,9 @@
 Simple Alpaca API Test - Try the most basic endpoints
 """
 
-import os
 import asyncio
+import os
+
 import httpx
 import pytest
 from dotenv import load_dotenv

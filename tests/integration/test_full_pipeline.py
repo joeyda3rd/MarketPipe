@@ -1,18 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
 """Integration tests for the full MarketPipe pipeline."""
 
-import pytest
 from datetime import datetime, timezone
 from unittest.mock import Mock
-import pandas as pd
 
-from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp, Price, Volume
-from marketpipe.domain.entities import OHLCVBar, EntityId
-from marketpipe.ingestion.domain.entities import IngestionJobId
-from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
-from marketpipe.validation.infrastructure.repositories import CsvReportRepository
-from marketpipe.validation.application.services import ValidationRunnerService
+import pandas as pd
+import pytest
+
+from marketpipe.domain.entities import EntityId, OHLCVBar
+from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
 from marketpipe.events import IngestionJobCompleted
+from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
+from marketpipe.ingestion.domain.entities import IngestionJobId
+from marketpipe.validation.application.services import ValidationRunnerService
+from marketpipe.validation.infrastructure.repositories import CsvReportRepository
 
 
 class FakeMarketDataProvider:
@@ -38,9 +39,7 @@ class FakeMarketDataProvider:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)),
                 open_price=Price.from_float(100.0),
                 high_price=Price.from_float(101.0),
                 low_price=Price.from_float(99.5),
@@ -56,9 +55,7 @@ class FakeMarketDataProvider:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 9, 31, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 9, 31, 0, tzinfo=timezone.utc)),
                 open_price=Price.from_float(100.5),
                 high_price=Price.from_float(102.0),  # Will be valid for entity creation
                 low_price=Price.from_float(99.0),
@@ -112,9 +109,7 @@ def test_full_pipeline_with_validation_reports(tmp_path):
                 "close": bar.close_price.to_float(),
                 "volume": bar.volume.value,
                 "trade_count": getattr(bar, "trade_count", None),
-                "vwap": (
-                    bar.vwap.to_float() if hasattr(bar, "vwap") and bar.vwap else None
-                ),
+                "vwap": (bar.vwap.to_float() if hasattr(bar, "vwap") and bar.vwap else None),
             }
         )
     df = pd.DataFrame(rows)
@@ -145,7 +140,7 @@ def test_full_pipeline_with_validation_reports(tmp_path):
     )
 
     # Mock the validator to return some validation errors
-    from marketpipe.validation.domain.value_objects import ValidationResult, BarError
+    from marketpipe.validation.domain.value_objects import BarError, ValidationResult
 
     mock_validation_result = ValidationResult(
         symbol=symbol.value,
@@ -161,9 +156,7 @@ def test_full_pipeline_with_validation_reports(tmp_path):
             ),
         ],
     )
-    validation_service._validator.validate_bars = Mock(
-        return_value=mock_validation_result
-    )
+    validation_service._validator.validate_bars = Mock(return_value=mock_validation_result)
 
     # Trigger validation
     validation_service.handle_ingestion_completed(
@@ -242,11 +235,7 @@ def test_multiple_symbols_pipeline(tmp_path):
                     "close": bar.close_price.to_float(),
                     "volume": bar.volume.value,
                     "trade_count": getattr(bar, "trade_count", None),
-                    "vwap": (
-                        bar.vwap.to_float()
-                        if hasattr(bar, "vwap") and bar.vwap
-                        else None
-                    ),
+                    "vwap": (bar.vwap.to_float() if hasattr(bar, "vwap") and bar.vwap else None),
                 }
             )
         df = pd.DataFrame(rows)
@@ -269,8 +258,8 @@ def test_multiple_symbols_pipeline(tmp_path):
     # Mock validator to return different results for each symbol
     def mock_validate_bars(symbol_name, bars):
         from marketpipe.validation.domain.value_objects import (
-            ValidationResult,
             BarError,
+            ValidationResult,
         )
 
         if symbol_name == "AAPL":
@@ -373,9 +362,7 @@ def test_pipeline_empty_validation_report(tmp_path):
                 "close": bar.close_price.to_float(),
                 "volume": bar.volume.value,
                 "trade_count": getattr(bar, "trade_count", None),
-                "vwap": (
-                    bar.vwap.to_float() if hasattr(bar, "vwap") and bar.vwap else None
-                ),
+                "vwap": (bar.vwap.to_float() if hasattr(bar, "vwap") and bar.vwap else None),
             }
         )
     df = pd.DataFrame(rows)

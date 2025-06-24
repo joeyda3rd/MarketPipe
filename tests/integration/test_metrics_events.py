@@ -3,18 +3,19 @@
 
 from __future__ import annotations
 
-import pytest
-import tempfile
-import os
 import asyncio
+import os
+import tempfile
 from datetime import date, datetime, timezone
 from unittest.mock import patch
 
-from marketpipe.domain.events import IngestionJobCompleted, ValidationFailed
+import pytest
+
+from marketpipe.aggregation.domain.events import AggregationCompleted, AggregationFailed
 from marketpipe.bootstrap import get_event_bus
+from marketpipe.domain.events import IngestionJobCompleted, ValidationFailed
 from marketpipe.domain.value_objects import Symbol, Timestamp
 from marketpipe.metrics import SqliteMetricsRepository
-from marketpipe.aggregation.domain.events import AggregationCompleted, AggregationFailed
 from marketpipe.validation.domain.events import ValidationCompleted
 from marketpipe.validation.domain.value_objects import ValidationResult
 
@@ -46,18 +47,17 @@ def clear_event_bus():
     """Clear the event bus before and after tests."""
     # Reset the event bus singleton
     import marketpipe.bootstrap
+
     marketpipe.bootstrap._EVENT_BUS = None
     yield
     marketpipe.bootstrap._EVENT_BUS = None
 
 
 @pytest.mark.asyncio
-async def test_ingestion_completed_event_records_metrics(
-    temp_metrics_db, clear_event_bus
-):
+async def test_ingestion_completed_event_records_metrics(temp_metrics_db, clear_event_bus):
     """Test that IngestionJobCompleted events trigger metric recording."""
     from marketpipe.infrastructure.monitoring.event_handlers import register
-    
+
     register()
 
     # Create test event with correct constructor
@@ -91,12 +91,10 @@ async def test_ingestion_completed_event_records_metrics(
 
 
 @pytest.mark.asyncio
-async def test_validation_failed_event_records_metrics(
-    temp_metrics_db, clear_event_bus
-):
+async def test_validation_failed_event_records_metrics(temp_metrics_db, clear_event_bus):
     """Test that ValidationFailed events trigger metric recording."""
     from marketpipe.infrastructure.monitoring.event_handlers import register
-    
+
     register()
 
     # Create test event
@@ -130,12 +128,10 @@ async def test_validation_failed_event_records_metrics(
 
 
 @pytest.mark.asyncio
-async def test_validation_completed_event_records_metrics(
-    temp_metrics_db, clear_event_bus
-):
+async def test_validation_completed_event_records_metrics(temp_metrics_db, clear_event_bus):
     """Test that ValidationCompleted events trigger metric recording."""
     from marketpipe.infrastructure.monitoring.event_handlers import register
-    
+
     register()
 
     # Create validation result using the actual domain structure
@@ -160,12 +156,10 @@ async def test_validation_completed_event_records_metrics(
 
 
 @pytest.mark.asyncio
-async def test_aggregation_completed_event_records_metrics(
-    temp_metrics_db, clear_event_bus
-):
+async def test_aggregation_completed_event_records_metrics(temp_metrics_db, clear_event_bus):
     """Test that AggregationCompleted events trigger metric recording."""
     from marketpipe.infrastructure.monitoring.event_handlers import register
-    
+
     register()
 
     # Create test event with correct constructor
@@ -187,18 +181,14 @@ async def test_aggregation_completed_event_records_metrics(
 
 
 @pytest.mark.asyncio
-async def test_aggregation_failed_event_records_metrics(
-    temp_metrics_db, clear_event_bus
-):
+async def test_aggregation_failed_event_records_metrics(temp_metrics_db, clear_event_bus):
     """Test that AggregationFailed events trigger metric recording."""
     from marketpipe.infrastructure.monitoring.event_handlers import register
-    
+
     register()
 
     # Create test event with correct constructor (no frame parameter)
-    event = AggregationFailed(
-        job_id="agg-job-fail-999", error_message="DuckDB connection failed"
-    )
+    event = AggregationFailed(job_id="agg-job-fail-999", error_message="DuckDB connection failed")
 
     # Publish the event
     event_bus = get_event_bus()
@@ -216,12 +206,10 @@ async def test_aggregation_failed_event_records_metrics(
 
 
 @pytest.mark.asyncio
-async def test_multiple_events_record_separate_metrics(
-    temp_metrics_db, clear_event_bus
-):
+async def test_multiple_events_record_separate_metrics(temp_metrics_db, clear_event_bus):
     """Test that multiple different events record separate metrics."""
     from marketpipe.infrastructure.monitoring.event_handlers import register
-    
+
     register()
 
     # Create multiple events
@@ -268,12 +256,10 @@ async def test_multiple_events_record_separate_metrics(
 
 
 @pytest.mark.asyncio
-async def test_event_handlers_gracefully_handle_errors(
-    temp_metrics_db, clear_event_bus
-):
+async def test_event_handlers_gracefully_handle_errors(temp_metrics_db, clear_event_bus):
     """Test that event handlers gracefully handle errors without crashing."""
     from marketpipe.infrastructure.monitoring.event_handlers import register
-    
+
     register()
 
     # Create a normal event that should work
@@ -287,9 +273,7 @@ async def test_event_handlers_gracefully_handle_errors(
     )
 
     # Mock the metrics repository to raise an error
-    with patch(
-        "marketpipe.infrastructure.monitoring.event_handlers.record_metric"
-    ) as mock_record:
+    with patch("marketpipe.infrastructure.monitoring.event_handlers.record_metric") as mock_record:
         mock_record.side_effect = Exception("Database connection failed")
 
         # Publishing should not raise even if metric recording fails

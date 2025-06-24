@@ -1,9 +1,8 @@
-import os
 import asyncio
+import os
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
@@ -66,7 +65,7 @@ def run_migrations_online() -> None:
 
     """
     url = config.get_main_option("sqlalchemy.url")
-    
+
     # Check if we're using an async driver
     if url and "asyncpg" in url:
         # Run async migrations
@@ -91,7 +90,7 @@ def run_migrations_online() -> None:
 async def run_async_migrations() -> None:
     """Run migrations in async mode for asyncpg driver."""
     url = config.get_main_option("sqlalchemy.url")
-    
+
     connectable = create_async_engine(
         url,
         poolclass=pool.NullPool,

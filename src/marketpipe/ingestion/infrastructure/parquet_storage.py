@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 import logging
-import pandas as pd
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 
+import pandas as pd
+
+from marketpipe.domain.entities import OHLCVBar
+
 # Re-export the production storage engine to maintain backward compatibility
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
-from marketpipe.domain.entities import OHLCVBar
+
 from ..domain.storage import IDataStorage
 from ..domain.value_objects import IngestionConfiguration, IngestionPartition
 

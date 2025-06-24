@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 from importlib.metadata import entry_points
-from typing import Dict, Type, List
+from typing import Dict, List, Type
 
 from marketpipe.domain.market_data import IMarketDataProvider
 
@@ -51,9 +51,7 @@ def _auto_register() -> None:
                 _REGISTRY[ep.name] = provider_cls
                 logger.info("Auto-registered provider '%s' from entry point", ep.name)
             except Exception as e:
-                logger.warning(
-                    f"Failed to load provider '{ep.name}' from entry point: {e}"
-                )
+                logger.warning(f"Failed to load provider '{ep.name}' from entry point: {e}")
 
         # Re-enable default provider registration for subsequent discovery
         _allow_default_registration = True

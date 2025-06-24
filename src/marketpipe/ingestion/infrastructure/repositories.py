@@ -4,35 +4,32 @@
 from __future__ import annotations
 
 import json
-import aiosqlite
-from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Dict, List, Optional
+
+import aiosqlite
+from prometheus_client import Counter, Histogram
+
+from marketpipe.domain.value_objects import Symbol
+from marketpipe.infrastructure.sqlite_async_mixin import SqliteAsyncMixin
 
 from ..domain.entities import IngestionJob, IngestionJobId, ProcessingState
 from ..domain.repositories import (
-    IIngestionJobRepository,
     IIngestionCheckpointRepository,
+    IIngestionJobRepository,
     IIngestionMetricsRepository,
     IngestionRepositoryError,
 )
 from ..domain.value_objects import IngestionCheckpoint, ProcessingMetrics
-from marketpipe.domain.value_objects import Symbol
-from marketpipe.infrastructure.sqlite_async_mixin import SqliteAsyncMixin
-from prometheus_client import Counter, Histogram
-
 
 # Shared metrics for all repository backends
 REPO_QUERIES = Counter(
-    'ingestion_repo_queries_total',
-    'Total number of repository queries',
-    ['operation', 'backend']
+    "ingestion_repo_queries_total", "Total number of repository queries", ["operation", "backend"]
 )
 
 REPO_LATENCY = Histogram(
-    'ingestion_repo_latency_seconds',
-    'Repository operation latency',
-    ['operation', 'backend']
+    "ingestion_repo_latency_seconds", "Repository operation latency", ["operation", "backend"]
 )
 
 
@@ -47,6 +44,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
     def _init_database(self) -> None:
         """Initialize the database schema using migrations."""
         from marketpipe.migrations import apply_pending
+
         apply_pending(self._db_path)
 
     def _domain_state_to_db_state(self, state: ProcessingState) -> str:
@@ -59,9 +57,9 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 
     async def save(self, job: IngestionJob) -> None:
         """Save an ingestion job."""
-        with REPO_LATENCY.labels('save', 'sqlite').time():
-            REPO_QUERIES.labels('save', 'sqlite').inc()
-            
+        with REPO_LATENCY.labels("save", "sqlite").time():
+            REPO_QUERIES.labels("save", "sqlite").inc()
+
         try:
             payload = self._serialize_job_to_json(job)
             now = datetime.now()
@@ -73,14 +71,19 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                     (symbol, day, state, payload, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                    (str(job.job_id.symbol), job.job_id.day, self._domain_state_to_db_state(job.state), payload, job.created_at, now),
+                    (
+                        str(job.job_id.symbol),
+                        job.job_id.day,
+                        self._domain_state_to_db_state(job.state),
+                        payload,
+                        job.created_at,
+                        now,
+                    ),
                 )
                 await db.commit()
 
         except aiosqlite.Error as e:
-            raise IngestionRepositoryError(
-                f"Failed to save job {job.job_id}: {e}"
-            ) from e
+            raise IngestionRepositoryError(f"Failed to save job {job.job_id}: {e}") from e
 
     async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
         """Retrieve an ingestion job by its ID."""
@@ -103,9 +106,9 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 
     async def get_by_state(self, state: ProcessingState) -> List[IngestionJob]:
         """Get all jobs in a specific state."""
-        with REPO_LATENCY.labels('get_by_state', 'sqlite').time():
-            REPO_QUERIES.labels('get_by_state', 'sqlite').inc()
-            
+        with REPO_LATENCY.labels("get_by_state", "sqlite").time():
+            REPO_QUERIES.labels("get_by_state", "sqlite").inc()
+
         try:
             async with self._conn() as db:
                 db.row_factory = aiosqlite.Row
@@ -118,9 +121,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                 return [self._deserialize_job_from_row(row) for row in rows]
 
         except aiosqlite.Error as e:
-            raise IngestionRepositoryError(
-                f"Failed to get jobs by state {state}: {e}"
-            ) from e
+            raise IngestionRepositoryError(f"Failed to get jobs by state {state}: {e}") from e
 
     async def get_active_jobs(self) -> List[IngestionJob]:
         """Get all jobs that are currently active."""
@@ -164,17 +165,15 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                 return [self._deserialize_job_from_row(row) for row in rows]
 
         except aiosqlite.Error as e:
-            raise IngestionRepositoryError(
-                f"Failed to get jobs by date range: {e}"
-            ) from e
+            raise IngestionRepositoryError(f"Failed to get jobs by date range: {e}") from e
 
     async def delete(self, job_id: IngestionJobId) -> bool:
         """Delete an ingestion job."""
         try:
             async with self._conn() as db:
                 cursor = await db.execute(
-                    "DELETE FROM ingestion_jobs WHERE symbol = ? AND day = ?", 
-                    (str(job_id.symbol), job_id.day)
+                    "DELETE FROM ingestion_jobs WHERE symbol = ? AND day = ?",
+                    (str(job_id.symbol), job_id.day),
                 )
                 await db.commit()
                 return cursor.rowcount > 0
@@ -223,10 +222,10 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         try:
             async with self._conn() as db:
                 db.row_factory = aiosqlite.Row
-                
+
                 # SQLite doesn't have SELECT FOR UPDATE, so we use a transaction
                 await db.execute("BEGIN IMMEDIATE")
-                
+
                 cursor = await db.execute(
                     """
                     SELECT * FROM ingestion_jobs 
@@ -237,28 +236,33 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
                     (self._domain_state_to_db_state(ProcessingState.PENDING), limit),
                 )
                 rows = await cursor.fetchall()
-                
+
                 if not rows:
                     await db.rollback()
                     return []
-                
+
                 # Mark jobs as IN_PROGRESS
                 job_ids = [(row["symbol"], row["day"]) for row in rows]
                 for symbol, day in job_ids:
                     await db.execute(
                         "UPDATE ingestion_jobs SET state = ?, updated_at = ? WHERE symbol = ? AND day = ?",
-                        (self._domain_state_to_db_state(ProcessingState.IN_PROGRESS), datetime.now(), symbol, day),
+                        (
+                            self._domain_state_to_db_state(ProcessingState.IN_PROGRESS),
+                            datetime.now(),
+                            symbol,
+                            day,
+                        ),
                     )
-                
+
                 await db.commit()
-                
+
                 # Return the jobs with updated state
                 jobs = []
                 for row in rows:
                     job = self._deserialize_job_from_row(row)
                     job._state = ProcessingState.IN_PROGRESS  # Update state in memory
                     jobs.append(job)
-                
+
                 return jobs
 
         except aiosqlite.Error as e:
@@ -269,8 +273,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         try:
             async with self._conn() as db:
                 cursor = await db.execute(
-                    "SELECT COUNT(*) FROM ingestion_jobs WHERE day < ?",
-                    (cutoff_date,)
+                    "SELECT COUNT(*) FROM ingestion_jobs WHERE day < ?", (cutoff_date,)
                 )
                 result = await cursor.fetchone()
                 return result[0] if result else 0
@@ -283,15 +286,14 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         try:
             async with self._conn() as db:
                 cursor = await db.execute(
-                    "DELETE FROM ingestion_jobs WHERE day < ?",
-                    (cutoff_date,)
+                    "DELETE FROM ingestion_jobs WHERE day < ?", (cutoff_date,)
                 )
                 deleted = cursor.rowcount
-                
+
                 if deleted > 0:
                     # Run VACUUM to reclaim space
                     await db.execute("VACUUM")
-                
+
                 await db.commit()
                 return deleted
 
@@ -305,8 +307,8 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             "symbols": [str(symbol) for symbol in job.symbols],
             "start_timestamp": job.time_range.start.to_nanoseconds(),
             "end_timestamp": job.time_range.end.to_nanoseconds(),
-            "provider": getattr(job.configuration, 'provider', 'unknown'),
-            "feed": getattr(job.configuration, 'feed_type', 'unknown'),
+            "provider": getattr(job.configuration, "provider", "unknown"),
+            "feed": getattr(job.configuration, "feed_type", "unknown"),
             "state": job.state.value,
             "created_at": job.created_at.isoformat(),
             "started_at": job.started_at.isoformat() if job.started_at else None,
@@ -320,26 +322,28 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         """Deserialize database row to IngestionJob."""
         # Parse the JSON payload
         payload = json.loads(row["payload"]) if row["payload"] else {}
-        
+
         # Create job ID from symbol and day
         job_id = IngestionJobId(Symbol(row["symbol"]), row["day"])
-        
+
         # Extract data from payload with defaults
         symbols = [Symbol(s) for s in payload.get("symbols", [row["symbol"]])]
-        
+
         # Import required classes
-        from marketpipe.domain.value_objects import TimeRange, Timestamp
-        from ..domain.value_objects import IngestionConfiguration
         from pathlib import Path
-        
+
+        from marketpipe.domain.value_objects import TimeRange, Timestamp
+
+        from ..domain.value_objects import IngestionConfiguration
+
         # Create time range from timestamps
         start_timestamp_ns = payload.get("start_timestamp", 0)
         end_timestamp_ns = payload.get("end_timestamp", 0)
         time_range = TimeRange(
             start=Timestamp.from_nanoseconds(start_timestamp_ns),
-            end=Timestamp.from_nanoseconds(end_timestamp_ns)
+            end=Timestamp.from_nanoseconds(end_timestamp_ns),
         )
-        
+
         # Create configuration from stored values
         configuration = IngestionConfiguration(
             output_path=Path("data/raw"),  # Default path
@@ -349,7 +353,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             rate_limit_per_minute=200,
             feed_type=payload.get("feed", "iex"),
         )
-        
+
         # Create job
         job = IngestionJob(
             job_id=job_id,
@@ -360,9 +364,17 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 
         # Restore state
         job._state = self._db_state_to_domain_state(row["state"])
-        job._created_at = datetime.fromisoformat(row["created_at"]) if isinstance(row["created_at"], str) else row["created_at"]
-        job._started_at = datetime.fromisoformat(payload["started_at"]) if payload.get("started_at") else None
-        job._completed_at = datetime.fromisoformat(payload["completed_at"]) if payload.get("completed_at") else None
+        job._created_at = (
+            datetime.fromisoformat(row["created_at"])
+            if isinstance(row["created_at"], str)
+            else row["created_at"]
+        )
+        job._started_at = (
+            datetime.fromisoformat(payload["started_at"]) if payload.get("started_at") else None
+        )
+        job._completed_at = (
+            datetime.fromisoformat(payload["completed_at"]) if payload.get("completed_at") else None
+        )
         job._processed_symbols = set(Symbol(s) for s in payload.get("processed_symbols", []))
         job._error_message = payload.get("error_message")
 
@@ -375,8 +387,8 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             "symbols": [str(symbol) for symbol in job.symbols],
             "start_timestamp": job.time_range.start.to_nanoseconds(),
             "end_timestamp": job.time_range.end.to_nanoseconds(),
-            "provider": getattr(job.configuration, 'provider', 'unknown'),
-            "feed": getattr(job.configuration, 'feed_type', 'unknown'),
+            "provider": getattr(job.configuration, "provider", "unknown"),
+            "feed": getattr(job.configuration, "feed_type", "unknown"),
             "state": job.state.value,
             "created_at": job.created_at.isoformat(),
             "started_at": job.started_at.isoformat() if job.started_at else None,
@@ -393,30 +405,28 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         # Parse datetimes
         created_at = datetime.fromisoformat(job_dict["created_at"])
         started_at = (
-            datetime.fromisoformat(job_dict["started_at"])
-            if job_dict["started_at"]
-            else None
+            datetime.fromisoformat(job_dict["started_at"]) if job_dict["started_at"] else None
         )
         completed_at = (
-            datetime.fromisoformat(job_dict["completed_at"])
-            if job_dict["completed_at"]
-            else None
+            datetime.fromisoformat(job_dict["completed_at"]) if job_dict["completed_at"] else None
         )
 
         # Import required classes
-        from marketpipe.domain.value_objects import TimeRange, Timestamp
-        from ..domain.value_objects import IngestionConfiguration
         from pathlib import Path
-        
+
+        from marketpipe.domain.value_objects import TimeRange, Timestamp
+
+        from ..domain.value_objects import IngestionConfiguration
+
         # Create time range from timestamps
         time_range = TimeRange(
             start=Timestamp.from_nanoseconds(job_dict["start_timestamp"]),
-            end=Timestamp.from_nanoseconds(job_dict["end_timestamp"])
+            end=Timestamp.from_nanoseconds(job_dict["end_timestamp"]),
         )
-        
+
         # Create configuration from stored values
         configuration = IngestionConfiguration(
-            output_path=Path("data/raw"),  # Default path
+            output_path=Path("data/output"),  # Default path
             compression="snappy",
             max_workers=3,
             batch_size=1000,
@@ -475,16 +485,17 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         """Close all database connections gracefully."""
         try:
             # Force close any remaining connections in the pool
-            if hasattr(self, '_pool') and self._pool:
+            if hasattr(self, "_pool") and self._pool:
                 await self._pool.close()
-            
+
             # Also close any direct connections if they exist
-            if hasattr(self, '_db_connection') and self._db_connection:
+            if hasattr(self, "_db_connection") and self._db_connection:
                 await self._db_connection.close()
-                
+
         except Exception as e:
             # Log but don't raise - this is cleanup
             import logging
+
             logger = logging.getLogger(self.__class__.__name__)
             logger.warning(f"Error during connection cleanup: {e}")
 
@@ -493,13 +504,14 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         # Note: This won't work for async cleanup, but provides a fallback
         try:
             # Check if we have any connections that need cleanup
-            if hasattr(self, '_pool') or hasattr(self, '_db_connection'):
+            if hasattr(self, "_pool") or hasattr(self, "_db_connection"):
                 import warnings
+
                 warnings.warn(
                     f"{self.__class__.__name__} was not properly closed. "
                     "Call close_connections() before destruction.",
                     ResourceWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
         except Exception:
             pass  # Ignore errors in destructor
@@ -517,6 +529,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
         """Initialize the database schema."""
         # For now, keep the sync initialization but use the connection pool
         from marketpipe.infrastructure.sqlite_pool import connection
+
         with connection(self._db_path) as conn:
             conn.execute(
                 """
@@ -593,9 +606,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get checkpoint: {e}") from e
 
-    async def get_all_checkpoints(
-        self, job_id: IngestionJobId
-    ) -> List[IngestionCheckpoint]:
+    async def get_all_checkpoints(self, job_id: IngestionJobId) -> List[IngestionCheckpoint]:
         """Get all checkpoints for a specific job."""
         try:
             async with self._conn() as db:
@@ -642,9 +653,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
                 f"Failed to delete checkpoints for job {job_id}: {e}"
             ) from e
 
-    async def get_global_checkpoint(
-        self, symbol: Symbol
-    ) -> Optional[IngestionCheckpoint]:
+    async def get_global_checkpoint(self, symbol: Symbol) -> Optional[IngestionCheckpoint]:
         """Get the most recent checkpoint for a symbol across all jobs."""
         try:
             async with self._conn() as db:
@@ -688,9 +697,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
                 return cursor.rowcount
 
         except aiosqlite.Error as e:
-            raise IngestionRepositoryError(
-                f"Failed to cleanup old checkpoints: {e}"
-            ) from e
+            raise IngestionRepositoryError(f"Failed to cleanup old checkpoints: {e}") from e
 
 
 class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
@@ -705,6 +712,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
         """Initialize the database schema."""
         # For now, keep the sync initialization but use the connection pool
         from marketpipe.infrastructure.sqlite_pool import connection
+
         with connection(self._db_path) as conn:
             conn.execute(
                 """
@@ -723,9 +731,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
             """
             )
 
-    async def save_metrics(
-        self, job_id: IngestionJobId, metrics: ProcessingMetrics
-    ) -> None:
+    async def save_metrics(self, job_id: IngestionJobId, metrics: ProcessingMetrics) -> None:
         """Save processing metrics for a job."""
         try:
             async with self._conn() as db:
@@ -866,9 +872,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get average metrics: {e}") from e
 
-    async def get_performance_trends(
-        self, days: int = 30
-    ) -> List[tuple[datetime, float]]:
+    async def get_performance_trends(self, days: int = 30) -> List[tuple[datetime, float]]:
         """Get performance trends over time."""
         try:
             start_date = datetime.now() - timedelta(days=days)

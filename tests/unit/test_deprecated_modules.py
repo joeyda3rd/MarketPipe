@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import warnings
+
 import pytest
 
 
@@ -13,37 +14,41 @@ class TestCliOldDeprecation:
         """Test that cli_old module raises deprecation warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")  # Ensure deprecation warnings are shown
-            
+
             try:
                 # Force reimport to trigger deprecation warning
                 import sys
-                if 'marketpipe.cli_old' in sys.modules:
-                    del sys.modules['marketpipe.cli_old']
-                
+
+                if "marketpipe.cli_old" in sys.modules:
+                    del sys.modules["marketpipe.cli_old"]
+
                 import marketpipe.cli_old
+
                 # Access app attribute to trigger deprecation warning
                 _ = marketpipe.cli_old.app
             except ImportError:
                 pytest.skip("cli_old module not available")
-            
+
             # Filter out any pydantic warnings and focus on deprecation warnings
-            deprecation_warnings = [warning for warning in w 
-                                  if issubclass(warning.category, DeprecationWarning)]
-            
+            deprecation_warnings = [
+                warning for warning in w if issubclass(warning.category, DeprecationWarning)
+            ]
+
             # Check if we have any deprecation warnings (test passes if module works, even without warning due to import caching)
             if len(deprecation_warnings) >= 1:
                 assert any("deprecated" in str(warning.message) for warning in deprecation_warnings)
             else:
                 # If no warning due to import caching, just verify the module can be imported
-                assert hasattr(marketpipe.cli_old, '__getattr__')
+                assert hasattr(marketpipe.cli_old, "__getattr__")
 
     def test_cli_old_app_attribute_access(self):
         """Test accessing app attribute from cli_old."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
-            
+
             try:
                 import marketpipe.cli_old
+
                 app = marketpipe.cli_old.app
                 assert app is not None
             except ImportError:
@@ -53,9 +58,10 @@ class TestCliOldDeprecation:
         """Test accessing ohlcv_app attribute from cli_old."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
-            
+
             try:
                 import marketpipe.cli_old
+
                 ohlcv_app = marketpipe.cli_old.ohlcv_app
                 assert ohlcv_app is not None
             except ImportError:
@@ -65,9 +71,10 @@ class TestCliOldDeprecation:
         """Test that invalid attribute access raises AttributeError."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
-            
+
             try:
                 import marketpipe.cli_old
+
                 with pytest.raises(AttributeError):
                     _ = marketpipe.cli_old.nonexistent_attribute
             except ImportError:
@@ -81,17 +88,20 @@ class TestMetricsEventHandlersDeprecation:
         """Test that importing metrics_event_handlers raises deprecation warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            
+
             try:
                 import marketpipe.metrics_event_handlers
             except ImportError:
                 pytest.skip("metrics_event_handlers module not available")
-            
+
             # Filter for DeprecationWarning about this specific module
-            relevant_warnings = [warning for warning in w 
-                               if issubclass(warning.category, DeprecationWarning)
-                               and "metrics_event_handlers" in str(warning.message)]
-            
+            relevant_warnings = [
+                warning
+                for warning in w
+                if issubclass(warning.category, DeprecationWarning)
+                and "metrics_event_handlers" in str(warning.message)
+            ]
+
             assert len(relevant_warnings) >= 1
             assert "deprecated" in str(relevant_warnings[0].message)
 
@@ -99,9 +109,12 @@ class TestMetricsEventHandlersDeprecation:
         """Test the deprecated setup function."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
-            
+
             try:
-                from marketpipe.metrics_event_handlers import setup_metrics_event_handlers_deprecated
+                from marketpipe.metrics_event_handlers import (
+                    setup_metrics_event_handlers_deprecated,
+                )
+
                 # Should not raise an error but will issue deprecation warning
                 setup_metrics_event_handlers_deprecated()
             except ImportError:
@@ -115,6 +128,7 @@ class TestDomainEventHandlers:
         """Test that domain event handlers module is empty."""
         try:
             import marketpipe.domain.event_handlers
+
             assert hasattr(marketpipe.domain.event_handlers, "__all__")
             assert marketpipe.domain.event_handlers.__all__ == []
         except ImportError:
@@ -128,7 +142,8 @@ class TestIngestionConnectorsInit:
         """Test importing ingestion connectors."""
         try:
             import marketpipe.ingestion.connectors
+
             # Should be able to import without errors
             assert marketpipe.ingestion.connectors is not None
         except ImportError:
-            pytest.skip("ingestion.connectors module not available") 
+            pytest.skip("ingestion.connectors module not available")

@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
 
 from marketpipe.domain.value_objects import Symbol
+
 from .entities import IngestionJob, IngestionJobId, ProcessingState
 from .value_objects import IngestionCheckpoint, ProcessingMetrics
 
@@ -76,9 +77,7 @@ class IIngestionCheckpointRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_all_checkpoints(
-        self, job_id: IngestionJobId
-    ) -> List[IngestionCheckpoint]:
+    async def get_all_checkpoints(self, job_id: IngestionJobId) -> List[IngestionCheckpoint]:
         """Get all checkpoints for a specific job."""
         pass
 
@@ -88,9 +87,7 @@ class IIngestionCheckpointRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_global_checkpoint(
-        self, symbol: Symbol
-    ) -> Optional[IngestionCheckpoint]:
+    async def get_global_checkpoint(self, symbol: Symbol) -> Optional[IngestionCheckpoint]:
         """Get the most recent checkpoint for a symbol across all jobs."""
         pass
 
@@ -104,9 +101,7 @@ class IIngestionMetricsRepository(ABC):
     """Repository interface for ingestion metrics and performance data."""
 
     @abstractmethod
-    async def save_metrics(
-        self, job_id: IngestionJobId, metrics: ProcessingMetrics
-    ) -> None:
+    async def save_metrics(self, job_id: IngestionJobId, metrics: ProcessingMetrics) -> None:
         """Save processing metrics for a job."""
         pass
 
@@ -130,9 +125,7 @@ class IIngestionMetricsRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_performance_trends(
-        self, days: int = 30
-    ) -> List[tuple[datetime, float]]:
+    async def get_performance_trends(self, days: int = 30) -> List[tuple[datetime, float]]:
         """Get daily average processing performance (bars per second) over time."""
         pass
 

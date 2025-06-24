@@ -8,23 +8,24 @@ with async aiosqlite for non-blocking operations.
 from __future__ import annotations
 
 import json
+from collections.abc import AsyncIterator
 from datetime import date
 from pathlib import Path
-from typing import List, Optional, Dict, Any, AsyncIterator
+from typing import Any, Dict, List, Optional
 
 import aiosqlite
 
+from marketpipe.domain.aggregates import SymbolBarsAggregate
+from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.repositories import (
-    ISymbolBarsRepository,
-    IOHLCVRepository,
-    ICheckpointRepository,
-    RepositoryError,
     ConcurrencyError,
     DuplicateKeyError,
+    ICheckpointRepository,
+    IOHLCVRepository,
+    ISymbolBarsRepository,
+    RepositoryError,
 )
-from marketpipe.domain.entities import OHLCVBar, EntityId
-from marketpipe.domain.value_objects import Symbol, Timestamp, Price, Volume, TimeRange
-from marketpipe.domain.aggregates import SymbolBarsAggregate
+from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
 from marketpipe.infrastructure.sqlite_async_mixin import SqliteAsyncMixin
 from marketpipe.migrations import apply_pending
 
@@ -125,9 +126,7 @@ class SqliteSymbolBarsRepository(SqliteAsyncMixin, ISymbolBarsRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to save symbol bars aggregate: {e}") from e
 
-    async def find_symbols_with_data(
-        self, start_date: date, end_date: date
-    ) -> List[Symbol]:
+    async def find_symbols_with_data(self, start_date: date, end_date: date) -> List[Symbol]:
         """Find symbols that have data in the specified date range."""
         try:
             async with self._conn() as db:
@@ -339,9 +338,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to check if bar exists: {e}") from e
 
-    async def count_bars(
-        self, symbol: Symbol, time_range: Optional[TimeRange] = None
-    ) -> int:
+    async def count_bars(self, symbol: Symbol, time_range: Optional[TimeRange] = None) -> int:
         """Count bars for symbol in optional time range."""
         try:
             async with self._conn() as db:
@@ -389,9 +386,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to get latest timestamp: {e}") from e
 
-    async def delete_bars(
-        self, symbol: Symbol, time_range: Optional[TimeRange] = None
-    ) -> int:
+    async def delete_bars(self, symbol: Symbol, time_range: Optional[TimeRange] = None) -> int:
         """Delete bars for symbol in optional time range."""
         try:
             async with self._conn() as db:
@@ -435,9 +430,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, ICheckpointRepository):
         # Apply migrations on first use
         apply_pending(self._db_path)
 
-    async def save_checkpoint(
-        self, symbol: Symbol, checkpoint_data: Dict[str, Any]
-    ) -> None:
+    async def save_checkpoint(self, symbol: Symbol, checkpoint_data: Dict[str, Any]) -> None:
         """Save checkpoint data for a symbol."""
         try:
             async with self._conn() as db:
@@ -508,12 +501,14 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, ICheckpointRepository):
 
 def _add_entityid_from_string():
     """Add from_string method to EntityId if not present."""
-    if not hasattr(EntityId, 'from_string'):
+    if not hasattr(EntityId, "from_string"):
+
         @classmethod
         def from_string(cls, id_str: str) -> EntityId:
             from uuid import UUID
+
             return cls(UUID(id_str))
-        
+
         EntityId.from_string = from_string
 
 

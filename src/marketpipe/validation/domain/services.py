@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 from marketpipe.domain.entities import OHLCVBar
-from .value_objects import ValidationResult, BarError
+
+from .value_objects import BarError, ValidationResult
 
 
 class ValidationDomainService:
@@ -19,9 +20,7 @@ class ValidationDomainService:
         for i, bar in enumerate(bars):
             # Check for monotonic timestamps
             if bar.timestamp_ns <= prev_ts:
-                errors.append(
-                    BarError(bar.timestamp_ns, f"non-monotonic timestamp at index {i}")
-                )
+                errors.append(BarError(bar.timestamp_ns, f"non-monotonic timestamp at index {i}"))
 
             # Check for positive prices
             if (
@@ -30,21 +29,15 @@ class ValidationDomainService:
                 or bar.low_price.value <= 0
                 or bar.close_price.value <= 0
             ):
-                errors.append(
-                    BarError(bar.timestamp_ns, f"non-positive price at index {i}")
-                )
+                errors.append(BarError(bar.timestamp_ns, f"non-positive price at index {i}"))
 
             # Check for non-negative volume
             if bar.volume.value < 0:
-                errors.append(
-                    BarError(bar.timestamp_ns, f"negative volume at index {i}")
-                )
+                errors.append(BarError(bar.timestamp_ns, f"negative volume at index {i}"))
 
             # OHLC consistency validation (high >= open,close,low; low <= open,close)
             if not self._validate_ohlc_consistency(bar):
-                errors.append(
-                    BarError(bar.timestamp_ns, f"OHLC inconsistency at index {i}")
-                )
+                errors.append(BarError(bar.timestamp_ns, f"OHLC inconsistency at index {i}"))
 
             # Timestamp alignment (1-minute bars should align to minute boundaries)
             if not self._validate_timestamp_alignment(bar):
@@ -144,9 +137,7 @@ class ValidationDomainService:
 
         return errors
 
-    def validate_price_reasonableness(
-        self, bar: OHLCVBar, symbol: str
-    ) -> list[BarError]:
+    def validate_price_reasonableness(self, bar: OHLCVBar, symbol: str) -> list[BarError]:
         """Validate that prices are reasonable for the given symbol."""
         errors = []
 

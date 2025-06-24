@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """Configuration management for MarketPipe."""
 
-from .ingestion import IngestionJobConfig, CURRENT_CONFIG_VERSION, MIN_SUPPORTED_VERSION
-from .loader import load_config, ConfigVersionError
+from .ingestion import CURRENT_CONFIG_VERSION, MIN_SUPPORTED_VERSION, IngestionJobConfig
+from .loader import ConfigVersionError, load_config
 
 __all__ = [
     "IngestionJobConfig",
-    "CURRENT_CONFIG_VERSION", 
+    "CURRENT_CONFIG_VERSION",
     "MIN_SUPPORTED_VERSION",
     "load_config",
-    "ConfigVersionError"
+    "ConfigVersionError",
 ]

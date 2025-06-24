@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import Mock, patch
 from datetime import date
+from unittest.mock import Mock, patch
+
+import pytest
 
 from marketpipe.ingestion.infrastructure.verification import (
     IngestionVerificationService,
@@ -65,9 +66,7 @@ class TestIngestionVerificationService:
         assert result.total_bars == 1000
         assert result.error_message is None
 
-    def test_verify_ingestion_date_mismatch(
-        self, verification_service, mock_output_path
-    ):
+    def test_verify_ingestion_date_mismatch(self, verification_service, mock_output_path):
         """Test verification failure when dates don't match."""
         requested_start = date(2024, 6, 20)
         requested_end = date(2024, 6, 21)
@@ -96,9 +95,7 @@ class TestIngestionVerificationService:
         assert result.provider == "alpaca"
         assert result.actual_start == actual_start
         assert result.actual_end == actual_end
-        assert (
-            "Alpaca returned data from 2020-07-27 to 2020-08-03" in result.error_message
-        )
+        assert "Alpaca returned data from 2020-07-27 to 2020-08-03" in result.error_message
         assert "Try provider=" in result.error_message
 
     def test_verify_ingestion_no_data(self, verification_service, mock_output_path):
@@ -127,9 +124,7 @@ class TestIngestionVerificationService:
         assert result.total_bars == 0
         assert "No data found for TSLA" in result.error_message
 
-    def test_verify_ingestion_multiple_symbols(
-        self, verification_service, mock_output_path
-    ):
+    def test_verify_ingestion_multiple_symbols(self, verification_service, mock_output_path):
         """Test verification with multiple symbols - mixed results."""
         requested_start = date(2024, 6, 20)
         requested_end = date(2024, 6, 21)
@@ -199,9 +194,7 @@ class TestIngestionVerificationService:
 
         assert result is False
 
-    def test_query_symbol_bounds_with_mocked_duckdb(
-        self, verification_service, mock_output_path
-    ):
+    def test_query_symbol_bounds_with_mocked_duckdb(self, verification_service, mock_output_path):
         """Test DuckDB query for symbol bounds."""
         with patch("duckdb.connect") as mock_connect:
             mock_conn = Mock()
@@ -214,9 +207,7 @@ class TestIngestionVerificationService:
                 1000,
             )
 
-            start, end, count = verification_service._query_symbol_bounds(
-                "TSLA", mock_output_path
-            )
+            start, end, count = verification_service._query_symbol_bounds("TSLA", mock_output_path)
 
             assert start == date(2024, 6, 20)
             assert end == date(2024, 6, 21)
@@ -225,16 +216,12 @@ class TestIngestionVerificationService:
             # Verify connection was closed
             mock_conn.close.assert_called_once()
 
-    def test_query_symbol_bounds_duckdb_error(
-        self, verification_service, mock_output_path
-    ):
+    def test_query_symbol_bounds_duckdb_error(self, verification_service, mock_output_path):
         """Test DuckDB query error handling."""
         with patch("duckdb.connect") as mock_connect:
             mock_connect.side_effect = Exception("DuckDB connection failed")
 
-            start, end, count = verification_service._query_symbol_bounds(
-                "TSLA", mock_output_path
-            )
+            start, end, count = verification_service._query_symbol_bounds("TSLA", mock_output_path)
 
             assert start is None
             assert end is None

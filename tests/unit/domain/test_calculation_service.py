@@ -3,14 +3,15 @@
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from src.marketpipe.domain.services import OHLCVCalculationService
-from src.marketpipe.domain.entities import OHLCVBar, EntityId
-from src.marketpipe.domain.value_objects import Symbol, Timestamp, Price, Volume
+import pytest
+
 from src.marketpipe.domain.aggregates import DailySummary
+from src.marketpipe.domain.entities import EntityId, OHLCVBar
+from src.marketpipe.domain.services import OHLCVCalculationService
+from src.marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
 
 
 @pytest.fixture
@@ -74,9 +75,7 @@ class TestOHLCVCalculationService:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("100.00")),
                 high_price=Price(Decimal("102.00")),
                 low_price=Price(Decimal("98.00")),
@@ -87,9 +86,7 @@ class TestOHLCVCalculationService:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 9, 31, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 9, 31, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("101.00")),
                 high_price=Price(Decimal("104.00")),
                 low_price=Price(Decimal("100.00")),
@@ -114,9 +111,7 @@ class TestOHLCVCalculationService:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("100.00")),
                 high_price=Price(Decimal("100.00")),
                 low_price=Price(Decimal("100.00")),
@@ -127,9 +122,7 @@ class TestOHLCVCalculationService:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 9, 31, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 9, 31, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("200.00")),
                 high_price=Price(Decimal("200.00")),
                 low_price=Price(Decimal("200.00")),
@@ -153,9 +146,7 @@ class TestOHLCVCalculationService:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("100.00")),
                 high_price=Price(Decimal("100.00")),
                 low_price=Price(Decimal("100.00")),
@@ -185,9 +176,7 @@ class TestOHLCVCalculationService:
 
     def test_daily_summary_with_empty_bars_raises_error(self, service):
         """Test daily summary with empty bars raises error."""
-        with pytest.raises(
-            ValueError, match="Cannot calculate daily summary with no bars"
-        ):
+        with pytest.raises(ValueError, match="Cannot calculate daily summary with no bars"):
             service.daily_summary([])
 
     def test_daily_summary_with_mixed_symbols_raises_error(self, service, sample_bars):
@@ -254,12 +243,8 @@ class TestOHLCVCalculationService:
         first_bar = resampled[0]
         assert first_bar.open_price == bars[0].open_price  # First bar's open
         assert first_bar.close_price == bars[4].close_price  # Fifth bar's close
-        assert first_bar.high_price == Price(
-            Decimal("105.00")
-        )  # Max high from first 5 bars
-        assert first_bar.low_price == Price(
-            Decimal("99.00")
-        )  # Min low from first 5 bars
+        assert first_bar.high_price == Price(Decimal("105.00"))  # Max high from first 5 bars
+        assert first_bar.low_price == Price(Decimal("99.00"))  # Min low from first 5 bars
         assert first_bar.volume.value == 5000  # Sum of first 5 volumes
 
         # Second 5-minute bar (minutes 35-39)
@@ -268,9 +253,7 @@ class TestOHLCVCalculationService:
         assert second_bar.close_price == bars[9].close_price  # Tenth bar's close
         assert second_bar.volume.value == 5000  # Sum of last 5 volumes
 
-    def test_resample_with_invalid_frame_seconds_raises_error(
-        self, service, sample_bars
-    ):
+    def test_resample_with_invalid_frame_seconds_raises_error(self, service, sample_bars):
         """Test resample with invalid frame_seconds raises error."""
         with pytest.raises(ValueError, match="frame_seconds must be positive"):
             service.resample(sample_bars, 0)
@@ -332,9 +315,7 @@ class TestOHLCVCalculationService:
         with pytest.raises(ValueError, match="All bars must be for same symbol"):
             service.resample(sample_bars, 300)
 
-    def test_aggregate_bars_to_timeframe_delegates_to_resample(
-        self, service, sample_bars
-    ):
+    def test_aggregate_bars_to_timeframe_delegates_to_resample(self, service, sample_bars):
         """Test that aggregate_bars_to_timeframe delegates to resample method."""
         # Test 5-minute aggregation (5 * 60 = 300 seconds)
         result = service.aggregate_bars_to_timeframe(sample_bars, 5)
@@ -354,9 +335,7 @@ class TestOHLCVCalculationService:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("100.00")),
                 high_price=Price(Decimal("100.00")),
                 low_price=Price(Decimal("100.00")),
@@ -367,9 +346,7 @@ class TestOHLCVCalculationService:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 9, 31, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 9, 31, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("200.00")),
                 high_price=Price(Decimal("200.00")),
                 low_price=Price(Decimal("200.00")),

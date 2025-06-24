@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Unit tests for validation domain."""
 
+from marketpipe.domain.entities import EntityId, OHLCVBar
+from marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
 from marketpipe.validation.domain.services import ValidationDomainService
-from marketpipe.domain.entities import OHLCVBar, EntityId
-from marketpipe.domain.value_objects import Price, Volume, Timestamp, Symbol
 
 
 def _bar(ts, open_price=1.0, high_price=None, low_price=None, close_price=None, vol=1):

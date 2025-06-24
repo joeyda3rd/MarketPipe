@@ -7,11 +7,12 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pyarrow as pa
 import pyarrow.parquet as pq
-
 from typer.testing import CliRunner
+
 from marketpipe.cli import app
 
 
@@ -56,9 +57,9 @@ class TestCLIOutputHandling:
 
             # Verify files were created in custom directory
             parquet_files = list(output_path.glob("**/*.parquet"))
-            assert len(parquet_files) > 0, (
-                f"No parquet files found in custom output path {output_path}"
-            )
+            assert (
+                len(parquet_files) > 0
+            ), f"No parquet files found in custom output path {output_path}"
 
     def test_verification_failure_exits_with_error(self):
         """Test that verification failure causes CLI to exit with code 1."""
@@ -95,13 +96,12 @@ class TestCLIOutputHandling:
             assert "Running post-ingestion verification" in result.stdout
             assert "Verification failed" in result.stdout
             assert (
-                "provider returned data outside the requested date range"
-                in result.stdout
+                "provider returned data outside the requested date range" in result.stdout
                 or "outside the requested range" in result.stdout
             )
 
     def test_default_output_path_when_no_flag(self):
-        """Test that data goes to data/raw when no --output flag is provided."""
+        """Test that data goes to data/output when no --output flag is provided."""
 
         # Run ingestion without custom output path
         result = subprocess.run(
@@ -209,9 +209,7 @@ class TestProviderSuggestions:
             # Check that provider suggestions appear in output
             assert "Try provider=" in result.stdout
             assert (
-                "fake" in result.stdout
-                or "finnhub" in result.stdout
-                or "polygon" in result.stdout
+                "fake" in result.stdout or "finnhub" in result.stdout or "polygon" in result.stdout
             )
 
     def test_verification_error_handling(self):
@@ -246,9 +244,7 @@ class TestProviderSuggestions:
             )
 
             # Should complete successfully and run verification
-            assert result.returncode == 0, (
-                f"Command should complete successfully: {result.stderr}"
-            )
+            assert result.returncode == 0, f"Command should complete successfully: {result.stderr}"
             assert "Running post-ingestion verification" in result.stdout
             assert "Job completed successfully" in result.stdout
 
@@ -392,9 +388,7 @@ class TestIngestOutputHandling:
         )
 
         for pattern in expected_patterns:
-            assert pattern in error_msg, (
-                f"Expected pattern '{pattern}' not found in error message"
-            )
+            assert pattern in error_msg, f"Expected pattern '{pattern}' not found in error message"
 
     def test_successful_ingest_message_format(self):
         """Test that successful ingestion messages match the required format."""
@@ -403,9 +397,9 @@ class TestIngestOutputHandling:
         expected_patterns = ["Ingest OK:", "bars", "symbol AAPL", "provider alpaca"]
 
         for pattern in expected_patterns:
-            assert pattern in success_msg, (
-                f"Expected pattern '{pattern}' not found in success message"
-            )
+            assert (
+                pattern in success_msg
+            ), f"Expected pattern '{pattern}' not found in success message"
 
     def test_cli_requires_mandatory_options(self):
         """Test that CLI requires start and end when not using config."""
@@ -422,7 +416,7 @@ class TestIngestOutputHandling:
                 "--end",
                 "2024-06-25",
                 "--output",
-                "data/test",
+                "tests/resources",
             ],
         )
         assert result.exit_code != 0
@@ -441,7 +435,7 @@ class TestIngestOutputHandling:
                 "--start",
                 "2024-06-20",
                 "--output",
-                "data/test",
+                "tests/resources",
             ],
         )
         assert result.exit_code != 0

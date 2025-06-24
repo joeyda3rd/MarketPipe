@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
-import tempfile
 import os
-from unittest.mock import patch, AsyncMock
+import tempfile
+from unittest.mock import AsyncMock, patch
+
 from typer.testing import CliRunner
 
 from marketpipe.cli import app
@@ -32,7 +33,9 @@ workers: 8
             temp_path = f.name
 
         try:
-            with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
+            with patch.dict(
+                "os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}
+            ):
                 with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build:
                     # Mock the services
                     mock_job_service = AsyncMock()
@@ -77,7 +80,9 @@ workers: 4
             temp_path = f.name
 
         try:
-            with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
+            with patch.dict(
+                "os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}
+            ):
                 with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build:
                     # Mock the services
                     mock_job_service = AsyncMock()
@@ -166,8 +171,7 @@ workers: 4
 
         assert result.exit_code == 1
         assert (
-            "Either provide --config file OR all of --symbols, --start, and --end"
-            in result.stdout
+            "Either provide --config file OR all of --symbols, --start, and --end" in result.stdout
         )
 
     def test_kebab_case_config_loading(self):
@@ -187,7 +191,9 @@ output-path: ./test_output
             temp_path = f.name
 
         try:
-            with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
+            with patch.dict(
+                "os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}
+            ):
                 with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build:
                     # Mock the services
                     mock_job_service = AsyncMock()

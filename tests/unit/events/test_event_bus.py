@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from marketpipe.events import EventBus, DomainEvent
+from marketpipe.events import DomainEvent, EventBus
 
 
 class SampleEvent(DomainEvent):

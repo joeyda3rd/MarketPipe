@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
 import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pytest
 
 from marketpipe.cli.ohlcv_ingest import _check_boundaries
 

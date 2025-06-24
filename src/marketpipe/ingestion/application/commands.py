@@ -7,8 +7,9 @@ from dataclasses import dataclass
 from typing import List
 
 from marketpipe.domain.value_objects import Symbol, TimeRange
+
 from ..domain.entities import IngestionJobId
-from ..domain.value_objects import IngestionConfiguration, BatchConfiguration
+from ..domain.value_objects import BatchConfiguration, IngestionConfiguration
 
 
 @dataclass(frozen=True)
@@ -64,9 +65,7 @@ class RestartJobCommand:
     """Command to restart a failed or cancelled job."""
 
     job_id: IngestionJobId
-    force: bool = (
-        False  # Whether to restart even if job is not in failed/cancelled state
-    )
+    force: bool = False  # Whether to restart even if job is not in failed/cancelled state
 
 
 @dataclass(frozen=True)

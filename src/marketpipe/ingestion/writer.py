@@ -40,4 +40,3 @@ def write_parquet(
 
 
 __all__ = ["write_parquet"]
-

@@ -12,10 +12,10 @@ import tempfile
 from pathlib import Path
 from typing import List
 
-import pytest
 import duckdb
+import pytest
 
-from marketpipe.domain import SymbolRecord, AssetClass, Status
+from marketpipe.domain import AssetClass, Status, SymbolRecord
 from marketpipe.ingestion.symbol_providers import get as get_provider
 
 
@@ -42,7 +42,8 @@ class TestSymbolPipelineIdempotence:
             conn = duckdb.connect(str(test_db_path))
 
             # Create SCD table with standard slowly changing dimension fields
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE symbol_scd (
                     id INTEGER,
                     ticker VARCHAR,
@@ -63,7 +64,8 @@ class TestSymbolPipelineIdempotence:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """)
+            """
+            )
 
             # Create a provider with deterministic test data
             provider = get_provider("dummy")
@@ -73,14 +75,10 @@ class TestSymbolPipelineIdempotence:
             records_run1 = await provider.fetch_symbols()
 
             # Insert first batch with SCD logic
-            initial_count = self._insert_with_scd_logic(
-                conn, records_run1, run_number=1
-            )
+            initial_count = self._insert_with_scd_logic(conn, records_run1, run_number=1)
 
             # Verify initial state
-            total_after_run1 = conn.execute(
-                "SELECT COUNT(*) FROM symbol_scd"
-            ).fetchone()[0]
+            total_after_run1 = conn.execute("SELECT COUNT(*) FROM symbol_scd").fetchone()[0]
             current_after_run1 = conn.execute(
                 "SELECT COUNT(*) FROM symbol_scd WHERE is_current = true"
             ).fetchone()[0]
@@ -97,9 +95,7 @@ class TestSymbolPipelineIdempotence:
             new_count = self._insert_with_scd_logic(conn, records_run2, run_number=2)
 
             # Verify idempotence
-            total_after_run2 = conn.execute(
-                "SELECT COUNT(*) FROM symbol_scd"
-            ).fetchone()[0]
+            total_after_run2 = conn.execute("SELECT COUNT(*) FROM symbol_scd").fetchone()[0]
             current_after_run2 = conn.execute(
                 "SELECT COUNT(*) FROM symbol_scd WHERE is_current = true"
             ).fetchone()[0]
@@ -109,31 +105,30 @@ class TestSymbolPipelineIdempotence:
             )
 
             # CRITICAL ASSERTIONS for idempotence
-            assert new_count == 0, (
-                f"Expected 0 new SCD rows on second run, got {new_count}"
-            )
-            assert total_after_run2 == total_after_run1, (
-                "Total row count should be unchanged"
-            )
-            assert current_after_run2 == current_after_run1, (
-                "Current record count should be unchanged"
-            )
+            assert new_count == 0, f"Expected 0 new SCD rows on second run, got {new_count}"
+            assert total_after_run2 == total_after_run1, "Total row count should be unchanged"
+            assert (
+                current_after_run2 == current_after_run1
+            ), "Current record count should be unchanged"
 
             # Verify SCD versioning integrity
-            version_check = conn.execute("""
+            version_check = conn.execute(
+                """
                 SELECT ticker, COUNT(*) as versions, 
                        COUNT(CASE WHEN is_current THEN 1 END) as current_versions
                 FROM symbol_scd 
                 GROUP BY ticker
-            """).fetchall()
+            """
+            ).fetchall()
 
             for ticker, versions, current_versions in version_check:
-                assert current_versions == 1, (
-                    f"Ticker {ticker} should have exactly 1 current version, got {current_versions}"
-                )
+                assert (
+                    current_versions == 1
+                ), f"Ticker {ticker} should have exactly 1 current version, got {current_versions}"
 
             # Verify effective dates are properly maintained
-            date_integrity = conn.execute("""
+            date_integrity = conn.execute(
+                """
                 SELECT COUNT(*) FROM symbol_scd s1
                 WHERE is_current = false 
                 AND NOT EXISTS (
@@ -141,20 +136,17 @@ class TestSymbolPipelineIdempotence:
                     WHERE s2.ticker = s1.ticker 
                     AND s2.effective_from = s1.effective_to
                 )
-            """).fetchone()[0]
+            """
+            ).fetchone()[0]
 
             assert date_integrity == 0, "SCD effective date chains should be continuous"
 
             # Third run with modified data - should create new SCD versions
             print("🔄 Running third ingestion with modified data...")
             records_run3 = await self._create_modified_records(records_run2)
-            modified_count = self._insert_with_scd_logic(
-                conn, records_run3, run_number=3
-            )
+            modified_count = self._insert_with_scd_logic(conn, records_run3, run_number=3)
 
-            total_after_run3 = conn.execute(
-                "SELECT COUNT(*) FROM symbol_scd"
-            ).fetchone()[0]
+            total_after_run3 = conn.execute("SELECT COUNT(*) FROM symbol_scd").fetchone()[0]
             current_after_run3 = conn.execute(
                 "SELECT COUNT(*) FROM symbol_scd WHERE is_current = true"
             ).fetchone()[0]
@@ -164,12 +156,12 @@ class TestSymbolPipelineIdempotence:
             )
 
             # Verify that changes DO create new SCD rows
-            assert total_after_run3 > total_after_run2, (
-                "Modified data should create new SCD versions"
-            )
-            assert current_after_run3 == current_after_run2, (
-                "Should still have same number of current records"
-            )
+            assert (
+                total_after_run3 > total_after_run2
+            ), "Modified data should create new SCD versions"
+            assert (
+                current_after_run3 == current_after_run2
+            ), "Should still have same number of current records"
 
             conn.close()
 
@@ -285,9 +277,11 @@ class TestSymbolPipelineIdempotence:
                     asset_class=record.asset_class,
                     currency=record.currency,
                     status=record.status,
-                    company_name=f"{record.company_name} (Modified)"
-                    if record.company_name
-                    else "Modified Inc.",
+                    company_name=(
+                        f"{record.company_name} (Modified)"
+                        if record.company_name
+                        else "Modified Inc."
+                    ),
                     as_of=record.as_of,
                 )
                 modified.append(modified_record)
@@ -321,17 +315,13 @@ class TestSymbolPipelineIntegration:
             assert r1.asset_class == r2.asset_class
             assert r1.as_of == r2.as_of
 
-        print(
-            f"✅ Dummy provider idempotence verified with {len(dummy_records_1)} records"
-        )
+        print(f"✅ Dummy provider idempotence verified with {len(dummy_records_1)} records")
 
     @pytest.mark.asyncio
     async def test_provider_data_quality(self):
         """Verify symbol providers return valid, well-formed data."""
 
-        providers_to_test = [
-            "dummy"
-        ]  # Add "polygon", "nasdaq_dl" when ready for live testing
+        providers_to_test = ["dummy"]  # Add "polygon", "nasdaq_dl" when ready for live testing
 
         for provider_name in providers_to_test:
             provider = get_provider(provider_name)
@@ -343,23 +333,19 @@ class TestSymbolPipelineIntegration:
                 # Validate required fields
                 assert record.ticker, f"Record missing ticker: {record}"
                 assert record.exchange_mic, f"Record missing exchange_mic: {record}"
-                assert record.asset_class in [AssetClass.EQUITY, AssetClass.ETF], (
-                    f"Invalid asset_class: {record.asset_class}"
-                )
-                assert record.currency == "USD", (
-                    f"Expected USD currency: {record.currency}"
-                )
-                assert record.status in [Status.ACTIVE, Status.DELISTED], (
-                    f"Invalid status: {record.status}"
-                )
+                assert record.asset_class in [
+                    AssetClass.EQUITY,
+                    AssetClass.ETF,
+                ], f"Invalid asset_class: {record.asset_class}"
+                assert record.currency == "USD", f"Expected USD currency: {record.currency}"
+                assert record.status in [
+                    Status.ACTIVE,
+                    Status.DELISTED,
+                ], f"Invalid status: {record.status}"
                 assert record.as_of, f"Record missing as_of date: {record}"
 
                 # Validate field formats
                 assert len(record.ticker) >= 1, f"Ticker too short: {record.ticker}"
-                assert len(record.exchange_mic) == 4, (
-                    f"Invalid MIC length: {record.exchange_mic}"
-                )
+                assert len(record.exchange_mic) == 4, f"Invalid MIC length: {record.exchange_mic}"
 
-            print(
-                f"✅ Provider {provider_name} data quality verified with {len(records)} records"
-            )
+            print(f"✅ Provider {provider_name} data quality verified with {len(records)} records")

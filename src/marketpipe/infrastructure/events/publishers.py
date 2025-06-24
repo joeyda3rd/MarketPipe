@@ -60,4 +60,4 @@ class InMemoryEventPublisher(IEventPublisher):
 
     def clear_events(self) -> None:
         """Clear all stored events (useful for testing)."""
-        self._events.clear() 
+        self._events.clear()

@@ -9,13 +9,14 @@ across multiple domain objects or provide stateless business operations.
 from __future__ import annotations
 
 from abc import ABC
-from typing import List, Optional, Dict, Iterable
+from collections.abc import Iterable
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Dict, List, Optional
 
-from .entities import OHLCVBar
-from .value_objects import Price, Volume, Timestamp
 from .aggregates import DailySummary
+from .entities import OHLCVBar
+from .value_objects import Price, Timestamp, Volume
 
 
 class DomainService(ABC):
@@ -176,9 +177,7 @@ class OHLCVCalculationService(DomainService):
             # Calculate the period start for this bar (align to timeframe boundaries)
             bar_timestamp = bar.timestamp.value
             seconds_since_midnight = (
-                bar_timestamp.hour * 3600
-                + bar_timestamp.minute * 60
-                + bar_timestamp.second
+                bar_timestamp.hour * 3600 + bar_timestamp.minute * 60 + bar_timestamp.second
             )
             period_seconds = (seconds_since_midnight // frame_seconds) * frame_seconds
             period_start = bar_timestamp.replace(
@@ -189,14 +188,9 @@ class OHLCVCalculationService(DomainService):
             )
 
             # If this is a new period, process the current group
-            if (
-                current_period_start is not None
-                and period_start != current_period_start
-            ):
+            if current_period_start is not None and period_start != current_period_start:
                 if current_group:
-                    resampled_bar = self._resample_bar_group(
-                        current_group, period_start
-                    )
+                    resampled_bar = self._resample_bar_group(current_group, period_start)
                     resampled_bars.append(resampled_bar)
                 current_group = []
 
@@ -211,9 +205,7 @@ class OHLCVCalculationService(DomainService):
 
         return resampled_bars
 
-    def _resample_bar_group(
-        self, bars: List[OHLCVBar], period_start: datetime
-    ) -> OHLCVBar:
+    def _resample_bar_group(self, bars: List[OHLCVBar], period_start: datetime) -> OHLCVBar:
         """Resample a group of bars into a single bar.
 
         Args:
@@ -329,9 +321,7 @@ class OHLCVCalculationService(DomainService):
 
         return sma_values
 
-    def calculate_volatility(
-        self, bars: List[OHLCVBar], period: int
-    ) -> List[Optional[float]]:
+    def calculate_volatility(self, bars: List[OHLCVBar], period: int) -> List[Optional[float]]:
         """Calculate rolling volatility (standard deviation of returns).
 
         Args:
@@ -467,9 +457,7 @@ class MarketDataValidationService(DomainService):
             current_bar = bars[i]
 
             # Check for extreme price gaps
-            price_movement_errors = self.validate_price_movements(
-                current_bar, previous_bar
-            )
+            price_movement_errors = self.validate_price_movements(current_bar, previous_bar)
             for error in price_movement_errors:
                 all_errors.append(f"Bar {i}: {error}")
 
@@ -532,9 +520,7 @@ class MarketDataValidationService(DomainService):
 
         # Check if it's a weekend (simplified - real implementation would check trading calendar)
         if bar_time.weekday() >= 5:  # Saturday = 5, Sunday = 6
-            errors.append(
-                f"Bar timestamp is on weekend (trading day: {bar_time.strftime('%A')})"
-            )
+            errors.append(f"Bar timestamp is on weekend (trading day: {bar_time.strftime('%A')})")
 
         return errors
 
@@ -579,10 +565,7 @@ class MarketDataValidationService(DomainService):
                 )
 
         # Check for zero volume with non-zero price movement
-        if (
-            current_bar.volume.value == 0
-            and current_bar.open_price != current_bar.close_price
-        ):
+        if current_bar.volume.value == 0 and current_bar.open_price != current_bar.close_price:
             errors.append("Non-zero price movement with zero volume")
 
         return errors
@@ -615,9 +598,7 @@ class MarketDataValidationService(DomainService):
             current_volume = bars[-1].volume.value
 
             if current_volume > avg_volume * 10:  # 10x average
-                errors.append(
-                    f"Extreme volume spike: {current_volume} vs avg {avg_volume:.0f}"
-                )
+                errors.append(f"Extreme volume spike: {current_volume} vs avg {avg_volume:.0f}")
 
         return errors
 
@@ -655,7 +636,7 @@ class TradingCalendarService(DomainService):
             Dictionary with session start/end times
         """
         # Simplified US market hours (doesn't handle DST properly)
-        from datetime import time, timezone, timedelta
+        from datetime import time, timedelta, timezone
 
         # Eastern Time approximation (UTC-5, doesn't handle DST)
         et_offset = timedelta(hours=-5)

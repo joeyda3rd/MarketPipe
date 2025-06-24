@@ -3,15 +3,14 @@
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timezone
 from decimal import Decimal
-from unittest.mock import patch, Mock
 
+import pytest
+
+from src.marketpipe.domain.entities import EntityId, OHLCVBar
 from src.marketpipe.domain.services import MarketDataValidationService
-from src.marketpipe.domain.entities import OHLCVBar, EntityId
-from src.marketpipe.domain.value_objects import Symbol, Timestamp, Price, Volume
-from src.marketpipe.domain.events import ValidationFailed
+from src.marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
 
 
 @pytest.fixture
@@ -32,9 +31,7 @@ def valid_bar(symbol):
     return OHLCVBar(
         id=EntityId.generate(),
         symbol=symbol,
-        timestamp=Timestamp(
-            datetime(2024, 1, 15, 14, 30, 0, tzinfo=timezone.utc)
-        ),  # 9:30 AM ET
+        timestamp=Timestamp(datetime(2024, 1, 15, 14, 30, 0, tzinfo=timezone.utc)),  # 9:30 AM ET
         open_price=Price(Decimal("100.00")),
         high_price=Price(Decimal("101.00")),
         low_price=Price(Decimal("99.50")),
@@ -98,9 +95,7 @@ class TestMarketDataValidationService:
         weekend_bar = OHLCVBar(
             id=EntityId.generate(),
             symbol=symbol,
-            timestamp=Timestamp(
-                datetime(2024, 1, 13, 14, 30, 0, tzinfo=timezone.utc)
-            ),  # Saturday
+            timestamp=Timestamp(datetime(2024, 1, 13, 14, 30, 0, tzinfo=timezone.utc)),  # Saturday
             open_price=Price(Decimal("100.00")),
             high_price=Price(Decimal("101.00")),
             low_price=Price(Decimal("99.50")),
@@ -112,9 +107,7 @@ class TestMarketDataValidationService:
         assert len(errors) > 0
         assert any("weekend" in error.lower() for error in errors)
 
-    def test_validate_bar_with_after_hours_timestamp_returns_errors(
-        self, service, symbol
-    ):
+    def test_validate_bar_with_after_hours_timestamp_returns_errors(self, service, symbol):
         """Test that after-hours timestamps are caught."""
         after_hours_bar = OHLCVBar(
             id=EntityId.generate(),
@@ -133,9 +126,7 @@ class TestMarketDataValidationService:
         assert len(errors) > 0
         assert any("trading hours" in error.lower() for error in errors)
 
-    def test_validate_bar_with_early_hours_timestamp_returns_errors(
-        self, service, symbol
-    ):
+    def test_validate_bar_with_early_hours_timestamp_returns_errors(self, service, symbol):
         """Test that pre-market timestamps are caught."""
         early_hours_bar = OHLCVBar(
             id=EntityId.generate(),
@@ -154,9 +145,7 @@ class TestMarketDataValidationService:
         assert len(errors) > 0
         assert any("trading hours" in error.lower() for error in errors)
 
-    def test_validate_batch_with_valid_bars_returns_no_errors(
-        self, service, valid_bars
-    ):
+    def test_validate_batch_with_valid_bars_returns_no_errors(self, service, valid_bars):
         """Test that a batch of valid bars passes validation."""
         errors = service.validate_batch(valid_bars)
         assert errors == []
@@ -166,17 +155,13 @@ class TestMarketDataValidationService:
         errors = service.validate_batch([])
         assert errors == []
 
-    def test_validate_batch_with_non_monotonic_timestamps_returns_errors(
-        self, service, symbol
-    ):
+    def test_validate_batch_with_non_monotonic_timestamps_returns_errors(self, service, symbol):
         """Test that non-monotonic timestamps are caught."""
         bars = [
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 14, 31, 0, tzinfo=timezone.utc)
-                ),  # Later
+                timestamp=Timestamp(datetime(2024, 1, 15, 14, 31, 0, tzinfo=timezone.utc)),  # Later
                 open_price=Price(Decimal("100.00")),
                 high_price=Price(Decimal("101.00")),
                 low_price=Price(Decimal("99.50")),
@@ -201,17 +186,13 @@ class TestMarketDataValidationService:
         assert len(errors) > 0
         assert any("Timestamps must be monotonic" in error for error in errors)
 
-    def test_validate_batch_with_extreme_price_movements_returns_errors(
-        self, service, symbol
-    ):
+    def test_validate_batch_with_extreme_price_movements_returns_errors(self, service, symbol):
         """Test that extreme price movements are caught."""
         bars = [
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 14, 30, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 14, 30, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("100.00")),
                 high_price=Price(Decimal("100.00")),
                 low_price=Price(Decimal("100.00")),
@@ -221,9 +202,7 @@ class TestMarketDataValidationService:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 14, 31, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 14, 31, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("200.00")),  # 100% increase
                 high_price=Price(Decimal("200.00")),
                 low_price=Price(Decimal("200.00")),
@@ -236,17 +215,13 @@ class TestMarketDataValidationService:
         assert len(errors) > 0
         assert any("Extreme price movement" in error for error in errors)
 
-    def test_validate_batch_with_zero_volume_price_movement_returns_errors(
-        self, service, symbol
-    ):
+    def test_validate_batch_with_zero_volume_price_movement_returns_errors(self, service, symbol):
         """Test that zero volume with price movement is caught."""
         bars = [
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 14, 30, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 14, 30, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("100.00")),
                 high_price=Price(Decimal("100.00")),
                 low_price=Price(Decimal("100.00")),
@@ -256,9 +231,7 @@ class TestMarketDataValidationService:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 14, 31, 0, tzinfo=timezone.utc)
-                ),
+                timestamp=Timestamp(datetime(2024, 1, 15, 14, 31, 0, tzinfo=timezone.utc)),
                 open_price=Price(Decimal("100.00")),
                 high_price=Price(Decimal("101.00")),
                 low_price=Price(Decimal("100.00")),
@@ -269,13 +242,9 @@ class TestMarketDataValidationService:
 
         errors = service.validate_batch(bars)
         assert len(errors) > 0
-        assert any(
-            "Non-zero price movement with zero volume" in error for error in errors
-        )
+        assert any("Non-zero price movement with zero volume" in error for error in errors)
 
-    def test_validate_batch_with_sustained_zero_volume_returns_errors(
-        self, service, symbol
-    ):
+    def test_validate_batch_with_sustained_zero_volume_returns_errors(self, service, symbol):
         """Test that sustained zero volume is caught."""
         bars = []
         base_time = datetime(2024, 1, 15, 14, 30, 0, tzinfo=timezone.utc)
@@ -298,9 +267,7 @@ class TestMarketDataValidationService:
         assert len(errors) > 0
         assert any("zero volume" in error.lower() for error in errors)
 
-    def test_validate_batch_with_extreme_volume_spike_returns_errors(
-        self, service, symbol
-    ):
+    def test_validate_batch_with_extreme_volume_spike_returns_errors(self, service, symbol):
         """Test that extreme volume spikes are caught."""
         bars = []
         base_time = datetime(2024, 1, 15, 14, 30, 0, tzinfo=timezone.utc)
@@ -336,12 +303,10 @@ class TestMarketDataValidationService:
         assert len(errors) > 0
         assert any("Extreme volume spike" in error for error in errors)
 
-    def test_validate_batch_returns_validation_errors_for_business_rules(
-        self, service, symbol
-    ):
+    def test_validate_batch_returns_validation_errors_for_business_rules(self, service, symbol):
         """Test that validation batch returns errors for business rule violations.
-        
-        Note: Domain services should not emit events directly - that's an 
+
+        Note: Domain services should not emit events directly - that's an
         application layer concern. This test verifies the domain service
         correctly identifies validation errors without side effects.
         """
@@ -350,9 +315,7 @@ class TestMarketDataValidationService:
             OHLCVBar(
                 id=EntityId.generate(),
                 symbol=symbol,
-                timestamp=Timestamp(
-                    datetime(2024, 1, 15, 14, 31, 0, tzinfo=timezone.utc)
-                ),  # Later
+                timestamp=Timestamp(datetime(2024, 1, 15, 14, 31, 0, tzinfo=timezone.utc)),  # Later
                 open_price=Price(Decimal("100.00")),
                 high_price=Price(Decimal("101.00")),
                 low_price=Price(Decimal("99.50")),
@@ -377,13 +340,11 @@ class TestMarketDataValidationService:
 
         # Should have errors for business rule violations
         assert len(errors) > 0
-        
+
         # Domain service should return errors but not emit events
         # Event emission should be handled by application layer
 
-    def test_validate_trading_hours_with_valid_hours_returns_no_errors(
-        self, service, valid_bar
-    ):
+    def test_validate_trading_hours_with_valid_hours_returns_no_errors(self, service, valid_bar):
         """Test that bars during trading hours pass validation."""
         errors = service.validate_trading_hours(valid_bar)
         # Note: This might return errors due to simplified timezone handling
@@ -396,9 +357,7 @@ class TestMarketDataValidationService:
         extended_hours_bar = OHLCVBar(
             id=EntityId.generate(),
             symbol=symbol,
-            timestamp=Timestamp(
-                datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
-            ),  # 7:00 AM ET
+            timestamp=Timestamp(datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc)),  # 7:00 AM ET
             open_price=Price(Decimal("100.00")),
             high_price=Price(Decimal("101.00")),
             low_price=Price(Decimal("99.50")),
@@ -434,9 +393,7 @@ class TestMarketDataValidationService:
         weekend_bar = OHLCVBar(
             id=EntityId.generate(),
             symbol=symbol,
-            timestamp=Timestamp(
-                datetime(2024, 1, 13, 14, 30, 0, tzinfo=timezone.utc)
-            ),  # Saturday
+            timestamp=Timestamp(datetime(2024, 1, 13, 14, 30, 0, tzinfo=timezone.utc)),  # Saturday
             open_price=Price(Decimal("100.00")),
             high_price=Price(Decimal("101.00")),
             low_price=Price(Decimal("99.50")),

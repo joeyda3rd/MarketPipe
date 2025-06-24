@@ -21,15 +21,15 @@ from typing import List, Optional
 
 import typer
 
-from marketpipe.metrics import (
-    BACKFILL_GAPS_FOUND_TOTAL,
-    BACKFILL_GAP_LATENCY_SECONDS,
-)
-from marketpipe.ingestion.services.gap_detector import GapDetectorService
+from marketpipe.bootstrap import bootstrap
 from marketpipe.cli.ohlcv_ingest import _ingest_impl  # pylint: disable=protected-access
 from marketpipe.domain.events import BackfillJobCompleted, BackfillJobFailed
 from marketpipe.infrastructure.events import InMemoryEventPublisher
-from marketpipe.bootstrap import bootstrap
+from marketpipe.ingestion.services.gap_detector import GapDetectorService
+from marketpipe.metrics import (
+    BACKFILL_GAP_LATENCY_SECONDS,
+    BACKFILL_GAPS_FOUND_TOTAL,
+)
 
 # ---------------------------------------------------------------------------
 # Typer sub-app will be attached from ``marketpipe.cli.__init__``
@@ -97,9 +97,11 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
     else:
         # Fallback: load symbols from YAML config if provided – else fail
         if config is None:
-            typer.echo("❌ Either specify --symbol OR provide --config with universe list.", err=True)
+            typer.echo(
+                "❌ Either specify --symbol OR provide --config with universe list.", err=True
+            )
             raise typer.Exit(1)
-        from marketpipe.config import load_config, ConfigVersionError
+        from marketpipe.config import ConfigVersionError, load_config
 
         try:
             cfg = load_config(config)
@@ -111,7 +113,7 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
     # ------------------------------------------------------------------
     # Detect gaps & execute ingestion per gap (synchronously)
     # ------------------------------------------------------------------
-    parquet_root = Path("data/raw")  # writer.write_parquet default in ingest
+    parquet_root = Path("data/output")  # writer.write_parquet default in ingest
     detector = GapDetectorService(parquet_root)
 
     event_bus = InMemoryEventPublisher()
@@ -148,4 +150,4 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
 
     typer.echo(
         f"✅ Back-fill finished – {total_gaps} gap(s) processed (*detected*, not necessarily filled)."
-    ) 
+    )

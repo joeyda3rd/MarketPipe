@@ -17,28 +17,27 @@ warnings.warn(
     "marketpipe.events is deprecated. "
     "Import domain events from marketpipe.domain.events and get event bus from bootstrap.get_event_bus()",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Import domain events from the domain layer for backward compatibility
 from .domain.events import (
+    BarCollectionCompleted,
+    BarCollectionStarted,
+    DataStored,
     DomainEvent,
     IEventBus,
-    BarCollectionStarted,
-    BarCollectionCompleted,
-    ValidationFailed,
-    IngestionJobStarted,
     IngestionJobCompleted,
+    IngestionJobStarted,
     MarketDataReceived,
-    DataStored,
     RateLimitExceeded,
     SymbolActivated,
     SymbolDeactivated,
+    ValidationFailed,
 )
 
 # Forward to infrastructure implementation for backward compatibility
 from .infrastructure.messaging.in_memory_bus import EventBus
-
 
 __all__ = [
     "DomainEvent",

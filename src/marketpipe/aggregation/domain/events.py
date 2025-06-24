@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any, Dict
 from uuid import UUID, uuid4
-from typing import Dict, Any
 
 from marketpipe.domain.events import DomainEvent
 

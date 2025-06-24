@@ -8,8 +8,8 @@ exists on the import path.  We use it to add the project's ``src`` directory to
 (e.g. ``python -m marketpipe.cli --help``) without an explicit installation.
 """
 
-import sys
 import logging as _logging
+import sys
 from pathlib import Path
 
 _project_root = Path(__file__).resolve().parent
@@ -21,4 +21,4 @@ if _src_path.is_dir() and str(_src_path) not in sys.path:
 
 # Minimal root logger so that warnings/errors surface in tests (caplog).
 if not _logging.getLogger().handlers:
-    _logging.basicConfig(level=_logging.INFO, format="%(levelname)s [%(name)s] %(message)s") 
+    _logging.basicConfig(level=_logging.INFO, format="%(levelname)s [%(name)s] %(message)s")

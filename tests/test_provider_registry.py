@@ -1,20 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for provider registry system."""
 
-import pytest
 from typing import List
 from unittest.mock import Mock, patch
 
+import pytest
+
 from marketpipe.domain.entities import OHLCVBar
-from marketpipe.domain.value_objects import Symbol, TimeRange
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
+from marketpipe.domain.value_objects import Symbol, TimeRange
 from marketpipe.ingestion.infrastructure.provider_registry import (
-    register,
-    get,
-    list_providers,
     clear_registry,
-    provider,
+    get,
     is_registered,
+    list_providers,
+    provider,
+    register,
 )
 
 
@@ -54,6 +55,7 @@ class TestProviderRegistry:
         clear_registry()
         # Prevent auto-registration during tests
         import marketpipe.ingestion.infrastructure.provider_registry as registry
+
         registry._AUTO_REGISTERED = True
 
     def teardown_method(self):
@@ -190,12 +192,12 @@ class TestBuiltinProviders:
     def setup_method(self):
         """Setup for each test - register built-in providers."""
         clear_registry()
-        
+
         # Manually register built-in providers for testing
-        from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
         from marketpipe.ingestion.infrastructure.adapters import AlpacaMarketDataAdapter
+        from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
         from marketpipe.ingestion.infrastructure.iex_adapter import IEXMarketDataAdapter
-        
+
         register("fake", FakeMarketDataAdapter)
         register("alpaca", AlpacaMarketDataAdapter)
         register("iex", IEXMarketDataAdapter)

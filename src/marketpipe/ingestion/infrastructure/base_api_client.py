@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from collections.abc import Iterable, Mapping
+from typing import Any, Dict, List, Optional
 
 from .auth import AuthStrategy
-from .rate_limit import RateLimiter
 from .models import ClientConfig
+from .rate_limit import RateLimiter
 
 
 class BaseApiClient(abc.ABC):
@@ -25,7 +26,7 @@ class BaseApiClient(abc.ABC):
         auth: AuthStrategy,
         rate_limiter: Optional[RateLimiter] = None,
         metrics_collector: Optional[callable] = None,
-        state_backend: Optional["StateBackend"] = None,
+        state_backend: Optional[StateBackend] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.config = config

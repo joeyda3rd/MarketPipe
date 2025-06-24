@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 from datetime import date
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from marketpipe.domain.value_objects import Symbol
-from marketpipe.domain.events import IngestionJobCompleted
-from marketpipe.bootstrap import get_event_bus
 from marketpipe.aggregation import AggregationRunnerService
+from marketpipe.bootstrap import get_event_bus
+from marketpipe.domain.events import IngestionJobCompleted
+from marketpipe.domain.value_objects import Symbol
 
 
 def test_subscribe_and_publish(monkeypatch):
@@ -26,11 +26,11 @@ def test_subscribe_and_publish(monkeypatch):
     # Reset the event bus completely
     import marketpipe.bootstrap
     from marketpipe.infrastructure.messaging.in_memory_bus import InMemoryEventBus
-    
+
     marketpipe.bootstrap._EVENT_BUS = None
     InMemoryEventBus.clear_subscriptions()
 
-    # Register aggregation service  
+    # Register aggregation service
     AggregationRunnerService.register()
 
     # Mock the record_metric function to avoid metrics issues
@@ -68,7 +68,7 @@ def test_aggregation_service_handles_multiple_events(monkeypatch):
     # Reset the event bus completely
     import marketpipe.bootstrap
     from marketpipe.infrastructure.messaging.in_memory_bus import InMemoryEventBus
-    
+
     marketpipe.bootstrap._EVENT_BUS = None
     InMemoryEventBus.clear_subscriptions()
 
@@ -130,7 +130,7 @@ def test_aggregation_service_error_handling(monkeypatch):
     # Reset the event bus completely
     import marketpipe.bootstrap
     from marketpipe.infrastructure.messaging.in_memory_bus import InMemoryEventBus
-    
+
     marketpipe.bootstrap._EVENT_BUS = None
     InMemoryEventBus.clear_subscriptions()
 

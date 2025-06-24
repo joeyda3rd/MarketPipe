@@ -195,9 +195,24 @@ cython_debug/
 .claude/
 
 # MarketPipe specific files
-#data lake
+# Archive directories (outside version control)
+archive/
+
+# Data directories
 data/
 data_backup*
+
+# Large files and temporary data
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
+tmp/
+temp/
+
+# Ingestion state and logs
+ingestion_*.db
+*.log
+logs/
 
 # SQLite database files
 *.db

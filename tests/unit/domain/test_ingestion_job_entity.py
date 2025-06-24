@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timezone
 from typing import List
+
+import pytest
 
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.domain.entities import (
@@ -13,15 +14,15 @@ from marketpipe.ingestion.domain.entities import (
     IngestionJobId,
     ProcessingState,
 )
+from marketpipe.ingestion.domain.events import (
+    IngestionBatchProcessed,
+    IngestionJobCompleted,
+    IngestionJobFailed,
+    IngestionJobStarted,
+)
 from marketpipe.ingestion.domain.value_objects import (
     IngestionConfiguration,
     IngestionPartition,
-)
-from marketpipe.ingestion.domain.events import (
-    IngestionJobStarted,
-    IngestionJobCompleted,
-    IngestionJobFailed,
-    IngestionBatchProcessed,
 )
 
 
@@ -111,9 +112,7 @@ class TestIngestionJobCreation:
         )
         configuration = create_test_ingestion_configuration()
 
-        with pytest.raises(
-            ValueError, match="Cannot create ingestion job for future dates"
-        ):
+        with pytest.raises(ValueError, match="Cannot create ingestion job for future dates"):
             IngestionJob(job_id, configuration, symbols, time_range)
 
 
@@ -341,9 +340,7 @@ class TestIngestionJobDomainEvents:
 
         # Find the completion event
         completion_events = [
-            event
-            for event in job.domain_events
-            if isinstance(event, IngestionJobCompleted)
+            event for event in job.domain_events if isinstance(event, IngestionJobCompleted)
         ]
 
         assert len(completion_events) == 1

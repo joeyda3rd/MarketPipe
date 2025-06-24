@@ -5,11 +5,10 @@ Revises: 0002
 Create Date: 2025-06-11 22:26:13.946793
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
 revision: str = '0003'
@@ -22,7 +21,7 @@ def upgrade() -> None:
     """Add missing columns to ohlcv_bars table."""
     # First check if we need to migrate by seeing if columns exist
     # This is a SQLite-compatible approach using table recreation
-    
+
     # Create new table with desired schema
     op.execute("""
         CREATE TABLE ohlcv_bars_new (
@@ -41,7 +40,7 @@ def upgrade() -> None:
             UNIQUE(symbol, timestamp_ns)
         )
     """)
-    
+
     # Copy existing data from original table
     op.execute("""
         INSERT INTO ohlcv_bars_new (
@@ -53,18 +52,18 @@ def upgrade() -> None:
             close_price, volume, created_at
         FROM ohlcv_bars
     """)
-    
+
     # Drop old table and rename new one
     op.execute("DROP TABLE ohlcv_bars")
     op.execute("ALTER TABLE ohlcv_bars_new RENAME TO ohlcv_bars")
-    
+
     # Recreate indexes
     op.execute("CREATE INDEX idx_ohlcv_symbol_timestamp ON ohlcv_bars(symbol, timestamp_ns)")
-    
+
     # Update existing rows to populate trading_date from timestamp_ns
     # Use database-agnostic approach
     from alembic import context
-    
+
     if context.config.get_main_option("sqlalchemy.url").startswith("postgresql"):
         # PostgreSQL version
         op.execute("""
@@ -79,7 +78,7 @@ def upgrade() -> None:
             SET trading_date = date(timestamp_ns / 1000000000, 'unixepoch')
             WHERE trading_date IS NULL
         """)
-    
+
     # Create new indexes
     op.execute("CREATE INDEX idx_ohlcv_trading_date ON ohlcv_bars(trading_date)")
     op.execute("CREATE INDEX idx_ohlcv_symbol_trading_date ON ohlcv_bars(symbol, trading_date)")
@@ -102,7 +101,7 @@ def downgrade() -> None:
             UNIQUE(symbol, timestamp_ns)
         )
     """)
-    
+
     # Copy data back (excluding new columns)
     op.execute("""
         INSERT INTO ohlcv_bars_old (
@@ -114,10 +113,10 @@ def downgrade() -> None:
             close_price, volume, created_at
         FROM ohlcv_bars
     """)
-    
+
     # Drop new table and rename old one
     op.execute("DROP TABLE ohlcv_bars")
     op.execute("ALTER TABLE ohlcv_bars_old RENAME TO ohlcv_bars")
-    
+
     # Recreate original index
     op.execute("CREATE INDEX idx_ohlcv_symbol_timestamp ON ohlcv_bars(symbol, timestamp_ns)")

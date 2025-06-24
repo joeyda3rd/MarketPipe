@@ -4,15 +4,16 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
-from marketpipe.domain.value_objects import Symbol
 from marketpipe.domain.events import IEventPublisher
+from marketpipe.domain.value_objects import Symbol
+
 from ..domain.entities import IngestionJob, IngestionJobId
 from ..domain.repositories import (
-    IIngestionJobRepository,
     IIngestionCheckpointRepository,
+    IIngestionJobRepository,
     IIngestionMetricsRepository,
     IngestionJobNotFoundError,
 )
@@ -21,24 +22,24 @@ from ..domain.services import (
     IngestionProgressTracker,
     JobCreationRequest,
 )
-from ..domain.value_objects import (
-    IngestionPartition,
-    IngestionCheckpoint,
-)
 from ..domain.storage import IDataStorage
+from ..domain.value_objects import (
+    IngestionCheckpoint,
+    IngestionPartition,
+)
 from .commands import (
-    CreateIngestionJobCommand,
-    StartJobCommand,
     CancelJobCommand,
     CompleteJobCommand,
+    CreateIngestionJobCommand,
     FailJobCommand,
     RestartJobCommand,
+    StartJobCommand,
 )
 from .queries import (
-    GetJobStatusQuery,
-    GetJobHistoryQuery,
     GetActiveJobsQuery,
+    GetJobHistoryQuery,
     GetJobMetricsQuery,
+    GetJobStatusQuery,
 )
 
 
@@ -80,9 +81,7 @@ class IngestionJobService:
         # Validate schedule against active jobs
         validation_errors = self._domain_service.validate_job_schedule(job, active_jobs)
         if validation_errors:
-            raise ValueError(
-                f"Job scheduling conflicts: {'; '.join(validation_errors)}"
-            )
+            raise ValueError(f"Job scheduling conflicts: {'; '.join(validation_errors)}")
 
         # Save the job
         await self._job_repository.save(job)
@@ -198,9 +197,7 @@ class IngestionJobService:
 
         return new_job.job_id
 
-    async def get_job_status(
-        self, query: GetJobStatusQuery
-    ) -> Optional[Dict[str, Any]]:
+    async def get_job_status(self, query: GetJobStatusQuery) -> Optional[Dict[str, Any]]:
         """Get the current status of a job."""
         job = await self._job_repository.get_by_id(query.job_id)
         if not job:
@@ -240,9 +237,7 @@ class IngestionJobService:
             for job in jobs
         ]
 
-    async def get_job_metrics(
-        self, query: GetJobMetricsQuery
-    ) -> Optional[Dict[str, Any]]:
+    async def get_job_metrics(self, query: GetJobMetricsQuery) -> Optional[Dict[str, Any]]:
         """Get performance metrics for jobs."""
         if query.job_id:
             metrics = await self._metrics_repository.get_metrics(query.job_id)
@@ -350,23 +345,18 @@ class IngestionCoordinatorService:
                     # Record symbol-level failure metrics
                     from marketpipe.metrics import record_metric
 
+
+                    record_metric("ingest_symbol_failures", 1, provider=provider, feed=feed)
                     record_metric(
-                        "ingest_symbol_failures", 1, provider=provider, feed=feed
-                    )
-                    record_metric(
-                        f"ingest_failures_{symbol.value}",
-                        1,
-                        provider=provider,
-                        feed=feed,
+                        f"ingest_failures_{symbol.value}", 1, provider=provider, feed=feed
+
                     )
                 else:
                     try:
                         bars_count, partition = result
 
                         # Mark symbol as processed in the job
-                        job = await self._job_repository.get_by_id(
-                            job_id
-                        )  # Refresh job state
+                        job = await self._job_repository.get_by_id(job_id)  # Refresh job state
                         job.mark_symbol_processed(symbol, bars_count, partition)
                         await self._job_repository.save(job)
 
@@ -377,20 +367,13 @@ class IngestionCoordinatorService:
                         # Record success metrics
                         from marketpipe.metrics import record_metric
 
+                        record_metric("ingest_symbols_success", 1, provider=provider, feed=feed)
                         record_metric(
-                            "ingest_symbols_success", 1, provider=provider, feed=feed
+                            "ingest_rows_processed", bars_count, provider=provider, feed=feed
                         )
                         record_metric(
-                            "ingest_rows_processed",
-                            bars_count,
-                            provider=provider,
-                            feed=feed,
-                        )
-                        record_metric(
-                            f"ingest_success_{symbol.value}",
-                            1,
-                            provider=provider,
-                            feed=feed,
+                            f"ingest_success_{symbol.value}", 1, provider=provider, feed=feed
+
                         )
 
                         # Publish events
@@ -420,28 +403,20 @@ class IngestionCoordinatorService:
             from marketpipe.metrics import record_metric
 
             record_metric(
-                "ingest_job_duration_seconds",
-                processing_time,
-                provider=provider,
-                feed=feed,
+
+                "ingest_job_duration_seconds", processing_time, provider=provider, feed=feed
             )
-            record_metric(
-                "ingest_job_total_bars", total_bars, provider=provider, feed=feed
-            )
+            record_metric("ingest_job_total_bars", total_bars, provider=provider, feed=feed)
+
 
             # Record success/failure metrics
             if failed_symbols == 0:
                 record_metric("ingest_job_success", 1, provider=provider, feed=feed)
             else:
                 # Partial success - record mixed results
+                record_metric("ingest_job_partial_success", 1, provider=provider, feed=feed)
                 record_metric(
-                    "ingest_job_partial_success", 1, provider=provider, feed=feed
-                )
-                record_metric(
-                    "ingest_job_failed_symbols",
-                    failed_symbols,
-                    provider=provider,
-                    feed=feed,
+                    "ingest_job_failed_symbols", failed_symbols, provider=provider, feed=feed
                 )
 
             return {
@@ -473,10 +448,7 @@ class IngestionCoordinatorService:
             if job.symbols:
                 for symbol in job.symbols:
                     record_metric(
-                        f"ingest_failures_{symbol.value}",
-                        1,
-                        provider=provider,
-                        feed=feed,
+                        f"ingest_failures_{symbol.value}", 1, provider=provider, feed=feed
                     )
 
             raise
@@ -510,9 +482,7 @@ class IngestionCoordinatorService:
             provider = "alpaca"  # Most common case
 
         # Check for existing checkpoint
-        checkpoint = await self._checkpoint_repository.get_checkpoint(
-            job.job_id, symbol
-        )
+        checkpoint = await self._checkpoint_repository.get_checkpoint(job.job_id, symbol)
 
         # Determine start point for data fetching
         # Use checkpoint if available, otherwise use job's time range start
@@ -536,8 +506,7 @@ class IngestionCoordinatorService:
             # No data to process
             return 0, IngestionPartition(
                 symbol=symbol,
-                file_path=job.configuration.output_path
-                / f"{symbol.value}_empty.parquet",
+                file_path=job.configuration.output_path / f"{symbol.value}_empty.parquet",
                 record_count=0,
                 file_size_bytes=0,
                 created_at=datetime.now(timezone.utc),
@@ -550,10 +519,9 @@ class IngestionCoordinatorService:
             from marketpipe.metrics import record_metric
 
             record_metric(
-                "validation_failures",
-                len(validation_result.errors),
-                provider=provider,
-                feed=feed,
+
+                "validation_failures", len(validation_result.errors), provider=provider, feed=feed
+
             )
             record_metric(
                 f"validation_failures_{symbol.value}",
@@ -569,8 +537,7 @@ class IngestionCoordinatorService:
             # No valid bars after validation
             return 0, IngestionPartition(
                 symbol=symbol,
-                file_path=job.configuration.output_path
-                / f"{symbol.value}_no_valid_data.parquet",
+                file_path=job.configuration.output_path / f"{symbol.value}_no_valid_data.parquet",
                 record_count=0,
                 file_size_bytes=0,
                 created_at=datetime.now(timezone.utc),

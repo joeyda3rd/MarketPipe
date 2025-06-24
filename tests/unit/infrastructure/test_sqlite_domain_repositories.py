@@ -8,23 +8,24 @@ using SQLite for persistence.
 from __future__ import annotations
 
 import asyncio
-import pytest
-import tempfile
 import os
+import tempfile
 from datetime import date, datetime, timezone
 
-from marketpipe.infrastructure.repositories.sqlite_domain import (
-    SqliteSymbolBarsRepository,
-    SqliteOHLCVRepository,
-    SqliteCheckpointRepository,
-)
-from marketpipe.domain.entities import OHLCVBar, EntityId
-from marketpipe.domain.value_objects import Symbol, Timestamp, Price, Volume, TimeRange
+import pytest
+
 from marketpipe.domain.aggregates import SymbolBarsAggregate
+from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.repositories import (
-    RepositoryError,
     ConcurrencyError,
     DuplicateKeyError,
+    RepositoryError,
+)
+from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
+from marketpipe.infrastructure.repositories.sqlite_domain import (
+    SqliteCheckpointRepository,
+    SqliteOHLCVRepository,
+    SqliteSymbolBarsRepository,
 )
 
 
@@ -98,9 +99,7 @@ class TestSqliteSymbolBarsRepository:
     """Test cases for SqliteSymbolBarsRepository."""
 
     @pytest.mark.asyncio
-    async def test_save_and_get_aggregate(
-        self, temp_db_path, sample_symbol, sample_trading_date
-    ):
+    async def test_save_and_get_aggregate(self, temp_db_path, sample_symbol, sample_trading_date):
         """Test saving and retrieving a symbol bars aggregate."""
         repo = SqliteSymbolBarsRepository(temp_db_path)
 
@@ -113,9 +112,7 @@ class TestSqliteSymbolBarsRepository:
         await repo.save(aggregate)
 
         # Retrieve aggregate
-        retrieved = await repo.get_by_symbol_and_date(
-            sample_symbol, sample_trading_date
-        )
+        retrieved = await repo.get_by_symbol_and_date(sample_symbol, sample_trading_date)
 
         assert retrieved is not None
         assert retrieved.symbol == sample_symbol
@@ -185,9 +182,7 @@ class TestSqliteSymbolBarsRepository:
                 await repo.save(aggregate)
 
         # Find symbols in date range
-        found_symbols = await repo.find_symbols_with_data(
-            date(2024, 1, 15), date(2024, 1, 16)
-        )
+        found_symbols = await repo.find_symbols_with_data(date(2024, 1, 15), date(2024, 1, 16))
 
         assert len(found_symbols) == 3
         assert all(symbol in found_symbols for symbol in symbols)
@@ -223,9 +218,7 @@ class TestSqliteSymbolBarsRepository:
         assert status[symbol2.value][date2.isoformat()] == False
 
     @pytest.mark.asyncio
-    async def test_delete_aggregate(
-        self, temp_db_path, sample_symbol, sample_trading_date
-    ):
+    async def test_delete_aggregate(self, temp_db_path, sample_symbol, sample_trading_date):
         """Test deleting an aggregate."""
         repo = SqliteSymbolBarsRepository(temp_db_path)
 
@@ -234,9 +227,7 @@ class TestSqliteSymbolBarsRepository:
         await repo.save(aggregate)
 
         # Verify it exists
-        retrieved = await repo.get_by_symbol_and_date(
-            sample_symbol, sample_trading_date
-        )
+        retrieved = await repo.get_by_symbol_and_date(sample_symbol, sample_trading_date)
         assert retrieved is not None
 
         # Delete it
@@ -244,9 +235,7 @@ class TestSqliteSymbolBarsRepository:
         assert deleted == True
 
         # Verify it's gone
-        retrieved = await repo.get_by_symbol_and_date(
-            sample_symbol, sample_trading_date
-        )
+        retrieved = await repo.get_by_symbol_and_date(sample_symbol, sample_trading_date)
         assert retrieved is None
 
         # Try to delete again
@@ -280,9 +269,7 @@ class TestSqliteOHLCVRepository:
             assert retrieved_bars[i - 1].timestamp <= retrieved_bars[i].timestamp
 
     @pytest.mark.asyncio
-    async def test_save_duplicate_bars_raises_error(
-        self, temp_db_path, sample_ohlcv_bar
-    ):
+    async def test_save_duplicate_bars_raises_error(self, temp_db_path, sample_ohlcv_bar):
         """Test that saving duplicate bars raises DuplicateKeyError."""
         repo = SqliteOHLCVRepository(temp_db_path)
 
@@ -322,9 +309,7 @@ class TestSqliteOHLCVRepository:
         await repo.save_bars(bars)
 
         # Retrieve bars for multiple symbols
-        time_range = TimeRange(
-            Timestamp(base_time), Timestamp(base_time.replace(minute=35))
-        )
+        time_range = TimeRange(Timestamp(base_time), Timestamp(base_time.replace(minute=35)))
 
         retrieved_bars = []
         async for bar in repo.get_bars_for_symbols(symbols, time_range):
@@ -380,9 +365,7 @@ class TestSqliteOHLCVRepository:
         repo = SqliteOHLCVRepository(temp_db_path)
 
         # Check non-existent symbol
-        latest = await repo.get_latest_timestamp(
-            Symbol("NOEXIST")
-        )  # Valid length (7 chars)
+        latest = await repo.get_latest_timestamp(Symbol("NOEXIST"))  # Valid length (7 chars)
         assert latest is None
 
         # Save some bars
@@ -554,9 +537,7 @@ class TestRepositoryIdempotency:
         await repo.save(aggregate)
 
         # Verify only one aggregate exists
-        retrieved = await repo.get_by_symbol_and_date(
-            sample_symbol, sample_trading_date
-        )
+        retrieved = await repo.get_by_symbol_and_date(sample_symbol, sample_trading_date)
         assert retrieved is not None
         assert retrieved.is_complete == True
 
@@ -567,9 +548,7 @@ class TestRepositoryIdempotency:
 
         # Define async function for concurrent checkpoint updates
         async def update_checkpoint(symbol_suffix: str, value: int):
-            symbol = Symbol(
-                f"TST{symbol_suffix}"
-            )  # Use valid symbol format (letters only)
+            symbol = Symbol(f"TST{symbol_suffix}")  # Use valid symbol format (letters only)
             data = {"value": value, "timestamp": datetime.now().isoformat()}
             await repo.save_checkpoint(symbol, data)
             return await repo.get_checkpoint(symbol)

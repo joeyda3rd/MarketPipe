@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import List, Dict, Type, Callable
+from typing import Callable, Dict, List, Type
 
 from marketpipe.domain.events import DomainEvent, IEventPublisher
 
@@ -45,17 +45,11 @@ class FakeEventPublisher(IEventPublisher):
 
     def get_events_of_type(self, event_type: Type[DomainEvent]) -> List[DomainEvent]:
         """Get all published events of a specific type (for testing)."""
-        return [
-            event for event in self._published_events if isinstance(event, event_type)
-        ]
+        return [event for event in self._published_events if isinstance(event, event_type)]
 
     def get_events_by_type_name(self, event_type_name: str) -> List[DomainEvent]:
         """Get all published events by type name (for testing)."""
-        return [
-            event
-            for event in self._published_events
-            if event.event_type == event_type_name
-        ]
+        return [event for event in self._published_events if event.event_type == event_type_name]
 
     def has_event_of_type(self, event_type: Type[DomainEvent]) -> bool:
         """Check if any event of the specified type was published (for testing)."""
