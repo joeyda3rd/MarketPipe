@@ -183,6 +183,7 @@ def update(
 
     # Handle --execute precedence over --dry-run
     show_precedence_preview = False
+    original_dry_run = dry_run  # Save original value for validation
     if execute and dry_run:
         console.print("Both --dry-run and --execute specified", style="yellow")
         console.print("--execute takes precedence", style="yellow")
@@ -208,12 +209,8 @@ def update(
             console.print("Dry preview complete. Re-run with --execute to perform writes.")
             return
 
-    # Check diff-only precondition when executing
-    if diff_only:
-        check_diff_only_precondition(db_path)
-
-    # Validate flag combinations when actually executing
-    if dry_run and diff_only:
+    # Validate flag combinations when actually executing (use original dry_run value)
+    if original_dry_run and diff_only:
         console.print(
             "❌ `--diff-only` implies DB writes; cannot combine with --dry-run.", style="red"
         )
@@ -224,6 +221,10 @@ def update(
             "❌ Back-fill requires provider fetch -> cannot use --diff-only.", style="red"
         )
         raise typer.Exit(1)
+
+    # Check diff-only precondition when executing (after validating combinations)
+    if diff_only:
+        check_diff_only_precondition(db_path)
 
     # Determine date range for processing
     if backfill_date:

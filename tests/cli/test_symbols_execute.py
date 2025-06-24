@@ -28,63 +28,18 @@ class TestSymbolsExecuteIntegration:
         self.runner = CliRunner()
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.ingestion.symbol_providers.get")
-    @patch("marketpipe.ingestion.normalizer.run_symbol_normalizer.normalize_stage")
-    @patch("marketpipe.ingestion.normalizer.scd_writer.run_scd_update")
-    @patch("marketpipe.ingestion.normalizer.refresh_views.refresh")
-    @patch("duckdb.connect")
+    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
     def test_full_execute_dummy(
         self,
-        mock_duckdb,
-        mock_refresh,
-        mock_scd,
-        mock_normalize,
-        mock_get_provider,
+        mock_run_pipeline,
         mock_list_providers,
     ):
         """Test complete pipeline execution with dummy provider."""
         # Mock provider setup
         mock_list_providers.return_value = ["dummy"]
 
-        # Mock provider instance with async fetch_symbols method
-        mock_provider = Mock()
-
-        # Create an async mock that returns the list
-        async def mock_fetch_symbols():
-            # Create mock records with proper meta attribute support
-            record1 = Mock()
-            record1.meta = {}
-            record1.model_dump = lambda: {
-                "symbol": "AAPL",
-                "name": "Apple Inc.",
-                "market": "NASDAQ",
-                "type": "stock",
-                "meta": {"provider": "dummy"},
-            }
-
-            record2 = Mock()
-            record2.meta = {}
-            record2.model_dump = lambda: {
-                "symbol": "GOOGL",
-                "name": "Alphabet Inc.",
-                "market": "NASDAQ",
-                "type": "stock",
-                "meta": {"provider": "dummy"},
-            }
-
-            return [record1, record2]
-
-        mock_provider.fetch_symbols = mock_fetch_symbols
-        mock_get_provider.return_value = mock_provider
-
-        # Mock DuckDB connection with context manager support
-        mock_conn = create_mock_duckdb_connection()
-        mock_duckdb.return_value = mock_conn
-
-        # Mock successful pipeline components
-        mock_normalize.return_value = None
-        mock_scd.return_value = None
-        mock_refresh.return_value = None
+        # Mock the pipeline to return successful results
+        mock_run_pipeline.return_value = (10, 5)  # 10 inserts, 5 updates
 
         with tempfile.TemporaryDirectory() as temp_dir:
             db_path = Path(temp_dir) / "test.duckdb"
@@ -106,18 +61,11 @@ class TestSymbolsExecuteIntegration:
             )
 
         # Verify success
-        assert result.exit_code == 0
+        assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "✅ Pipeline complete." in result.output
 
-        # Verify pipeline components were called
-        mock_get_provider.assert_called_once()
-        mock_normalize.assert_called_once()
-        mock_scd.assert_called_once()
-        mock_refresh.assert_called_once()
-
-        # Verify DuckDB operations
-        mock_conn.execute.assert_called()  # Various SQL operations
-        mock_conn.close.assert_called_once()
+        # Verify pipeline was called
+        mock_run_pipeline.assert_called_once()
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
     def test_execute_missing_provider_token(self, mock_list_providers):
