@@ -82,7 +82,7 @@ def show_progress_summary(current_date: date, total_days: int, current_day: int,
 def update(
     providers: list[str] = typer.Option(
         ..., "--provider", "-p",
-        help="Symbol provider(s) to use. Available: " + ", ".join(list_providers())
+        help="Symbol provider(s) to ingest. Available: " + ", ".join(list_providers())
     ),
     snapshot_as_of: str = typer.Option(
         str(date.today()),
@@ -91,27 +91,27 @@ def update(
     ),
     db_path: Optional[Path] = typer.Option(
         None, "--db",
-        help="Database path. Default: warehouse.duckdb"
+        help="DuckDB database path. Default: warehouse.duckdb"
     ),
     data_dir: Optional[Path] = typer.Option(
         None, "--data-dir",
-        help="Data directory for Parquet files. Default: ./data"
+        help="Parquet dataset root. Default: ./data"
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run",
-        help="Run pipeline in-memory only, no file writes, print summary"
+        help="Run pipeline but skip Parquet writes"
     ),
     diff_only: bool = typer.Option(
         False, "--diff-only",
-        help="Skip provider fetch, assume valid symbols_snapshot table exists"
+        help="Skip provider fetch and SCD update only"
     ),
     backfill: Optional[str] = typer.Option(
         None, "--backfill",
-        help="Loop pipeline over each day from DATE to --snapshot-as-of (YYYY-MM-DD)"
+        help="Back-fill symbols from this date (YYYY-MM-DD)"
     ),
     execute: bool = typer.Option(
         False, "--execute",
-        help="Actually run the pipeline (required for non-dry-run operations)"
+        help="Perform writes (not read-only)"
     ),
     verbose: bool = typer.Option(
         False, "--verbose", "-v",
@@ -130,14 +130,7 @@ def update(
         mp symbols update -p polygon --diff-only --execute
     """
     
-    # Validate flag combinations BEFORE checking execute precedence
-    if dry_run and diff_only:
-        console.print("❌ `--diff-only` implies DB writes; cannot combine with --dry-run.", style="red")
-        raise typer.Exit(1)
-    
-    if backfill and diff_only:
-        console.print("❌ Back-fill requires provider fetch -> cannot use --diff-only.", style="red")
-        raise typer.Exit(1)
+    # These validations will be checked later when executing
     
     # Parse and validate dates
     snapshot_date = validate_date_format(snapshot_as_of, "--snapshot-as-of")
@@ -153,29 +146,45 @@ def update(
     if data_dir is None:
         data_dir = Path("./data")
     
-    # Check diff-only precondition
+    # Handle --execute precedence over --dry-run
+    show_precedence_preview = False
+    if execute and dry_run:
+        console.print("Both --dry-run and --execute specified", style="yellow")
+        console.print("--execute takes precedence", style="yellow")
+        dry_run = False
+        show_precedence_preview = True
+    
+    # Show preview if not executing OR if showing precedence override
+    if not execute or show_precedence_preview:
+        console.print("Symbol update plan:", style="blue")
+        console.print(f"  providers: {', '.join(providers)}")
+        console.print(f"  snapshot_as_of: {snapshot_date}")
+        if backfill_date:
+            days_count = (snapshot_date - backfill_date).days + 1
+            console.print(f"  backfill: {backfill_date}")
+        console.print(f"  db: {db_path}")
+        console.print(f"  data_dir: {data_dir}")
+        console.print(f"  dry_run: {dry_run}")
+        console.print(f"  diff_only: {diff_only}")
+        console.print(f"  execute: {execute}")
+        
+        # Only exit if not executing (normal preview mode)
+        if not execute:
+            console.print("Dry preview complete. Re-run with --execute to perform writes.")
+            return
+    
+    # Check diff-only precondition when executing
     if diff_only:
         check_diff_only_precondition(db_path)
     
-    # Handle --execute precedence over --dry-run
-    if execute and dry_run:
-        console.print("⚠️  --execute takes precedence over --dry-run.", style="yellow")
-        dry_run = False
+    # Validate flag combinations when actually executing
+    if dry_run and diff_only:
+        console.print("❌ `--diff-only` implies DB writes; cannot combine with --dry-run.", style="red")
+        raise typer.Exit(1)
     
-    # If not executing, show preview and exit
-    if not execute:
-        console.print("🔍 Dry preview mode:", style="blue")
-        console.print(f"  Providers: {', '.join(providers)}")
-        console.print(f"  Snapshot date: {snapshot_date}")
-        if backfill_date:
-            days_count = (snapshot_date - backfill_date).days + 1
-            console.print(f"  Backfill: {backfill_date} to {snapshot_date} ({days_count} days)")
-        console.print(f"  Database: {db_path}")
-        console.print(f"  Data directory: {data_dir}")
-        console.print(f"  Dry run: {dry_run}")
-        console.print(f"  Diff only: {diff_only}")
-        console.print("💡 Dry preview complete. Re-run with --execute to run the pipeline.")
-        return
+    if backfill and diff_only:
+        console.print("❌ Back-fill requires provider fetch -> cannot use --diff-only.", style="red")
+        raise typer.Exit(1)
     
     # Determine date range for processing
     if backfill_date:
@@ -237,7 +246,7 @@ def update(
                     progress.update(task, advance=1)
         
         # Final summary
-        console.print(f"✅ Finished {total_days} run(s):", style="green bold")
+        console.print("✅ Pipeline complete.", style="green bold")
         console.print(f"  Total inserts: {total_inserts}")
         console.print(f"  Total updates: {total_updates}")
         if dry_run:
