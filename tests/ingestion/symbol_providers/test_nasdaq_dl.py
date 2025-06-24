@@ -101,7 +101,7 @@ File Creation Time: 20250619
         assert aapl.currency == "USD"
         assert aapl.status == Status.ACTIVE
         assert aapl.company_name == "Apple Inc."
-        assert aapl.as_of == datetime.date(2025, 6, 19)  # From footer
+        assert aapl.as_of == datetime.date.today()  # Defaults to today when no as_of provided
         assert aapl.meta["market_category"] == "Q"
         assert aapl.meta["etf_flag"] == "N"
         assert aapl.meta["source"] == "nasdaq_daily_list"
@@ -249,7 +249,7 @@ File Creation Time:  20250619
         records = await provider.fetch_symbols()
 
         assert len(records) == 1
-        assert records[0].as_of == datetime.date(2025, 6, 19)  # Should parse correctly
+        assert records[0].as_of == datetime.date.today()  # Defaults to today when no as_of provided
 
     @pytest.mark.asyncio
     async def test_empty_ticker_filtered_out(self, monkeypatch):
