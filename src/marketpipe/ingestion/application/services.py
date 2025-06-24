@@ -345,9 +345,11 @@ class IngestionCoordinatorService:
                     # Record symbol-level failure metrics
                     from marketpipe.metrics import record_metric
 
+
                     record_metric("ingest_symbol_failures", 1, provider=provider, feed=feed)
                     record_metric(
                         f"ingest_failures_{symbol.value}", 1, provider=provider, feed=feed
+
                     )
                 else:
                     try:
@@ -371,6 +373,7 @@ class IngestionCoordinatorService:
                         )
                         record_metric(
                             f"ingest_success_{symbol.value}", 1, provider=provider, feed=feed
+
                         )
 
                         # Publish events
@@ -387,7 +390,9 @@ class IngestionCoordinatorService:
                         # Record metrics
                         from marketpipe.metrics import record_metric
 
-                        record_metric("ingest_symbol_failures", 1, provider=provider, feed=feed)
+                        record_metric(
+                            "ingest_symbol_failures", 1, provider=provider, feed=feed
+                        )
 
             # Job should auto-complete when all symbols are processed
             # Calculate and save final metrics
@@ -398,9 +403,11 @@ class IngestionCoordinatorService:
             from marketpipe.metrics import record_metric
 
             record_metric(
+
                 "ingest_job_duration_seconds", processing_time, provider=provider, feed=feed
             )
             record_metric("ingest_job_total_bars", total_bars, provider=provider, feed=feed)
+
 
             # Record success/failure metrics
             if failed_symbols == 0:
@@ -478,7 +485,14 @@ class IngestionCoordinatorService:
         checkpoint = await self._checkpoint_repository.get_checkpoint(job.job_id, symbol)
 
         # Determine start point for data fetching
-        start_timestamp = checkpoint.last_processed_timestamp if checkpoint else 0
+        # Use checkpoint if available, otherwise use job's time range start
+        if checkpoint:
+            start_timestamp = checkpoint.last_processed_timestamp
+        else:
+            # Convert job's start time to nanoseconds
+            start_timestamp = int(
+                job.time_range.start.value.timestamp() * 1_000_000_000
+            )
 
         # Fetch data from market data provider (anti-corruption layer)
         bars = await self._market_data_provider.fetch_bars(
@@ -505,7 +519,9 @@ class IngestionCoordinatorService:
             from marketpipe.metrics import record_metric
 
             record_metric(
+
                 "validation_failures", len(validation_result.errors), provider=provider, feed=feed
+
             )
             record_metric(
                 f"validation_failures_{symbol.value}",

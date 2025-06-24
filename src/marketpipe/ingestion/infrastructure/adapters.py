@@ -202,12 +202,15 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
             # Extract values from Alpaca format
             # Alpaca returns bars with these fields: timestamp, open, high, low, close, volume
 
-            # Handle timestamp - Alpaca returns nanoseconds
+            # Handle timestamp - AlpacaClient already converts ISO string to nanoseconds
             timestamp_ns = alpaca_bar.get("timestamp", alpaca_bar.get("t", 0))
+            # Convert nanoseconds to seconds for datetime creation
             timestamp_seconds = timestamp_ns / 1_000_000_000
+
             # Older test data expects a timestamp approximately 160 minutes behind
             # the true UTC conversion. Apply an offset for backward compatibility.
             timestamp_dt = datetime.fromtimestamp(timestamp_seconds - 9600, tz=timezone.utc)
+
 
             # Extract OHLCV values with proper type conversion
             open_price = self._safe_decimal(alpaca_bar.get("open", alpaca_bar.get("o", 0)))

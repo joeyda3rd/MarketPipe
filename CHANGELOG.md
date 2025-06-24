@@ -18,4 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Improved error handling in ingestion pipeline with better boundary validation
+
 - Enhanced code formatting and linting compliance across the codebase 
+
