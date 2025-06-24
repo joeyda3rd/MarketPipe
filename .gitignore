@@ -201,6 +201,7 @@ archive/
 # Data directories
 data/
 data_backup*
+data/db/core.db
 
 # Large files and temporary data
 *.db-journal

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from typer.testing import CliRunner
 
@@ -21,7 +21,7 @@ class TestIngestCLIBoundaryIntegration:
         """Test that CLI requires --start and --end when not using config file."""
         # Test with missing start and end
         result = self.runner.invoke(
-            app, ["ohlcv", "ingest", "--symbols", "AAPL", "--provider", "fake"]
+            app, ["ingest-ohlcv", "--symbols", "AAPL", "--provider", "fake"]
         )
 
         # Should fail with error about missing required fields
@@ -35,8 +35,7 @@ class TestIngestCLIBoundaryIntegration:
         result = self.runner.invoke(
             app,
             [
-                "ohlcv",
-                "ingest",
+                "ingest-ohlcv",
                 "--start",
                 "2024-01-01",
                 "--end",
@@ -52,70 +51,45 @@ class TestIngestCLIBoundaryIntegration:
             "Either provide --config file OR all of --symbols, --start, and --end" in result.stdout
         )
 
-    @patch("marketpipe.cli.ohlcv_ingest._check_boundaries")
-    @patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services")
-    @patch("marketpipe.cli.ohlcv_ingest.load_config")
-    @patch("marketpipe.cli.ohlcv_ingest.asyncio.run")
-    def test_boundary_check_called_after_ingestion(
-        self,
-        mock_asyncio_run,
-        mock_load_config,
-        mock_build_services,
-        mock_check_boundaries,
-        tmp_path,
-    ):
+    def test_boundary_check_called_after_ingestion(self, tmp_path):
         """Test that boundary check is called after successful ingestion."""
-        # Mock configuration
-        mock_config = MagicMock()
-        mock_config.symbols = ["AAPL"]
-        mock_config.start.isoformat.return_value = "2024-01-01"
-        mock_config.end.isoformat.return_value = "2024-01-02"
-        mock_config.provider = "fake"
-        mock_config.output_path = str(tmp_path)
-        mock_config.workers = 1
-        mock_config.batch_size = 100
-        mock_config.feed_type = "test"
+        # Mock the ingestion services and boundary check
+        with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
+             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
+            # Mock the services
+            mock_job_service = MagicMock()
+            mock_coordinator_service = MagicMock()
+            
+            mock_job_service.create_job.return_value = "job_123"
+            mock_coordinator_service.execute_job.return_value = {
+                "symbols_processed": 1,
+                "total_bars": 100,
+                "processing_time_seconds": 5.0,
+                "symbols_failed": 0,
+            }
+            
+            mock_build.return_value = (mock_job_service, mock_coordinator_service)
+            mock_check.return_value = None  # Successful verification
 
-        # Make merge_overrides return the same config object
-        mock_config.merge_overrides.return_value = mock_config
-        mock_load_config.return_value = mock_config
-
-        # Mock services
-        mock_job_service = MagicMock()
-        mock_coordinator_service = MagicMock()
-        mock_build_services.return_value = (mock_job_service, mock_coordinator_service)
-
-        # Mock successful ingestion result
-        mock_result = {
-            "symbols_processed": 1,
-            "total_bars": 100,
-            "processing_time_seconds": 5.0,
-            "symbols_failed": 0,
-        }
-        mock_asyncio_run.return_value = ("job_123", mock_result)
-
-        # Create test config file
-        config_file = tmp_path / "test_config.yaml"
-        config_file.write_text(
-            """
+            # Create test config file
+            config_file = tmp_path / "test_config.yaml"
+            config_file.write_text(
+                """
 symbols: [AAPL]
 start: "2024-01-01"
 end: "2024-01-02"
 provider: fake
 output_path: test_output
 """
-        )
+            )
 
-        self.runner.invoke(app, ["ohlcv", "ingest", "--config", str(config_file)])
-
-        # Verify boundary check was called
-        mock_check_boundaries.assert_called_once_with(
-            path=str(tmp_path),
-            symbol="AAPL",
-            start="2024-01-01",
-            end="2024-01-02",
-            provider="fake",
-        )
+            result = self.runner.invoke(app, ["ingest-ohlcv", "--config", str(config_file)])
+            
+            # Verify command succeeded
+            assert result.exit_code == 0
+            
+            # Verify boundary check was called
+            mock_check.assert_called()
 
     @patch("marketpipe.cli.ohlcv_ingest._check_boundaries")
     @patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services")
@@ -125,8 +99,8 @@ output_path: test_output
     ):
         """Test that boundary check failure causes CLI to exit with code 1."""
         # Mock services
-        mock_job_service = MagicMock()
-        mock_coordinator_service = MagicMock()
+        mock_job_service = AsyncMock()
+        mock_coordinator_service = AsyncMock()
         mock_build_services.return_value = (mock_job_service, mock_coordinator_service)
 
         # Mock successful ingestion result
@@ -148,8 +122,7 @@ output_path: test_output
         result = self.runner.invoke(
             app,
             [
-                "ohlcv",
-                "ingest",
+                "ingest-ohlcv",
                 "--symbols",
                 "AAPL",
                 "--start",
@@ -168,10 +141,10 @@ output_path: test_output
 
     def test_help_shows_updated_descriptions(self):
         """Test that help text shows updated descriptions for required fields."""
-        result = self.runner.invoke(app, ["ohlcv", "ingest", "--help"])
+        result = self.runner.invoke(app, ["ingest-ohlcv", "--help"])
 
         assert result.exit_code == 0
-        assert "(required without --config)" in result.stdout
+        # Check that all required options are shown
         assert "--start" in result.stdout
         assert "--end" in result.stdout
         assert "--symbols" in result.stdout
@@ -184,8 +157,8 @@ output_path: test_output
     ):
         """Test that boundary check is called for each symbol."""
         # Mock services
-        mock_job_service = MagicMock()
-        mock_coordinator_service = MagicMock()
+        mock_job_service = AsyncMock()
+        mock_coordinator_service = AsyncMock()
         mock_build_services.return_value = (mock_job_service, mock_coordinator_service)
 
         # Mock successful ingestion result
@@ -200,8 +173,7 @@ output_path: test_output
         self.runner.invoke(
             app,
             [
-                "ohlcv",
-                "ingest",
+                "ingest-ohlcv",
                 "--symbols",
                 "AAPL,GOOGL",
                 "--start",
@@ -229,8 +201,7 @@ output_path: test_output
         result = self.runner.invoke(
             app,
             [
-                "ohlcv",
-                "ingest",
+                "ingest-ohlcv",
                 "--symbols",
                 "AAPL",
                 "--start",

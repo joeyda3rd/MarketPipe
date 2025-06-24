@@ -154,7 +154,13 @@ def update(
         mp symbols update -p polygon --diff-only --execute
     """
 
-    # These validations will be checked later when executing
+    # Validate providers early
+    available_providers = list_providers()
+    for provider in providers:
+        if provider not in available_providers:
+            console.print(f"❌ Unknown provider: '{provider}'", style="red")
+            console.print(f"Available providers: {', '.join(available_providers)}", style="yellow")
+            raise typer.Exit(1)
 
     # Parse and validate dates
     snapshot_date = validate_date_format(snapshot_as_of, "--snapshot-as-of")

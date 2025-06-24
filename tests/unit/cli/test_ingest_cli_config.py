@@ -36,7 +36,8 @@ workers: 8
             with patch.dict(
                 "os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}
             ):
-                with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build:
+                with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
+                     patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
                     # Mock the services
                     mock_job_service = AsyncMock()
                     mock_coordinator_service = AsyncMock()
@@ -83,7 +84,8 @@ workers: 4
             with patch.dict(
                 "os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}
             ):
-                with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build:
+                with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
+                     patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
                     # Mock the services
                     mock_job_service = AsyncMock()
                     mock_coordinator_service = AsyncMock()
@@ -124,7 +126,8 @@ workers: 4
     def test_direct_flags_without_config(self):
         """Test using direct CLI flags without config file."""
         with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
-            with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build:
+            with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
+                 patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
@@ -194,7 +197,8 @@ output-path: ./test_output
             with patch.dict(
                 "os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}
             ):
-                with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build:
+                with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
+                     patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
                     # Mock the services
                     mock_job_service = AsyncMock()
                     mock_coordinator_service = AsyncMock()
