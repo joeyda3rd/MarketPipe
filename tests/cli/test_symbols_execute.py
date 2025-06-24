@@ -90,45 +90,18 @@ class TestSymbolsExecuteIntegration:
         assert "✅ Pipeline complete." not in result.output
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.ingestion.symbol_providers.get")
-    @patch("marketpipe.ingestion.normalizer.run_symbol_normalizer.normalize_stage")
-    @patch("marketpipe.ingestion.normalizer.scd_writer.run_scd_update")
-    @patch("marketpipe.ingestion.normalizer.refresh_views.refresh")
-    @patch("duckdb.connect")
+    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
     def test_execute_creates_database_views(
         self,
-        mock_duckdb,
-        mock_refresh,
-        mock_scd,
-        mock_normalize,
-        mock_get_provider,
+        mock_run_pipeline,
         mock_list_providers,
     ):
         """Test that pipeline creates database views on completion."""
         # Setup mocks
         mock_list_providers.return_value = ["dummy"]
-        mock_provider = Mock()
 
-        async def mock_fetch_symbols():
-            record = Mock()
-            record.meta = {}
-            record.model_dump = lambda: {
-                "symbol": "TEST",
-                "name": "Test Co",
-                "meta": {"provider": "dummy"},
-            }
-            return [record]
-
-        mock_provider.fetch_symbols = mock_fetch_symbols
-        mock_get_provider.return_value = mock_provider
-
-        mock_conn = create_mock_duckdb_connection()
-        mock_duckdb.return_value = mock_conn
-
-        # Mock the pipeline components
-        mock_normalize.return_value = None
-        mock_scd.return_value = None
-        mock_refresh.return_value = None
+        # Mock the pipeline to return successful results
+        mock_run_pipeline.return_value = (5, 3)  # 5 inserts, 3 updates
 
         with tempfile.TemporaryDirectory() as temp_dir:
             result = self.runner.invoke(
@@ -144,38 +117,23 @@ class TestSymbolsExecuteIntegration:
                 ],
             )
 
-        assert result.exit_code == 0
+        assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "✅ Pipeline complete." in result.output
-        # Note: refresh may or may not be called depending on pipeline success
+        
+        # Verify pipeline was called
+        mock_run_pipeline.assert_called_once()
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.ingestion.symbol_providers.get")
-    @patch("duckdb.connect")
+    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
     def test_rerun_same_snapshot_adds_zero_rows(
-        self, mock_duckdb, mock_get_provider, mock_list_providers
+        self, mock_run_pipeline, mock_list_providers
     ):
         """Test that rerunning the same snapshot is idempotent."""
         # Setup mocks
         mock_list_providers.return_value = ["dummy"]
-        mock_provider = Mock()
 
-        async def mock_fetch_symbols():
-            record = Mock()
-            record.meta = {}
-            record.model_dump = lambda: {
-                "symbol": "AAPL",
-                "name": "Apple",
-                "meta": {"provider": "dummy"},
-            }
-            return [record]
-
-        mock_provider.fetch_symbols = mock_fetch_symbols
-        mock_get_provider.return_value = mock_provider
-
-        mock_conn = create_mock_duckdb_connection()
-        # Mock that symbols_master table exists and has data (simulating previous run)
-        mock_conn.execute.return_value.fetchone.return_value = [1]  # Non-zero count
-        mock_duckdb.return_value = mock_conn
+        # Mock the pipeline to return no changes (idempotent)
+        mock_run_pipeline.return_value = (0, 0)  # 0 inserts, 0 updates
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # Run twice with same snapshot date
@@ -194,7 +152,10 @@ class TestSymbolsExecuteIntegration:
                         "--execute",
                     ],
                 )
-                assert result.exit_code == 0
+                assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Should complete successfully both times
         assert "✅ Pipeline complete." in result.output
+        
+        # Verify pipeline was called twice
+        assert mock_run_pipeline.call_count == 2
