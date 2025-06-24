@@ -196,7 +196,6 @@ class TestIngestionCoordinatorEndToEndFlow:
         job_service = services["job_service"]
         job_repository = services["job_repository"]
         market_data_adapter = services["market_data_adapter"]
-        event_publisher = services["event_publisher"]
 
         # Setup test data for multiple symbols
         symbols = [Symbol("AAPL"), Symbol("GOOGL")]
@@ -244,9 +243,7 @@ class TestIngestionCoordinatorEndToEndFlow:
         """Test that coordinator handles failed symbols without stopping other processing."""
         services = ingestion_services
         job_service = services["job_service"]
-        job_repository = services["job_repository"]
         market_data_adapter = services["market_data_adapter"]
-        event_publisher = services["event_publisher"]
 
         # Setup test data - one symbol succeeds, one fails
         working_symbol = Symbol("AAPL")
@@ -396,7 +393,6 @@ class TestIngestionCoordinatorEndToEndFlow:
         """Test that coordinator emits all expected domain events during processing."""
         services = ingestion_services
         job_service = services["job_service"]
-        job_repository = services["job_repository"]
         market_data_adapter = services["market_data_adapter"]
         event_publisher = services["event_publisher"]
 
@@ -467,12 +463,12 @@ class TestIngestionCoordinatorEndToEndFlow:
         market_data_adapter = services["market_data_adapter"]
 
         symbol = Symbol("AAPL")
-        
+
         now = datetime.now(timezone.utc)
         start_time = now.replace(hour=13, minute=30, second=0, microsecond=0) - timedelta(days=1)
         end_time = start_time + timedelta(hours=1)
         time_range = TimeRange(start=Timestamp(start_time), end=Timestamp(end_time))
-        
+
         # Create test bars with timestamps within the job time range
         bars = create_test_ohlcv_bars(symbol, count=4, start_time=start_time)
         market_data_adapter.set_bars_data(symbol, bars)
