@@ -426,7 +426,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 
         # Create configuration from stored values
         configuration = IngestionConfiguration(
-            output_path=Path("data/raw"),  # Default path
+            output_path=Path("data/output"),  # Default path
             compression="snappy",
             max_workers=3,
             batch_size=1000,

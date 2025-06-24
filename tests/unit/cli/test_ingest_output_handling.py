@@ -101,7 +101,7 @@ class TestCLIOutputHandling:
             )
 
     def test_default_output_path_when_no_flag(self):
-        """Test that data goes to data/raw when no --output flag is provided."""
+        """Test that data goes to data/output when no --output flag is provided."""
 
         # Run ingestion without custom output path
         result = subprocess.run(
@@ -416,7 +416,7 @@ class TestIngestOutputHandling:
                 "--end",
                 "2024-06-25",
                 "--output",
-                "data/test",
+                "tests/resources",
             ],
         )
         assert result.exit_code != 0
@@ -435,7 +435,7 @@ class TestIngestOutputHandling:
                 "--start",
                 "2024-06-20",
                 "--output",
-                "data/test",
+                "tests/resources",
             ],
         )
         assert result.exit_code != 0

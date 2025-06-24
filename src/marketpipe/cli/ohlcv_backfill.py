@@ -113,7 +113,7 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
     # ------------------------------------------------------------------
     # Detect gaps & execute ingestion per gap (synchronously)
     # ------------------------------------------------------------------
-    parquet_root = Path("data/raw")  # writer.write_parquet default in ingest
+    parquet_root = Path("data/output")  # writer.write_parquet default in ingest
     detector = GapDetectorService(parquet_root)
 
     event_bus = InMemoryEventPublisher()

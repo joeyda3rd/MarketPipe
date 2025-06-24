@@ -1,0 +1,40 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=1024']  # 1MB limit
+      - id: check-yaml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: check-case-conflict
+
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.1.8
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: local
+    hooks:
+      - id: prevent-archive-commits
+        name: Prevent commits to archive directories
+        entry: sh -c 'if git diff --cached --name-only | grep -q "^archive/"; then echo "Error: Files in archive/ directory cannot be committed. Move files outside archive/ or remove from staging."; exit 1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: check-fixture-size
+        name: Check test fixture sizes
+        entry: sh -c 'for file in $(git diff --cached --name-only | grep "tests/resources/"); do if [ -f "$file" ] && [ $(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo 0) -gt 102400 ]; then echo "Error: Test fixture $file exceeds 100KB limit"; exit 1; fi; done'
+        language: system
+        pass_filenames: false
+        always_run: true 

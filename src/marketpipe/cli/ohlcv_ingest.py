@@ -446,7 +446,7 @@ def _ingest_impl(
                     start=start_date,
                     end=end_date,
                     batch_size=batch_size or 500,
-                    output_path=output_path or "data/raw",
+                    output_path=output_path or "data/output",
                     workers=workers or 3,
                     provider=provider or "alpaca",
                     feed_type=feed_type or "iex",
