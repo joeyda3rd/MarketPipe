@@ -55,10 +55,11 @@ class TestIngestCLIBoundaryIntegration:
         """Test that boundary check is called after successful ingestion."""
         # Mock the ingestion services and boundary check
         with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
+             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check, \
+             patch("marketpipe.cli.ohlcv_ingest.asyncio.run") as mock_asyncio_run:
             # Mock the services
-            mock_job_service = MagicMock()
-            mock_coordinator_service = MagicMock()
+            mock_job_service = AsyncMock()
+            mock_coordinator_service = AsyncMock()
             
             mock_job_service.create_job.return_value = "job_123"
             mock_coordinator_service.execute_job.return_value = {
@@ -70,11 +71,20 @@ class TestIngestCLIBoundaryIntegration:
             
             mock_build.return_value = (mock_job_service, mock_coordinator_service)
             mock_check.return_value = None  # Successful verification
+            
+            # Mock asyncio.run to return proper tuple
+            mock_asyncio_run.return_value = ("job_123", {
+                "symbols_processed": 1,
+                "total_bars": 100,
+                "processing_time_seconds": 5.0,
+                "symbols_failed": 0,
+            })
 
             # Create test config file
             config_file = tmp_path / "test_config.yaml"
             config_file.write_text(
                 """
+config_version: "1"
 symbols: [AAPL]
 start: "2024-01-01"
 end: "2024-01-02"
@@ -86,7 +96,7 @@ output_path: test_output
             result = self.runner.invoke(app, ["ingest-ohlcv", "--config", str(config_file)])
             
             # Verify command succeeded
-            assert result.exit_code == 0
+            assert result.exit_code == 0, f"Command failed: {result.stdout}"
             
             # Verify boundary check was called
             mock_check.assert_called()

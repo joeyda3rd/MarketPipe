@@ -122,10 +122,11 @@ class TestCLIOutputHandling:
         
         # Mock the ingestion services and boundary check
         with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
+             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check, \
+             patch("marketpipe.cli.ohlcv_ingest.asyncio.run") as mock_asyncio_run:
             # Mock the services
-            mock_job_service = MagicMock()
-            mock_coordinator_service = MagicMock()
+            mock_job_service = AsyncMock()
+            mock_coordinator_service = AsyncMock()
             
             mock_job_service.create_job.return_value = "test_job"
             mock_coordinator_service.execute_job.return_value = {
@@ -136,6 +137,13 @@ class TestCLIOutputHandling:
             
             mock_build.return_value = (mock_job_service, mock_coordinator_service)
             mock_check.return_value = None  # Successful verification
+            
+            # Mock asyncio.run to return proper tuple
+            mock_asyncio_run.return_value = ("test_job", {
+                "symbols_processed": 1,
+                "total_bars": 1000,
+                "processing_time_seconds": 5.0,
+            })
 
             # Run ingestion without custom output path
             result = self.runner.invoke(
@@ -407,10 +415,11 @@ class TestIngestOutputHandling:
 
         # Mock the boundary check and ingestion services
         with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
+             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check, \
+             patch("marketpipe.cli.ohlcv_ingest.asyncio.run") as mock_asyncio_run:
             # Mock the services
-            mock_job_service = MagicMock()
-            mock_coordinator_service = MagicMock()
+            mock_job_service = AsyncMock()
+            mock_coordinator_service = AsyncMock()
             
             mock_job_service.create_job.return_value = "test_job"
             mock_coordinator_service.execute_job.return_value = {
@@ -423,6 +432,13 @@ class TestIngestOutputHandling:
             
             # Simulate successful boundary check
             mock_check.return_value = None  # No exception = success
+            
+            # Mock asyncio.run to return proper tuple
+            mock_asyncio_run.return_value = ("test_job", {
+                "symbols_processed": 1,
+                "total_bars": 1000,
+                "processing_time_seconds": 5.0,
+            })
 
             result = self.runner.invoke(
                 app,

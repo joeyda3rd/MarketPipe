@@ -116,7 +116,7 @@ def show_progress_summary(
 @app.command("update")
 def update(
     providers: list[str] = typer.Option(
-        ...,
+        None,
         "--provider",
         "-p",
         help="Symbol provider(s) to ingest. Available: " + ", ".join(list_providers()),
@@ -154,8 +154,12 @@ def update(
         mp symbols update -p polygon --diff-only --execute
     """
 
-    # Validate providers early
+    # Handle default providers (use all if none specified)
     available_providers = list_providers()
+    if providers is None or len(providers) == 0:
+        providers = available_providers
+        
+    # Validate providers early
     for provider in providers:
         if provider not in available_providers:
             console.print(f"❌ Unknown provider: '{provider}'", style="red")
@@ -170,11 +174,12 @@ def update(
         backfill_date = validate_date_format(backfill, "--backfill")
         validate_backfill_range(backfill_date, snapshot_date)
 
-    # Set defaults
+    # Set defaults with environment variable support
+    import os
     if db_path is None:
-        db_path = Path("warehouse.duckdb")
+        db_path = Path(os.getenv("MP_DB", "warehouse.duckdb"))
     if data_dir is None:
-        data_dir = Path("./data")
+        data_dir = Path(os.getenv("MP_DATA_DIR", "./data"))
 
     # Handle --execute precedence over --dry-run
     show_precedence_preview = False
