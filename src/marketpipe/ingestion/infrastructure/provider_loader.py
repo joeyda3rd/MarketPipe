@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
 from marketpipe.domain.market_data import IMarketDataProvider
+
 from .provider_registry import get, list_providers
 
 logger = logging.getLogger(__name__)

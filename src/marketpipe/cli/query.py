@@ -11,9 +11,7 @@ import typer
 def query(
     sql: str = typer.Argument(..., help="DuckDB SQL using views bars_5m|15m|1h|1d"),
     csv: bool = typer.Option(False, "--csv", help="Output CSV to stdout"),
-    limit: int = typer.Option(
-        50, "--limit", "-l", help="Limit number of rows in table output"
-    ),
+    limit: int = typer.Option(50, "--limit", "-l", help="Limit number of rows in table output"),
 ):
     """Run an ad-hoc query on aggregated data.
 
@@ -25,8 +23,9 @@ def query(
         marketpipe query "SELECT MAX(high), MIN(low) FROM bars_1h WHERE symbol='MSFT'"
     """
     from marketpipe.bootstrap import bootstrap
+
     bootstrap()
-    
+
     try:
         from marketpipe.aggregation.infrastructure.duckdb_views import (
             query as run_query,
@@ -62,4 +61,4 @@ def query(
 
     except Exception as e:
         print(f"❌ Query failed: {e}")
-        raise typer.Exit(1) 
+        raise typer.Exit(1)

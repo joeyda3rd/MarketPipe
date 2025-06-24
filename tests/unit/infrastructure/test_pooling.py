@@ -6,13 +6,12 @@ import sqlite3
 import threading
 import time
 
-
 from marketpipe.infrastructure.sqlite_pool import (
+    _init_conn,
+    close_all_pools,
     connection,
     get_pool,
-    close_all_pools,
     get_pool_stats,
-    _init_conn,
 )
 
 

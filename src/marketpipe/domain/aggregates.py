@@ -9,17 +9,17 @@ for operations that span multiple domain objects.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Dict
 from datetime import date
+from typing import Dict, List, Optional
 
 from .entities import OHLCVBar
-from .value_objects import Symbol, Timestamp, Price, Volume, TimeRange
 from .events import (
-    DomainEvent,
     BarCollectionCompleted,
     BarCollectionStarted,
+    DomainEvent,
     MarketDataReceived,
 )
+from .value_objects import Price, Symbol, TimeRange, Timestamp, Volume
 
 
 class SymbolBarsAggregate:
@@ -83,9 +83,7 @@ class SymbolBarsAggregate:
         self._version += 1
 
         # Raise domain event
-        event = BarCollectionStarted(
-            symbol=self._symbol, trading_date=self._trading_date
-        )
+        event = BarCollectionStarted(symbol=self._symbol, trading_date=self._trading_date)
         self._events.append(event)
 
     def add_bar(self, bar: OHLCVBar) -> None:
@@ -175,9 +173,7 @@ class SymbolBarsAggregate:
         Returns:
             List of bars within the specified range
         """
-        return [
-            bar for bar in self._bars.values() if time_range.contains(bar.timestamp)
-        ]
+        return [bar for bar in self._bars.values() if time_range.contains(bar.timestamp)]
 
     def has_gaps(self) -> bool:
         """Check if there are time gaps in the minute-by-minute data.
@@ -253,9 +249,7 @@ class SymbolBarsAggregate:
                     price = bar.vwap.value
                 else:
                     price = (
-                        bar.high_price.value
-                        + bar.low_price.value
-                        + bar.close_price.value
+                        bar.high_price.value + bar.low_price.value + bar.close_price.value
                     ) / Decimal("3")
 
                 volume = Decimal(str(bar.volume.value))
@@ -294,9 +288,7 @@ class SymbolBarsAggregate:
             ValueError: If no bars available for calculation
         """
         if not self._bars:
-            raise ValueError(
-                f"Cannot calculate summary with no bars for {self._symbol}"
-            )
+            raise ValueError(f"Cannot calculate summary with no bars for {self._symbol}")
 
         # Calculate summary without marking collection as complete
         sorted_bars = self.get_all_bars()
@@ -316,9 +308,7 @@ class SymbolBarsAggregate:
                     price = bar.vwap.value
                 else:
                     price = (
-                        bar.high_price.value
-                        + bar.low_price.value
-                        + bar.close_price.value
+                        bar.high_price.value + bar.low_price.value + bar.close_price.value
                     ) / Decimal("3")
 
                 volume = Decimal(str(bar.volume.value))
@@ -512,5 +502,3 @@ class DailySummary:
             return 0.0
         change = self.calculate_price_change()
         return float((change.value / self.open_price.value) * 100)
-
-

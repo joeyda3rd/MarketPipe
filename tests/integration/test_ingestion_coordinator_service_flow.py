@@ -3,38 +3,39 @@
 
 from __future__ import annotations
 
-import pytest
 import asyncio
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pyarrow.parquet as pq
+import pytest
+
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
+from marketpipe.ingestion.application.commands import (
+    CreateIngestionJobCommand,
+    StartJobCommand,
+)
+from marketpipe.ingestion.application.services import (
+    IngestionCoordinatorService,
+    IngestionJobService,
+)
 from marketpipe.ingestion.domain.services import (
     IngestionDomainService,
     IngestionProgressTracker,
 )
 from marketpipe.ingestion.domain.value_objects import (
-    IngestionConfiguration,
     BatchConfiguration,
+    IngestionConfiguration,
 )
-from marketpipe.ingestion.application.services import (
-    IngestionJobService,
-    IngestionCoordinatorService,
-)
-from marketpipe.ingestion.application.commands import (
-    CreateIngestionJobCommand,
-    StartJobCommand,
-)
-from tests.fakes.repositories import (
-    FakeIngestionJobRepository,
-    FakeIngestionCheckpointRepository,
-    FakeIngestionMetricsRepository,
-)
+from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
 from tests.fakes.adapters import FakeMarketDataAdapter, create_test_ohlcv_bars
 from tests.fakes.events import FakeEventPublisher
+from tests.fakes.repositories import (
+    FakeIngestionCheckpointRepository,
+    FakeIngestionJobRepository,
+    FakeIngestionMetricsRepository,
+)
 from tests.fakes.validators import FakeDataValidator
-from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
 
 
 def create_test_configuration(output_path: Path) -> IngestionConfiguration:
@@ -182,7 +183,7 @@ class TestIngestionCoordinatorEndToEndFlow:
         assert len(start_events) == 1
         assert start_events[0].job_id == job_id
         assert start_events[0].symbols == [symbol]
-        
+
         await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     @pytest.mark.asyncio
@@ -232,7 +233,7 @@ class TestIngestionCoordinatorEndToEndFlow:
         # Verify execution result
         assert result["status"] == "completed"
         assert result["symbols_processed"] >= len(symbols)
-        
+
         # Wait for any pending metrics tasks to complete before test ends
         await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
@@ -280,7 +281,7 @@ class TestIngestionCoordinatorEndToEndFlow:
         # Verify that at least the working symbol was processed
         assert result["symbols_processed"] >= 1
         assert result["symbols_failed"] >= 1  # GOOGL should have failed
-        
+
         await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     @pytest.mark.asyncio
@@ -315,9 +316,7 @@ class TestIngestionCoordinatorEndToEndFlow:
 
         checkpoint = IngestionCheckpoint(
             symbol=symbol,
-            last_processed_timestamp=int(
-                time_range.start.value.timestamp() * 1_000_000_000
-            ),
+            last_processed_timestamp=int(time_range.start.value.timestamp() * 1_000_000_000),
             records_processed=5,
             updated_at=datetime.now(timezone.utc),
         )
@@ -328,9 +327,7 @@ class TestIngestionCoordinatorEndToEndFlow:
         result = await coordinator_service.execute_job(job_id)
 
         # Verify checkpoint was retrieved
-        retrieved_checkpoint = await checkpoint_repository.get_checkpoint(
-            job_id, symbol
-        )
+        retrieved_checkpoint = await checkpoint_repository.get_checkpoint(job_id, symbol)
         assert retrieved_checkpoint is not None
         assert retrieved_checkpoint.symbol == symbol
         assert retrieved_checkpoint.records_processed == 5
@@ -338,13 +335,11 @@ class TestIngestionCoordinatorEndToEndFlow:
         # Verify job execution was successful
         assert result["status"] == "completed"
         assert result["symbols_processed"] >= 1
-        
+
         await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     @pytest.mark.asyncio
-    async def test_coordinator_creates_proper_partition_paths(
-        self, ingestion_services, tmp_path
-    ):
+    async def test_coordinator_creates_proper_partition_paths(self, ingestion_services, tmp_path):
         """Test that coordinator creates partitions with proper Hive-style paths."""
         services = ingestion_services
         job_service = services["job_service"]
@@ -392,7 +387,7 @@ class TestIngestionCoordinatorEndToEndFlow:
         partition_path_str = str(created_partition.file_path)
         assert f"symbol={symbol.value}" in partition_path_str
         # The exact year/month/day format might vary based on the ParquetStorageEngine implementation
-        
+
         await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     @pytest.mark.asyncio
@@ -433,9 +428,9 @@ class TestIngestionCoordinatorEndToEndFlow:
 
         # Verify all expected domain events were emitted
         from marketpipe.ingestion.domain.events import (
-            IngestionJobStarted,
             IngestionBatchProcessed,
             IngestionJobCompleted,
+            IngestionJobStarted,
         )
 
         # Should have job started event
@@ -461,12 +456,10 @@ class TestIngestionCoordinatorEndToEndFlow:
         assert len(completed_events) == 1
         assert completed_events[0].symbols_processed == 1
         assert completed_events[0].total_bars_processed == len(test_bars)
-        
+
         await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
-    def test_process_symbol_writes_parquet_partition(
-        self, ingestion_services, tmp_path
-    ):
+    def test_process_symbol_writes_parquet_partition(self, ingestion_services, tmp_path):
         """Coordinator should write Parquet partition via storage service."""
         services = ingestion_services
         job_service = services["job_service"]
@@ -479,9 +472,7 @@ class TestIngestionCoordinatorEndToEndFlow:
         market_data_adapter.set_bars_data(symbol, bars)
 
         now = datetime.now(timezone.utc)
-        start_time = now.replace(
-            hour=13, minute=30, second=0, microsecond=0
-        ) - timedelta(days=1)
+        start_time = now.replace(hour=13, minute=30, second=0, microsecond=0) - timedelta(days=1)
         end_time = start_time + timedelta(hours=1)
         time_range = TimeRange(start=Timestamp(start_time), end=Timestamp(end_time))
 

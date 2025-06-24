@@ -3,14 +3,15 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-from datetime import datetime, timezone
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import List, Optional
 
 from marketpipe.domain.services import DomainService
 from marketpipe.domain.value_objects import Symbol, TimeRange
+
 from .entities import IngestionJob, IngestionJobId, ProcessingState
-from .value_objects import IngestionConfiguration, BatchConfiguration, ProcessingMetrics
+from .value_objects import BatchConfiguration, IngestionConfiguration, ProcessingMetrics
 
 
 @dataclass
@@ -164,9 +165,7 @@ class IngestionDomainService(DomainService):
                     )
 
         # Business rule: Limit concurrent jobs to prevent resource exhaustion
-        active_count = len(
-            [job for job in active_jobs if job.state == ProcessingState.IN_PROGRESS]
-        )
+        active_count = len([job for job in active_jobs if job.state == ProcessingState.IN_PROGRESS])
 
         if active_count >= 5:  # Maximum 5 concurrent jobs
             errors.append(
@@ -254,9 +253,7 @@ class IngestionDomainService(DomainService):
         # Business rule: Don't allow jobs for data older than 2 years (data availability)
         max_age_days = 730  # 2 years
         if (now - time_range.end.value).days > max_age_days:
-            raise ValueError(
-                f"Cannot create jobs for data older than {max_age_days} days"
-            )
+            raise ValueError(f"Cannot create jobs for data older than {max_age_days} days")
 
     def _validate_configuration(self, config: IngestionConfiguration) -> None:
         """Validate configuration for business rules."""
@@ -272,9 +269,7 @@ class IngestionDomainService(DomainService):
 
         # Business rule: Reasonable batch sizes
         if config.batch_size > 10000:
-            raise ValueError(
-                "Batch size cannot exceed 10,000 records (memory protection)"
-            )
+            raise ValueError("Batch size cannot exceed 10,000 records (memory protection)")
 
 
 class IngestionProgressTracker(DomainService):

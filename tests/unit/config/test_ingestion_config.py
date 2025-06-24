@@ -11,13 +11,14 @@ import pytest
 
 from marketpipe.config import IngestionJobConfig
 from marketpipe.ingestion.infrastructure.provider_registry import (
-    register,
     is_registered,
+    register,
 )
 
 # Ensure polygon provider is available for config tests
 try:
     from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
+
     if not is_registered("polygon"):
         register("polygon", FakeMarketDataAdapter)
 except Exception:
@@ -46,9 +47,7 @@ class TestIngestionJobConfig:
 
     def test_default_values(self):
         """Test that default values are applied correctly."""
-        config = IngestionJobConfig(
-            symbols=["AAPL"], start=date(2025, 1, 1), end=date(2025, 1, 7)
-        )
+        config = IngestionJobConfig(symbols=["AAPL"], start=date(2025, 1, 1), end=date(2025, 1, 7))
 
         assert config.batch_size == 1000  # Default
         assert config.provider == "alpaca"  # Default
@@ -277,9 +276,7 @@ end: 2025-06-07
         )
 
         # Test overriding some values
-        overridden_config = base_config.merge_overrides(
-            batch_size=2000, workers=8, provider="iex"
-        )
+        overridden_config = base_config.merge_overrides(batch_size=2000, workers=8, provider="iex")
 
         # Original should be unchanged
         assert base_config.batch_size == 1000
@@ -336,9 +333,7 @@ workers: 4
 
     def test_to_dict(self):
         """Test dictionary conversion."""
-        config = IngestionJobConfig(
-            symbols=["AAPL"], start=date(2025, 1, 1), end=date(2025, 1, 7)
-        )
+        config = IngestionJobConfig(symbols=["AAPL"], start=date(2025, 1, 1), end=date(2025, 1, 7))
 
         config_dict = config.to_dict()
 

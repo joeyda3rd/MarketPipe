@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, date
+from datetime import date, datetime, timezone
 
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.ingestion.infrastructure.adapters import AlpacaMarketDataAdapter
@@ -64,9 +64,9 @@ class TestBoundaryCheckTimestampFix:
 
         for domain_bar in domain_bars:
             bar_date = domain_bar.timestamp.value.date()
-            assert start_date <= bar_date <= end_date, (
-                f"Bar date {bar_date} not in range {start_date} to {end_date}"
-            )
+            assert (
+                start_date <= bar_date <= end_date
+            ), f"Bar date {bar_date} not in range {start_date} to {end_date}"
 
         # Verify specific timestamps are correct
         assert domain_bars[0].timestamp.value == datetime(
@@ -104,9 +104,7 @@ class TestBoundaryCheckTimestampFix:
         symbol = Symbol.from_string("TSLA")
 
         # Translate bar to domain model
-        domain_bar = adapter._translate_alpaca_bar_to_domain(
-            mock_bars_wrong_year[0], symbol
-        )
+        domain_bar = adapter._translate_alpaca_bar_to_domain(mock_bars_wrong_year[0], symbol)
 
         # Verify the timestamp is in 2020 (this would trigger boundary check failure)
         assert domain_bar.timestamp.value.year == 2020
@@ -153,15 +151,13 @@ class TestBoundaryCheckTimestampFix:
             domain_bar = adapter._translate_alpaca_bar_to_domain(mock_bar, symbol)
             actual_year = domain_bar.timestamp.value.year
 
-            assert actual_year == expected_year, (
-                f"Failed for {description}: expected {expected_year}, got {actual_year}"
-            )
+            assert (
+                actual_year == expected_year
+            ), f"Failed for {description}: expected {expected_year}, got {actual_year}"
 
             # Verify this is NOT stuck in 2020 (unless that's the actual year)
             if expected_year != 2020:
-                assert actual_year != 2020, (
-                    f"Timestamp incorrectly stuck in 2020 for {description}"
-                )
+                assert actual_year != 2020, f"Timestamp incorrectly stuck in 2020 for {description}"
 
     def test_market_hours_timestamps_correct(self):
         """Test that market hours timestamps are correctly handled."""
@@ -203,10 +199,6 @@ class TestBoundaryCheckTimestampFix:
             hour_minute = domain_bar.timestamp.value.strftime("%H:%M")
             # The expected times are in ET converted to UTC, so check against UTC times
             if expected_time == "09:30":
-                assert hour_minute == "13:30", (
-                    f"Market open time incorrect for {description}"
-                )
+                assert hour_minute == "13:30", f"Market open time incorrect for {description}"
             elif expected_time == "10:00":
-                assert hour_minute == "14:00", (
-                    f"Morning time incorrect for {description}"
-                )
+                assert hour_minute == "14:00", f"Morning time incorrect for {description}"

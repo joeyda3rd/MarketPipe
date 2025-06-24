@@ -4,15 +4,15 @@
 from __future__ import annotations
 
 from .adapters import AlpacaMarketDataAdapter
-from .iex_adapter import IEXMarketDataAdapter
-from .fake_adapter import FakeMarketDataAdapter
-from .polygon_adapter import PolygonMarketDataAdapter
-from .finnhub_adapter import FinnhubMarketDataAdapter
-from .provider_registry import provider, register, get, list_providers
-from .provider_loader import build_provider, get_available_providers
-from .repositories import SqliteIngestionJobRepository, SqliteCheckpointRepository
 from .clients import AlpacaApiClientWrapper
+from .fake_adapter import FakeMarketDataAdapter
+from .finnhub_adapter import FinnhubMarketDataAdapter
+from .iex_adapter import IEXMarketDataAdapter
 from .parquet_storage import ParquetDataStorage
+from .polygon_adapter import PolygonMarketDataAdapter
+from .provider_loader import build_provider, get_available_providers
+from .provider_registry import get, list_providers, provider, register
+from .repositories import SqliteCheckpointRepository, SqliteIngestionJobRepository
 
 __all__ = [
     # Adapters (Anti-corruption layer)

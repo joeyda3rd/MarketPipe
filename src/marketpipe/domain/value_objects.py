@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Union
 
 
@@ -36,9 +36,7 @@ class Symbol:
 
         # Validate format: letters only, 1-10 characters
         if not re.match(r"^[A-Z]{1,10}$", self.value):
-            raise ValueError(
-                f"Invalid symbol format: {self.value}. Must be 1-10 letters only."
-            )
+            raise ValueError(f"Invalid symbol format: {self.value}. Must be 1-10 letters only.")
 
     @classmethod
     def from_string(cls, symbol_str: str) -> Symbol:
@@ -379,9 +377,7 @@ class TimeRange:
     def __post_init__(self):
         """Validate that start is before end."""
         if self.start.value >= self.end.value:
-            raise ValueError(
-                f"Start time {self.start} must be before end time {self.end}"
-            )
+            raise ValueError(f"Start time {self.start} must be before end time {self.end}")
 
     @classmethod
     def from_dates(cls, start_date: date, end_date: date) -> TimeRange:

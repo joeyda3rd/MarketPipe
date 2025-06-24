@@ -7,9 +7,10 @@ Create Date: 2024-12-19 10:30:00.000000
 """
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '0005'
@@ -23,14 +24,14 @@ def upgrade() -> None:
     # Determine if we're using PostgreSQL
     conn = op.get_bind()
     is_postgresql = conn.dialect.name == 'postgresql'
-    
+
     # Create ingestion_jobs table
     payload_column = (
         sa.Column('payload', postgresql.JSONB(astext_type=sa.Text()), nullable=True)
         if is_postgresql
         else sa.Column('payload', sa.JSON(), nullable=True)
     )
-    
+
     op.create_table(
         'ingestion_jobs',
         sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
@@ -48,12 +49,12 @@ def upgrade() -> None:
         # Define unique constraint inline for SQLite compatibility
         sa.UniqueConstraint('symbol', 'day', name='uq_ingestion_jobs_symbol_day'),
     )
-    
+
     # Create indexes for efficient querying
     op.create_index('idx_ingestion_jobs_state', 'ingestion_jobs', ['state'])
     op.create_index('idx_ingestion_jobs_created_at', 'ingestion_jobs', ['created_at'])
     op.create_index('idx_ingestion_jobs_day', 'ingestion_jobs', ['day'])
-    
+
     # PostgreSQL-specific optimizations
     if is_postgresql:
         # Create GIN index on JSONB payload for efficient JSON queries
@@ -63,7 +64,7 @@ def upgrade() -> None:
             ['payload'],
             postgresql_using='gin'
         )
-        
+
         # Create trigger function for automatic updated_at timestamp
         op.execute("""
             CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -74,7 +75,7 @@ def upgrade() -> None:
             END;
             $$ language 'plpgsql';
         """)
-        
+
         # Create trigger to automatically update updated_at column
         op.execute("""
             CREATE TRIGGER update_ingestion_jobs_updated_at
@@ -89,21 +90,21 @@ def downgrade() -> None:
     # Determine if we're using PostgreSQL
     conn = op.get_bind()
     is_postgresql = conn.dialect.name == 'postgresql'
-    
+
     if is_postgresql:
         # Drop trigger first
         op.execute("DROP TRIGGER IF EXISTS update_ingestion_jobs_updated_at ON ingestion_jobs;")
-        
+
         # Drop trigger function
         op.execute("DROP FUNCTION IF EXISTS update_updated_at_column();")
-        
+
         # Drop PostgreSQL-specific index
         op.drop_index('idx_ingestion_jobs_payload_gin', table_name='ingestion_jobs')
-    
+
     # Drop indexes (they'll be dropped with the table, but being explicit)
     op.drop_index('idx_ingestion_jobs_day', table_name='ingestion_jobs')
     op.drop_index('idx_ingestion_jobs_created_at', table_name='ingestion_jobs')
     op.drop_index('idx_ingestion_jobs_state', table_name='ingestion_jobs')
-    
+
     # Drop table (this will also drop the unique constraint defined inline)
-    op.drop_table('ingestion_jobs') 
+    op.drop_table('ingestion_jobs')

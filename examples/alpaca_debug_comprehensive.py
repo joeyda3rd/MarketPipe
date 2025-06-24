@@ -5,11 +5,12 @@ Comprehensive Alpaca API Debug Script
 Tests every aspect of API authentication and endpoints
 """
 
+import asyncio
 import os
 import sys
-import asyncio
-import httpx
 from pathlib import Path
+
+import httpx
 
 print("🔍 COMPREHENSIVE ALPACA API DEBUG SCRIPT")
 print("=" * 50)
@@ -37,7 +38,7 @@ for env_path in env_locations:
         print(f"✅ Found .env file: {env_path}")
 
         # Read and display .env contents (safely)
-        with open(env_path, "r") as f:
+        with open(env_path) as f:
             content = f.read()
             print(f"📄 .env file contents ({len(content)} chars):")
             for i, line in enumerate(content.splitlines(), 1):
@@ -66,7 +67,7 @@ print("\n🔧 Loading .env file methods:")
 if env_file_found:
     print(f"📖 Method 1: Manual parsing of {env_file_found}")
     manual_env = {}
-    with open(env_file_found, "r") as f:
+    with open(env_file_found) as f:
         for line_num, line in enumerate(f, 1):
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:

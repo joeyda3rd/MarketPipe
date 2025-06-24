@@ -6,18 +6,19 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 
-from marketpipe.domain.entities import OHLCVBar, EntityId
-from marketpipe.domain.value_objects import Symbol, Price, Timestamp, Volume, TimeRange
+from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import (
     IMarketDataProvider,
-    ProviderMetadata,
-    MarketDataUnavailableError,
     InvalidSymbolError,
+    MarketDataUnavailableError,
+    ProviderMetadata,
 )
+from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
+
 from .provider_registry import provider
 
 logger = logging.getLogger(__name__)
@@ -139,9 +140,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
                         domain_bars.append(domain_bar)
 
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to translate IEX bar for {symbol.value}: {e}"
-                    )
+                    logger.warning(f"Failed to translate IEX bar for {symbol.value}: {e}")
                     continue
 
             logger.info(f"Fetched {len(domain_bars)} bars for {symbol.value} from IEX")
@@ -149,17 +148,13 @@ class IEXMarketDataAdapter(IMarketDataProvider):
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
-                raise InvalidSymbolError(
-                    f"Symbol {symbol.value} not found on IEX"
-                ) from e
+                raise InvalidSymbolError(f"Symbol {symbol.value} not found on IEX") from e
             else:
                 raise MarketDataUnavailableError(f"IEX API error: {e}") from e
         except Exception as e:
             raise MarketDataUnavailableError(f"Failed to fetch IEX data: {e}") from e
 
-    def _translate_iex_bar_to_domain(
-        self, iex_bar: Dict[str, Any], symbol: Symbol
-    ) -> OHLCVBar:
+    def _translate_iex_bar_to_domain(self, iex_bar: Dict[str, Any], symbol: Symbol) -> OHLCVBar:
         """
         Translate IEX bar format to domain OHLCV bar.
 
@@ -210,9 +205,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
         except (KeyError, ValueError, TypeError) as e:
             raise ValueError(f"Failed to parse IEX bar data: {e}") from e
 
-    def _is_within_time_range(
-        self, timestamp: Timestamp, time_range: TimeRange
-    ) -> bool:
+    def _is_within_time_range(self, timestamp: Timestamp, time_range: TimeRange) -> bool:
         """Check if timestamp is within the specified time range."""
         return time_range.start.value <= timestamp.value <= time_range.end.value
 
@@ -273,13 +266,9 @@ class IEXMarketDataAdapter(IMarketDataProvider):
             provider_name="iex",
             supports_real_time=not self._is_sandbox,  # Real-time only in production
             supports_historical=True,
-            rate_limit_per_minute=(
-                100 if self._is_sandbox else 500
-            ),  # Approximate limits
+            rate_limit_per_minute=(100 if self._is_sandbox else 500),  # Approximate limits
             minimum_time_resolution="1m",
-            maximum_history_days=(
-                30 if self._is_sandbox else 365
-            ),  # Sandbox has limited history
+            maximum_history_days=(30 if self._is_sandbox else 365),  # Sandbox has limited history
         )
 
     async def __aenter__(self):
@@ -292,8 +281,6 @@ class IEXMarketDataAdapter(IMarketDataProvider):
 
 
 # Legacy compatibility functions for factory pattern
-def create_iex_adapter(
-    api_token: str, is_sandbox: bool = False
-) -> IEXMarketDataAdapter:
+def create_iex_adapter(api_token: str, is_sandbox: bool = False) -> IEXMarketDataAdapter:
     """Create IEX adapter (legacy function for compatibility)."""
     return IEXMarketDataAdapter(api_token=api_token, is_sandbox=is_sandbox)

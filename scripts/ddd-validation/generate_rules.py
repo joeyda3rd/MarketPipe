@@ -12,14 +12,11 @@ Usage:
     python scripts/ddd-validation/generate_rules.py --context ingestion
 """
 
-import os
-import re
-import ast
-from pathlib import Path
-from typing import Dict, List, Set, Optional
-from dataclasses import dataclass
 import argparse
-import yaml
+import ast
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional
 
 
 @dataclass
@@ -34,23 +31,23 @@ class RuleTemplate:
 
 class CursorRulesGenerator:
     """Generates Cursor .mdc rule files for DDD architecture."""
-    
+
     def __init__(self, project_root: Path):
         self.project_root = project_root
         self.src_path = project_root / "src" / "marketpipe"
         self.cursor_rules_path = project_root / ".cursor" / "rules"
-        
+
         # Analyze codebase
         self.domain_entities = self._discover_domain_entities()
         self.value_objects = self._discover_value_objects()
         self.aggregates = self._discover_aggregates()
         self.repositories = self._discover_repositories()
         self.bounded_contexts = self._discover_bounded_contexts()
-    
+
     def generate_all_rules(self, update_existing: bool = False) -> None:
         """Generate all DDD rule files."""
         print("🔄 Analyzing codebase structure...")
-        
+
         rules_to_generate = [
             self._generate_domain_entities_rule(),
             self._generate_value_objects_rule(),
@@ -61,129 +58,129 @@ class CursorRulesGenerator:
             self._generate_layered_architecture_rule(),
             self._generate_anti_corruption_rule(),
         ]
-        
+
         # Create rules directory if not exists
         self.cursor_rules_path.mkdir(parents=True, exist_ok=True)
         ddd_rules_path = self.cursor_rules_path / "ddd"
         ddd_rules_path.mkdir(exist_ok=True)
-        
+
         for rule in rules_to_generate:
             rule_file = ddd_rules_path / f"{rule.name}.mdc"
-            
+
             if rule_file.exists() and not update_existing:
                 print(f"⏭️  Skipping existing rule: {rule.name}")
                 continue
-            
+
             with open(rule_file, 'w') as f:
                 f.write(self._format_rule_content(rule))
-            
+
             print(f"✅ Generated rule: {rule.name}")
-        
+
         # Generate context-specific rules
         for context in self.bounded_contexts:
             context_rule = self._generate_context_specific_rule(context)
             if context_rule:
                 context_file = ddd_rules_path / f"{context}_context.mdc"
-                
+
                 if context_file.exists() and not update_existing:
                     continue
-                
+
                 with open(context_file, 'w') as f:
                     f.write(self._format_rule_content(context_rule))
-                
+
                 print(f"✅ Generated context rule: {context}_context")
-        
+
         print(f"\n🎉 Rule generation complete! Files saved to: {ddd_rules_path}")
-    
+
     def _discover_domain_entities(self) -> List[str]:
         """Discover domain entities in the codebase."""
         entities = []
         domain_path = self.src_path / "domain"
-        
+
         if not domain_path.exists():
             return entities
-        
+
         entities_file = domain_path / "entities.py"
         if entities_file.exists():
             entities.extend(self._extract_class_names(entities_file))
-        
+
         return entities
-    
+
     def _discover_value_objects(self) -> List[str]:
         """Discover value objects in the codebase."""
         value_objects = []
         domain_path = self.src_path / "domain"
-        
+
         if not domain_path.exists():
             return value_objects
-        
+
         vo_file = domain_path / "value_objects.py"
         if vo_file.exists():
             value_objects.extend(self._extract_class_names(vo_file))
-        
+
         return value_objects
-    
+
     def _discover_aggregates(self) -> List[str]:
         """Discover aggregates in the codebase."""
         aggregates = []
         domain_path = self.src_path / "domain"
-        
+
         if not domain_path.exists():
             return aggregates
-        
+
         agg_file = domain_path / "aggregates.py"
         if agg_file.exists():
             aggregates.extend(self._extract_class_names(agg_file))
-        
+
         return aggregates
-    
+
     def _discover_repositories(self) -> List[str]:
         """Discover repository interfaces in the codebase."""
         repositories = []
         domain_path = self.src_path / "domain"
-        
+
         if not domain_path.exists():
             return repositories
-        
+
         repo_file = domain_path / "repositories.py"
         if repo_file.exists():
             repositories.extend(self._extract_class_names(repo_file))
-        
+
         return repositories
-    
+
     def _discover_bounded_contexts(self) -> List[str]:
         """Discover bounded contexts from directory structure."""
         contexts = []
-        
+
         # Look for main context directories
         for item in self.src_path.iterdir():
             if item.is_dir() and not item.name.startswith('_'):
                 if item.name not in ['domain', '__pycache__']:
                     contexts.append(item.name)
-        
+
         return contexts
-    
+
     def _extract_class_names(self, file_path: Path) -> List[str]:
         """Extract class names from a Python file."""
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path) as f:
                 content = f.read()
-            
+
             tree = ast.parse(content)
             classes = []
-            
+
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
                     classes.append(node.name)
-            
+
             return classes
         except Exception:
             return []
-    
+
     def _generate_domain_entities_rule(self) -> RuleTemplate:
         """Generate rule for domain entities."""
         entities_list = "\\n".join([f"- `{entity}`" for entity in self.domain_entities])
-        
+
         content = f"""---
 description: Domain entity patterns and validation rules for MarketPipe
 globs:
@@ -250,7 +247,7 @@ def _validate_ohlc_consistency(self) -> None:
         raise ValueError("OHLC prices are inconsistent")
 ```
 """
-        
+
         return RuleTemplate(
             name="domain_entities",
             description="Domain entity patterns and validation rules",
@@ -258,11 +255,11 @@ def _validate_ohlc_consistency(self) -> None:
             priority="high",
             content=content
         )
-    
+
     def _generate_value_objects_rule(self) -> RuleTemplate:
         """Generate rule for value objects."""
         vo_list = "\\n".join([f"- `{vo}`" for vo in self.value_objects])
-        
+
         content = f"""---
 description: Value object patterns and immutability rules for MarketPipe
 globs:
@@ -326,7 +323,7 @@ class Timestamp:
             object.__setattr__(self, 'value', utc_dt)
 ```
 """
-        
+
         return RuleTemplate(
             name="value_objects",
             description="Value object patterns and immutability rules",
@@ -334,11 +331,11 @@ class Timestamp:
             priority="high",
             content=content
         )
-    
+
     def _generate_aggregates_rule(self) -> RuleTemplate:
         """Generate rule for aggregates."""
         agg_list = "\\n".join([f"- `{agg}`" for agg in self.aggregates])
-        
+
         content = f"""---
 description: Aggregate root patterns and consistency boundary rules for MarketPipe
 globs:
@@ -405,7 +402,7 @@ def _increment_version(self) -> None:
     self._version += 1
 ```
 """
-        
+
         return RuleTemplate(
             name="aggregates",
             description="Aggregate root patterns and consistency boundaries",
@@ -413,11 +410,11 @@ def _increment_version(self) -> None:
             priority="high",
             content=content
         )
-    
+
     def _generate_repositories_rule(self) -> RuleTemplate:
         """Generate rule for repositories."""
         repo_list = "\\n".join([f"- `{repo}`" for repo in self.repositories])
-        
+
         content = f"""---
 description: Repository interface patterns for MarketPipe domain access
 globs:
@@ -485,7 +482,7 @@ class NotFoundError(RepositoryError):
     \"\"\"Raised when requested data is not found.\"\"\"
 ```
 """
-        
+
         return RuleTemplate(
             name="repositories",
             description="Repository interface patterns for domain access",
@@ -493,11 +490,11 @@ class NotFoundError(RepositoryError):
             priority="medium",
             content=content
         )
-    
+
     def _generate_bounded_contexts_rule(self) -> RuleTemplate:
         """Generate rule for bounded contexts."""
         context_list = "\\n".join([f"- `{ctx}` Context" for ctx in self.bounded_contexts])
-        
+
         content = f"""---
 description: Bounded context separation and integration patterns for MarketPipe
 globs:
@@ -574,7 +571,7 @@ class IngestionOrchestrator:
         # Depend on interfaces, not concrete implementations
 ```
 """
-        
+
         return RuleTemplate(
             name="bounded_contexts",
             description="Bounded context separation and integration patterns",
@@ -582,7 +579,7 @@ class IngestionOrchestrator:
             priority="high",
             content=content
         )
-    
+
     def _generate_ubiquitous_language_rule(self) -> RuleTemplate:
         """Generate rule for ubiquitous language."""
         content = """---
@@ -646,7 +643,7 @@ class SecurityData:  # Use OHLCVBar
 def fetch_data():  # Use ingest_data
 ```
 """
-        
+
         return RuleTemplate(
             name="ubiquitous_language",
             description="Ubiquitous language consistency",
@@ -654,7 +651,7 @@ def fetch_data():  # Use ingest_data
             priority="high",
             content=content
         )
-    
+
     def _generate_layered_architecture_rule(self) -> RuleTemplate:
         """Generate rule for layered architecture."""
         content = """---
@@ -740,7 +737,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
         # Infrastructure implementation of domain interface
 ```
 """
-        
+
         return RuleTemplate(
             name="layered_architecture",
             description="Layered architecture dependency rules",
@@ -748,7 +745,7 @@ class SqliteSymbolBarsRepository(ISymbolBarsRepository):
             priority="high",
             content=content
         )
-    
+
     def _generate_anti_corruption_rule(self) -> RuleTemplate:
         """Generate rule for anti-corruption layers."""
         content = """---
@@ -852,7 +849,7 @@ class AlpacaConfigAdapter:
         )
 ```
 """
-        
+
         return RuleTemplate(
             name="anti_corruption",
             description="Anti-corruption layer patterns for external integration",
@@ -860,7 +857,7 @@ class AlpacaConfigAdapter:
             priority="medium",
             content=content
         )
-    
+
     def _generate_context_specific_rule(self, context: str) -> Optional[RuleTemplate]:
         """Generate context-specific rules."""
         if context == "ingestion":
@@ -870,7 +867,7 @@ class AlpacaConfigAdapter:
         elif context == "storage":
             return self._generate_storage_context_rule()
         return None
-    
+
     def _generate_ingestion_context_rule(self) -> RuleTemplate:
         """Generate ingestion context specific rules."""
         content = """---
@@ -946,7 +943,7 @@ def save_checkpoint(self, symbol: Symbol, checkpoint: str | int) -> None:
         self._events.append(event)
 ```
 """
-        
+
         return RuleTemplate(
             name="ingestion_context",
             description="Ingestion context domain rules and patterns",
@@ -954,7 +951,7 @@ def save_checkpoint(self, symbol: Symbol, checkpoint: str | int) -> None:
             priority="medium",
             content=content
         )
-    
+
     def _generate_validation_context_rule(self) -> RuleTemplate:
         """Generate validation context specific rules."""
         content = """---
@@ -1015,7 +1012,7 @@ def validate_bars(self, bars: List[OHLCVBar]) -> ValidationSummary:
                 self._events.append(event)
 ```
 """
-        
+
         return RuleTemplate(
             name="validation_context",
             description="Validation context domain rules for data quality",
@@ -1023,7 +1020,7 @@ def validate_bars(self, bars: List[OHLCVBar]) -> ValidationSummary:
             priority="medium",
             content=content
         )
-    
+
     def _generate_storage_context_rule(self) -> RuleTemplate:
         """Generate storage context specific rules."""
         content = """---
@@ -1087,7 +1084,7 @@ def store_bars(self, bars: List[OHLCVBar]) -> List[DataPartition]:
     return created_partitions
 ```
 """
-        
+
         return RuleTemplate(
             name="storage_context",
             description="Storage context domain rules for data persistence",
@@ -1095,7 +1092,7 @@ def store_bars(self, bars: List[OHLCVBar]) -> List[DataPartition]:
             priority="medium",
             content=content
         )
-    
+
     def _format_rule_content(self, rule: RuleTemplate) -> str:
         """Format rule content as .mdc file."""
         return rule.content
@@ -1106,18 +1103,18 @@ def main():
     parser = argparse.ArgumentParser(description="Generate Cursor DDD rules for MarketPipe")
     parser.add_argument("--update-existing", action="store_true", help="Update existing rule files")
     parser.add_argument("--context", help="Generate rules for specific context only")
-    
+
     args = parser.parse_args()
-    
+
     # Find project root
     script_dir = Path(__file__).parent
     project_root = script_dir.parent.parent
-    
+
     print(f"🚀 Generating Cursor DDD rules for: {project_root}")
-    
+
     # Generate rules
     generator = CursorRulesGenerator(project_root)
-    
+
     if args.context:
         print(f"🎯 Generating rules for context: {args.context}")
         # Generate context-specific rules only
@@ -1125,17 +1122,17 @@ def main():
         if context_rule:
             rules_path = project_root / ".cursor" / "rules" / "ddd"
             rules_path.mkdir(parents=True, exist_ok=True)
-            
+
             rule_file = rules_path / f"{args.context}_context.mdc"
             with open(rule_file, 'w') as f:
                 f.write(generator._format_rule_content(context_rule))
-            
+
             print(f"✅ Generated: {args.context}_context.mdc")
         else:
             print(f"❌ Unknown context: {args.context}")
     else:
         generator.generate_all_rules(update_existing=args.update_existing)
-    
+
     print("\n🎉 Rule generation complete!")
     print("📝 Review the generated rules and commit when ready.")
 

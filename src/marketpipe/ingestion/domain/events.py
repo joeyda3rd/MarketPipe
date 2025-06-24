@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 
 from marketpipe.domain.events import DomainEvent
 from marketpipe.domain.value_objects import Symbol, TimeRange
+
 from .entities import IngestionJobId
 from .value_objects import IngestionPartition
 

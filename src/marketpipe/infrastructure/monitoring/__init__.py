@@ -10,4 +10,4 @@ from __future__ import annotations
 
 __all__ = ["event_handlers"]
 
-from . import event_handlers 
+from . import event_handlers

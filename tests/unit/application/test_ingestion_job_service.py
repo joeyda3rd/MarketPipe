@@ -3,10 +3,21 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
-from datetime import datetime, timezone, timedelta
 
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
+from marketpipe.ingestion.application.commands import (
+    CancelJobCommand,
+    CreateIngestionJobCommand,
+    StartJobCommand,
+)
+from marketpipe.ingestion.application.queries import (
+    GetActiveJobsQuery,
+    GetJobStatusQuery,
+)
+from marketpipe.ingestion.application.services import IngestionJobService
 from marketpipe.ingestion.domain.entities import (
     IngestionJob,
     IngestionJobId,
@@ -17,25 +28,15 @@ from marketpipe.ingestion.domain.services import (
     IngestionProgressTracker,
 )
 from marketpipe.ingestion.domain.value_objects import (
-    IngestionConfiguration,
     BatchConfiguration,
-)
-from marketpipe.ingestion.application.services import IngestionJobService
-from marketpipe.ingestion.application.commands import (
-    CreateIngestionJobCommand,
-    StartJobCommand,
-    CancelJobCommand,
-)
-from marketpipe.ingestion.application.queries import (
-    GetJobStatusQuery,
-    GetActiveJobsQuery,
-)
-from tests.fakes.repositories import (
-    FakeIngestionJobRepository,
-    FakeIngestionCheckpointRepository,
-    FakeIngestionMetricsRepository,
+    IngestionConfiguration,
 )
 from tests.fakes.events import FakeEventPublisher
+from tests.fakes.repositories import (
+    FakeIngestionCheckpointRepository,
+    FakeIngestionJobRepository,
+    FakeIngestionMetricsRepository,
+)
 
 
 def create_test_configuration() -> IngestionConfiguration:
@@ -98,9 +99,7 @@ class TestCreateIngestionJob:
     """Test job creation scenarios."""
 
     @pytest.mark.asyncio
-    async def test_creates_job_successfully_with_valid_command(
-        self, ingestion_job_service
-    ):
+    async def test_creates_job_successfully_with_valid_command(self, ingestion_job_service):
         """Test that a valid job creation command succeeds."""
         service, job_repo, event_publisher = ingestion_job_service
 
@@ -127,9 +126,7 @@ class TestCreateIngestionJob:
         # Note: Job creation doesn't emit events by design - only starting/completing/cancelling do
 
     @pytest.mark.asyncio
-    async def test_validates_job_schedule_against_active_jobs(
-        self, ingestion_job_service
-    ):
+    async def test_validates_job_schedule_against_active_jobs(self, ingestion_job_service):
         """Test that job creation validates against existing active jobs."""
         service, job_repo, event_publisher = ingestion_job_service
 
@@ -366,8 +363,9 @@ class TestGetActiveJobs:
         completed_job.start()
 
         # Mark the symbol as processed so the job can be completed
-        from marketpipe.ingestion.domain.value_objects import IngestionPartition
         from pathlib import Path
+
+        from marketpipe.ingestion.domain.value_objects import IngestionPartition
 
         test_partition = IngestionPartition(
             symbol=symbols3[0],

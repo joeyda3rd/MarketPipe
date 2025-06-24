@@ -3,17 +3,17 @@
 
 from __future__ import annotations
 
-from enum import Enum
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import Enum
 from typing import List, Optional, Set
-from uuid import UUID, uuid4
-import abc
-import re
+from uuid import uuid4
 
 from marketpipe.domain.entities import Entity, EntityId
 from marketpipe.domain.events import DomainEvent
 from marketpipe.domain.value_objects import Symbol, TimeRange
+
 from .value_objects import IngestionConfiguration, IngestionPartition
 
 
@@ -60,7 +60,11 @@ class IngestionJobId:
             raw = str(value_or_symbol)
         else:
             # Ensure we have a valid ``Symbol`` instance for type safety.
-            sym = value_or_symbol if isinstance(value_or_symbol, Symbol) else Symbol(str(value_or_symbol))
+            sym = (
+                value_or_symbol
+                if isinstance(value_or_symbol, Symbol)
+                else Symbol(str(value_or_symbol))
+            )
             raw = f"{sym}_{day}"
 
         object.__setattr__(self, "_raw", raw)
@@ -69,12 +73,12 @@ class IngestionJobId:
     # Convenience constructors
     # ------------------------------------------------------------------
     @classmethod
-    def generate(cls) -> "IngestionJobId":
+    def generate(cls) -> IngestionJobId:
         """Generate a random opaque identifier (UUID4)."""
         return cls(str(uuid4()))
 
     @classmethod
-    def from_string(cls, id_str: str) -> "IngestionJobId":
+    def from_string(cls, id_str: str) -> IngestionJobId:
         """Create an *IngestionJobId* from its string representation."""
         return cls(id_str)
 
@@ -347,9 +351,7 @@ class IngestionJob(Entity):
     ) -> None:
         """Mark a symbol as processed with its results."""
         if self._state != ProcessingState.IN_PROGRESS:
-            raise ValueError(
-                f"Cannot process symbol when job is in state {self._state}"
-            )
+            raise ValueError(f"Cannot process symbol when job is in state {self._state}")
 
         if symbol not in self._symbols:
             raise ValueError(f"Symbol {symbol} is not part of this job")
@@ -377,9 +379,7 @@ class IngestionJob(Entity):
         if self.can_complete:
             self.complete()
 
-    def estimate_remaining_time(
-        self, average_processing_time_per_symbol: float
-    ) -> Optional[float]:
+    def estimate_remaining_time(self, average_processing_time_per_symbol: float) -> Optional[float]:
         """Estimate remaining processing time in seconds."""
         if self._state != ProcessingState.IN_PROGRESS:
             return None
@@ -399,9 +399,7 @@ class IngestionJob(Entity):
             "progress_percentage": self.progress_percentage,
             "created_at": self._created_at.isoformat(),
             "started_at": self._started_at.isoformat() if self._started_at else None,
-            "completed_at": (
-                self._completed_at.isoformat() if self._completed_at else None
-            ),
+            "completed_at": (self._completed_at.isoformat() if self._completed_at else None),
             "failed_at": self._failed_at.isoformat() if self._failed_at else None,
             "error_message": self._error_message,
         }

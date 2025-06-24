@@ -1,1 +1,1 @@
-# Test package for symbol_providers module 
+# Test package for symbol_providers module

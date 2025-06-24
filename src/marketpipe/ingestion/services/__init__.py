@@ -4,4 +4,4 @@ from __future__ import annotations
 
 from .gap_detector import GapDetectorService
 
-__all__ = ["GapDetectorService"] 
+__all__ = ["GapDetectorService"]

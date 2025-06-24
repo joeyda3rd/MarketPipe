@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-
 import pandas as pd
 import pytest
 
@@ -42,9 +41,7 @@ def temp_agg_data(tmp_path):
 
         # Write test parquet file
         frame_data = (
-            test_data[test_data["symbol"] == "AAPL"]
-            if frame == "5m"
-            else test_data.head(1)
+            test_data[test_data["symbol"] == "AAPL"] if frame == "5m" else test_data.head(1)
         )
         frame_data.to_parquet(frame_dir / "test_job.parquet", index=False)
 
@@ -90,9 +87,7 @@ def test_query_basic_functionality(mock_agg_root):
     assert result.iloc[0]["cnt"] >= 2  # Should have AAPL and MSFT data
 
     # Symbol filtering
-    result = duckdb_views.query(
-        "SELECT COUNT(*) as cnt FROM bars_5m WHERE symbol='AAPL'"
-    )
+    result = duckdb_views.query("SELECT COUNT(*) as cnt FROM bars_5m WHERE symbol='AAPL'")
     assert len(result) == 1
     assert result.iloc[0]["cnt"] >= 1
 

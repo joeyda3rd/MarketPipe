@@ -74,8 +74,39 @@ flowchart TD
 
 ## Installation
 
+### Production Installation
 ```bash
-pip install -e .
+pip install marketpipe
+```
+
+### Development Installation
+```bash
+git clone https://github.com/yourorg/marketpipe.git
+cd marketpipe
+pip install -e '.[dev]'
+```
+
+### Development Tools
+MarketPipe includes comprehensive development tooling:
+
+```bash
+# Code formatting
+black src/ tests/
+
+# Linting
+ruff check src/ tests/
+
+# Type checking
+mypy src/marketpipe/
+
+# Testing
+pytest
+
+# Coverage
+pytest --cov=marketpipe --cov-report=html
+
+# Dead code detection
+vulture src/ --min-confidence 70
 ```
 
 ## Quick Start

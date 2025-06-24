@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
+
 from typer.testing import CliRunner
 
 from marketpipe.cli import app
@@ -21,7 +22,7 @@ def test_ingest_cli_smoke():
 
             # Mock create_job to return a job ID
             mock_job_service.create_job.return_value = "job-123"
-            
+
             # Mock execute_job to return a result dict
             mock_coordinator_service.execute_job.return_value = {
                 "symbols_processed": 1,
@@ -63,7 +64,7 @@ def test_ingest_cli_with_multiple_symbols():
 
             # Mock create_job to return a job ID
             mock_job_service.create_job.return_value = "job-456"
-            
+
             # Mock execute_job to return a result dict
             mock_coordinator_service.execute_job.return_value = {
                 "symbols_processed": 3,
@@ -149,5 +150,7 @@ def test_ingest_cli_handles_missing_credentials():
         # Verify the command failed gracefully
         assert result.exit_code == 1
         # The CLI can show either error message depending on test isolation context
-        assert ("validation error for ClientConfig" in result.stdout or 
-                "Provider 'alpaca' not found" in result.stdout)
+        assert (
+            "validation error for ClientConfig" in result.stdout
+            or "Provider 'alpaca' not found" in result.stdout
+        )

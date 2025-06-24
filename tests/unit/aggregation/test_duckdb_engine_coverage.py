@@ -1,12 +1,13 @@
 """Additional tests for DuckDB aggregation engine to improve coverage."""
 
 import tempfile
-import pandas as pd
 from pathlib import Path
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
-from marketpipe.aggregation.infrastructure.duckdb_engine import DuckDBAggregationEngine
+import pandas as pd
+
 from marketpipe.aggregation.domain.value_objects import FrameSpec
+from marketpipe.aggregation.infrastructure.duckdb_engine import DuckDBAggregationEngine
 
 
 def test_duckdb_aggregation_engine_initialization():
@@ -186,9 +187,7 @@ def test_duckdb_aggregation_engine_get_aggregated_data():
             start_ts = 1704105100000000000
             end_ts = 1704105500000000000
 
-            result_filtered = engine.get_aggregated_data(
-                "AAPL", frame_spec, start_ts, end_ts
-            )
+            result_filtered = engine.get_aggregated_data("AAPL", frame_spec, start_ts, end_ts)
             assert len(result_filtered) == 1  # Only middle record should match
 
             mock_load.assert_called()

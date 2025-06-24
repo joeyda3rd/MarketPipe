@@ -8,6 +8,6 @@ from .symbol_pipeline import (
 
 __all__ = [
     "fetch_providers",
-    "records_to_stage", 
+    "records_to_stage",
     "run_symbol_pipeline",
-] 
+]

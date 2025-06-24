@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional
 
-from .value_objects import Symbol, TimeRange
 from .entities import OHLCVBar
+from .value_objects import Symbol, TimeRange
 
 
 # ---------- domain exceptions ----------

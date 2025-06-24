@@ -1,19 +1,20 @@
 """Tests for infrastructure domain event handlers."""
 
-from unittest.mock import patch, Mock
 from datetime import date, datetime, timezone
-from marketpipe.infrastructure.monitoring.domain_event_handlers import (
-    log_ingestion_job_completed,
-    log_validation_failed,
-    log_bar_collection_completed,
-    register_logging_handlers,
-)
+from unittest.mock import Mock, patch
+
 from marketpipe.domain.events import (
+    BarCollectionCompleted,
     IngestionJobCompleted,
     ValidationFailed,
-    BarCollectionCompleted,
 )
 from marketpipe.domain.value_objects import Symbol
+from marketpipe.infrastructure.monitoring.domain_event_handlers import (
+    log_bar_collection_completed,
+    log_ingestion_job_completed,
+    log_validation_failed,
+    register_logging_handlers,
+)
 
 
 def test_log_ingestion_job_completed_success():
@@ -95,7 +96,9 @@ def test_register_logging_handlers():
     with patch("marketpipe.bootstrap.get_event_bus") as mock_get_event_bus:
         mock_event_bus = Mock()
         mock_get_event_bus.return_value = mock_event_bus
-        with patch("marketpipe.infrastructure.monitoring.domain_event_handlers.logger") as mock_logger:
+        with patch(
+            "marketpipe.infrastructure.monitoring.domain_event_handlers.logger"
+        ) as mock_logger:
             register_logging_handlers()
 
             # Should register multiple handlers
@@ -110,8 +113,9 @@ def test_setup_metrics_event_handlers():
         mock_get_event_bus.return_value = mock_event_bus
         with patch("marketpipe.infrastructure.monitoring.event_handlers.logger") as mock_logger:
             from marketpipe.infrastructure.monitoring.event_handlers import register
+
             register()
 
             # Should register multiple handlers
             assert mock_event_bus.subscribe.call_count >= 2
-            mock_logger.info.assert_called_with("Monitoring event handlers registered successfully") 
+            mock_logger.info.assert_called_with("Monitoring event handlers registered successfully")

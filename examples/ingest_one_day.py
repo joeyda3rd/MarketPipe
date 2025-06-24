@@ -6,7 +6,6 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-
 HERE = Path(__file__).resolve().parent
 CONFIG = HERE.parent / "config" / "example_config.yaml"
 

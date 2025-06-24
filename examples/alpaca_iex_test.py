@@ -5,8 +5,9 @@ Alpaca IEX (Free Tier) API Test
 Specifically targeting IEX endpoints that should work with free accounts
 """
 
-import os
 import asyncio
+import os
+
 import httpx
 import pytest
 from dotenv import load_dotenv

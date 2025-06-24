@@ -6,10 +6,10 @@ from datetime import date
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import fasteners
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-import fasteners
 
 
 class ParquetStorageEngine:
@@ -87,10 +87,7 @@ class ParquetStorageEngine:
 
         # Create partition directory structure
         partition_path = (
-            self._root
-            / f"frame={frame}"
-            / f"symbol={symbol}"
-            / f"date={trading_day.isoformat()}"
+            self._root / f"frame={frame}" / f"symbol={symbol}" / f"date={trading_day.isoformat()}"
         )
         partition_path.mkdir(parents=True, exist_ok=True)
 
@@ -191,8 +188,9 @@ class ParquetStorageEngine:
         """
         if not bars:
             # Return a dummy partition for empty data
-            from marketpipe.ingestion.domain.value_objects import IngestionPartition
             from datetime import datetime, timezone
+
+            from marketpipe.ingestion.domain.value_objects import IngestionPartition
 
             return IngestionPartition(
                 symbol=bars[0].symbol if bars else None,
@@ -203,8 +201,9 @@ class ParquetStorageEngine:
             )
 
         # Convert bars to DataFrame
-        import pandas as pd
         from datetime import datetime, timezone
+
+        import pandas as pd
 
         data = []
         for bar in bars:
@@ -257,9 +256,7 @@ class ParquetStorageEngine:
 
     # ----- Read Operations -----
 
-    def load_partition(
-        self, frame: str, symbol: str, trading_day: date
-    ) -> pd.DataFrame:
+    def load_partition(self, frame: str, symbol: str, trading_day: date) -> pd.DataFrame:
         """Load all data for a specific partition (frame/symbol/date).
 
         Args:
@@ -271,10 +268,7 @@ class ParquetStorageEngine:
             Combined DataFrame from all job files in the partition
         """
         partition_path = (
-            self._root
-            / f"frame={frame}"
-            / f"symbol={symbol}"
-            / f"date={trading_day.isoformat()}"
+            self._root / f"frame={frame}" / f"symbol={symbol}" / f"date={trading_day.isoformat()}"
         )
 
         if not partition_path.exists():

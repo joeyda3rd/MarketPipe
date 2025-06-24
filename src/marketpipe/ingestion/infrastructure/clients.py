@@ -3,10 +3,11 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 from .alpaca_client import AlpacaClient as OriginalAlpacaClient
-from .models import ClientConfig
 from .auth import HeaderTokenAuth
+from .models import ClientConfig
 from .rate_limit import RateLimiter
 
 
@@ -39,9 +40,7 @@ class AlpacaApiClientWrapper:
             feed=feed,
         )
 
-    async def fetch_bars_raw(
-        self, symbol: str, start_ms: int, end_ms: int
-    ) -> List[Dict[str, Any]]:
+    async def fetch_bars_raw(self, symbol: str, start_ms: int, end_ms: int) -> List[Dict[str, Any]]:
         """
         Fetch raw bars from Alpaca API.
 

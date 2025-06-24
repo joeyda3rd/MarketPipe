@@ -10,6 +10,7 @@ import pandas as pd
 import pyarrow as pa
 
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
+
 from ..domain.value_objects import FrameSpec
 
 
@@ -27,9 +28,7 @@ class DuckDBAggregationEngine:
         self._agg_storage = ParquetStorageEngine(agg_root)
         self.log = logging.getLogger(self.__class__.__name__)
 
-    def aggregate_job(
-        self, job_id: str, frame_sql_pairs: List[Tuple[FrameSpec, str]]
-    ) -> None:
+    def aggregate_job(self, job_id: str, frame_sql_pairs: List[Tuple[FrameSpec, str]]) -> None:
         """Aggregate 1-minute bars for a job to multiple timeframes.
 
         Args:
@@ -73,22 +72,16 @@ class DuckDBAggregationEngine:
                         result_df = con.execute(sql).fetch_df()
 
                         if result_df.empty:
-                            self.log.warning(
-                                f"No aggregated data for {symbol} {spec.name}"
-                            )
+                            self.log.warning(f"No aggregated data for {symbol} {spec.name}")
                             continue
 
                         # Write aggregated data using the new storage engine
                         self._write_aggregated_data(result_df, symbol, spec, job_id)
 
-                        self.log.info(
-                            f"Aggregated {len(result_df)} {spec.name} bars for {symbol}"
-                        )
+                        self.log.info(f"Aggregated {len(result_df)} {spec.name} bars for {symbol}")
 
                     except Exception as e:
-                        self.log.error(
-                            f"Failed to aggregate {symbol} to {spec.name}: {e}"
-                        )
+                        self.log.error(f"Failed to aggregate {symbol} to {spec.name}: {e}")
                         continue
 
             con.close()
@@ -124,9 +117,7 @@ class DuckDBAggregationEngine:
             )
             self.log.debug(f"Wrote {len(df)} rows to {output_path}")
         except Exception as e:
-            self.log.error(
-                f"Failed to write aggregated data for {symbol} {spec.name}: {e}"
-            )
+            self.log.error(f"Failed to write aggregated data for {symbol} {spec.name}: {e}")
             raise
 
     def get_aggregated_data(

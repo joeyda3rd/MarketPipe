@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-from .repositories import (
-    FakeIngestionJobRepository,
-    FakeIngestionCheckpointRepository,
-    FakeIngestionMetricsRepository,
-)
 from .adapters import FakeMarketDataAdapter
 from .events import FakeEventPublisher
+from .repositories import (
+    FakeIngestionCheckpointRepository,
+    FakeIngestionJobRepository,
+    FakeIngestionMetricsRepository,
+)
 from .validators import FakeDataValidator
 
 __all__ = [

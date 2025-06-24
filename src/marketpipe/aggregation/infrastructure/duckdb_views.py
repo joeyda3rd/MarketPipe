@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
 from typing import Union
 
 import duckdb
@@ -177,9 +177,7 @@ def validate_views() -> dict[str, bool]:
         view_name = f"bars_{frame}"
         try:
             # Try to execute a simple query
-            _get_connection().execute(
-                f"SELECT COUNT(*) FROM {view_name} LIMIT 1"
-            ).fetch_df()
+            _get_connection().execute(f"SELECT COUNT(*) FROM {view_name} LIMIT 1").fetch_df()
             status[view_name] = True
             logger.debug(f"View {view_name} is accessible")
         except Exception as e:

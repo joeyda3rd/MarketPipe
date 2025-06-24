@@ -3,12 +3,12 @@
 
 from __future__ import annotations
 
-from marketpipe.domain.events import IngestionJobCompleted
 from marketpipe.bootstrap import get_event_bus
+from marketpipe.domain.entities import EntityId, OHLCVBar
+from marketpipe.domain.events import IngestionJobCompleted
+from marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
-from marketpipe.domain.value_objects import Symbol
-from marketpipe.domain.entities import OHLCVBar, EntityId
-from marketpipe.domain.value_objects import Price, Volume, Timestamp
+
 from ..domain.services import ValidationDomainService
 from ..infrastructure.repositories import CsvReportRepository
 
@@ -24,15 +24,15 @@ class ValidationRunnerService:
     def _extract_provider_feed_info(self, event: IngestionJobCompleted) -> tuple[str, str]:
         """Extract provider and feed information from event or defaults."""
         # Try to get provider/feed from event attributes
-        provider = getattr(event, 'provider', 'unknown')
-        feed = getattr(event, 'feed', 'unknown')
-        
+        provider = getattr(event, "provider", "unknown")
+        feed = getattr(event, "feed", "unknown")
+
         # If not available in event, try to infer from storage path or use defaults
-        if provider == 'unknown' or feed == 'unknown':
+        if provider == "unknown" or feed == "unknown":
             # For now, use defaults - in the future we could look up job configuration
             provider = "unknown"
             feed = "unknown"
-            
+
         return provider, feed
 
     def handle_ingestion_completed(self, event: IngestionJobCompleted) -> None:
@@ -40,7 +40,7 @@ class ValidationRunnerService:
         try:
             # Extract provider/feed info for metrics
             provider, feed = self._extract_provider_feed_info(event)
-            
+
             # Record validation start metrics
             from marketpipe.metrics import record_metric
 
@@ -66,18 +66,29 @@ class ValidationRunnerService:
                     error_count = len(result.errors)
                     total_errors += error_count
 
-                    record_metric("validation_bars_processed", len(bars), provider=provider, feed=feed)
-                    record_metric(f"validation_bars_{symbol_name}", len(bars), provider=provider, feed=feed)
+                    record_metric(
+                        "validation_bars_processed", len(bars), provider=provider, feed=feed
+                    )
+                    record_metric(
+                        f"validation_bars_{symbol_name}", len(bars), provider=provider, feed=feed
+                    )
 
                     if error_count > 0:
-                        record_metric("validation_errors_found", error_count, provider=provider, feed=feed)
-                        record_metric(f"validation_errors_{symbol_name}", error_count, provider=provider, feed=feed)
-                        print(
-                            f"WARN Validation found {error_count} errors for {symbol_name}"
+                        record_metric(
+                            "validation_errors_found", error_count, provider=provider, feed=feed
                         )
+                        record_metric(
+                            f"validation_errors_{symbol_name}",
+                            error_count,
+                            provider=provider,
+                            feed=feed,
+                        )
+                        print(f"WARN Validation found {error_count} errors for {symbol_name}")
                     else:
                         record_metric("validation_success", 1, provider=provider, feed=feed)
-                        record_metric(f"validation_success_{symbol_name}", 1, provider=provider, feed=feed)
+                        record_metric(
+                            f"validation_success_{symbol_name}", 1, provider=provider, feed=feed
+                        )
 
                     # Save validation report with job_id
                     report_path = self._reporter.save(event.job_id, result)
@@ -88,10 +99,10 @@ class ValidationRunnerService:
                 except Exception as symbol_error:
                     # Record symbol-specific validation failure
                     record_metric("validation_symbol_failures", 1, provider=provider, feed=feed)
-                    record_metric(f"validation_failure_{symbol_name}", 1, provider=provider, feed=feed)
-                    print(
-                        f"ERROR Failed to validate symbol {symbol_name}: {symbol_error}"
+                    record_metric(
+                        f"validation_failure_{symbol_name}", 1, provider=provider, feed=feed
                     )
+                    print(f"ERROR Failed to validate symbol {symbol_name}: {symbol_error}")
 
             # Record overall job validation metrics
             if total_errors == 0:
@@ -109,7 +120,7 @@ class ValidationRunnerService:
         except Exception as e:
             # Extract provider/feed for error metrics too
             provider, feed = self._extract_provider_feed_info(event)
-            
+
             # Record overall validation failure
             from marketpipe.metrics import record_metric
 

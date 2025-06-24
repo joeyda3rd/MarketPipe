@@ -9,4 +9,4 @@ from __future__ import annotations
 
 __all__ = ["in_memory_bus"]
 
-from . import in_memory_bus 
+from . import in_memory_bus

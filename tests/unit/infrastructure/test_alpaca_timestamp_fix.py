@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from marketpipe.domain.value_objects import Symbol
@@ -119,9 +119,7 @@ class TestAlpacaTimestampFix:
         assert domain_bar.timestamp.value == expected_datetime
 
         # Verify this is NOT the old behavior (which would subtract 9600 seconds)
-        wrong_datetime = datetime(
-            2024, 6, 15, 7, 20, 0, tzinfo=timezone.utc
-        )  # 10:00 - 160 minutes
+        wrong_datetime = datetime(2024, 6, 15, 7, 20, 0, tzinfo=timezone.utc)  # 10:00 - 160 minutes
         assert domain_bar.timestamp.value != wrong_datetime
 
     def test_alpaca_timestamp_boundary_dates(self):
@@ -158,15 +156,15 @@ class TestAlpacaTimestampFix:
 
             # Verify the date component is correct
             actual_date = domain_bar.timestamp.value.date()
-            assert actual_date == expected_date, (
-                f"Failed for {description}: expected {expected_date}, got {actual_date}"
-            )
+            assert (
+                actual_date == expected_date
+            ), f"Failed for {description}: expected {expected_date}, got {actual_date}"
 
             # Verify the time component is correct
             actual_time = domain_bar.timestamp.value.strftime("%H:%M:%S")
-            assert actual_time == expected_time, (
-                f"Failed for {description}: expected {expected_time}, got {actual_time}"
-            )
+            assert (
+                actual_time == expected_time
+            ), f"Failed for {description}: expected {expected_time}, got {actual_time}"
 
     def test_alpaca_timestamp_trading_hours(self):
         """Test timestamp conversion for typical trading hours."""

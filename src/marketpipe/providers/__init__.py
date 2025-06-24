@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set
 from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import Dict, List, Optional, Set
 
 
 @dataclass
@@ -149,9 +149,7 @@ class ProviderFeatureMatrix:
         requested_end: date,
     ) -> str:
         """Generate a helpful error message with provider suggestions."""
-        alternatives = cls.suggest_alternatives(
-            failed_provider, requested_start, requested_end
-        )
+        alternatives = cls.suggest_alternatives(failed_provider, requested_start, requested_end)
 
         # Create base error message
         msg = (

@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """End-to-end integration test for the complete MarketPipe pipeline."""
 
-import pandas as pd
-import pytest
 from datetime import date
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pandas as pd
+import pytest
 from typer.testing import CliRunner
-from unittest.mock import patch, Mock
 
 from marketpipe.cli import app
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
@@ -88,14 +89,10 @@ def test_full_pipeline_end_to_end(tmp_path, monkeypatch):
 
     # 3. VALIDATE: Run validate CLI command
     print("=== Step 3: Validation ===")
-    with patch(
-        "marketpipe.validation.ValidationRunnerService.build_default"
-    ) as mock_val_service:
+    with patch("marketpipe.validation.ValidationRunnerService.build_default") as mock_val_service:
         # Create a mock validation service
         mock_validation_service = Mock()
-        mock_validation_service.handle_ingestion_completed.return_value = (
-            None  # Success
-        )
+        mock_validation_service.handle_ingestion_completed.return_value = None  # Success
         mock_val_service.return_value = mock_validation_service
 
         # Also mock the CsvReportRepository to avoid file system operations
@@ -107,25 +104,17 @@ def test_full_pipeline_end_to_end(tmp_path, monkeypatch):
             mock_repo_instance.get_report_summary.return_value = {"total_errors": 0}
             mock_csv_repo.return_value = mock_repo_instance
 
-            result = runner.invoke(
-                app, ["validate", "--job-id", job_id], catch_exceptions=False
-            )
+            result = runner.invoke(app, ["validate", "--job-id", job_id], catch_exceptions=False)
 
-            assert (
-                result.exit_code == 0
-            ), f"Validation failed with output: {result.stdout}"
+            assert result.exit_code == 0, f"Validation failed with output: {result.stdout}"
             assert "Validation completed successfully!" in result.stdout
             print("✓ Validation: CLI command succeeded")
 
     # 4. QUERY: Run query CLI command
     print("=== Step 4: Query ===")
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         # Mock query to return sample aggregated data
-        mock_query_result = pd.DataFrame(
-            {"cnt": [2], "symbol": ["AAPL"], "avg_close": [150.75]}
-        )
+        mock_query_result = pd.DataFrame({"cnt": [2], "symbol": ["AAPL"], "avg_close": [150.75]})
         mock_query.return_value = mock_query_result
 
         result = runner.invoke(
@@ -145,7 +134,7 @@ def test_full_pipeline_end_to_end(tmp_path, monkeypatch):
         # Mock metrics repository
         mock_repo_instance = Mock()
         mock_metrics_repo.return_value = mock_repo_instance
-        
+
         # Mock async method
         async def mock_list_metric_names():
             return [
@@ -153,7 +142,7 @@ def test_full_pipeline_end_to_end(tmp_path, monkeypatch):
                 "validation_jobs",
                 "aggregation_jobs",
             ]
-        
+
         mock_repo_instance.list_metric_names = mock_list_metric_names
 
         result = runner.invoke(app, ["metrics", "--list"], catch_exceptions=False)
@@ -186,9 +175,7 @@ def test_pipeline_e2e_with_real_aggregation(tmp_path, monkeypatch):
     trading_day = date(2024, 1, 1)
 
     # Write raw data
-    raw_engine.write(
-        df=fake_df, frame="1m", symbol="AAPL", trading_day=trading_day, job_id=job_id
-    )
+    raw_engine.write(df=fake_df, frame="1m", symbol="AAPL", trading_day=trading_day, job_id=job_id)
 
     # Test that we can create aggregated data engine
     agg_engine = ParquetStorageEngine(agg_data_dir)
@@ -207,9 +194,7 @@ def test_pipeline_e2e_with_real_aggregation(tmp_path, monkeypatch):
     )
 
     # Write aggregated data
-    agg_engine.write(
-        df=agg_df, frame="5m", symbol="AAPL", trading_day=trading_day, job_id=job_id
-    )
+    agg_engine.write(df=agg_df, frame="5m", symbol="AAPL", trading_day=trading_day, job_id=job_id)
 
     # Verify aggregated data exists
     agg_data = agg_engine.load_job_bars(job_id)
@@ -242,9 +227,7 @@ def test_pipeline_error_handling(tmp_path, monkeypatch):
     assert "Validation completed successfully!" in result.stdout
 
     # Test query command with invalid SQL
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.side_effect = RuntimeError("Invalid SQL")
 
         result = runner.invoke(app, ["query", "INVALID SQL"])

@@ -1,36 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
+import asyncio
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
-import asyncio
-import os
 
-from prometheus_client import Counter, Histogram, Gauge, Summary
-import aiosqlite
+from prometheus_client import Counter, Gauge, Histogram, Summary
 
-from marketpipe.infrastructure.sqlite_pool import connection
 from marketpipe.infrastructure.sqlite_async_mixin import SqliteAsyncMixin
 from marketpipe.migrations import apply_pending
 
 # Core metrics with full label set: source, provider, feed
-REQUESTS = Counter(
-    "mp_requests_total", 
-    "API requests", 
-    ["source", "provider", "feed"]
-)
-ERRORS = Counter(
-    "mp_errors_total", 
-    "Errors", 
-    ["source", "provider", "feed", "code"]
-)
-LATENCY = Histogram(
-    "mp_request_latency_seconds", 
-    "Latency", 
-    ["source", "provider", "feed"]
-)
+REQUESTS = Counter("mp_requests_total", "API requests", ["source", "provider", "feed"])
+ERRORS = Counter("mp_errors_total", "Errors", ["source", "provider", "feed", "code"])
+LATENCY = Histogram("mp_request_latency_seconds", "Latency", ["source", "provider", "feed"])
 
 # Legacy metrics for backward compatibility (deprecated)
 LEGACY_REQUESTS = Counter("mp_requests_legacy_total", "API requests (legacy)", ["source"])
@@ -47,9 +33,7 @@ VALIDATION_ERRORS = Counter(
 AGG_ROWS = Counter("mp_aggregation_rows_total", "Rows aggregated", ["frame", "symbol"])
 
 # Summary metrics for tracking operational data
-PROCESSING_TIME = Summary(
-    "mp_processing_time_seconds", "Processing time", ["operation"]
-)
+PROCESSING_TIME = Summary("mp_processing_time_seconds", "Processing time", ["operation"])
 
 # Rate limiter metrics (imported from rate_limit module)
 from marketpipe.ingestion.infrastructure.rate_limit import RATE_LIMITER_WAITS
@@ -59,20 +43,15 @@ from marketpipe.metrics_server import EVENT_LOOP_LAG
 
 # Symbol pipeline metrics
 SYMBOLS_ROWS = Counter(
-    "mp_symbols_rows_total",
-    "SCD rows written to symbols_master parquet dataset",
-    ["action"]
+    "mp_symbols_rows_total", "SCD rows written to symbols_master parquet dataset", ["action"]
 )
 
 SYMBOLS_SNAPSHOT_RECORDS = Counter(
-    "mp_symbols_snapshot_records_total",
-    "Raw provider symbol rows staged for dedupe"
+    "mp_symbols_snapshot_records_total", "Raw provider symbol rows staged for dedupe"
 )
 
 SYMBOLS_NULL_RATIO = Gauge(
-    "mp_symbols_null_ratio",
-    "Share of NULLs per column in v_symbol_latest",
-    ["column"]
+    "mp_symbols_null_ratio", "Share of NULLs per column in v_symbol_latest", ["column"]
 )
 
 # Backfill metrics
@@ -92,17 +71,15 @@ BACKFILL_GAP_LATENCY_SECONDS = Histogram(
 DATA_PRUNED_BYTES_TOTAL = Counter(
     "mp_data_pruned_bytes_total",
     "Total bytes of data pruned/deleted",
-    ["type"]  # parquet, sqlite, etc.
+    ["type"],  # parquet, sqlite, etc.
 )
 DATA_PRUNED_ROWS_TOTAL = Counter(
-    "mp_data_pruned_rows_total", 
-    "Total rows of data pruned/deleted",
-    ["type"]  # sqlite, etc.
+    "mp_data_pruned_rows_total", "Total rows of data pruned/deleted", ["type"]  # sqlite, etc.
 )
 
 __all__ = [
     "REQUESTS",
-    "ERRORS", 
+    "ERRORS",
     "LATENCY",
     "LEGACY_REQUESTS",
     "LEGACY_ERRORS",
@@ -165,7 +142,9 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
         # Apply migrations on first use
         apply_pending(self._db_path)
 
-    async def record(self, name: str, value: float, provider: str = "unknown", feed: str = "unknown") -> None:
+    async def record(
+        self, name: str, value: float, provider: str = "unknown", feed: str = "unknown"
+    ) -> None:
         """Record a metric data point with provider and feed labels."""
         timestamp = int(datetime.now().timestamp())
 
@@ -236,9 +215,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
             result = row[0] if row else None
             return result if result is not None else 0.0
 
-    async def get_performance_trends(
-        self, metric: str, *, buckets: int = 24
-    ) -> List[TrendPoint]:
+    async def get_performance_trends(self, metric: str, *, buckets: int = 24) -> List[TrendPoint]:
         """Get performance trends over time divided into buckets."""
         now = datetime.now()
         bucket_size_minutes = (24 * 60) // buckets  # Distribute 24 hours across buckets
@@ -246,12 +223,8 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
 
         async with self._conn() as db:
             for i in range(buckets):
-                bucket_start_ts = now.timestamp() - (
-                    (buckets - i) * bucket_size_minutes * 60
-                )
-                bucket_end_ts = now.timestamp() - (
-                    (buckets - i - 1) * bucket_size_minutes * 60
-                )
+                bucket_start_ts = now.timestamp() - ((buckets - i) * bucket_size_minutes * 60)
+                bucket_end_ts = now.timestamp() - ((buckets - i - 1) * bucket_size_minutes * 60)
 
                 cursor = await db.execute(
                     """
@@ -295,21 +268,21 @@ def get_metrics_repository() -> SqliteMetricsRepository:
 
 
 def record_metric(
-    name: str, 
-    value: float, 
-    *, 
-    provider: str = "unknown", 
+    name: str,
+    value: float,
+    *,
+    provider: str = "unknown",
     feed: str = "unknown",
-    source: str = "unknown"
+    source: str = "unknown",
 ) -> None:
     """Record a metric to both Prometheus and SQLite persistence.
 
     This function updates Prometheus counters/summaries and persists
     the data to SQLite for historical analysis.
-    
+
     Args:
         name: The metric name
-        value: The metric value  
+        value: The metric value
         provider: The data provider (e.g., "alpaca", "polygon")
         feed: The data feed type (e.g., "iex", "sip")
         source: The source component (for backward compatibility)
@@ -330,8 +303,8 @@ def record_metric(
     elif "latency" in name.lower() or "duration" in name.lower():
         LATENCY.labels(source=source, provider=provider, feed=feed).observe(value)
         LEGACY_LATENCY.labels(source=source).observe(value)
-    
-    # Update operation-specific metrics  
+
+    # Update operation-specific metrics
     if "ingest" in name.lower():
         PROCESSING_TIME.labels(operation="ingestion").observe(value)
     elif "validation" in name.lower():
@@ -346,7 +319,7 @@ def record_metric(
 
     # Persist to SQLite - handle event loop contexts carefully
     repo = get_metrics_repository()
-    
+
     try:
         # Try to determine if we're in an async context
         loop = asyncio.get_running_loop()

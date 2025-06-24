@@ -3,16 +3,17 @@
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import MagicMock
 from datetime import datetime, timezone
 from decimal import Decimal
+from unittest.mock import MagicMock
 
-from marketpipe.domain.value_objects import Symbol, Price, Volume
+import pytest
+
+from marketpipe.domain.value_objects import Price, Symbol, Volume
 from marketpipe.ingestion.infrastructure.adapters import (
     AlpacaMarketDataAdapter,
-    MarketDataProviderError,
     DataTranslationError,
+    MarketDataProviderError,
 )
 
 
@@ -129,9 +130,7 @@ class TestAlpacaMarketDataAdapterFetching:
     """Test market data fetching functionality."""
 
     @pytest.mark.asyncio
-    async def test_fetch_bars_converts_timestamp_parameters_correctly(
-        self, monkeypatch
-    ):
+    async def test_fetch_bars_converts_timestamp_parameters_correctly(self, monkeypatch):
         """Test that timestamp parameters are converted correctly for Alpaca API."""
         adapter = AlpacaMarketDataAdapter(
             api_key="test_key",
@@ -165,14 +164,10 @@ class TestAlpacaMarketDataAdapterFetching:
         expected_start_ms = start_timestamp_ns // 1_000_000
         expected_end_ms = end_timestamp_ns // 1_000_000
 
-        mock_fetch_batch.assert_called_once_with(
-            symbol.value, expected_start_ms, expected_end_ms
-        )
+        mock_fetch_batch.assert_called_once_with(symbol.value, expected_start_ms, expected_end_ms)
 
     @pytest.mark.asyncio
-    async def test_fetch_bars_raises_provider_error_on_client_failure(
-        self, monkeypatch
-    ):
+    async def test_fetch_bars_raises_provider_error_on_client_failure(self, monkeypatch):
         """Test that client failures are wrapped in MarketDataProviderError."""
         adapter = AlpacaMarketDataAdapter(
             api_key="test_key",
@@ -188,9 +183,7 @@ class TestAlpacaMarketDataAdapterFetching:
         start_timestamp = 1672675800000000000
         end_timestamp = 1672679400000000000
 
-        with pytest.raises(
-            MarketDataProviderError, match="Failed to fetch data for AAPL"
-        ):
+        with pytest.raises(MarketDataProviderError, match="Failed to fetch data for AAPL"):
             await adapter.fetch_bars(symbol, start_timestamp, end_timestamp)
 
     @pytest.mark.asyncio
@@ -215,9 +208,7 @@ class TestAlpacaMarketDataAdapterFetching:
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_fetch_bars_handles_partial_translation_failures_gracefully(
-        self, monkeypatch
-    ):
+    async def test_fetch_bars_handles_partial_translation_failures_gracefully(self, monkeypatch):
         """Test that individual bar translation failures don't stop processing."""
         adapter = AlpacaMarketDataAdapter(
             api_key="test_key",

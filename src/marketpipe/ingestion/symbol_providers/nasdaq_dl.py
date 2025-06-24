@@ -38,14 +38,15 @@ Usage:
 from __future__ import annotations
 
 import datetime as _dt
-import re
 from typing import List
+
 import httpx
 
-from marketpipe.domain import SymbolRecord, AssetClass, Status
+from marketpipe.domain import AssetClass, Status, SymbolRecord
 from marketpipe.domain.symbol import safe_create
-from .base import SymbolProviderBase
+
 from . import register
+from .base import SymbolProviderBase
 
 # Map Nasdaq Market Category codes to standard Market Identifier Codes
 MIC_BY_CAT = {
@@ -62,16 +63,16 @@ MIC_BY_CAT = {
 @register("nasdaq_dl")
 class NasdaqDailyListProvider(SymbolProviderBase):
     """Nasdaq Daily List symbol provider for US equity market data.
-    
+
     Fetches symbol listings from Nasdaq's official Daily List text files.
     Downloads pipe-delimited text from the Nasdaq FTP server and converts
     each valid row to a SymbolRecord object.
-    
+
     Configuration:
         as_of: Snapshot date (optional, defaults to footer date from file)
         include_etfs: Include ETF symbols (default: True)
         skip_test_issues: Skip test securities (default: True)
-        
+
     Known Limitations:
         - Only shows ACTIVE symbols (no delisted entries)
         - ETF classification may not capture all structured products
@@ -80,19 +81,19 @@ class NasdaqDailyListProvider(SymbolProviderBase):
 
     async def _fetch_raw(self) -> List[str]:
         """Fetch raw Nasdaq Daily List text file.
-        
+
         Downloads the nasdaqlisted.txt file from Nasdaq's public FTP server.
         Returns the file content as a list of lines for parsing.
-        
+
         Returns:
             List of text lines from the Nasdaq Daily List file
-            
+
         Raises:
             httpx.HTTPStatusError: If download fails
             httpx.RequestError: If network request fails
         """
         url = "https://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqlisted.txt"
-        
+
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.get(url)
             response.raise_for_status()
@@ -100,66 +101,60 @@ class NasdaqDailyListProvider(SymbolProviderBase):
 
     def _map_to_records(self, rows: List[str]) -> List[SymbolRecord]:
         """Convert Nasdaq Daily List rows to SymbolRecord objects.
-        
+
         Parses pipe-delimited text format and converts each valid row
         to a validated SymbolRecord. Handles footer date parsing and
         applies business rules for filtering.
-        
+
         Args:
             rows: List of text lines from Nasdaq Daily List file
-            
+
         Returns:
             List of validated SymbolRecord objects
         """
         if not rows:
             return []
-        
+
         # Parse header to get column positions
         header = rows[0].split("|")
-        
+
         # Filter out header and footer lines
-        data_rows = [
-            row for row in rows[1:] 
-            if row and not row.startswith("File Creation Time")
-        ]
-        
+        data_rows = [row for row in rows[1:] if row and not row.startswith("File Creation Time")]
+
         # Determine effective as_of date with proper precedence
         effective_as_of = self._determine_effective_date(rows)
-        
+
         # Configuration options
         include_etfs = self.cfg.get("include_etfs", True)
         skip_test_issues = self.cfg.get("skip_test_issues", True)
-        
+
         records: List[SymbolRecord] = []
-        
+
         for row in data_rows:
-            record = self._parse_row(
-                row, header, effective_as_of, 
-                include_etfs, skip_test_issues
-            )
+            record = self._parse_row(row, header, effective_as_of, include_etfs, skip_test_issues)
             if record:
                 records.append(record)
-        
+
         return records
-    
+
     def _determine_effective_date(self, rows: List[str]) -> _dt.date:
         """Determine effective as_of date with proper precedence.
-        
+
         Priority:
         1. If constructor provided as_of, use it (ignore footer)
-        2. Parse footer date from last line 
+        2. Parse footer date from last line
         3. Fallback to today if footer parsing fails
-        
+
         Args:
             rows: List of text lines from file
-            
+
         Returns:
             Effective date for all records
         """
         # As-of precedence: if caller supplied as_of, ignore footer
         if self.as_of:
             return self.as_of
-        
+
         # Parse footer date from last line with improved parsing
         if rows:
             footer_line = rows[-1].strip()
@@ -174,27 +169,27 @@ class NasdaqDailyListProvider(SymbolProviderBase):
                             return _dt.datetime.strptime(date_str, "%Y%m%d").date()
                 except (ValueError, IndexError):
                     pass  # Fall through to default
-        
+
         # Fallback to today if footer parsing fails
         return _dt.date.today()
-    
+
     def _parse_row(
-        self, 
-        row: str, 
-        header: List[str], 
+        self,
+        row: str,
+        header: List[str],
         as_of: _dt.date,
         include_etfs: bool,
-        skip_test_issues: bool
+        skip_test_issues: bool,
     ) -> SymbolRecord | None:
         """Parse a single row from the Nasdaq Daily List.
-        
+
         Args:
             row: Pipe-delimited data row
             header: Column names from header row
             as_of: Effective date for the record
             include_etfs: Whether to include ETF symbols
             skip_test_issues: Whether to skip test securities
-            
+
         Returns:
             SymbolRecord if row is valid and passes filters, None otherwise
         """
@@ -203,26 +198,26 @@ class NasdaqDailyListProvider(SymbolProviderBase):
         parts = row.split("|")
         if len(parts) != len(header):
             return None  # Malformed row
-        
+
         # Create column mapping
         data = dict(zip(header, parts))
-        
+
         # Apply business rule filters
         if skip_test_issues and data.get("Test Issue", "").strip().upper() == "Y":
             return None  # Skip test securities
-        
+
         # Extract and validate core fields
         ticker = data.get("Symbol", "").strip().upper()
         if not ticker:
             return None  # Empty ticker
-        
+
         # Map market category to MIC with blank handling
         market_category = data.get("Market Category", "").strip().upper()
         if not market_category:  # Handle blank market category
             exchange_mic = "XNAS"  # Default to NASDAQ
         else:
             exchange_mic = MIC_BY_CAT.get(market_category, "XNAS")
-        
+
         # Determine asset class from ETF flag
         etf_flag = data.get("ETF", "").strip().upper()
         if etf_flag == "Y":
@@ -231,11 +226,11 @@ class NasdaqDailyListProvider(SymbolProviderBase):
                 return None  # Skip ETFs if configured
         else:
             asset_class = AssetClass.EQUITY
-        
+
         # Extract company name
         company_name_raw = data.get("Security Name", "").strip()
         company_name = company_name_raw if company_name_raw else None
-        
+
         # Build record kwargs for safe_create
         record_kwargs = {
             "ticker": ticker,
@@ -253,8 +248,8 @@ class NasdaqDailyListProvider(SymbolProviderBase):
                 "etf_flag": etf_flag,
                 "nextshares": data.get("NextShares", "").strip(),
                 "source": "nasdaq_daily_list",
-            }
+            },
         }
-        
+
         # Use safe_create to handle validation errors
-        return safe_create(record_kwargs, provider=self.name) 
+        return safe_create(record_kwargs, provider=self.name)

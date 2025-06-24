@@ -3,18 +3,18 @@
 Debug script to check aggregation pipeline
 """
 
-import sys
 import subprocess
 from pathlib import Path
+
 
 def run_command(cmd, description):
     """Run a command and return success/failure."""
     print(f"\n🔧 {description}")
     print(f"💻 {' '.join(cmd)}")
-    
+
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(f"✅ Success")
+        print("✅ Success")
         if result.stdout.strip():
             print("📄 Output:")
             for line in result.stdout.strip().split('\n'):
@@ -36,7 +36,7 @@ def main():
     """Debug the aggregation pipeline."""
     print("🔍 Debugging MarketPipe Aggregation Pipeline")
     print("=" * 50)
-    
+
     # Check raw data structure
     raw_path = Path("data/raw")
     if raw_path.exists():
@@ -49,7 +49,7 @@ def main():
     else:
         print("❌ No raw data directory found")
         return
-    
+
     # Check aggregated data structure
     agg_path = Path("data/agg")
     if agg_path.exists():
@@ -59,19 +59,19 @@ def main():
             print(f"  {f}")
     else:
         print("❌ No aggregated data directory found")
-    
+
     # Try to manually trigger aggregation
     print("\n🔄 Manually triggering aggregation...")
-    
+
     # First, let's see if we can query raw data directly
     print("\n1️⃣ Testing direct raw data query...")
     run_command([
-        "python", "-c", 
+        "python", "-c",
         "import duckdb; con = duckdb.connect(':memory:'); "
         "result = con.execute(\"SELECT COUNT(*) as total FROM parquet_scan('data/raw/**/*.parquet', hive_partitioning=1)\").fetchone(); "
         "print(f'Raw data rows: {result[0]}')"
     ], "Count rows in raw data")
-    
+
     # Try to test the aggregation engine directly
     print("\n2️⃣ Testing DuckDB aggregation...")
     run_command([
@@ -81,7 +81,7 @@ def main():
         "result = engine.aggregate_raw_data('5m'); "
         "print(f'Aggregation result: {result}')"
     ], "Test DuckDB aggregation engine")
-    
+
     # Check if views can be created
     print("\n3️⃣ Testing view creation...")
     run_command([
@@ -91,13 +91,13 @@ def main():
         "data = get_available_data(); "
         "print(f'Available data: {len(data)} records')"
     ], "Test view creation and data availability")
-    
+
     # Try a simple query
     print("\n4️⃣ Testing simple query...")
     run_command([
-        "python", "-m", "marketpipe", "query", 
+        "python", "-m", "marketpipe", "query",
         "SELECT 'test' as message, COUNT(*) as count FROM bars_5m"
     ], "Test simple query")
 
 if __name__ == "__main__":
-    main() 
+    main()

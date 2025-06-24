@@ -3,30 +3,29 @@
 
 from __future__ import annotations
 
-import asyncio
-
 import typer
 
 from marketpipe.aggregation.application.services import AggregationRunnerService
-from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 
 
 def _aggregate_impl(job_id: str):
     """Implementation of the aggregate functionality."""
     from marketpipe.bootstrap import bootstrap
+
     bootstrap()
-    
+
     try:
         print(f"📊 Starting aggregation for job: {job_id}")
 
         # Setup aggregation service - use the build_default factory method
         aggregation_service = AggregationRunnerService.build_default()
 
-        # Create and trigger the ingestion completed event  
+        # Create and trigger the ingestion completed event
+        from datetime import date
+
         from marketpipe.domain.events import IngestionJobCompleted
         from marketpipe.domain.value_objects import Symbol
-        from datetime import date
-        
+
         # Create a mock event to trigger aggregation
         # Use dummy values since this is just to trigger the aggregation
         event = IngestionJobCompleted(
@@ -34,7 +33,7 @@ def _aggregate_impl(job_id: str):
             symbol=Symbol("DUMMY"),  # Placeholder symbol
             trading_date=date.today(),
             bars_processed=0,
-            success=True
+            success=True,
         )
 
         try:
@@ -42,10 +41,11 @@ def _aggregate_impl(job_id: str):
             aggregation_service.handle_ingestion_completed(event)
             print("✅ All aggregations completed successfully!")
             print("📄 Check 'data/aggregated/' for aggregated data")
-            
+
             # Refresh DuckDB views
             try:
                 from marketpipe.aggregation.infrastructure.duckdb_views import refresh_views
+
                 refresh_views()
                 print("🔄 DuckDB views refreshed")
             except Exception as e:
@@ -71,5 +71,7 @@ def aggregate_ohlcv_convenience(job_id: str):
 
 def aggregate_deprecated(job_id: str):
     """[DEPRECATED] Use 'aggregate-ohlcv' or 'ohlcv aggregate' instead."""
-    print("⚠️  Warning: 'aggregate' is deprecated. Use 'aggregate-ohlcv' or 'ohlcv aggregate' instead.")
-    _aggregate_impl(job_id) 
+    print(
+        "⚠️  Warning: 'aggregate' is deprecated. Use 'aggregate-ohlcv' or 'ohlcv aggregate' instead."
+    )
+    _aggregate_impl(job_id)

@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Legacy Alpaca client tests - maintaining backward compatibility."""
 
+import asyncio
 import types
 
 import httpx
-import asyncio
 
 from marketpipe.ingestion.infrastructure.alpaca_client import AlpacaClient
 from marketpipe.ingestion.infrastructure.auth import HeaderTokenAuth
@@ -122,7 +122,7 @@ def test_legacy_alpaca_client_supports_async_symbol_data_retrieval(monkeypatch):
         rows = loop.run_until_complete(client.async_fetch_batch("AAPL", 0, 1))
     finally:
         loop.close()
-        
+
     assert len(rows) == 2
     assert headers_seen[0]["APCA-API-KEY-ID"] == "id"
 
@@ -178,15 +178,19 @@ def test_alpaca_async(monkeypatch):
     """Test async client functionality."""
     pages = [
         {
-            "bars": {"AAPL": [
-                {"t": "2023-01-02T09:30:00Z", "o": 1, "h": 2, "l": 0.5, "c": 1.5, "v": 100}
-            ]},
+            "bars": {
+                "AAPL": [
+                    {"t": "2023-01-02T09:30:00Z", "o": 1, "h": 2, "l": 0.5, "c": 1.5, "v": 100}
+                ]
+            },
             "next_page_token": "abc",
         },
         {
-            "bars": {"AAPL": [
-                {"t": "2023-01-02T09:31:00Z", "o": 1.5, "h": 2.1, "l": 1.0, "c": 2.0, "v": 150}
-            ]}
+            "bars": {
+                "AAPL": [
+                    {"t": "2023-01-02T09:31:00Z", "o": 1.5, "h": 2.1, "l": 1.0, "c": 2.0, "v": 150}
+                ]
+            }
         },
     ]
     headers_seen = []
@@ -194,10 +198,13 @@ def test_alpaca_async(monkeypatch):
     class DummyAsyncClient:
         def __init__(self, *args, **kwargs):
             pass
+
         async def __aenter__(self):
             return self
+
         async def __aexit__(self, exc_type, exc, tb):
             pass
+
         async def get(self, url, params=None, headers=None):
             headers_seen.append(headers)
             body = pages.pop(0)
@@ -216,6 +223,6 @@ def test_alpaca_async(monkeypatch):
         rows = loop.run_until_complete(client.async_fetch_batch("AAPL", 0, 1000))
     finally:
         loop.close()
-        
+
     assert len(rows) == 2
     assert headers_seen[0]["APCA-API-KEY-ID"] == "id"

@@ -2,18 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
-import logging
 import random
 import time
-from typing import Any, Dict, List, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any, Dict, List, Optional
 
 import httpx
 
 from .base_api_client import BaseApiClient
-from .models import ClientConfig
-from .rate_limit import RateLimiter
-from .auth import HeaderTokenAuth
-
 
 ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
@@ -111,7 +107,9 @@ class AlpacaClient(BaseApiClient):
             rows.append(
                 {
                     "symbol": bar["S"],
-                    "timestamp": int(dt.datetime.fromisoformat(bar["t"]).timestamp() * 1_000_000_000),
+                    "timestamp": int(
+                        dt.datetime.fromisoformat(bar["t"]).timestamp() * 1_000_000_000
+                    ),
                     "date": dt.date.fromisoformat(bar["t"][:10]),
                     "open": bar["o"],
                     "high": bar["h"],
@@ -140,9 +138,8 @@ class AlpacaClient(BaseApiClient):
 
     @staticmethod
     def _backoff(attempt: int) -> float:
-        base = 1.5 ** attempt
+        base = 1.5**attempt
         return base + random.uniform(0, 0.2 * base)
 
 
 __all__ = ["AlpacaClient"]
-

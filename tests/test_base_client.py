@@ -3,8 +3,8 @@
 
 import pytest
 
-from marketpipe.ingestion.infrastructure.base_api_client import BaseApiClient
 from marketpipe.ingestion.infrastructure.auth import AuthStrategy
+from marketpipe.ingestion.infrastructure.base_api_client import BaseApiClient
 from marketpipe.ingestion.infrastructure.models import ClientConfig
 
 
@@ -19,9 +19,7 @@ def test_legacy_abstract_base_client_enforces_complete_implementation():
     """Test that legacy abstract base client enforces complete implementation."""
 
     class IncompleteMarketDataClient(BaseApiClient):
-        def build_request_params(
-            self, symbol: str, start_ts: int, end_ts: int, cursor=None
-        ):
+        def build_request_params(self, symbol: str, start_ts: int, end_ts: int, cursor=None):
             return {}
 
         def endpoint_path(self) -> str:
@@ -51,9 +49,7 @@ def test_legacy_base_client_supports_symbol_data_pagination():
             super().__init__(*args, **kwargs)
             self.calls = 0
 
-        def build_request_params(
-            self, symbol: str, start_ts: int, end_ts: int, cursor=None
-        ):
+        def build_request_params(self, symbol: str, start_ts: int, end_ts: int, cursor=None):
             return {}
 
         def endpoint_path(self) -> str:

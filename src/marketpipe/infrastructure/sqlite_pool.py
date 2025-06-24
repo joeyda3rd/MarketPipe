@@ -6,12 +6,13 @@ for better concurrent read/write performance across contexts.
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 import threading
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Generator
-import logging
+from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 

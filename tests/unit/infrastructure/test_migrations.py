@@ -147,9 +147,7 @@ def test_migration_failure_rollback(tmp_path):
 
         # Check that the broken migration was not recorded
         with sqlite3.connect(db) as conn:
-            cursor = conn.execute(
-                "SELECT version FROM schema_version WHERE version = '999'"
-            )
+            cursor = conn.execute("SELECT version FROM schema_version WHERE version = '999'")
             assert cursor.fetchone() is None
     finally:
         # Clean up
@@ -195,13 +193,13 @@ def test_partial_migrations_applied(tmp_path):
         assert "003" in versions
         assert "004" in versions
         assert "005" in versions
-        
+
         # Verify that applying again is idempotent (no duplicates)
         initial_count = len(versions)
-        
+
     # Apply migrations again - should be idempotent
     apply_pending(db)
-    
+
     with sqlite3.connect(db) as conn:
         cursor = conn.execute("SELECT version FROM schema_version ORDER BY version")
         versions_after = [row[0] for row in cursor.fetchall()]

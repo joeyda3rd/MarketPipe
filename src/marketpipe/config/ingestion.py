@@ -3,12 +3,10 @@
 
 from __future__ import annotations
 
-import os
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Union, Literal
+from typing import Any, Dict, List, Union
 
-import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 PathLike = Union[str, Path]
@@ -26,8 +24,7 @@ class IngestionJobConfig(BaseModel):
     """
 
     config_version: str = Field(
-        default=CURRENT_CONFIG_VERSION,
-        description="Configuration schema version"
+        default=CURRENT_CONFIG_VERSION, description="Configuration schema version"
     )
     symbols: List[str] = Field(
         ...,
@@ -43,12 +40,8 @@ class IngestionJobConfig(BaseModel):
         default="alpaca",
         description="Market data provider (future-proof for multiple providers)",
     )
-    feed_type: str = Field(
-        default="iex", description="Data feed type (iex for free, sip for paid)"
-    )
-    output_path: str = Field(
-        default="./data", description="Output directory for data files"
-    )
+    feed_type: str = Field(default="iex", description="Data feed type (iex for free, sip for paid)")
+    output_path: str = Field(default="./data", description="Output directory for data files")
     workers: int = Field(default=4, description="Number of worker threads", ge=1, le=32)
 
     class Config:
@@ -88,20 +81,18 @@ class IngestionJobConfig(BaseModel):
             )
 
             valid_providers = set(list_providers())
-            
+
             # If no providers are registered (e.g., in test environment),
             # fall back to known providers
             if not valid_providers:
                 valid_providers = {"alpaca", "iex", "fake", "polygon", "finnhub"}
-                
+
         except ImportError:
             # Fallback for cases where registry isn't available
             valid_providers = {"alpaca", "iex", "fake", "polygon", "finnhub"}
 
         if v.lower() not in valid_providers:
-            raise ValueError(
-                f"Unknown provider: {v}. Valid providers: {valid_providers}"
-            )
+            raise ValueError(f"Unknown provider: {v}. Valid providers: {valid_providers}")
         return v.lower()
 
     @field_validator("feed_type")
@@ -125,7 +116,7 @@ class IngestionJobConfig(BaseModel):
         """Load configuration from YAML file.
 
         DEPRECATED: Use load_config() from marketpipe.config.loader instead.
-        
+
         This method is kept for backward compatibility but now delegates
         to the new centralized loader with version validation.
 
@@ -141,9 +132,8 @@ class IngestionJobConfig(BaseModel):
         """
         # Import here to avoid circular imports
         from .loader import load_config
+
         return load_config(path)
-
-
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation.

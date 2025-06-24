@@ -38,12 +38,14 @@ from __future__ import annotations
 
 import datetime as _dt
 from typing import Any, Dict, List, Optional
+
 import httpx
 
-from marketpipe.domain import SymbolRecord, AssetClass, Status
+from marketpipe.domain import AssetClass, Status, SymbolRecord
 from marketpipe.domain.symbol import safe_create
-from .base import SymbolProviderBase
+
 from . import register
+from .base import SymbolProviderBase
 
 # Map Polygon exchange codes to standard Market Identifier Codes
 MIC_MAP = {
@@ -51,32 +53,32 @@ MIC_MAP = {
     "XNAS": "XNAS",  # NASDAQ
     "ARCX": "ARCX",  # NYSE Arca
     "BATS": "BATS",  # CBOE BZX
-    "IEX": "IEXG",   # IEX Exchange
+    "IEX": "IEXG",  # IEX Exchange
     # Expand as needed for additional exchanges
 }
 
 # Map Polygon asset type codes to MarketPipe AssetClass enum
 ASSET_MAP = {
-    "CS": AssetClass.EQUITY,     # Common Stock
-    "ADRC": AssetClass.ADR,      # American Depositary Receipt
-    "ETF": AssetClass.ETF,       # Exchange Traded Fund
-    "REIT": AssetClass.REIT,     # Real Estate Investment Trust
-    "PFD": AssetClass.EQUITY,    # Preferred Stock (classify as equity)
-    "FUND": AssetClass.ETF,      # Mutual Fund (classify as ETF)
+    "CS": AssetClass.EQUITY,  # Common Stock
+    "ADRC": AssetClass.ADR,  # American Depositary Receipt
+    "ETF": AssetClass.ETF,  # Exchange Traded Fund
+    "REIT": AssetClass.REIT,  # Real Estate Investment Trust
+    "PFD": AssetClass.EQUITY,  # Preferred Stock (classify as equity)
+    "FUND": AssetClass.ETF,  # Mutual Fund (classify as ETF)
     "RIGHT": AssetClass.EQUITY,  # Rights (classify as equity)
-    "BOND": AssetClass.EQUITY,   # Bond (classify as equity for now)
-    "WARRANT": AssetClass.EQUITY, # Warrant (classify as equity)
+    "BOND": AssetClass.EQUITY,  # Bond (classify as equity for now)
+    "WARRANT": AssetClass.EQUITY,  # Warrant (classify as equity)
 }
 
 
 @register("polygon")
 class PolygonSymbolProvider(SymbolProviderBase):
     """Polygon.io symbol provider for US equity market data.
-    
+
     Fetches comprehensive symbol listings from Polygon's reference API,
     including both active and delisted instruments. Handles pagination
     automatically and converts all records to validated SymbolRecord format.
-    
+
     Configuration:
         token: Polygon API key (required)
         as_of: Snapshot date (optional, defaults to today)
@@ -84,25 +86,25 @@ class PolygonSymbolProvider(SymbolProviderBase):
 
     async def _fetch_raw(self) -> List[Dict[str, Any]]:
         """Fetch raw symbol data from Polygon API with pagination.
-        
+
         Makes multiple API calls as needed to retrieve all available symbols.
         Each page can contain up to 1000 records. Continues fetching until
         no more pages are available.
-        
+
         Returns:
             List of raw symbol dictionaries from all API pages
-            
+
         Raises:
             httpx.HTTPStatusError: If API returns non-2xx response
             KeyError: If required API token not provided in configuration
         """
         if "token" not in self.cfg:
             raise KeyError("Polygon API token not provided in configuration")
-            
+
         base_params = {
             "market": "stocks",
             "limit": 1000,
-            "sort": "ticker", 
+            "sort": "ticker",
             "order": "asc",
             "apiKey": self.cfg["token"],
             "as_of": self.as_of.isoformat(),
@@ -114,17 +116,17 @@ class PolygonSymbolProvider(SymbolProviderBase):
         async with httpx.AsyncClient(timeout=30) as client:
             next_url: Optional[str] = url
             current_params: Optional[Dict[str, Any]] = base_params.copy()
-            
+
             while next_url:
                 # Make API request
                 response = await client.get(next_url, params=current_params)
                 response.raise_for_status()
                 data = response.json()
-                
+
                 # Extract records from response
                 records = data.get("results", [])
                 all_records.extend(records)
-                
+
                 # Check for next page
                 next_url = data.get("next_url")
                 if next_url:
@@ -137,35 +139,35 @@ class PolygonSymbolProvider(SymbolProviderBase):
 
     def _map_to_records(self, payload: List[Dict[str, Any]]) -> List[SymbolRecord]:
         """Convert Polygon API records to SymbolRecord objects.
-        
+
         Transforms provider-specific field formats to canonical schema:
         - Maps exchange codes to standard MIC identifiers
         - Converts asset types to AssetClass enum values
         - Handles active/inactive status mapping
         - Preserves all original data in meta field
         - Applies validation through SymbolRecord constructor
-        
+
         Args:
             payload: List of raw symbol dictionaries from Polygon API
-            
+
         Returns:
             List of validated SymbolRecord objects
         """
         records: List[SymbolRecord] = []
-        
+
         for row in payload:
             # Map exchange code to MIC, fallback to truncated uppercase
             primary_exchange = row.get("primary_exchange", "")
             mic = MIC_MAP.get(primary_exchange, primary_exchange[:4].upper())
-            
+
             # Map asset type to AssetClass enum
             asset_type = row.get("type", "CS")
             asset_class = ASSET_MAP.get(asset_type, AssetClass.EQUITY)
-            
+
             # Map active status to Status enum
             is_active = row.get("active", True)
             status = Status.ACTIVE if is_active else Status.DELISTED
-            
+
             # Parse list date if available
             list_date_str = row.get("list_date")
             first_trade_date = None
@@ -175,20 +177,20 @@ class PolygonSymbolProvider(SymbolProviderBase):
                 except (ValueError, TypeError):
                     # Invalid date format, keep as None
                     pass
-            
+
             # Extract currency, default to USD
             currency = row.get("currency_name", "USD")
             if isinstance(currency, str):
                 currency = currency[:3].upper()
             else:
                 currency = "USD"
-            
+
             # Extract country from locale
             country = None
             locale = row.get("locale")
             if locale and isinstance(locale, str) and len(locale) >= 2:
                 country = locale[:2].upper()
-            
+
             # Build record kwargs for safe_create
             record_kwargs = {
                 "ticker": row["ticker"].upper(),
@@ -210,10 +212,10 @@ class PolygonSymbolProvider(SymbolProviderBase):
                 "industry": row.get("industry") or None,
                 "meta": row,  # Preserve original provider data
             }
-            
+
             # Use safe_create to handle validation errors
             rec = safe_create(record_kwargs, provider=self.name)
             if rec:
                 records.append(rec)
-        
-        return records 
+
+        return records

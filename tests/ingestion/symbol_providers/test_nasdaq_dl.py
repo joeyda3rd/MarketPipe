@@ -20,7 +20,7 @@ import types
 import httpx
 import pytest
 
-from marketpipe.domain import SymbolRecord, AssetClass, Status
+from marketpipe.domain import AssetClass, Status, SymbolRecord
 from marketpipe.ingestion.symbol_providers import get, list_providers
 from marketpipe.ingestion.symbol_providers.nasdaq_dl import NasdaqDailyListProvider
 
@@ -36,18 +36,16 @@ class TestNasdaqDailyListProviderRegistration:
     def test_get_nasdaq_dl_provider_returns_correct_instance(self):
         """Test getting nasdaq_dl provider instance."""
         provider = get("nasdaq_dl")
-        
+
         assert isinstance(provider, NasdaqDailyListProvider)
         assert provider.name == "nasdaq_dl"
 
     def test_nasdaq_dl_provider_configuration(self):
         """Test nasdaq_dl provider accepts configuration parameters."""
         provider = NasdaqDailyListProvider(
-            as_of=datetime.date(2024, 1, 15),
-            include_etfs=False,
-            skip_test_issues=True
+            as_of=datetime.date(2024, 1, 15), include_etfs=False, skip_test_issues=True
         )
-        
+
         assert provider.as_of == datetime.date(2024, 1, 15)
         assert provider.cfg["include_etfs"] is False
         assert provider.cfg["skip_test_issues"] is True
@@ -80,11 +78,9 @@ File Creation Time: 20250619
             async def get(self, url: str):
                 # Verify expected URL
                 assert url == "https://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqlisted.txt"
-                
+
                 return types.SimpleNamespace(
-                    status_code=200,
-                    text=mock_file_content,
-                    raise_for_status=lambda: None
+                    status_code=200, text=mock_file_content, raise_for_status=lambda: None
                 )
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
@@ -95,7 +91,7 @@ File Creation Time: 20250619
 
         # Verify results
         assert len(records) == 3
-        
+
         # Verify AAPL record
         aapl = next(r for r in records if r.ticker == "AAPL")
         assert isinstance(aapl, SymbolRecord)
@@ -109,13 +105,13 @@ File Creation Time: 20250619
         assert aapl.meta["market_category"] == "Q"
         assert aapl.meta["etf_flag"] == "N"
         assert aapl.meta["source"] == "nasdaq_daily_list"
-        
+
         # Verify SPY ETF record
         spy = next(r for r in records if r.ticker == "SPY")
         assert spy.asset_class == AssetClass.ETF
         assert spy.exchange_mic == "ARCX"  # P -> ARCX
         assert spy.meta["etf_flag"] == "Y"
-        
+
         # Verify GOOGL record
         googl = next(r for r in records if r.ticker == "GOOGL")
         assert googl.company_name == "Alphabet Inc. Class A"
@@ -143,9 +139,7 @@ File Creation Time: 20250619
 
             async def get(self, url: str):
                 return types.SimpleNamespace(
-                    status_code=200,
-                    text=mock_file_content,
-                    raise_for_status=lambda: None
+                    status_code=200, text=mock_file_content, raise_for_status=lambda: None
                 )
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
@@ -181,9 +175,7 @@ File Creation Time: 20250619
 
             async def get(self, url: str):
                 return types.SimpleNamespace(
-                    status_code=200,
-                    text=mock_file_content,
-                    raise_for_status=lambda: None
+                    status_code=200, text=mock_file_content, raise_for_status=lambda: None
                 )
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
@@ -217,9 +209,7 @@ File Creation Time: 20250619
 
             async def get(self, url: str):
                 return types.SimpleNamespace(
-                    status_code=200,
-                    text=mock_file_content,
-                    raise_for_status=lambda: None
+                    status_code=200, text=mock_file_content, raise_for_status=lambda: None
                 )
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
@@ -250,9 +240,7 @@ File Creation Time:  20250619
 
             async def get(self, url: str):
                 return types.SimpleNamespace(
-                    status_code=200,
-                    text=mock_file_content,
-                    raise_for_status=lambda: None
+                    status_code=200, text=mock_file_content, raise_for_status=lambda: None
                 )
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
@@ -285,9 +273,7 @@ File Creation Time: 20250619
 
             async def get(self, url: str):
                 return types.SimpleNamespace(
-                    status_code=200,
-                    text=mock_file_content,
-                    raise_for_status=lambda: None
+                    status_code=200, text=mock_file_content, raise_for_status=lambda: None
                 )
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
@@ -322,9 +308,7 @@ File Creation Time: 20250619
 
             async def get(self, url: str):
                 return types.SimpleNamespace(
-                    status_code=200,
-                    text=mock_file_content,
-                    raise_for_status=lambda: None
+                    status_code=200, text=mock_file_content, raise_for_status=lambda: None
                 )
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
@@ -344,6 +328,7 @@ class TestNasdaqDailyListProviderErrorHandling:
     @pytest.mark.asyncio
     async def test_http_error_raises(self, monkeypatch):
         """Test that HTTP errors are properly raised."""
+
         class MockAsyncClient:
             def __init__(self, timeout=None):
                 pass
@@ -357,20 +342,17 @@ class TestNasdaqDailyListProviderErrorHandling:
             async def get(self, url: str):
                 def raise_for_status():
                     raise httpx.HTTPStatusError(
-                        "404 Not Found", 
-                        request=None, 
-                        response=types.SimpleNamespace(status_code=404)
+                        "404 Not Found",
+                        request=None,
+                        response=types.SimpleNamespace(status_code=404),
                     )
-                
-                return types.SimpleNamespace(
-                    status_code=404,
-                    raise_for_status=raise_for_status
-                )
+
+                return types.SimpleNamespace(status_code=404, raise_for_status=raise_for_status)
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
 
         provider = NasdaqDailyListProvider()
-        
+
         with pytest.raises(httpx.HTTPStatusError):
             await provider.fetch_symbols()
 
@@ -391,9 +373,7 @@ class TestNasdaqDailyListProviderErrorHandling:
 
             async def get(self, url: str):
                 return types.SimpleNamespace(
-                    status_code=200,
-                    text=mock_file_content,
-                    raise_for_status=lambda: None
+                    status_code=200, text=mock_file_content, raise_for_status=lambda: None
                 )
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
@@ -426,9 +406,7 @@ File Creation Time: 20250619
 
             async def get(self, url: str):
                 return types.SimpleNamespace(
-                    status_code=200,
-                    text=mock_file_content,
-                    raise_for_status=lambda: None
+                    status_code=200, text=mock_file_content, raise_for_status=lambda: None
                 )
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
@@ -462,9 +440,7 @@ Invalid Footer Line
 
             async def get(self, url: str):
                 return types.SimpleNamespace(
-                    status_code=200,
-                    text=mock_file_content,
-                    raise_for_status=lambda: None
+                    status_code=200, text=mock_file_content, raise_for_status=lambda: None
                 )
 
         monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
@@ -487,7 +463,7 @@ class TestNasdaqDailyListProviderConfiguration:
     def test_default_configuration(self):
         """Test default configuration values."""
         provider = NasdaqDailyListProvider()
-        
+
         # Default configuration
         assert provider.cfg.get("include_etfs", True) is True
         assert provider.cfg.get("skip_test_issues", True) is True
@@ -497,7 +473,7 @@ class TestNasdaqDailyListProviderConfiguration:
         # Default to today
         provider = NasdaqDailyListProvider()
         assert provider.as_of == datetime.date.today()
-        
+
         # Custom date
         custom_date = datetime.date(2024, 1, 15)
         provider = NasdaqDailyListProvider(as_of=custom_date)
@@ -505,14 +481,10 @@ class TestNasdaqDailyListProviderConfiguration:
 
     def test_configuration_preservation(self):
         """Test that all configuration is preserved in cfg dict."""
-        config = {
-            "include_etfs": False,
-            "skip_test_issues": False,
-            "custom_param": "test_value"
-        }
-        
+        config = {"include_etfs": False, "skip_test_issues": False, "custom_param": "test_value"}
+
         provider = NasdaqDailyListProvider(**config)
-        
+
         assert provider.cfg["include_etfs"] is False
         assert provider.cfg["skip_test_issues"] is False
-        assert provider.cfg["custom_param"] == "test_value" 
+        assert provider.cfg["custom_param"] == "test_value"

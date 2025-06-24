@@ -3,10 +3,11 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pandas as pd
 import pytest
 from typer.testing import CliRunner
-from unittest.mock import patch
 
 from marketpipe.cli import app
 
@@ -35,9 +36,7 @@ def mock_query_data():
 
 def test_query_command_basic_success(runner, mock_query_data):
     """Test basic successful query execution."""
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.return_value = mock_query_data
 
         result = runner.invoke(app, ["query", "SELECT * FROM bars_5m LIMIT 2"])
@@ -50,9 +49,7 @@ def test_query_command_basic_success(runner, mock_query_data):
 
 def test_query_command_csv_output(runner, mock_query_data):
     """Test CSV output format."""
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.return_value = mock_query_data
 
         result = runner.invoke(app, ["query", "SELECT * FROM bars_5m", "--csv"])
@@ -68,13 +65,9 @@ def test_query_command_csv_output(runner, mock_query_data):
 
 def test_query_command_with_limit(runner):
     """Test query with custom limit."""
-    large_df = pd.DataFrame(
-        {"symbol": [f"SYM{i}" for i in range(100)], "value": list(range(100))}
-    )
+    large_df = pd.DataFrame({"symbol": [f"SYM{i}" for i in range(100)], "value": list(range(100))})
 
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.return_value = large_df
 
         result = runner.invoke(app, ["query", "SELECT * FROM bars_5m", "--limit", "10"])
@@ -89,14 +82,10 @@ def test_query_command_empty_result(runner):
     """Test query that returns no results."""
     empty_df = pd.DataFrame()
 
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.return_value = empty_df
 
-        result = runner.invoke(
-            app, ["query", "SELECT * FROM bars_5m WHERE symbol='NONEXISTENT'"]
-        )
+        result = runner.invoke(app, ["query", "SELECT * FROM bars_5m WHERE symbol='NONEXISTENT'"])
 
         assert result.exit_code == 0
         assert "Query returned no results" in result.stdout
@@ -105,9 +94,7 @@ def test_query_command_empty_result(runner):
 
 def test_query_command_sql_error(runner):
     """Test handling of SQL errors."""
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.side_effect = RuntimeError("SQL execution failed: table not found")
 
         result = runner.invoke(app, ["query", "SELECT * FROM nonexistent_table"])
@@ -119,9 +106,7 @@ def test_query_command_sql_error(runner):
 
 def test_query_command_import_error(runner):
     """Test handling of import errors."""
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.side_effect = ImportError("DuckDB not available")
 
         result = runner.invoke(app, ["query", "SELECT COUNT(*) FROM bars_5m"])
@@ -133,9 +118,7 @@ def test_query_command_import_error(runner):
 
 def test_query_command_markdown_format(runner, mock_query_data):
     """Test markdown table format output."""
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.return_value = mock_query_data
 
         result = runner.invoke(app, ["query", "SELECT symbol, close FROM bars_5m"])
@@ -149,9 +132,7 @@ def test_query_command_markdown_format(runner, mock_query_data):
 
 def test_query_command_markdown_fallback(runner, mock_query_data):
     """Test fallback when markdown formatting fails."""
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.return_value = mock_query_data
 
         # Mock the to_markdown method to raise ImportError
@@ -170,13 +151,9 @@ def test_query_command_markdown_fallback(runner, mock_query_data):
 
 def test_query_command_complex_sql(runner, mock_query_data):
     """Test complex SQL queries."""
-    aggregated_df = pd.DataFrame(
-        {"symbol": ["AAPL"], "count": [10], "avg_close": [150.5]}
-    )
+    aggregated_df = pd.DataFrame({"symbol": ["AAPL"], "count": [10], "avg_close": [150.5]})
 
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.return_value = aggregated_df
 
         complex_sql = """
@@ -220,9 +197,7 @@ def test_query_command_various_sql_patterns(runner):
     ]
 
     for sql, expected_df in test_cases:
-        with patch(
-            "marketpipe.aggregation.infrastructure.duckdb_views.query"
-        ) as mock_query:
+        with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
             mock_query.return_value = expected_df
 
             result = runner.invoke(app, ["query", sql])
@@ -235,9 +210,7 @@ def test_query_command_with_special_characters(runner):
     """Test queries with special characters and escaping."""
     result_df = pd.DataFrame({"result": ["success"]})
 
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.return_value = result_df
 
         # SQL with quotes and special characters
@@ -254,9 +227,7 @@ def test_query_command_limit_behavior(runner):
     # Test with data under limit
     small_df = pd.DataFrame({"symbol": ["AAPL", "MSFT"]})
 
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.return_value = small_df
 
         result = runner.invoke(app, ["query", "SELECT * FROM bars_5m", "--limit", "50"])
@@ -273,9 +244,7 @@ def test_query_command_csv_with_special_values(runner):
         {"symbol": ["AAPL", "MSFT"], "value": [100.5, None], "flag": [True, False]}
     )
 
-    with patch(
-        "marketpipe.aggregation.infrastructure.duckdb_views.query"
-    ) as mock_query:
+    with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:
         mock_query.return_value = special_df
 
         result = runner.invoke(app, ["query", "SELECT * FROM bars_5m", "--csv"])

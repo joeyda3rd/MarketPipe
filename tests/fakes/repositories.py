@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
 from datetime import datetime
+from typing import Dict, List, Optional
 
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.ingestion.domain.entities import (
@@ -13,8 +13,8 @@ from marketpipe.ingestion.domain.entities import (
     ProcessingState,
 )
 from marketpipe.ingestion.domain.repositories import (
-    IIngestionJobRepository,
     IIngestionCheckpointRepository,
+    IIngestionJobRepository,
     IIngestionMetricsRepository,
 )
 from marketpipe.ingestion.domain.value_objects import (
@@ -52,11 +52,7 @@ class FakeIngestionJobRepository(IIngestionJobRepository):
         self, start_date: datetime, end_date: datetime
     ) -> List[IngestionJob]:
         """Get jobs created within a date range."""
-        return [
-            job
-            for job in self._jobs.values()
-            if start_date <= job.created_at <= end_date
-        ]
+        return [job for job in self._jobs.values() if start_date <= job.created_at <= end_date]
 
     async def delete(self, job_id: IngestionJobId) -> bool:
         """Delete an ingestion job."""
@@ -75,9 +71,7 @@ class FakeIngestionJobRepository(IIngestionJobRepository):
         """Count jobs grouped by their processing state."""
         counts = {}
         for state in ProcessingState:
-            counts[state] = len(
-                [job for job in self._jobs.values() if job.state == state]
-            )
+            counts[state] = len([job for job in self._jobs.values() if job.state == state])
         return counts
 
     # Test helpers
@@ -117,14 +111,10 @@ class FakeIngestionCheckpointRepository(IIngestionCheckpointRepository):
         key = (job_id, symbol)
         return self._checkpoints.get(key)
 
-    async def get_all_checkpoints(
-        self, job_id: IngestionJobId
-    ) -> List[IngestionCheckpoint]:
+    async def get_all_checkpoints(self, job_id: IngestionJobId) -> List[IngestionCheckpoint]:
         """Get all checkpoints for a specific job."""
         return [
-            checkpoint
-            for (jid, symbol), checkpoint in self._checkpoints.items()
-            if jid == job_id
+            checkpoint for (jid, symbol), checkpoint in self._checkpoints.items() if jid == job_id
         ]
 
     async def delete_checkpoints(self, job_id: IngestionJobId) -> None:
@@ -133,14 +123,10 @@ class FakeIngestionCheckpointRepository(IIngestionCheckpointRepository):
         for key in keys_to_delete:
             del self._checkpoints[key]
 
-    async def get_global_checkpoint(
-        self, symbol: Symbol
-    ) -> Optional[IngestionCheckpoint]:
+    async def get_global_checkpoint(self, symbol: Symbol) -> Optional[IngestionCheckpoint]:
         """Get the most recent checkpoint for a symbol across all jobs."""
         symbol_checkpoints = [
-            checkpoint
-            for (job_id, sym), checkpoint in self._checkpoints.items()
-            if sym == symbol
+            checkpoint for (job_id, sym), checkpoint in self._checkpoints.items() if sym == symbol
         ]
         if not symbol_checkpoints:
             return None
@@ -181,9 +167,7 @@ class FakeIngestionMetricsRepository(IIngestionMetricsRepository):
         self._metrics: Dict[IngestionJobId, ProcessingMetrics] = {}
         self._save_calls: List[tuple[IngestionJobId, ProcessingMetrics]] = []
 
-    async def save_metrics(
-        self, job_id: IngestionJobId, metrics: ProcessingMetrics
-    ) -> None:
+    async def save_metrics(self, job_id: IngestionJobId, metrics: ProcessingMetrics) -> None:
         """Save processing metrics for a job."""
         self._metrics[job_id] = metrics
         self._save_calls.append((job_id, metrics))
@@ -223,9 +207,7 @@ class FakeIngestionMetricsRepository(IIngestionMetricsRepository):
             average_processing_time_per_symbol=avg_time_per_symbol,
         )
 
-    async def get_performance_trends(
-        self, days: int = 30
-    ) -> List[tuple[datetime, float]]:
+    async def get_performance_trends(self, days: int = 30) -> List[tuple[datetime, float]]:
         """Get daily average processing performance over time."""
         # Simplified implementation for testing
         if not self._metrics:

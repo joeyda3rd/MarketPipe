@@ -10,18 +10,17 @@ from __future__ import annotations
 import logging
 
 from marketpipe.domain.events import (
-    BarCollectionStarted,
     BarCollectionCompleted,
-    ValidationFailed,
-    IngestionJobStarted,
-    IngestionJobCompleted,
-    MarketDataReceived,
+    BarCollectionStarted,
     DataStored,
+    IngestionJobCompleted,
+    IngestionJobStarted,
+    MarketDataReceived,
     RateLimitExceeded,
     SymbolActivated,
     SymbolDeactivated,
+    ValidationFailed,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -48,17 +47,13 @@ def log_validation_failed(event: ValidationFailed) -> None:
 
 def log_ingestion_job_started(event: IngestionJobStarted) -> None:
     """Log when ingestion job starts."""
-    logger.info(
-        f"Started ingestion job {event.job_id} for {event.symbol} on {event.trading_date}"
-    )
+    logger.info(f"Started ingestion job {event.job_id} for {event.symbol} on {event.trading_date}")
 
 
 def log_ingestion_job_completed(event: IngestionJobCompleted) -> None:
     """Log when ingestion job completes."""
     status = "successfully" if event.success else "with failure"
-    duration_msg = (
-        f" in {event.duration_seconds:.2f}s" if event.duration_seconds else ""
-    )
+    duration_msg = f" in {event.duration_seconds:.2f}s" if event.duration_seconds else ""
     logger.info(
         f"Completed ingestion job {event.job_id} {status}, processed {event.bars_processed} bars{duration_msg}"
     )
@@ -134,4 +129,4 @@ __all__ = [
     "log_rate_limit_exceeded",
     "log_symbol_activated",
     "log_symbol_deactivated",
-] 
+]
