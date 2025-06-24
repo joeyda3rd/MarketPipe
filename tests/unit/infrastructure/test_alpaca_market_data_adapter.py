@@ -31,7 +31,7 @@ class TestAlpacaMarketDataAdapterTranslation:
 
         # Alpaca bar format
         alpaca_bar = {
-            "timestamp": 1672675800000000000,  # 2023-01-02 13:30:00 UTC in nanoseconds
+            "timestamp": 1672675800000000000,  # 2023-01-02 16:10:00 UTC in nanoseconds
             "open": 130.28,
             "high": 130.90,
             "low": 129.61,
@@ -51,7 +51,7 @@ class TestAlpacaMarketDataAdapterTranslation:
         assert domain_bar.volume == Volume(10000)
 
         # Verify timestamp conversion
-        expected_dt = datetime(2023, 1, 2, 13, 30, tzinfo=timezone.utc)
+        expected_dt = datetime(2023, 1, 2, 16, 10, tzinfo=timezone.utc)
         assert domain_bar.timestamp.value == expected_dt
 
     def test_handles_alpaca_short_field_names(self):
