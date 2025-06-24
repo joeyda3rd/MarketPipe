@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import datetime
 import types
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -101,7 +102,7 @@ File Creation Time: 20250619
         assert aapl.currency == "USD"
         assert aapl.status == Status.ACTIVE
         assert aapl.company_name == "Apple Inc."
-        assert aapl.as_of == datetime.date.today()  # Defaults to today when no as_of provided
+        assert aapl.as_of == datetime.date(2025, 6, 19)  # Parsed from footer "File Creation Time: 20250619"
         assert aapl.meta["market_category"] == "Q"
         assert aapl.meta["etf_flag"] == "N"
         assert aapl.meta["source"] == "nasdaq_daily_list"
@@ -249,7 +250,7 @@ File Creation Time:  20250619
         records = await provider.fetch_symbols()
 
         assert len(records) == 1
-        assert records[0].as_of == datetime.date.today()  # Defaults to today when no as_of provided
+        assert records[0].as_of == datetime.date(2025, 6, 19)  # Parsed from footer "File Creation Time:  20250619"
 
     @pytest.mark.asyncio
     async def test_empty_ticker_filtered_out(self, monkeypatch):
@@ -422,7 +423,7 @@ File Creation Time: 20250619
 
     @pytest.mark.asyncio
     async def test_footer_parsing_fallback(self, monkeypatch):
-        """Test fallback to today's date when footer parsing fails."""
+        """Test that provider uses today's date when footer parsing fails."""
         mock_file_content = """Symbol|Security Name|Market Category|Test Issue|Financial Status|Round Lot Size|ETF|NextShares
 AAPL|Apple Inc.|Q|N|N|100|N|N
 Invalid Footer Line
@@ -448,9 +449,11 @@ Invalid Footer Line
         provider = NasdaqDailyListProvider()
         records = await provider.fetch_symbols()
 
-        # Should fallback to today's date
         assert len(records) == 1
-        assert records[0].as_of == datetime.date.today()
+        # Since footer parsing failed, it should use today's date
+        # We can't deterministically test the exact date, but we can verify it's a recent date
+        today = datetime.date.today()
+        assert records[0].as_of == today  # Should be today since footer parsing failed
 
 
 class TestNasdaqDailyListProviderConfiguration:
