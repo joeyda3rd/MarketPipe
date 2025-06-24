@@ -116,7 +116,7 @@ def show_progress_summary(
 @app.command("update")
 def update(
     providers: list[str] = typer.Option(
-        ...,
+        None,
         "--provider",
         "-p",
         help="Symbol provider(s) to ingest. Available: " + ", ".join(list_providers()),
@@ -154,7 +154,17 @@ def update(
         mp symbols update -p polygon --diff-only --execute
     """
 
-    # These validations will be checked later when executing
+    # Handle default providers (use all if none specified)
+    available_providers = list_providers()
+    if providers is None or len(providers) == 0:
+        providers = available_providers
+        
+    # Validate providers early
+    for provider in providers:
+        if provider not in available_providers:
+            console.print(f"❌ Unknown provider: '{provider}'", style="red")
+            console.print(f"Available providers: {', '.join(available_providers)}", style="yellow")
+            raise typer.Exit(1)
 
     # Parse and validate dates
     snapshot_date = validate_date_format(snapshot_as_of, "--snapshot-as-of")
@@ -164,14 +174,16 @@ def update(
         backfill_date = validate_date_format(backfill, "--backfill")
         validate_backfill_range(backfill_date, snapshot_date)
 
-    # Set defaults
+    # Set defaults with environment variable support
+    import os
     if db_path is None:
-        db_path = Path("warehouse.duckdb")
+        db_path = Path(os.getenv("MP_DB", "warehouse.duckdb"))
     if data_dir is None:
-        data_dir = Path("./data")
+        data_dir = Path(os.getenv("MP_DATA_DIR", "./data"))
 
     # Handle --execute precedence over --dry-run
     show_precedence_preview = False
+    original_dry_run = dry_run  # Save original value for validation
     if execute and dry_run:
         console.print("Both --dry-run and --execute specified", style="yellow")
         console.print("--execute takes precedence", style="yellow")
@@ -197,12 +209,8 @@ def update(
             console.print("Dry preview complete. Re-run with --execute to perform writes.")
             return
 
-    # Check diff-only precondition when executing
-    if diff_only:
-        check_diff_only_precondition(db_path)
-
-    # Validate flag combinations when actually executing
-    if dry_run and diff_only:
+    # Validate flag combinations when actually executing (use original dry_run value)
+    if original_dry_run and diff_only:
         console.print(
             "❌ `--diff-only` implies DB writes; cannot combine with --dry-run.", style="red"
         )
@@ -213,6 +221,10 @@ def update(
             "❌ Back-fill requires provider fetch -> cannot use --diff-only.", style="red"
         )
         raise typer.Exit(1)
+
+    # Check diff-only precondition when executing (after validating combinations)
+    if diff_only:
+        check_diff_only_precondition(db_path)
 
     # Determine date range for processing
     if backfill_date:

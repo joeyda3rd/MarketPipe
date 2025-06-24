@@ -141,11 +141,11 @@ class TestIngestionCoordinatorEndToEndFlow:
 
         # Setup test data
         symbol = Symbol("AAPL")
-        test_bars = create_test_ohlcv_bars(symbol, count=10)
+        time_range = create_recent_time_range()
+        test_bars = create_test_ohlcv_bars(symbol, count=10, start_time=time_range.start.value)
         market_data_adapter.set_bars_data(symbol, test_bars)
 
         # Create ingestion job
-        time_range = create_recent_time_range()
 
         command = CreateIngestionJobCommand(
             symbols=[symbol],
@@ -196,16 +196,15 @@ class TestIngestionCoordinatorEndToEndFlow:
         job_service = services["job_service"]
         job_repository = services["job_repository"]
         market_data_adapter = services["market_data_adapter"]
-        event_publisher = services["event_publisher"]
 
         # Setup test data for multiple symbols
         symbols = [Symbol("AAPL"), Symbol("GOOGL")]
+        time_range = create_recent_time_range()
         for symbol in symbols:
-            test_bars = create_test_ohlcv_bars(symbol, count=5)
+            test_bars = create_test_ohlcv_bars(symbol, count=5, start_time=time_range.start.value)
             market_data_adapter.set_bars_data(symbol, test_bars)
 
         # Create ingestion job with multiple symbols
-        time_range = create_recent_time_range()
 
         command = CreateIngestionJobCommand(
             symbols=symbols,
@@ -244,22 +243,20 @@ class TestIngestionCoordinatorEndToEndFlow:
         """Test that coordinator handles failed symbols without stopping other processing."""
         services = ingestion_services
         job_service = services["job_service"]
-        job_repository = services["job_repository"]
         market_data_adapter = services["market_data_adapter"]
-        event_publisher = services["event_publisher"]
 
         # Setup test data - one symbol succeeds, one fails
         working_symbol = Symbol("AAPL")
         failing_symbol = Symbol("GOOGL")
 
-        test_bars = create_test_ohlcv_bars(working_symbol, count=5)
+        time_range = create_recent_time_range()
+        test_bars = create_test_ohlcv_bars(working_symbol, count=5, start_time=time_range.start.value)
         market_data_adapter.set_bars_data(working_symbol, test_bars)
 
         # Configure adapter to fail for GOOGL only
         market_data_adapter.set_symbol_failure(failing_symbol)
 
         # Create ingestion job
-        time_range = create_recent_time_range()
 
         command = CreateIngestionJobCommand(
             symbols=[working_symbol, failing_symbol],
@@ -296,12 +293,11 @@ class TestIngestionCoordinatorEndToEndFlow:
 
         # Setup test data
         symbol = Symbol("AAPL")
-        test_bars = create_test_ohlcv_bars(symbol, count=10)
+        time_range = create_recent_time_range()
+        test_bars = create_test_ohlcv_bars(symbol, count=10, start_time=time_range.start.value)
         market_data_adapter.set_bars_data(symbol, test_bars)
 
         # Create ingestion job
-        time_range = create_recent_time_range()
-
         command = CreateIngestionJobCommand(
             symbols=[symbol],
             time_range=time_range,
@@ -326,11 +322,11 @@ class TestIngestionCoordinatorEndToEndFlow:
         coordinator_service = services["coordinator_service"]
         result = await coordinator_service.execute_job(job_id)
 
-        # Verify checkpoint was retrieved
+        # Verify checkpoint was retrieved and updated after job execution
         retrieved_checkpoint = await checkpoint_repository.get_checkpoint(job_id, symbol)
         assert retrieved_checkpoint is not None
         assert retrieved_checkpoint.symbol == symbol
-        assert retrieved_checkpoint.records_processed == 5
+        assert retrieved_checkpoint.records_processed == 10  # Updated after processing all test bars
 
         # Verify job execution was successful
         assert result["status"] == "completed"
@@ -348,12 +344,12 @@ class TestIngestionCoordinatorEndToEndFlow:
 
         # Setup test data
         symbol = Symbol("AAPL")
-        test_bars = create_test_ohlcv_bars(symbol, count=10)
+        time_range = create_recent_time_range()
+        start_time = time_range.start.value
+        test_bars = create_test_ohlcv_bars(symbol, count=10, start_time=start_time)
         market_data_adapter.set_bars_data(symbol, test_bars)
 
         # Create ingestion job with recent date
-        time_range = create_recent_time_range()
-        start_time = time_range.start.value
 
         output_path = tmp_path / "data"
         command = CreateIngestionJobCommand(
@@ -397,17 +393,16 @@ class TestIngestionCoordinatorEndToEndFlow:
         """Test that coordinator emits all expected domain events during processing."""
         services = ingestion_services
         job_service = services["job_service"]
-        job_repository = services["job_repository"]
         market_data_adapter = services["market_data_adapter"]
         event_publisher = services["event_publisher"]
 
         # Setup test data
         symbol = Symbol("AAPL")
-        test_bars = create_test_ohlcv_bars(symbol, count=10)
+        time_range = create_recent_time_range()
+        test_bars = create_test_ohlcv_bars(symbol, count=10, start_time=time_range.start.value)
         market_data_adapter.set_bars_data(symbol, test_bars)
 
         # Create and execute ingestion job
-        time_range = create_recent_time_range()
 
         command = CreateIngestionJobCommand(
             symbols=[symbol],
@@ -468,13 +463,15 @@ class TestIngestionCoordinatorEndToEndFlow:
         market_data_adapter = services["market_data_adapter"]
 
         symbol = Symbol("AAPL")
-        bars = create_test_ohlcv_bars(symbol, count=4)
-        market_data_adapter.set_bars_data(symbol, bars)
 
         now = datetime.now(timezone.utc)
         start_time = now.replace(hour=13, minute=30, second=0, microsecond=0) - timedelta(days=1)
         end_time = start_time + timedelta(hours=1)
         time_range = TimeRange(start=Timestamp(start_time), end=Timestamp(end_time))
+
+        # Create test bars with timestamps within the job time range
+        bars = create_test_ohlcv_bars(symbol, count=4, start_time=start_time)
+        market_data_adapter.set_bars_data(symbol, bars)
 
         command = CreateIngestionJobCommand(
             symbols=[symbol],

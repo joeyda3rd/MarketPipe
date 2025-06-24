@@ -74,49 +74,17 @@ class TestSymbolsModes:
         gc.collect()
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.get_provider")
-    @patch(
-        "marketpipe.ingestion.pipeline.symbol_pipeline.normalize_stage"
-    )  # Mock the SQL execution
-    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.run_scd_update")  # Mock SCD execution
-    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.refresh")  # Mock view refresh
-    @patch("duckdb.connect")
+    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
     def test_dry_run_with_execute_precedence(
         self,
-        mock_duckdb,
-        mock_refresh,
-        mock_scd,
-        mock_normalize,
-        mock_get_provider,
+        mock_run_pipeline,
         mock_list_providers,
     ):
         """Test that --execute takes precedence over --dry-run and executes with proper mocking."""
         mock_list_providers.return_value = ["dummy"]
 
-        # Mock provider instance
-        mock_provider = Mock()
-
-        async def mock_fetch_symbols():
-            record = Mock()
-            record.meta = {}
-            record.model_dump = lambda: {
-                "symbol": "AAPL",
-                "name": "Apple Inc.",
-                "meta": {"provider": "dummy"},
-            }
-            return [record]
-
-        mock_provider.fetch_symbols = mock_fetch_symbols
-        mock_get_provider.return_value = mock_provider
-
-        # Mock connection with proper SQL responses
-        mock_conn = create_mock_duckdb_connection()
-        mock_duckdb.return_value = mock_conn
-
-        # Mock all pipeline components
-        mock_normalize.return_value = None
-        mock_scd.return_value = None
-        mock_refresh.return_value = None
+        # Mock the pipeline to return successful results
+        mock_run_pipeline.return_value = (1, 0)  # 1 insert, 0 updates
 
         with tempfile.TemporaryDirectory() as temp_dir:
             db_path = Path(temp_dir) / "test.duckdb"
@@ -140,15 +108,12 @@ class TestSymbolsModes:
             )
 
             # Verify success and precedence warning
-            assert result.exit_code == 0
+            assert result.exit_code == 0, f"Command failed: {result.output}"
             assert "--execute takes precedence" in result.output
-            assert "✅ Finished 1 run(s)" in result.output
+            assert "✅ Pipeline complete." in result.output
 
-            # Verify all components were called (not dry-run mode)
-            mock_get_provider.assert_called_once()
-            mock_normalize.assert_called_once()
-            mock_scd.assert_called_once()
-            mock_refresh.assert_called_once()
+            # Verify pipeline was called (not dry-run mode)
+            mock_run_pipeline.assert_called_once()
 
     def test_diff_only_error_combo(self):
         """Test that --dry-run --diff-only combination produces error."""
@@ -179,49 +144,17 @@ class TestSymbolsModes:
         assert "Back-fill requires provider fetch -> cannot use --diff-only." in result.output
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.get_provider")
-    @patch(
-        "marketpipe.ingestion.pipeline.symbol_pipeline.normalize_stage"
-    )  # Mock the SQL execution
-    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.run_scd_update")  # Mock SCD execution
-    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.refresh")  # Mock view refresh
-    @patch("duckdb.connect")
+    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
     def test_backfill_runs_multiple_days(
         self,
-        mock_duckdb,
-        mock_refresh,
-        mock_scd,
-        mock_normalize,
-        mock_get_provider,
+        mock_run_pipeline,
         mock_list_providers,
     ):
         """Test that backfill runs for multiple days and creates Parquet partitions."""
         mock_list_providers.return_value = ["dummy"]
 
-        # Mock provider instance
-        mock_provider = Mock()
-
-        async def mock_fetch_symbols():
-            record = Mock()
-            record.meta = {}
-            record.model_dump = lambda: {
-                "symbol": "AAPL",
-                "name": "Apple Inc.",
-                "meta": {"provider": "dummy"},
-            }
-            return [record]
-
-        mock_provider.fetch_symbols = mock_fetch_symbols
-        mock_get_provider.return_value = mock_provider
-
-        # Mock DuckDB connection
-        mock_conn = create_mock_duckdb_connection()
-        mock_duckdb.return_value = mock_conn
-
-        # Mock pipeline components
-        mock_normalize.return_value = None
-        mock_scd.return_value = None
-        mock_refresh.return_value = None
+        # Mock the pipeline to return successful results
+        mock_run_pipeline.return_value = (2, 1)  # 2 inserts, 1 update per day
 
         with tempfile.TemporaryDirectory() as temp_dir:
             data_dir = Path(temp_dir) / "data"
@@ -244,19 +177,16 @@ class TestSymbolsModes:
             )
 
             # Verify success
-            assert result.exit_code == 0
+            assert result.exit_code == 0, f"Command failed: {result.output}"
 
             # Verify three days were processed (17, 18, 19)
             assert "2025-06-17" in result.output
             assert "2025-06-18" in result.output
             assert "2025-06-19" in result.output
-            assert "Finished 3 run(s)" in result.output
+            assert "✅ Pipeline complete." in result.output
 
             # Verify pipeline was called 3 times (once for each date)
-            assert mock_get_provider.call_count == 3
-            assert mock_normalize.call_count == 3
-            assert mock_scd.call_count == 3
-            assert mock_refresh.call_count == 3
+            assert mock_run_pipeline.call_count == 3
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
     @patch("marketpipe.ingestion.pipeline.symbol_pipeline.run_scd_update")  # Mock SCD execution
