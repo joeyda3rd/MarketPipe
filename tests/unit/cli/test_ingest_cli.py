@@ -15,8 +15,10 @@ runner = CliRunner()
 def test_ingest_cli_smoke():
     """Test that the ingest CLI command can be invoked without errors."""
     with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
-        with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
+        with (
+            patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build,
+            patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check,
+        ):
             # Mock the services
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
@@ -58,8 +60,10 @@ def test_ingest_cli_smoke():
 def test_ingest_cli_with_multiple_symbols():
     """Test the ingest CLI with multiple symbols."""
     with patch.dict("os.environ", {"ALPACA_KEY": "test-key", "ALPACA_SECRET": "test-secret"}):
-        with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
+        with (
+            patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build,
+            patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check,
+        ):
             # Mock the services
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()

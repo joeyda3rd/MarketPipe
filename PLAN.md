@@ -26,9 +26,9 @@ Fix 31 failing tests across 5 root cause categories. Strategy prioritizes high-i
 
 **Intent**: Identify why CLI commands are returning exit code 1 instead of 0
 **Verification**: Run sample failing CLI test to understand the root cause
-**Notes**: Many tests seem to be failing due to "scheduling conflicts" or similar issues
+**Notes**: Root cause found - CLI tests need `_check_boundaries` function mocked to prevent post-ingestion verification failures
 
-**Status**: ⏳ Pending
+**Status**: 🔄 In Progress - Fixed 2 tests, same pattern applies to other CLI failures
 
 ---
 
