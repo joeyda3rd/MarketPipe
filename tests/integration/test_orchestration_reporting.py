@@ -20,7 +20,7 @@ import pytest
 
 
 @dataclass
-class TestResult:
+class E2ETestResult:
     """Individual test result data."""
     name: str
     status: str  # "PASS", "FAIL", "SKIP", "ERROR"
@@ -34,7 +34,7 @@ class TestResult:
 
 
 @dataclass
-class TestSuiteResult:
+class E2ETestSuiteResult:
     """Test suite execution results."""
     suite_name: str
     start_time: datetime
@@ -45,7 +45,7 @@ class TestSuiteResult:
     skipped: int
     errors: int
     duration_seconds: float
-    test_results: List[TestResult]
+    test_results: List[E2ETestResult]
     system_info: Dict[str, Any]
     
     @property
@@ -65,7 +65,7 @@ class E2ETestOrchestrator:
     def __init__(self, output_dir: Path):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.results: List[TestSuiteResult] = []
+        self.results: List[E2ETestSuiteResult] = []
         
     def run_test_suite(
         self, 
@@ -73,7 +73,7 @@ class E2ETestOrchestrator:
         test_functions: List[Callable],
         setup_func: Optional[Callable] = None,
         teardown_func: Optional[Callable] = None
-    ) -> TestSuiteResult:
+    ) -> E2ETestSuiteResult:
         """Run a complete test suite with setup/teardown."""
         
         print(f"🚀 Starting test suite: {suite_name}")
@@ -110,7 +110,7 @@ class E2ETestOrchestrator:
         else:
             # Mark all tests as errors due to setup failure
             for test_func in test_functions:
-                test_results.append(TestResult(
+                test_results.append(E2ETestResult(
                     name=test_func.__name__,
                     status="ERROR",
                     duration_seconds=0.0,
@@ -133,7 +133,7 @@ class E2ETestOrchestrator:
         # Collect system information
         system_info = self._collect_system_info()
         
-        suite_result = TestSuiteResult(
+        suite_result = E2ETestSuiteResult(
             suite_name=suite_name,
             start_time=start_time,
             end_time=end_time,
@@ -152,7 +152,7 @@ class E2ETestOrchestrator:
         print(f"📊 Suite {suite_name} completed: {passed}P/{failed}F/{skipped}S/{errors}E in {duration:.1f}s")
         return suite_result
     
-    def _run_single_test(self, test_func: Callable) -> TestResult:
+    def _run_single_test(self, test_func: Callable) -> E2ETestResult:
         """Run a single test function and capture results."""
         
         test_name = test_func.__name__
@@ -191,7 +191,7 @@ class E2ETestOrchestrator:
             "docstring": test_func.__doc__ or "",
         }
         
-        result = TestResult(
+        result = E2ETestResult(
             name=test_name,
             status=status,
             duration_seconds=duration,

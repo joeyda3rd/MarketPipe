@@ -61,11 +61,17 @@ class FakeAlpacaProvider(IMarketDataProvider):
     async def is_available(self) -> bool:
         return True
     
-    def get_metadata(self) -> ProviderMetadata:
+    async def get_supported_symbols(self) -> List[Symbol]:
+        """Get supported symbols for testing."""
+        symbols = ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"]
+        return [Symbol(s) for s in symbols]
+    
+    def get_provider_metadata(self) -> ProviderMetadata:
         return ProviderMetadata(
-            name="alpaca",
-            description="Fake Alpaca Markets provider",
-            supported_asset_classes=["equity"],
+            provider_name="alpaca",
+            supports_real_time=True,
+            supports_historical=True,
+            rate_limit_per_minute=200,
             minimum_time_resolution="1m",
             maximum_history_days=365,
         )
@@ -109,11 +115,17 @@ class FakePolygonProvider(IMarketDataProvider):
     async def is_available(self) -> bool:
         return True
     
-    def get_metadata(self) -> ProviderMetadata:
+    async def get_supported_symbols(self) -> List[Symbol]:
+        """Get supported symbols for testing."""
+        symbols = ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "META"]
+        return [Symbol(s) for s in symbols]
+    
+    def get_provider_metadata(self) -> ProviderMetadata:
         return ProviderMetadata(
-            name="polygon",
-            description="Fake Polygon.io provider",
-            supported_asset_classes=["equity"],
+            provider_name="polygon",
+            supports_real_time=True,
+            supports_historical=True,
+            rate_limit_per_minute=5,
             minimum_time_resolution="1m",
             maximum_history_days=730,
         )
@@ -165,11 +177,17 @@ class FakeIEXProvider(IMarketDataProvider):
     async def is_available(self) -> bool:
         return not self._should_fail
     
-    def get_metadata(self) -> ProviderMetadata:
+    async def get_supported_symbols(self) -> List[Symbol]:
+        """Get supported symbols for testing."""
+        symbols = ["AAPL", "GOOGL", "MSFT", "AMZN"]
+        return [Symbol(s) for s in symbols]
+    
+    def get_provider_metadata(self) -> ProviderMetadata:
         return ProviderMetadata(
-            name="iex",
-            description="Fake IEX Cloud provider",
-            supported_asset_classes=["equity"],
+            provider_name="iex",
+            supports_real_time=False,
+            supports_historical=True,
+            rate_limit_per_minute=100,
             minimum_time_resolution="1m",
             maximum_history_days=180,
         )
@@ -269,11 +287,10 @@ class TestMultiProviderIntegration:
         
         # Test provider metadata
         for provider in providers:
-            metadata = provider.get_metadata()
-            assert metadata.name in ["alpaca", "polygon", "iex"]
-            assert "equity" in metadata.supported_asset_classes
+            metadata = provider.get_provider_metadata()
+            assert metadata.provider_name in ["alpaca", "polygon", "iex"]
             assert metadata.minimum_time_resolution == "1m"
-            print(f"✓ Provider {metadata.name}: {metadata.description}")
+            print(f"✓ Provider {metadata.provider_name}: {metadata.provider_name} provider")
         
         # Test provider availability
         async def test_availability():
@@ -493,8 +510,8 @@ class TestMultiProviderIntegration:
         
         # Test provider metadata matches expectations
         for provider, config in zip(providers, provider_configs):
-            metadata = provider.get_metadata()
-            assert metadata.name == config["name"]
+            metadata = provider.get_provider_metadata()
+            assert metadata.provider_name == config["name"]
             
             print(f"✓ Provider {config['name']} configured:")
             print(f"  Rate limit: {config['rate_limit']} req/min")
