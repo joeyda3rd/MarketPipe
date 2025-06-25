@@ -104,6 +104,7 @@ if not _USING_TYER_STUB:
     from .query import query
     from .symbols import app as symbols_app
     from .utils import metrics, migrate, providers
+    from .health_check import health_check_command
 
     # Register OHLCV sub-app commands
     ohlcv_app.command(name="ingest")(ingest_ohlcv)
@@ -125,6 +126,7 @@ if not _USING_TYER_STUB:
     app.command()(metrics)
     app.command()(providers)
     app.command()(migrate)
+    app.command(name="health-check")(health_check_command)
 
     # Add backfill sub-command
     ohlcv_app.add_typer(backfill_app, name="backfill")
