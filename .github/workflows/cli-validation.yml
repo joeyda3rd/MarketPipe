@@ -34,12 +34,13 @@ jobs:
     
     - name: Run CLI Command Matrix Tests
       run: |
+        mkdir -p reports
         python -m pytest tests/integration/test_cli_command_matrix.py -v \
           --tb=short \
           --junitxml=reports/cli-matrix-${{ matrix.python-version }}.xml
     
     - name: Upload CLI Matrix Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: cli-matrix-results-${{ matrix.python-version }}
@@ -69,12 +70,13 @@ jobs:
     
     - name: Run CLI Option Validation Tests
       run: |
+        mkdir -p reports
         python -m pytest tests/integration/test_cli_option_validation.py -v \
           --tb=short \
           --junitxml=reports/cli-options-${{ matrix.python-version }}.xml
     
     - name: Upload CLI Option Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: cli-option-results-${{ matrix.python-version }}
@@ -104,13 +106,14 @@ jobs:
     
     - name: Run Pipeline Smoke Tests
       run: |
+        mkdir -p reports
         python -m pytest tests/integration/test_pipeline_smoke_validation.py -v \
           --tb=short \
           -m "not slow" \
           --junitxml=reports/pipeline-smoke-${{ matrix.python-version }}.xml
     
     - name: Upload Pipeline Smoke Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: pipeline-smoke-results-${{ matrix.python-version }}
@@ -140,13 +143,14 @@ jobs:
     
     - name: Run Provider Validation Tests
       run: |
+        mkdir -p reports
         python -m pytest tests/integration/test_provider_specific_validation.py -v \
           --tb=short \
           -m "not auth_required" \
           --junitxml=reports/provider-validation-${{ matrix.python-version }}.xml
     
     - name: Upload Provider Validation Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: provider-validation-results-${{ matrix.python-version }}
@@ -176,12 +180,13 @@ jobs:
     
     - name: Run Backward Compatibility Tests
       run: |
+        mkdir -p reports
         python -m pytest tests/integration/test_cli_backward_compatibility.py -v \
           --tb=short \
           --junitxml=reports/backward-compatibility-${{ matrix.python-version }}.xml
     
     - name: Upload Backward Compatibility Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: backward-compatibility-results-${{ matrix.python-version }}
@@ -211,12 +216,13 @@ jobs:
     
     - name: Run Configuration Schema Tests
       run: |
+        mkdir -p reports
         python -m pytest tests/integration/test_config_schema_validation.py -v \
           --tb=short \
           --junitxml=reports/config-schema-${{ matrix.python-version }}.xml
     
     - name: Upload Configuration Schema Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: config-schema-results-${{ matrix.python-version }}
@@ -284,12 +290,13 @@ jobs:
     
     - name: Run Performance Baseline Tests
       run: |
+        mkdir -p reports
         python -m pytest tests/integration/test_pipeline_smoke_validation.py::TestPipelineSmokeValidation::test_performance_baseline -v \
           --tb=short \
           --junitxml=reports/performance-baseline-${{ matrix.python-version }}.xml
     
     - name: Upload Performance Baseline Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: performance-baseline-results-${{ matrix.python-version }}
@@ -324,7 +331,7 @@ jobs:
         pip install -e .
     
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: artifacts/
     
@@ -451,7 +458,7 @@ jobs:
         EOF
     
     - name: Upload CLI Validation Report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: cli-validation-report
         path: CLI_VALIDATION_REPORT.md
@@ -504,6 +511,7 @@ jobs:
     
     - name: Run Performance Tests
       run: |
+        mkdir -p reports
         python -m pytest tests/integration/test_pipeline_smoke_validation.py -v \
           -m "slow" \
           --tb=short
@@ -514,7 +522,7 @@ jobs:
         python -m marketpipe health-check --verbose --output weekly_health_report.txt
     
     - name: Upload Weekly Report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: weekly-comprehensive-report
         path: weekly_health_report.txt
