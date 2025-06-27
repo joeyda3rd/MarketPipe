@@ -230,3 +230,5 @@ temp/
 # Environment files
 *.env
 !.env.example
+# Temporary pipeline configuration files
+config/pipeline_config_*.yaml
