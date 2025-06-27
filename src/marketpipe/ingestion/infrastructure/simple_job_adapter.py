@@ -8,7 +8,11 @@ from datetime import date, datetime, timezone
 from typing import List, Optional, Tuple
 
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
-from marketpipe.ingestion.domain.entities import IngestionJob, IngestionJobId, ProcessingState
+from marketpipe.ingestion.domain.entities import (
+    IngestionJob,
+    IngestionJobId,
+    ProcessingState,
+)
 from marketpipe.ingestion.domain.value_objects import IngestionConfiguration
 
 from .repository_factory import create_ingestion_job_repository

@@ -8,7 +8,13 @@ from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 
 from marketpipe.ingestion.pipeline.symbol_pipeline import run_symbol_pipeline
 from marketpipe.ingestion.symbol_providers import list_providers
@@ -158,7 +164,7 @@ def update(
     available_providers = list_providers()
     if providers is None or len(providers) == 0:
         providers = available_providers
-        
+
     # Validate providers early
     for provider in providers:
         if provider not in available_providers:

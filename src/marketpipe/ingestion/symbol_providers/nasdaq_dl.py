@@ -78,7 +78,7 @@ class NasdaqDailyListProvider(SymbolProviderBase):
         - ETF classification may not capture all structured products
         - Rare edge case: embedded pipes in company names may cause parsing issues
     """
-    
+
     def __init__(self, *, as_of: _dt.date | None = None, **provider_cfg):
         # Store whether as_of was explicitly provided by the user
         self._user_provided_as_of = as_of is not None

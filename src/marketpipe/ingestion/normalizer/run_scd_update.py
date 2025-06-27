@@ -21,7 +21,10 @@ from pathlib import Path
 import duckdb
 
 try:
-    from marketpipe.ingestion.normalizer.scd_writer import attach_symbols_master, run_scd_update
+    from marketpipe.ingestion.normalizer.scd_writer import (
+        attach_symbols_master,
+        run_scd_update,
+    )
 except ImportError:
     # Fallback for development/testing
     import sys

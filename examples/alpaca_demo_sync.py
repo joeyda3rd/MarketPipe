@@ -13,7 +13,9 @@ except ImportError:
 
 from marketpipe.ingestion.connectors import ClientConfig, HeaderTokenAuth
 from marketpipe.ingestion.connectors.alpaca_client import AlpacaClient
-from marketpipe.ingestion.infrastructure.rate_limit import create_rate_limiter_from_config
+from marketpipe.ingestion.infrastructure.rate_limit import (
+    create_rate_limiter_from_config,
+)
 
 # Check for required credentials in .env file
 try:

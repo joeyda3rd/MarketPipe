@@ -12,12 +12,19 @@ from typing import Any, Dict, List, Optional
 import asyncpg
 
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
-from marketpipe.ingestion.domain.entities import IngestionJob, IngestionJobId, ProcessingState
+from marketpipe.ingestion.domain.entities import (
+    IngestionJob,
+    IngestionJobId,
+    ProcessingState,
+)
 from marketpipe.ingestion.domain.repositories import (
     IIngestionJobRepository,
     IngestionRepositoryError,
 )
-from marketpipe.ingestion.domain.value_objects import IngestionConfiguration, IngestionPartition
+from marketpipe.ingestion.domain.value_objects import (
+    IngestionConfiguration,
+    IngestionPartition,
+)
 
 # Import shared metrics from repositories module
 from .repositories import REPO_LATENCY, REPO_QUERIES

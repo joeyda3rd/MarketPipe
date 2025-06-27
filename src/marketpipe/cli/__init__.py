@@ -84,6 +84,7 @@ _USING_TYER_STUB = hasattr(typer, "__dict__") and typer.__dict__.get("Typer").__
 if not _USING_TYER_STUB:
 
     # Import and register command modules
+    from .health_check import health_check_command
     from .ohlcv_aggregate import (
         aggregate_deprecated,
         aggregate_ohlcv,
@@ -104,7 +105,6 @@ if not _USING_TYER_STUB:
     from .query import query
     from .symbols import app as symbols_app
     from .utils import metrics, migrate, providers
-    from .health_check import health_check_command
 
     # Register OHLCV sub-app commands
     ohlcv_app.command(name="ingest")(ingest_ohlcv)
