@@ -95,6 +95,9 @@ license-files = ["LICENSE"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"*" = ["*.sql"]
+
 # Coverage configuration moved to .coveragerc to support parallel mode
 
 [tool.black]

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import datetime
 import types
-from unittest.mock import patch
 
 import httpx
 import pytest

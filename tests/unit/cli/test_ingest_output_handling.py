@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -32,14 +32,14 @@ class TestCLIOutputHandling:
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
-                
+
                 mock_job_service.create_job.return_value = "test_job"
                 mock_coordinator_service.execute_job.return_value = {
                     "symbols_processed": 1,
                     "total_bars": 1000,
                     "processing_time_seconds": 5.0,
                 }
-                
+
                 mock_build.return_value = (mock_job_service, mock_coordinator_service)
                 mock_check.return_value = None  # Successful verification
 
@@ -66,7 +66,7 @@ class TestCLIOutputHandling:
                 # Verify command succeeded
                 assert result.exit_code == 0, f"Command failed: {result.stdout}"
                 assert "Job completed successfully" in result.stdout
-                
+
                 # Verify boundary check was called
                 mock_check.assert_called_once()
 
@@ -81,16 +81,16 @@ class TestCLIOutputHandling:
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
-                
+
                 mock_job_service.create_job.return_value = "test_job"
                 mock_coordinator_service.execute_job.return_value = {
                     "symbols_processed": 1,
                     "total_bars": 1000,
                     "processing_time_seconds": 5.0,
                 }
-                
+
                 mock_build.return_value = (mock_job_service, mock_coordinator_service)
-                
+
                 # Mock boundary check to simulate verification failure (exit with code 1)
                 mock_check.side_effect = SystemExit(1)
 
@@ -119,7 +119,7 @@ class TestCLIOutputHandling:
 
     def test_default_output_path_when_no_flag(self):
         """Test that data goes to data/output when no --output flag is provided."""
-        
+
         # Mock the ingestion services and boundary check
         with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
              patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check, \
@@ -127,17 +127,17 @@ class TestCLIOutputHandling:
             # Mock the services
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
-            
+
             mock_job_service.create_job.return_value = "test_job"
             mock_coordinator_service.execute_job.return_value = {
                 "symbols_processed": 1,
                 "total_bars": 1000,
                 "processing_time_seconds": 5.0,
             }
-            
+
             mock_build.return_value = (mock_job_service, mock_coordinator_service)
             mock_check.return_value = None  # Successful verification
-            
+
             # Mock asyncio.run to return proper tuple
             mock_asyncio_run.return_value = ("test_job", {
                 "symbols_processed": 1,
@@ -178,14 +178,14 @@ class TestCLIOutputHandling:
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
-                
+
                 mock_job_service.create_job.return_value = "test_job"
                 mock_coordinator_service.execute_job.return_value = {
                     "symbols_processed": 1,
                     "total_bars": 1000,
                     "processing_time_seconds": 5.0,
                 }
-                
+
                 mock_build.return_value = (mock_job_service, mock_coordinator_service)
                 mock_check.return_value = None  # Successful verification
 
@@ -212,7 +212,7 @@ class TestCLIOutputHandling:
                 # Verify the verification step ran
                 assert result.exit_code == 0
                 assert "Job completed successfully" in result.stdout
-                
+
                 # Verify boundary check was called with correct parameters
                 mock_check.assert_called_once_with(
                     path=str(output_path),
@@ -242,21 +242,21 @@ class TestProviderSuggestions:
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
-                
+
                 mock_job_service.create_job.return_value = "test_job"
                 mock_coordinator_service.execute_job.return_value = {
                     "symbols_processed": 1,
                     "total_bars": 1000,
                     "processing_time_seconds": 5.0,
                 }
-                
+
                 mock_build.return_value = (mock_job_service, mock_coordinator_service)
-                
+
                 # Mock boundary check to print provider suggestions and exit
                 def mock_boundary_check_with_suggestions(*args, **kwargs):
                     print("Try provider=fake or provider=polygon")
                     raise SystemExit(1)
-                
+
                 mock_check.side_effect = mock_boundary_check_with_suggestions
 
                 # Use alpaca provider which will fail verification and show suggestions
@@ -298,14 +298,14 @@ class TestProviderSuggestions:
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
-                
+
                 mock_job_service.create_job.return_value = "test_job"
                 mock_coordinator_service.execute_job.return_value = {
                     "symbols_processed": 1,
                     "total_bars": 1000,
                     "processing_time_seconds": 5.0,
                 }
-                
+
                 mock_build.return_value = (mock_job_service, mock_coordinator_service)
                 mock_check.return_value = None  # Successful verification
 
@@ -420,19 +420,19 @@ class TestIngestOutputHandling:
             # Mock the services
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
-            
+
             mock_job_service.create_job.return_value = "test_job"
             mock_coordinator_service.execute_job.return_value = {
                 "symbols_processed": 1,
                 "total_bars": 1000,
                 "processing_time_seconds": 5.0,
             }
-            
+
             mock_build.return_value = (mock_job_service, mock_coordinator_service)
-            
+
             # Simulate successful boundary check
             mock_check.return_value = None  # No exception = success
-            
+
             # Mock asyncio.run to return proper tuple
             mock_asyncio_run.return_value = ("test_job", {
                 "symbols_processed": 1,

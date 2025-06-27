@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from typer.testing import CliRunner
 
@@ -60,7 +60,7 @@ class TestIngestCLIBoundaryIntegration:
             # Mock the services
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
-            
+
             mock_job_service.create_job.return_value = "job_123"
             mock_coordinator_service.execute_job.return_value = {
                 "symbols_processed": 1,
@@ -68,10 +68,10 @@ class TestIngestCLIBoundaryIntegration:
                 "processing_time_seconds": 5.0,
                 "symbols_failed": 0,
             }
-            
+
             mock_build.return_value = (mock_job_service, mock_coordinator_service)
             mock_check.return_value = None  # Successful verification
-            
+
             # Mock asyncio.run to return proper tuple
             mock_asyncio_run.return_value = ("job_123", {
                 "symbols_processed": 1,
@@ -94,10 +94,10 @@ output_path: test_output
             )
 
             result = self.runner.invoke(app, ["ingest-ohlcv", "--config", str(config_file)])
-            
+
             # Verify command succeeded
             assert result.exit_code == 0, f"Command failed: {result.stdout}"
-            
+
             # Verify boundary check was called
             mock_check.assert_called()
 

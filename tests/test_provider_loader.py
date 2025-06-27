@@ -234,7 +234,9 @@ class TestRealProviders:
 
         # Manually register built-in providers for testing
         from marketpipe.ingestion.infrastructure.adapters import AlpacaMarketDataAdapter
-        from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
+        from marketpipe.ingestion.infrastructure.fake_adapter import (
+            FakeMarketDataAdapter,
+        )
         from marketpipe.ingestion.infrastructure.iex_adapter import IEXMarketDataAdapter
 
         register("fake", FakeMarketDataAdapter)

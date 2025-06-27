@@ -119,7 +119,7 @@ class TestSymbolsExecuteIntegration:
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "✅ Pipeline complete." in result.output
-        
+
         # Verify pipeline was called
         mock_run_pipeline.assert_called_once()
 
@@ -156,6 +156,6 @@ class TestSymbolsExecuteIntegration:
 
         # Should complete successfully both times
         assert "✅ Pipeline complete." in result.output
-        
+
         # Verify pipeline was called twice
         assert mock_run_pipeline.call_count == 2
