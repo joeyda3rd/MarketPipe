@@ -15,6 +15,7 @@ This document provides a comprehensive list of all MarketPipe CLI commands with 
 - [Data Pruning Commands](#data-pruning-commands)
 - [Job Management Commands](#job-management-commands)
 - [Health Check Commands](#health-check-commands)
+- [Factory Reset Commands](#factory-reset-commands)
 - [Symbol Management Commands](#symbol-management-commands)
 - [Deprecated Commands](#deprecated-commands-still-work)
 - [Command Structure Patterns](#command-structure-patterns)
@@ -321,6 +322,30 @@ python -m marketpipe health-check --config config/example_config.yaml
 python -m marketpipe health-check --output health_report.txt
 ```
 *Save health check report to file*
+
+### Factory Reset Commands
+
+```bash
+python -m marketpipe factory-reset --dry-run
+```
+*Preview what data would be deleted in factory reset*
+
+```bash
+python -m marketpipe factory-reset --confirm-nuclear --dry-run
+```
+*Dry run with nuclear confirmation (shows full preview)*
+
+```bash
+python -m marketpipe factory-reset --confirm-nuclear --backup-before-wipe
+```
+*🚨 NUCLEAR: Wipe all data with backup creation*
+
+```bash
+python -m marketpipe factory-reset --confirm-nuclear --keep-schema
+```
+*🚨 NUCLEAR: Wipe all data but keep README and schema files*
+
+**⚠️ WARNING**: Factory reset permanently deletes ALL data, databases, metrics, logs, and caches. This action cannot be undone!
 
 ### Symbol Management Commands
 
