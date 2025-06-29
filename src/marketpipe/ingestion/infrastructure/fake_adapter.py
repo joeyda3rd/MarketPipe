@@ -44,6 +44,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
             "MSFT",
             "AMZN",
             "TSLA",
+            "COST",
             "FAKE1",
             "FAKE2",
             "TEST",

@@ -228,8 +228,10 @@ class ParquetStorageEngine:
 
         # Generate job ID from configuration or create one
         import uuid
+        from datetime import datetime
 
-        job_id = str(uuid.uuid4())[:8]
+        # Use semantic job ID that matches database records
+        job_id = f"{symbol}_{trading_day.isoformat()}"
 
         # Write to storage
         file_path = self.write(
