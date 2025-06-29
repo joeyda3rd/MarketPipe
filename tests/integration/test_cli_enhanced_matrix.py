@@ -92,13 +92,13 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="valid_date_range",
-                options={"--start": "2024-01-01", "--end": "2024-01-02", "--provider": "fake", "--symbols": "AAPL"},
+                options={"--start": "2024-01-01", "--end": "2024-01-03", "--provider": "fake", "--symbols": "AAPL"},
                 category="dates"
             ),
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="invalid_date_format",
-                options={"--start": "invalid-date", "--end": "2024-01-02", "--provider": "fake", "--symbols": "AAPL"},
+                options={"--start": "invalid-date", "--end": "2024-01-03", "--provider": "fake", "--symbols": "AAPL"},
                 expected_exit_code=2,
                 expected_error_patterns=["invalid", "date"],
                 category="dates"
@@ -127,19 +127,19 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="valid_single_symbol",
-                options={"--symbols": "AAPL", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--symbols": "AAPL", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-03"},
                 category="symbols"
             ),
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="valid_multiple_symbols",
-                options={"--symbols": "AAPL,MSFT,GOOGL", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--symbols": "AAPL,MSFT,GOOGL", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-03"},
                 category="symbols"
             ),
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="empty_symbol",
-                options={"--symbols": "", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--symbols": "", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["empty", "symbol"],
                 category="symbols"
@@ -147,7 +147,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="invalid_symbol_chars",
-                options={"--symbols": "AA$PL,M@SFT", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--symbols": "AA$PL,M@SFT", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["invalid", "symbol"],
                 category="symbols"
@@ -155,7 +155,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="too_many_symbols",
-                options={"--symbols": ",".join([f"SYM{i:03d}" for i in range(1000)]), "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--symbols": ",".join([f"SYM{i:03d}" for i in range(1000)]), "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["too many", "limit"],
                 category="symbols"
@@ -197,7 +197,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="invalid_provider",
-                options={"--provider": "nonexistent_provider", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--provider": "nonexistent_provider", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["invalid", "provider"],
                 category="providers"
@@ -205,7 +205,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="missing_feed_type",
-                options={"--provider": "alpaca", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--provider": "alpaca", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["feed", "type", "required"],
                 category="providers"
@@ -213,7 +213,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="invalid_feed_type",
-                options={"--provider": "alpaca", "--feed-type": "invalid_feed", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--provider": "alpaca", "--feed-type": "invalid_feed", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["invalid", "feed"],
                 category="providers"
@@ -226,7 +226,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="zero_workers",
-                options={"--workers": "0", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--workers": "0", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["workers", "positive"],
                 category="numeric"
@@ -234,7 +234,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="negative_workers",
-                options={"--workers": "-5", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--workers": "-5", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["workers", "positive"],
                 category="numeric"
@@ -242,7 +242,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="excessive_workers",
-                options={"--workers": "1000", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--workers": "1000", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["workers", "maximum"],
                 category="numeric"
@@ -250,7 +250,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="zero_batch_size",
-                options={"--batch-size": "0", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--batch-size": "0", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["batch", "positive"],
                 category="numeric"
@@ -258,7 +258,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="excessive_batch_size",
-                options={"--batch-size": "100000", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--batch-size": "100000", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["batch", "maximum"],
                 category="numeric"
@@ -271,7 +271,7 @@ class EnhancedCLITester:
             EdgeCaseTest(
                 command_path=["ingest-ohlcv"],
                 test_name="nonexistent_output_dir",
-                options={"--output": "/nonexistent/path/output", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--output": "/nonexistent/path/output", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-03"},
                 expected_exit_code=2,
                 expected_error_patterns=["output", "directory", "not found"],
                 category="filesystem"
@@ -557,7 +557,7 @@ class TestEnhancedCLIMatrix:
                     "--provider": "fake",
                     "--symbols": "AAPL",
                     "--start": "2024-01-01",
-                    "--end": "2024-01-02"
+                    "--end": "2024-01-03"
                 },
                 expected_exit_code=1,
                 expected_error_patterns=["post-ingestion", "verification", "failed"],

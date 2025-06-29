@@ -9,7 +9,7 @@ import sys
 import threading
 import time
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Tuple
 
@@ -202,14 +202,15 @@ class CleanAsyncExecution:
 
 def _build_ingestion_services(
     provider_config: dict = None,
+    output_path: str = "data/raw",
 ) -> Tuple[IngestionJobService, IngestionCoordinatorService]:
     """Build and wire the DDD ingestion services with shared storage engine."""
     # Create data directory if it doesn't exist
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
 
-    # Shared storage engine for all contexts
-    storage_engine = ParquetStorageEngine(data_dir / "raw")
+    # Use the configured output path for storage engine
+    storage_engine = ParquetStorageEngine(Path(output_path))
 
     # Infrastructure setup - use provider loader or default to Alpaca
     if provider_config:
@@ -333,13 +334,22 @@ def _check_boundaries(path: str, symbol: str, start: str, end: str, provider: st
     """
     try:
         from pathlib import Path
+        from datetime import datetime
 
         import duckdb
+
+        # Convert string dates to date objects for comparison
+        start_date = datetime.fromisoformat(start).date()
+        end_date = datetime.fromisoformat(end).date()
+        
+        # TimeRange.from_dates() treats end date as exclusive, so actual data ends on (end_date - 1)
+        expected_end_date = end_date - timedelta(days=1)
 
         # Connect to DuckDB first (this is where the test expects the exception)
         conn = duckdb.connect()
 
-        symbol_path = Path(path) / f"symbol={symbol}"
+        # Look for data in the correct path structure: frame=1m/symbol={symbol}
+        symbol_path = Path(path) / "frame=1m" / f"symbol={symbol}"
 
         if not symbol_path.exists():
             print(f"ERROR: No data found for symbol {symbol}", file=sys.stderr)
@@ -353,8 +363,8 @@ def _check_boundaries(path: str, symbol: str, start: str, end: str, provider: st
         # Query to check data coverage
         query = f"""
         SELECT 
-            MIN(date) as min_date, 
-            MAX(date) as max_date, 
+            MIN(DATE(to_timestamp(ts_ns / 1000000000))) as min_date, 
+            MAX(DATE(to_timestamp(ts_ns / 1000000000))) as max_date, 
             COUNT(*) as bar_count
         FROM read_parquet('{symbol_path}/**/*.parquet')
         WHERE symbol = '{symbol}'
@@ -369,8 +379,8 @@ def _check_boundaries(path: str, symbol: str, start: str, end: str, provider: st
 
         min_date, max_date, bar_count = result
 
-        # Check if data covers the requested range
-        if min_date > start or max_date < end:
+        # Check if data covers the requested range (now comparing date objects)
+        if min_date > start_date or max_date < expected_end_date:
             print(
                 f"ERROR: Data for {symbol} covers {min_date} to {max_date}, "
                 f"but requested {start} to {end}. Try a different provider or date range.",
@@ -499,7 +509,7 @@ def _ingest_impl(
                 print(f"❌ Unsupported provider: {job_config.provider}")
                 raise typer.Exit(1)
 
-            job_service, coordinator_service = _build_ingestion_services(provider_config)
+            job_service, coordinator_service = _build_ingestion_services(provider_config, job_config.output_path)
 
             # Create domain command
             command = CreateIngestionJobCommand(

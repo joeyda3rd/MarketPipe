@@ -200,61 +200,92 @@ class ParquetStorageEngine:
                 created_at=datetime.now(timezone.utc),
             )
 
-        # Convert bars to DataFrame
+        # Group bars by trading day
+        from collections import defaultdict
         from datetime import datetime, timezone
-
         import pandas as pd
 
-        data = []
+        bars_by_day = defaultdict(list)
         for bar in bars:
-            data.append(
-                {
-                    "ts_ns": bar.timestamp_ns,
-                    "open": float(bar.open_price.value),
-                    "high": float(bar.high_price.value),
-                    "low": float(bar.low_price.value),
-                    "close": float(bar.close_price.value),
-                    "volume": int(bar.volume.value),
-                    "symbol": bar.symbol.value,
-                }
+            trading_day = bar.timestamp.trading_date()
+            bars_by_day[trading_day].append(bar)
+
+        # Store bars for each trading day separately
+        partitions = []
+        total_records = 0
+        
+        for trading_day, day_bars in bars_by_day.items():
+            # Convert bars to DataFrame
+            data = []
+            for bar in day_bars:
+                data.append(
+                    {
+                        "ts_ns": bar.timestamp_ns,
+                        "open": float(bar.open_price.value),
+                        "high": float(bar.high_price.value),
+                        "low": float(bar.low_price.value),
+                        "close": float(bar.close_price.value),
+                        "volume": int(bar.volume.value),
+                        "symbol": bar.symbol.value,
+                    }
+                )
+
+            df = pd.DataFrame(data)
+
+            # Extract details from first bar of this day
+            first_bar = day_bars[0]
+            symbol = first_bar.symbol.value
+
+            # Use semantic job ID that includes the trading day
+            job_id = f"{symbol}_{trading_day.isoformat()}"
+
+            # Write to storage
+            file_path = self.write(
+                df,
+                frame="1m",  # Default to 1-minute bars
+                symbol=symbol,
+                trading_day=trading_day,
+                job_id=job_id,
+                overwrite=True,
             )
 
-        df = pd.DataFrame(data)
+            # Create partition info for this day
+            from marketpipe.ingestion.domain.value_objects import IngestionPartition
 
-        # Extract details from first bar
-        first_bar = bars[0]
-        symbol = first_bar.symbol.value
-        trading_day = first_bar.timestamp.trading_date()
+            file_size = file_path.stat().st_size if file_path.exists() else 0
+            partition = IngestionPartition(
+                symbol=first_bar.symbol,
+                file_path=file_path,
+                record_count=len(day_bars),
+                file_size_bytes=file_size,
+                created_at=datetime.now(timezone.utc),
+            )
+            partitions.append(partition)
+            total_records += len(day_bars)
 
-        # Generate job ID from configuration or create one
-        import uuid
-        from datetime import datetime
+        # Return the first partition (for backward compatibility)
+        # In a multi-day scenario, this represents the first day's partition
+        if partitions:
+            # Update the record count to reflect total across all days
+            first_partition = partitions[0]
+            return IngestionPartition(
+                symbol=first_partition.symbol,
+                file_path=first_partition.file_path,
+                record_count=total_records,  # Total across all days
+                file_size_bytes=sum(p.file_size_bytes for p in partitions),
+                created_at=first_partition.created_at,
+            )
+        else:
+            # Fallback for empty data
+            from marketpipe.ingestion.domain.value_objects import IngestionPartition
 
-        # Use semantic job ID that matches database records
-        job_id = f"{symbol}_{trading_day.isoformat()}"
-
-        # Write to storage
-        file_path = self.write(
-            df,
-            frame="1m",  # Default to 1-minute bars
-            symbol=symbol,
-            trading_day=trading_day,
-            job_id=job_id,
-            overwrite=True,
-        )
-
-        # Return partition information
-        from marketpipe.ingestion.domain.value_objects import IngestionPartition
-
-        file_size = file_path.stat().st_size if file_path.exists() else 0
-
-        return IngestionPartition(
-            symbol=first_bar.symbol,
-            file_path=file_path,
-            record_count=len(bars),
-            file_size_bytes=file_size,
-            created_at=datetime.now(timezone.utc),
-        )
+            return IngestionPartition(
+                symbol=bars[0].symbol,
+                file_path=self._root / "empty.parquet",
+                record_count=0,
+                file_size_bytes=0,
+                created_at=datetime.now(timezone.utc),
+            )
 
     # ----- Read Operations -----
 
