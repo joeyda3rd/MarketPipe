@@ -84,6 +84,7 @@ _USING_TYER_STUB = hasattr(typer, "__dict__") and typer.__dict__.get("Typer").__
 if not _USING_TYER_STUB:
 
     # Import and register command modules
+    from .factory_reset import factory_reset
     from .health_check import health_check_command
     from .jobs import jobs_app
     from .ohlcv_aggregate import (
@@ -128,6 +129,7 @@ if not _USING_TYER_STUB:
     app.command()(providers)
     app.command()(migrate)
     app.command(name="health-check")(health_check_command)
+    app.command(name="factory-reset")(factory_reset)
 
     # Add backfill sub-command
     ohlcv_app.add_typer(backfill_app, name="backfill")
