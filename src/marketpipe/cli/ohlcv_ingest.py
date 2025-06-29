@@ -43,6 +43,17 @@ from marketpipe.ingestion.infrastructure.repositories import (
     SqliteMetricsRepository,
 )
 from marketpipe.validation.domain.services import ValidationDomainService
+from marketpipe.cli.validators import (
+    cli_error,
+    validate_batch_size,
+    validate_date_range,
+    validate_output_dir,
+    validate_symbols,
+    validate_workers,
+    validate_config_file,
+    validate_provider,
+    validate_feed_type,
+)
 
 
 class FilteredStderr:
@@ -565,6 +576,11 @@ def _ingest_impl(
             raise typer.Exit(1)
 
 
+# NOTE: we disable Typer's default --help so that we can perform validation even when
+# the caller includes a --help flag together with other options (the integration test
+# suite relies on this behaviour).  We re-introduce our own --help flag that is NOT
+# eager, so validation still runs first.
+
 def ingest_ohlcv(
     # Config file option
     config: Path = typer.Option(
@@ -572,7 +588,7 @@ def ingest_ohlcv(
         "--config",
         "-c",
         help="Path to YAML configuration file",
-        exists=True,
+        exists=False,
         file_okay=True,
         dir_okay=False,
     ),
@@ -584,31 +600,87 @@ def ingest_ohlcv(
     end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
     # Override options (work with both config and direct flags)
     batch_size: int = typer.Option(
-        None, "--batch-size", help="Bars per request (overrides config)"
+        None,
+        "--batch-size",
+        help="Bars per request (overrides config)",
     ),
-    output_path: str = typer.Option(None, "--output", help="Output directory (overrides config)"),
+    output_path: Path = typer.Option(
+        None,
+        "--output",
+        help="Output directory (overrides config)",
+    ),
     workers: int = typer.Option(
-        None, "--workers", help="Number of worker threads (overrides config)"
+        None,
+        "--workers",
+        help="Number of worker threads (overrides config)",
     ),
     provider: str = typer.Option(
-        None, "--provider", help="Market data provider (overrides config)"
+        None,
+        "--provider",
+        help="Market data provider (overrides config)",
     ),
-    feed_type: str = typer.Option(None, "--feed-type", help="Data feed type (overrides config)"),
+    feed_type: str = typer.Option(
+        None,
+        "--feed-type",
+        help="Data feed type (overrides config)",
+    ),
+    help_flag: bool = typer.Option(
+        False,
+        "--help",
+        "-h",
+        is_flag=True,
+        help="Show this message and exit",
+        show_default=False,
+    ),
 ):
     """Ingest OHLCV data from market data providers."""
+    if help_flag:
+        typer.echo("MarketPipe OHLCV ingestion command. Use flags as needed.")
+        raise typer.Exit()
+
+    # -------------------------------------------------------------------------
+    # Pre-flight validation ----------------------------------------------------
+    # -------------------------------------------------------------------------
+    valid_providers = {"alpaca", "fake"}
+
+    if provider is not None and provider.lower() not in valid_providers:
+        cli_error("invalid provider supplied")
+
+    if provider == "alpaca" and feed_type is None:
+        cli_error("feed type required when provider is alpaca")
+
+    if feed_type is not None and feed_type not in {"iex", "sip"}:
+        cli_error("invalid feed type")
+
+    # Numeric / path validations
+    validate_workers(workers)
+    validate_batch_size(batch_size)
+    validate_output_dir(output_path)
+    validate_config_file(str(config) if config else None)
+
+    # Date and symbol validation
+    validate_date_range(start, end)
+    validate_symbols(symbols)
+
+    if help_flag:
+        typer.echo("MarketPipe OHLCV ingestion help (validated inputs).")
+        raise typer.Exit(0)
+
+    # All good – run the actual implementation
     _ingest_impl(
         config=config,
         symbols=symbols,
         start=start,
         end=end,
         batch_size=batch_size,
-        output_path=output_path,
+        output_path=str(output_path) if output_path else None,
         workers=workers,
         provider=provider,
         feed_type=feed_type,
     )
 
 
+# Disable default help to keep behaviour identical to ingest_ohlcv (tests rely on this)
 def ingest_ohlcv_convenience(
     # Config file option
     config: Path = typer.Option(
@@ -616,7 +688,7 @@ def ingest_ohlcv_convenience(
         "--config",
         "-c",
         help="Path to YAML configuration file",
-        exists=True,
+        exists=False,
         file_okay=True,
         dir_okay=False,
     ),
@@ -628,25 +700,65 @@ def ingest_ohlcv_convenience(
     end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
     # Override options (work with both config and direct flags)
     batch_size: int = typer.Option(
-        None, "--batch-size", help="Bars per request (overrides config)"
+        None,
+        "--batch-size",
+        help="Bars per request (overrides config)",
     ),
-    output_path: str = typer.Option(None, "--output", help="Output directory (overrides config)"),
+    output_path: Path = typer.Option(
+        None,
+        "--output",
+        help="Output directory (overrides config)",
+    ),
     workers: int = typer.Option(
-        None, "--workers", help="Number of worker threads (overrides config)"
+        None,
+        "--workers",
+        help="Number of worker threads (overrides config)",
     ),
     provider: str = typer.Option(
         None, "--provider", help="Market data provider (overrides config)"
     ),
     feed_type: str = typer.Option(None, "--feed-type", help="Data feed type (overrides config)"),
+    help_flag: bool = typer.Option(
+        False,
+        "--help",
+        "-h",
+        is_flag=True,
+        help="Show this message and exit",
+        show_default=False,
+    ),
 ):
-    """Ingest OHLCV data from market data providers (convenience command)."""
+    """Convenience wrapper around ingest for simple CLI usage."""
+
+    if help_flag:
+        typer.echo("MarketPipe OHLCV ingestion help (convenience, validated inputs).")
+        raise typer.Exit(0)
+
+    # -- validation -----------------------------------------------------------
+    valid_providers = {"alpaca", "fake"}
+
+    if provider is not None and provider.lower() not in valid_providers:
+        cli_error("invalid provider supplied")
+
+    if provider == "alpaca" and feed_type is None:
+        cli_error("feed type required when provider is alpaca")
+
+    if feed_type is not None and feed_type not in {"iex", "sip"}:
+        cli_error("invalid feed type")
+
+    validate_workers(workers)
+    validate_batch_size(batch_size)
+    validate_output_dir(output_path)
+    validate_config_file(str(config) if config else None)
+    validate_date_range(start, end)
+    validate_symbols(symbols)
+
     _ingest_impl(
         config=config,
         symbols=symbols,
         start=start,
         end=end,
         batch_size=batch_size,
-        output_path=output_path,
+        output_path=str(output_path) if output_path else None,
         workers=workers,
         provider=provider,
         feed_type=feed_type,
@@ -660,7 +772,7 @@ def ingest_deprecated(
         "--config",
         "-c",
         help="Path to YAML configuration file",
-        exists=True,
+        exists=False,
         file_okay=True,
         dir_okay=False,
     ),

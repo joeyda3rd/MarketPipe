@@ -101,7 +101,9 @@ class CLICommandDiscovery:
             "query",
             "metrics",
             "providers",
-            "migrate"
+            "migrate",
+            "health-check",
+            "factory-reset"
         ]
 
         for cmd in main_commands:
@@ -145,6 +147,16 @@ class CLICommandDiscovery:
                 path=["symbols", cmd],
                 is_subcommand=True,
                 parent_app="symbols"
+            ))
+
+        # Jobs subcommands
+        jobs_commands = ["list", "status", "doctor", "kill"]
+        for cmd in jobs_commands:
+            commands.append(CommandInfo(
+                name=cmd,
+                path=["jobs", cmd],
+                is_subcommand=True,
+                parent_app="jobs"
             ))
 
         return commands
