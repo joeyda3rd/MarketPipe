@@ -198,10 +198,10 @@ cython_debug/
 # Archive directories (outside version control)
 archive/
 
-# Data directories
+# Data directories - exclude all data files
 data/
+!data/README.md
 data_backup*
-data/db/core.db
 
 # Large files and temporary data
 *.db-journal
@@ -210,12 +210,10 @@ data/db/core.db
 tmp/
 temp/
 
-# Ingestion state and logs
+# All database files (more specific patterns first)
 ingestion_*.db
-*.log
-logs/
-
-# SQLite database files
+metrics*.db
+core.db
 *.db
 *.sqlite
 *.sqlite3
