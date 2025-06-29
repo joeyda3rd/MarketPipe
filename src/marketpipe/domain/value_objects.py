@@ -34,9 +34,11 @@ class Symbol:
         normalized = self.value.upper().strip()
         object.__setattr__(self, "value", normalized)
 
-        # Validate format: letters only, 1-10 characters
-        if not re.match(r"^[A-Z]{1,10}$", self.value):
-            raise ValueError(f"Invalid symbol format: {self.value}. Must be 1-10 letters only.")
+        # Allow uppercase letters, digits, and an optional dot (e.g., "BRK.A"); 1-10 chars total
+        if not re.match(r"^[A-Z0-9\.]{1,10}$", self.value):
+            raise ValueError(
+                f"Invalid symbol format: {self.value}. Must be 1-10 characters (A-Z, 0-9, or '.')"
+            )
 
     @classmethod
     def from_string(cls, symbol_str: str) -> Symbol:

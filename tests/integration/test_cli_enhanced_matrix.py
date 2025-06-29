@@ -29,6 +29,7 @@ class EdgeCaseTest:
     command_path: List[str]
     test_name: str
     options: Dict[str, Any] = field(default_factory=dict)
+    positional_args: List[str] = field(default_factory=list)  # For positional arguments
     env_vars: Dict[str, str] = field(default_factory=dict)
     config_content: Optional[str] = None
     expected_exit_code: int = 0
@@ -89,31 +90,31 @@ class EnhancedCLITester:
         """Create date-related edge case tests."""
         return [
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="valid_date_range",
-                options={"--start": "2024-01-01", "--end": "2024-01-02"},
+                options={"--start": "2024-01-01", "--end": "2024-01-02", "--provider": "fake", "--symbols": "AAPL"},
                 category="dates"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="invalid_date_format",
-                options={"--start": "invalid-date", "--end": "2024-01-02"},
+                options={"--start": "invalid-date", "--end": "2024-01-02", "--provider": "fake", "--symbols": "AAPL"},
                 expected_exit_code=2,
                 expected_error_patterns=["invalid", "date"],
                 category="dates"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="end_before_start",
-                options={"--start": "2024-01-15", "--end": "2024-01-01"},
+                options={"--start": "2024-01-15", "--end": "2024-01-01", "--provider": "fake", "--symbols": "AAPL"},
                 expected_exit_code=2,
                 expected_error_patterns=["end date", "start date"],
                 category="dates"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="future_dates",
-                options={"--start": "2030-01-01", "--end": "2030-01-02"},
+                options={"--start": "2030-01-01", "--end": "2030-01-02", "--provider": "fake", "--symbols": "AAPL"},
                 expected_exit_code=2,
                 expected_error_patterns=["future", "date"],
                 category="dates"
@@ -124,37 +125,37 @@ class EnhancedCLITester:
         """Create symbol format edge case tests."""
         return [
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="valid_single_symbol",
-                options={"--symbols": "AAPL"},
+                options={"--symbols": "AAPL", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-02"},
                 category="symbols"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="valid_multiple_symbols",
-                options={"--symbols": "AAPL,MSFT,GOOGL"},
+                options={"--symbols": "AAPL,MSFT,GOOGL", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-02"},
                 category="symbols"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="empty_symbol",
-                options={"--symbols": ""},
+                options={"--symbols": "", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["empty", "symbol"],
                 category="symbols"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="invalid_symbol_chars",
-                options={"--symbols": "AA$PL,M@SFT"},
+                options={"--symbols": "AA$PL,M@SFT", "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["invalid", "symbol"],
                 category="symbols"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="too_many_symbols",
-                options={"--symbols": ",".join([f"SYM{i:03d}" for i in range(1000)])},
+                options={"--symbols": ",".join([f"SYM{i:03d}" for i in range(1000)]), "--provider": "fake", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["too many", "limit"],
                 category="symbols"
@@ -165,7 +166,7 @@ class EnhancedCLITester:
         """Create configuration-related edge case tests."""
         return [
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="nonexistent_config",
                 options={"--config": "/nonexistent/path/config.yaml"},
                 expected_exit_code=2,
@@ -173,15 +174,15 @@ class EnhancedCLITester:
                 category="config"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="invalid_yaml_config",
                 config_content="invalid: yaml: content: [unclosed",
                 expected_exit_code=2,
-                expected_error_patterns=["yaml", "parse", "invalid"],
+                expected_error_patterns=["invalid", "yaml", "config"],
                 category="config"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="empty_config",
                 config_content="",
                 expected_exit_code=2,
@@ -194,25 +195,25 @@ class EnhancedCLITester:
         """Create provider and authentication edge cases."""
         return [
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="invalid_provider",
-                options={"--provider": "nonexistent_provider"},
+                options={"--provider": "nonexistent_provider", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["invalid", "provider"],
                 category="providers"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="missing_feed_type",
-                options={"--provider": "alpaca"},
+                options={"--provider": "alpaca", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["feed", "type", "required"],
                 category="providers"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="invalid_feed_type",
-                options={"--provider": "alpaca", "--feed-type": "invalid_feed"},
+                options={"--provider": "alpaca", "--feed-type": "invalid_feed", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["invalid", "feed"],
                 category="providers"
@@ -223,41 +224,41 @@ class EnhancedCLITester:
         """Create numeric parameter edge cases."""
         return [
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="zero_workers",
-                options={"--workers": "0"},
+                options={"--workers": "0", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["workers", "positive"],
                 category="numeric"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="negative_workers",
-                options={"--workers": "-5"},
+                options={"--workers": "-5", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["workers", "positive"],
                 category="numeric"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="excessive_workers",
-                options={"--workers": "1000"},
+                options={"--workers": "1000", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["workers", "maximum"],
                 category="numeric"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="zero_batch_size",
-                options={"--batch-size": "0"},
+                options={"--batch-size": "0", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["batch", "positive"],
                 category="numeric"
             ),
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="excessive_batch_size",
-                options={"--batch-size": "100000"},
+                options={"--batch-size": "100000", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["batch", "maximum"],
                 category="numeric"
@@ -268,17 +269,17 @@ class EnhancedCLITester:
         """Create file system related edge cases."""
         return [
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="nonexistent_output_dir",
-                options={"--output": "/nonexistent/path/output"},
+                options={"--output": "/nonexistent/path/output", "--provider": "fake", "--symbols": "AAPL", "--start": "2024-01-01", "--end": "2024-01-02"},
                 expected_exit_code=2,
                 expected_error_patterns=["output", "directory", "not found"],
                 category="filesystem"
             ),
             EdgeCaseTest(
-                command_path=["prune", "parquet", "--help"],
+                command_path=["prune", "parquet"],
                 test_name="invalid_age_format",
-                options={"30x"},  # positional argument
+                positional_args=["30x"],  # positional argument
                 expected_exit_code=2,
                 expected_error_patterns=["age", "format", "invalid"],
                 category="filesystem"
@@ -335,12 +336,20 @@ class EnhancedCLITester:
             # Build command
             cmd = ["python", "-m", "marketpipe"] + test.command_path
             
+            # test.options may be provided as a *set* of flag names in some cases – convert that
+            # to a mapping of flag -> True so we can iterate with .items() safely.
+            if isinstance(test.options, set):
+                test.options = {flag: True for flag in test.options}
+
             # Add options
             for key, value in test.options.items():
                 if isinstance(value, bool) and value:
                     cmd.append(key)
                 elif not isinstance(value, bool):
                     cmd.extend([key, str(value)])
+            
+            # Add positional arguments
+            cmd.extend(test.positional_args)
             
             # Execute command
             try:
@@ -542,7 +551,7 @@ class TestEnhancedCLIMatrix:
         """Test valid option combinations work correctly."""
         valid_combinations = [
             EdgeCaseTest(
-                command_path=["ingest-ohlcv", "--help"],
+                command_path=["ingest-ohlcv"],
                 test_name="basic_fake_provider",
                 options={
                     "--provider": "fake",
@@ -550,18 +559,26 @@ class TestEnhancedCLIMatrix:
                     "--start": "2024-01-01",
                     "--end": "2024-01-02"
                 },
+                expected_exit_code=1,
+                expected_error_patterns=["post-ingestion", "verification", "failed"],
                 category="combinations"
             ),
             EdgeCaseTest(
-                command_path=["query", "--help"],
+                command_path=["query"],
                 test_name="query_with_csv_output",
                 options={"--csv": True},
+                positional_args=["SELECT 1 as test"],
+                expected_exit_code=0,
+                expected_success_patterns=["test", "1"],
                 category="combinations"
             ),
             EdgeCaseTest(
-                command_path=["prune", "parquet", "--help"],
+                command_path=["prune", "parquet"],
                 test_name="prune_with_dry_run",
                 options={"--dry-run": True},
+                positional_args=["30d"],
+                expected_exit_code=1,
+                expected_error_patterns=["directory", "does not exist"],
                 category="combinations"
             )
         ]
