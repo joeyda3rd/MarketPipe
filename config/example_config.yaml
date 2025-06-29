@@ -1,3 +1,5 @@
+config_version: "1"
+
 alpaca:
   # Credentials are loaded from .env file automatically by the coordinator
   key: # Will be loaded from ALPACA_KEY in .env file

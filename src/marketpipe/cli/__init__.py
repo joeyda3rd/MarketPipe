@@ -85,6 +85,7 @@ if not _USING_TYER_STUB:
 
     # Import and register command modules
     from .health_check import health_check_command
+    from .jobs import jobs_app
     from .ohlcv_aggregate import (
         aggregate_deprecated,
         aggregate_ohlcv,
@@ -136,6 +137,9 @@ if not _USING_TYER_STUB:
 
     # Add symbols sub-command
     app.add_typer(symbols_app, name="symbols")
+
+    # Add jobs sub-command
+    app.add_typer(jobs_app, name="jobs")
 
 
 if __name__ == "__main__":

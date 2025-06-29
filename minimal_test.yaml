@@ -1,0 +1,9 @@
+config_version: "1"
+
+symbols:
+  - AAPL
+
+start: "2024-06-25"
+end: "2024-06-27"
+output_path: "./data"
+workers: 1 

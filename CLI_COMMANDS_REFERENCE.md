@@ -2,6 +2,28 @@
 
 This document provides a comprehensive list of all MarketPipe CLI commands with examples and explanations.
 
+## Table of Contents
+
+- [Quick Test Commands](#quick-test-commands)
+- [Basic Help and Information](#basic-help-and-information)
+- [Data Ingestion Commands](#data-ingestion-commands)
+- [Data Validation Commands](#data-validation-commands)
+- [Data Aggregation Commands](#data-aggregation-commands)
+- [Data Query Commands](#data-query-commands)
+- [Metrics and Monitoring Commands](#metrics-and-monitoring-commands)
+- [Backfill Commands](#backfill-commands)
+- [Data Pruning Commands](#data-pruning-commands)
+- [Job Management Commands](#job-management-commands)
+- [Health Check Commands](#health-check-commands)
+- [Symbol Management Commands](#symbol-management-commands)
+- [Deprecated Commands](#deprecated-commands-still-work)
+- [Command Structure Patterns](#command-structure-patterns)
+- [Common Option Patterns](#common-option-patterns)
+- [Job Management](#job-management-1)
+- [Environment Variables](#environment-variables)
+- [Quick Testing Sequence](#quick-testing-sequence)
+- [Pipeline Scripts](#pipeline-scripts)
+
 ## Quick Test Commands
 
 Copy and run each command separately to test different functionality:
@@ -221,6 +243,112 @@ python -m marketpipe prune database 18m
 ```
 *Delete database records older than 18 months*
 
+### Job Management Commands
+
+```bash
+python -m marketpipe jobs list
+```
+*List recent ingestion jobs*
+
+```bash
+python -m marketpipe jobs list --state IN_PROGRESS
+```
+*Show only running jobs*
+
+```bash
+python -m marketpipe jobs list --symbol AAPL --limit 10
+```
+*Show AAPL jobs (last 10)*
+
+```bash
+python -m marketpipe jobs list --state FAILED --limit 50
+```
+*Show failed jobs (last 50)*
+
+```bash
+python -m marketpipe jobs status
+```
+*Show summary of all job states*
+
+```bash
+python -m marketpipe jobs status 109
+```
+*Get detailed status for specific job ID*
+
+```bash
+python -m marketpipe jobs doctor
+```
+*Diagnose job issues (stuck jobs, inconsistent states)*
+
+```bash
+python -m marketpipe jobs doctor --fix
+```
+*Automatically fix stuck and problematic jobs*
+
+```bash
+python -m marketpipe jobs doctor --timeout 12 --fix
+```
+*Fix jobs stuck for more than 12 hours*
+
+```bash
+python -m marketpipe jobs kill 109
+```
+*Cancel specific job by ID*
+
+```bash
+python -m marketpipe jobs kill 109 --reason "Too slow"
+```
+*Cancel job with custom reason*
+
+### Health Check Commands
+
+```bash
+python -m marketpipe health-check
+```
+*Run comprehensive system health check*
+
+```bash
+python -m marketpipe health-check --verbose
+```
+*Detailed health check with debug output*
+
+```bash
+python -m marketpipe health-check --config config/example_config.yaml
+```
+*Health check with specific configuration file*
+
+```bash
+python -m marketpipe health-check --output health_report.txt
+```
+*Save health check report to file*
+
+### Symbol Management Commands
+
+```bash
+python -m marketpipe symbols update --provider polygon --dry-run
+```
+*Preview symbol updates from Polygon (no writes)*
+
+```bash
+python -m marketpipe symbols update --provider nasdaq_dl --execute
+```
+*Update symbols from NASDAQ source*
+
+```bash
+python -m marketpipe symbols update --provider polygon --backfill 2024-01-01 --execute
+```
+*Backfill symbol data from specific date*
+
+```bash
+python -m marketpipe symbols update --provider polygon --diff-only --execute
+```
+*Skip provider fetch and update SCD-2 changes only*
+
+```bash
+python -m marketpipe symbols update --provider polygon --db custom.duckdb --data-dir ./symbols_data --execute
+```
+*Use custom database and data directory*
+
 ### Deprecated Commands (Still Work)
 
 ```bash
@@ -264,6 +392,9 @@ python -m marketpipe metrics [options]
 python -m marketpipe providers
 python -m marketpipe migrate
 python -m marketpipe prune [type] [age] [options]
+python -m marketpipe health-check [options]
+python -m marketpipe jobs [subcommand] [options]
+python -m marketpipe symbols [subcommand] [options]
 ```
 
 ## Common Option Patterns
@@ -288,6 +419,36 @@ python -m marketpipe prune [type] [age] [options]
 - `2y` (2 years)
 - `1h` (1 hour, for metrics)
 
+## Job Management
+
+### Job States
+MarketPipe tracks ingestion jobs through these states:
+- `PENDING` - Job created but not yet started
+- `IN_PROGRESS` - Job is currently running
+- `COMPLETED` - Job finished successfully
+- `FAILED` - Job failed due to error
+- `CANCELLED` - Job was manually cancelled
+
+### Common Job Issues
+- **Stuck Jobs**: Jobs stuck in `IN_PROGRESS` state due to crashes/network issues
+- **API Failures**: Jobs failing due to provider rate limits or authentication issues
+- **Date Range Conflicts**: Jobs failing due to >30 day limit or date range overlaps
+
+### Job Recovery
+```bash
+# Diagnose issues
+python -m marketpipe jobs doctor
+
+# Fix stuck and failed jobs automatically
+python -m marketpipe jobs doctor --fix
+
+# Check specific job details
+python -m marketpipe jobs status <job-id>
+
+# Cancel problematic jobs
+python -m marketpipe jobs kill <job-id>
+```
+
 ## Environment Variables
 
 ```bash
@@ -302,31 +463,65 @@ export DATABASE_URL="postgresql://user:pass@localhost:5432/marketpipe"  # Option
 Run these commands in order to test the complete pipeline:
 
 ```bash
-# 1. Check installation
-python -m marketpipe --help
+# 1. Check system health and installation
+python -m marketpipe health-check --verbose
 
-# 2. Ingest sample data
+# 2. Check available providers
+python -m marketpipe providers
+
+# 3. Ingest sample data
 python -m marketpipe ingest-ohlcv --provider fake --symbols AAPL,MSFT --start 2024-01-01 --end 2024-01-03 --batch-size 50
 
-# 3. Validate data
+# 4. Monitor job progress
+python -m marketpipe jobs status
+python -m marketpipe jobs list --limit 5
+
+# 5. Validate data
 python -m marketpipe validate-ohlcv --list
 
-# 4. Aggregate data (use actual job ID from step 2)
+# 6. Aggregate data (use actual job ID from step 3)
 python -m marketpipe aggregate-ohlcv job_20241201_123456
 
-# 5. Query aggregated data
+# 7. Query aggregated data
 python -m marketpipe query "SELECT * FROM bars_1d LIMIT 5"
 
-# 6. Check metrics
+# 8. Check for any stuck jobs and fix them
+python -m marketpipe jobs doctor --fix
+
+# 9. Check metrics
 python -m marketpipe metrics --list
 
-# 7. Start metrics server (in separate terminal)
+# 10. Start metrics server (in separate terminal)
 python -m marketpipe metrics --port 8000
 ```
 
-## Comprehensive Pipeline Script
+## Pipeline Scripts
 
-For a complete end-to-end demonstration, use the comprehensive pipeline script:
+### Full Pipeline Script (Current)
+
+For a complete end-to-end pipeline with COST and TSLA data:
+
+```bash
+# Test pipeline configuration (dry run)
+python scripts/run_full_pipeline.py --dry-run
+
+# Execute full pipeline with live Alpaca data
+python scripts/run_full_pipeline.py --execute
+```
+
+This script automatically:
+- Validates system health and prerequisites
+- Checks for stuck jobs and fixes them
+- Ingests 30 days of COST and TSLA data
+- Validates data quality
+- Aggregates to multiple timeframes
+- Provides detailed progress reporting
+
+**Important**: Requires `ALPACA_KEY` and `ALPACA_SECRET` in `.env` file.
+
+### Comprehensive Pipeline Script (Legacy)
+
+For broader demonstration with multiple providers:
 
 ```bash
 # Dry run (shows commands without executing)
