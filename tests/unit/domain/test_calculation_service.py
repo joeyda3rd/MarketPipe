@@ -8,10 +8,10 @@ from decimal import Decimal
 
 import pytest
 
-from src.marketpipe.domain.aggregates import DailySummary
-from src.marketpipe.domain.entities import EntityId, OHLCVBar
-from src.marketpipe.domain.services import OHLCVCalculationService
-from src.marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
+from marketpipe.domain.aggregates import DailySummary
+from marketpipe.domain.entities import EntityId, OHLCVBar
+from marketpipe.domain.services import OHLCVCalculationService
+from marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
 
 
 @pytest.fixture

@@ -223,6 +223,6 @@ output_path: test_output
             ],
         )
 
-        # Should fail with date parsing error
-        assert result.exit_code == 1
+        # Should fail with date parsing error (validation error = exit code 2)
+        assert result.exit_code == 2
         # The exact error message depends on datetime.fromisoformat behavior

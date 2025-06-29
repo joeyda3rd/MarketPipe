@@ -31,8 +31,11 @@ from marketpipe.ingestion.domain.value_objects import (
     BatchConfiguration,
     IngestionConfiguration,
 )
-from tests.fakes.events import FakeEventPublisher
-from tests.fakes.repositories import (
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from fakes.events import FakeEventPublisher
+from fakes.repositories import (
     FakeIngestionCheckpointRepository,
     FakeIngestionJobRepository,
     FakeIngestionMetricsRepository,

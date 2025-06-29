@@ -93,10 +93,26 @@ def validate_symbols(symbols_csv: str | None) -> List[str]:
 def validate_output_dir(output: Path | None) -> None:
     if output is None:
         return
-    if not output.exists():
-        cli_error(f"output directory not found: {output}", code=2)
-    if not output.is_dir():
-        cli_error(f"output path is not a directory: {output}", code=2)
+    
+    # If the output path exists, validate it's a directory
+    if output.exists():
+        if not output.is_dir():
+            cli_error(f"output path is not a directory: {output}", code=2)
+    else:
+        # If it doesn't exist, validate that parent directory exists and is writable
+        parent = output.parent
+        if not parent.exists():
+            cli_error(f"parent directory does not exist: {parent}", code=2)
+        if not parent.is_dir():
+            cli_error(f"parent path is not a directory: {parent}", code=2)
+        # Check if parent is writable (ingestion process needs to create the output dir)
+        try:
+            # Test write access by creating a temporary file
+            test_file = parent / ".marketpipe_write_test"
+            test_file.touch()
+            test_file.unlink()
+        except (PermissionError, OSError):
+            cli_error(f"parent directory is not writable: {parent}", code=2)
 
 
 def validate_workers(workers: int | None) -> None:

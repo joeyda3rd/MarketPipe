@@ -22,7 +22,7 @@ class TestBoundaryCheck:
             {
                 "symbol": "AAPL",
                 "date": "2024-01-01",
-                "timestamp": 1704067800000000000,
+                "ts_ns": 1704067800000000000,
                 "open": 100.0,
                 "high": 101.0,
                 "low": 99.0,
@@ -32,7 +32,7 @@ class TestBoundaryCheck:
             {
                 "symbol": "AAPL",
                 "date": "2024-01-02",
-                "timestamp": 1704154200000000000,
+                "ts_ns": 1704154200000000000,
                 "open": 100.5,
                 "high": 102.0,
                 "low": 100.0,
@@ -41,8 +41,8 @@ class TestBoundaryCheck:
             },
         ]
 
-        # Create parquet file
-        parquet_dir = tmp_path / "symbol=AAPL"
+        # Create parquet file in correct structure: frame=1m/symbol=AAPL/date=2024-01-01/
+        parquet_dir = tmp_path / "frame=1m" / "symbol=AAPL" / "date=2024-01-01"
         parquet_dir.mkdir(parents=True)
 
         table = pa.Table.from_pylist(test_data)
@@ -74,7 +74,7 @@ class TestBoundaryCheck:
             {
                 "symbol": "AAPL",
                 "date": "2020-07-27",
-                "timestamp": 1595836200000000000,
+                "ts_ns": 1595836200000000000,
                 "open": 100.0,
                 "high": 101.0,
                 "low": 99.0,
@@ -84,7 +84,7 @@ class TestBoundaryCheck:
             {
                 "symbol": "AAPL",
                 "date": "2020-07-28",
-                "timestamp": 1595922600000000000,
+                "ts_ns": 1595922600000000000,
                 "open": 100.5,
                 "high": 102.0,
                 "low": 100.0,
@@ -93,8 +93,8 @@ class TestBoundaryCheck:
             },
         ]
 
-        # Create parquet file
-        parquet_dir = tmp_path / "symbol=AAPL"
+        # Create parquet file in correct structure: frame=1m/symbol=AAPL/date=YYYY-MM-DD/
+        parquet_dir = tmp_path / "frame=1m" / "symbol=AAPL" / "date=2024-01-01"
         parquet_dir.mkdir(parents=True)
 
         table = pa.Table.from_pylist(test_data)
@@ -132,12 +132,12 @@ class TestBoundaryCheck:
 
     def test_boundary_check_data_incomplete_range(self, tmp_path):
         """Test boundary check fails when data doesn't cover full requested range."""
-        # Create test data that only covers part of requested range
+        # Create test data that only covers part of requested range (only 2024-01-01, missing 2024-01-02)
         test_data = [
             {
                 "symbol": "AAPL",
-                "date": "2024-01-02",
-                "timestamp": 1704154200000000000,
+                "date": "2024-01-01",
+                "ts_ns": 1704110400000000000,  # 2024-01-01
                 "open": 100.0,
                 "high": 101.0,
                 "low": 99.0,
@@ -146,8 +146,8 @@ class TestBoundaryCheck:
             },
         ]
 
-        # Create parquet file
-        parquet_dir = tmp_path / "symbol=AAPL"
+        # Create parquet file in correct structure: frame=1m/symbol=AAPL/date=YYYY-MM-DD/
+        parquet_dir = tmp_path / "frame=1m" / "symbol=AAPL" / "date=2024-01-01"
         parquet_dir.mkdir(parents=True)
 
         table = pa.Table.from_pylist(test_data)
@@ -170,9 +170,8 @@ class TestBoundaryCheck:
         mock_print.assert_called_once()
         error_msg = mock_print.call_args[0][0]
         assert "ERROR:" in error_msg
-        assert "2024-01-02" in error_msg
-        assert "2024-01-01" in error_msg
-        assert "2024-01-03" in error_msg
+        assert "2024-01-01" in error_msg  # Data covers 2024-01-01
+        assert "2024-01-03" in error_msg  # But requested until 2024-01-03
 
         # Verify sys.exit(1) was called
         mock_exit.assert_called_once_with(1)
@@ -242,7 +241,7 @@ class TestBoundaryCheck:
             {
                 "symbol": "AAPL",
                 "date": "2024-01-01",
-                "timestamp": 1704067800000000000,
+                "ts_ns": 1704067800000000000,
                 "open": 100.0,
                 "high": 101.0,
                 "low": 99.0,
@@ -251,8 +250,8 @@ class TestBoundaryCheck:
             },
         ]
 
-        # Create parquet file
-        parquet_dir = tmp_path / "symbol=AAPL"
+        # Create parquet file in correct structure: frame=1m/symbol=AAPL/date=YYYY-MM-DD/
+        parquet_dir = tmp_path / "frame=1m" / "symbol=AAPL" / "date=2024-01-01"
         parquet_dir.mkdir(parents=True)
 
         table = pa.Table.from_pylist(test_data)
@@ -288,7 +287,7 @@ class TestBoundaryCheck:
             {
                 "symbol": "AAPL",
                 "date": "2025-12-31",
-                "timestamp": 1767139200000000000,
+                "ts_ns": 1767182400000000000,
                 "open": 100.0,
                 "high": 101.0,
                 "low": 99.0,
@@ -297,8 +296,8 @@ class TestBoundaryCheck:
             },
         ]
 
-        # Create parquet file
-        parquet_dir = tmp_path / "symbol=AAPL"
+        # Create parquet file in correct structure matching the data date: frame=1m/symbol=AAPL/date=2025-12-31/
+        parquet_dir = tmp_path / "frame=1m" / "symbol=AAPL" / "date=2025-12-31"
         parquet_dir.mkdir(parents=True)
 
         table = pa.Table.from_pylist(test_data)

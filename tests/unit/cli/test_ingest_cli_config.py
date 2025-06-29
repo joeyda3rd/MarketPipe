@@ -241,8 +241,8 @@ end: 2025-01-07
         try:
             result = runner.invoke(app, ["ingest-ohlcv", "--config", temp_path])
 
-            assert result.exit_code == 1
-            assert "Invalid YAML in configuration file" in result.stdout
+            assert result.exit_code == 2
+            assert "invalid YAML in config file" in result.stderr
         finally:
             os.unlink(temp_path)
 

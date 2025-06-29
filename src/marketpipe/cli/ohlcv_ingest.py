@@ -379,6 +379,12 @@ def _check_boundaries(path: str, symbol: str, start: str, end: str, provider: st
 
         min_date, max_date, bar_count = result
 
+        # Convert dates to date objects for comparison if they're strings
+        if isinstance(min_date, str):
+            min_date = datetime.fromisoformat(min_date).date()
+        if isinstance(max_date, str):
+            max_date = datetime.fromisoformat(max_date).date()
+
         # Check if data covers the requested range (now comparing date objects)
         if min_date > start_date or max_date < expected_end_date:
             print(
@@ -644,9 +650,27 @@ def ingest_ohlcv(
     ),
 ):
     """Ingest OHLCV data from market data providers."""
+    # Skip all validation and show help immediately if help flag is set
     if help_flag:
-        typer.echo("MarketPipe OHLCV ingestion command. Use flags as needed.")
-        raise typer.Exit()
+        help_text = """
+Usage: ingest-ohlcv [OPTIONS]
+
+Ingest OHLCV data from market data providers.
+
+Options:
+  -c, --config PATH           Path to YAML configuration file
+  -s, --symbols TEXT          Comma-separated tickers, e.g. AAPL,MSFT
+  --start TEXT                Start date (YYYY-MM-DD)
+  --end TEXT                  End date (YYYY-MM-DD)
+  --batch-size INTEGER        Bars per request (overrides config)
+  --output PATH               Output directory (overrides config)
+  --workers INTEGER           Number of worker threads (overrides config)
+  --provider TEXT             Market data provider (overrides config)
+  --feed-type TEXT            Data feed type (overrides config)
+  -h, --help                  Show this message and exit
+"""
+        typer.echo(help_text.strip())
+        raise typer.Exit(0)
 
     # -------------------------------------------------------------------------
     # Pre-flight validation ----------------------------------------------------
@@ -671,10 +695,6 @@ def ingest_ohlcv(
     # Date and symbol validation
     validate_date_range(start, end)
     validate_symbols(symbols)
-
-    if help_flag:
-        typer.echo("MarketPipe OHLCV ingestion help (validated inputs).")
-        raise typer.Exit(0)
 
     # All good – run the actual implementation
     _ingest_impl(
@@ -740,7 +760,24 @@ def ingest_ohlcv_convenience(
     """Convenience wrapper around ingest for simple CLI usage."""
 
     if help_flag:
-        typer.echo("MarketPipe OHLCV ingestion help (convenience, validated inputs).")
+        help_text = """
+Usage: ingest-ohlcv [OPTIONS]
+
+Convenience wrapper around ingest for simple CLI usage.
+
+Options:
+  -c, --config PATH           Path to YAML configuration file
+  -s, --symbols TEXT          Comma-separated tickers, e.g. AAPL,MSFT
+  --start TEXT                Start date (YYYY-MM-DD)
+  --end TEXT                  End date (YYYY-MM-DD)
+  --batch-size INTEGER        Bars per request (overrides config)
+  --output PATH               Output directory (overrides config)
+  --workers INTEGER           Number of worker threads (overrides config)
+  --provider TEXT             Market data provider (overrides config)
+  --feed-type TEXT            Data feed type (overrides config)
+  -h, --help                  Show this message and exit
+"""
+        typer.echo(help_text.strip())
         raise typer.Exit(0)
 
     # -- validation -----------------------------------------------------------
