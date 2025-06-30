@@ -174,9 +174,9 @@ cython_debug/
 .abstra/
 
 # Visual Studio Code
-#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore
 #  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
-#  and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#  and can be added to the global gitignore or merged into this file. However, if you prefer,
 #  you could uncomment the following to ignore the enitre vscode folder
 # .vscode/
 
@@ -234,3 +234,20 @@ tests/integration/test_output/frame=1m/symbol=AAPL/date=2024-01-01/AAPL_2024-01-
 tests/integration/test_output/frame=1m/symbol=AAPL/date=2024-01-01/AAPL_2024-01-01.parquet.lock
 tests/integration/test_output/frame=1m/symbol=AAPL/date=2024-01-02/AAPL_2024-01-02.parquet
 tests/integration/test_output/frame=1m/symbol=AAPL/date=2024-01-02/AAPL_2024-01-02.parquet.lock
+workbook/00_overview.md
+workbook/01_actors.md
+workbook/02_scope.md
+workbook/03_features.md
+workbook/04_deliverables.md
+workbook/05_requirements.md
+workbook/06_data_profile.md
+workbook/07_external_dependencies.md
+workbook/08_environment.md
+workbook/09_constraints.md
+workbook/10_success_metrics.md
+workbook/11_testing_strategy.md
+workbook/12_architecture.md
+workbook/13_backlog.md
+workbook/14_risks.md
+workbook/15_open_questions.md
+workbook/16_glossary.md

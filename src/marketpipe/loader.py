@@ -67,10 +67,14 @@ def load_ohlcv(
     """
     # Input validation
     if as_polars and not POLARS_AVAILABLE:
-        raise ImportError("polars is required for as_polars=True. Install with: pip install polars")
+        raise ImportError(
+            "polars is required for as_polars=True. Install with: pip install polars"
+        )
 
     if timeframe not in {"1m", "5m", "15m", "1h", "1d"}:
-        raise ValueError(f"Invalid timeframe: {timeframe}. Must be one of: 1m, 5m, 15m, 1h, 1d")
+        raise ValueError(
+            f"Invalid timeframe: {timeframe}. Must be one of: 1m, 5m, 15m, 1h, 1d"
+        )
 
     # Normalize symbols to list
     symbols = [symbols] if isinstance(symbols, str) else list(symbols)
@@ -110,7 +114,9 @@ def load_ohlcv(
                 frames.append(symbol_df)
 
         if not frames:
-            logger.warning(f"No data found for symbols {symbols} in timeframe {timeframe}")
+            logger.warning(
+                f"No data found for symbols {symbols} in timeframe {timeframe}"
+            )
             # Return empty DataFrame with proper structure
             empty_df = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
             empty_df.index.name = "timestamp"
@@ -212,18 +218,19 @@ def _load_symbol_data(
 
 def _to_ns(ts_like: str | dt.datetime) -> int:
     """Convert timestamp-like input to nanoseconds since epoch."""
+    ts: pd.Timestamp
     if isinstance(ts_like, str):
         # Try to parse as ISO date first, then as RFC 3339
         try:
-            ts_like = pd.to_datetime(ts_like, utc=True)
-        except Exception:
-            raise ValueError(f"Cannot parse timestamp: {ts_like}")
+            ts = pd.to_datetime(ts_like, utc=True)
+        except Exception as e:
+            raise ValueError(f"Cannot parse timestamp: {ts_like}") from e
     elif isinstance(ts_like, dt.datetime):
         # Ensure timezone aware
         if ts_like.tzinfo is None:
             ts_like = ts_like.replace(tzinfo=dt.timezone.utc)
-        ts_like = pd.Timestamp(ts_like)
+        ts = pd.Timestamp(ts_like)
     else:
         raise ValueError(f"Invalid timestamp type: {type(ts_like)}")
 
-    return int(ts_like.value)  # nanoseconds since epoch
+    return int(ts.value)  # nanoseconds since epoch

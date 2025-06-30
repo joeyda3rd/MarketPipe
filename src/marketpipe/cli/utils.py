@@ -57,24 +57,38 @@ def metrics(
                 print(
                     f"📊 Starting legacy metrics server on http://localhost:{port}/metrics"
                 )
+                print("📋 Human-friendly dashboard will be available at http://localhost:{port+1}")
                 print("Press Ctrl+C to stop the server")
                 metrics_server_run(port=port, legacy=True)
             else:
                 print(
-                    f"📊 Starting async metrics server on http://localhost:{port}/metrics"
+                    f"📊 Starting metrics server on http://localhost:{port}/metrics"
                 )
-                print("Press Ctrl+C to stop the server")
+                print(f"📋 Human-friendly dashboard: http://localhost:{port+1}")
+                print("Press Ctrl+C to stop both servers")
 
-                # Run async server
+                # Run async server with dashboard
                 async def run_async_server():
                     try:
+                        # Start the Prometheus metrics server
                         await start_async_server(port=port, host="localhost")
+                        
+                        # Start the human-friendly dashboard on port+1
+                        from marketpipe.cli.metrics_dashboard import serve_metrics_dashboard
+                        dashboard_task = asyncio.create_task(
+                            serve_metrics_dashboard(
+                                metrics_port=port, dashboard_port=port+1, host="localhost"
+                            )
+                        )
+                        
                         try:
                             while True:
                                 await asyncio.sleep(1)
                         except KeyboardInterrupt:
-                            print("\n📊 Shutting down async metrics server...")
+                            print("\n📊 Shutting down metrics server...")
+                            print("📋 Shutting down dashboard...")
                         finally:
+                            dashboard_task.cancel()
                             await stop_async_server()
                     except RuntimeError as e:
                         print(f"❌ Failed to start metrics server: {e}")

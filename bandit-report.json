@@ -1,17 +1,17 @@
 {
   "errors": [],
-  "generated_at": "2025-06-30T01:16:49Z",
+  "generated_at": "2025-06-30T02:06:24Z",
   "metrics": {
     "_totals": {
-      "CONFIDENCE.HIGH": 19,
+      "CONFIDENCE.HIGH": 20,
       "CONFIDENCE.LOW": 6,
       "CONFIDENCE.MEDIUM": 10,
       "CONFIDENCE.UNDEFINED": 0,
       "SEVERITY.HIGH": 0,
-      "SEVERITY.LOW": 19,
+      "SEVERITY.LOW": 20,
       "SEVERITY.MEDIUM": 16,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 16184,
+      "loc": 16503,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -249,6 +249,19 @@
       "nosec": 0,
       "skipped_tests": 0
     },
+    "src/marketpipe/cli/metrics_dashboard.py": {
+      "CONFIDENCE.HIGH": 1,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 1,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 302,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
     "src/marketpipe/cli/metrics_info.py": {
       "CONFIDENCE.HIGH": 1,
       "CONFIDENCE.LOW": 0,
@@ -362,7 +375,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 256,
+      "loc": 266,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -1402,7 +1415,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 161,
+      "loc": 168,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -1886,6 +1899,27 @@
       "more_info": "https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html",
       "test_id": "B603",
       "test_name": "subprocess_without_shell_equals_true"
+    },
+    {
+      "code": "336                 await writer.wait_closed()\n337             except Exception:\n338                 pass\n339 \n",
+      "col_offset": 12,
+      "end_col_offset": 20,
+      "filename": "src/marketpipe/cli/metrics_dashboard.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Pass detected.",
+      "line_number": 337,
+      "line_range": [
+        337,
+        338
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/0.0.0/plugins/b110_try_except_pass.html",
+      "test_id": "B110",
+      "test_name": "try_except_pass"
     },
     {
       "code": "134                 await writer.wait_closed()\n135             except Exception:\n136                 pass\n137 \n",

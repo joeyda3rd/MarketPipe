@@ -14,23 +14,63 @@ pip install -e .
 # Main CLI entry point
 marketpipe --help
 
-# Ingest data using config
-marketpipe ingest --config config/example_config.yaml
+# OHLCV ingestion (current main command)
+marketpipe ingest-ohlcv --symbols AAPL,MSFT --start 2024-01-01 --end 2024-01-02 --provider fake --feed-type iex
 
-# Run specific modules
-python -m marketpipe.ingestion --config config/example_config.yaml
+# Using configuration files
+marketpipe ingest-ohlcv --config config/example_config.yaml
+
+# Metrics server with beautiful dashboard
+marketpipe metrics --port 8000
+# ^ Starts Prometheus server on :8000 AND human-friendly dashboard on :8001
+
+# Other key commands
+marketpipe health-check --verbose
+marketpipe query --symbol AAPL --start 2024-01-01
+marketpipe validate --list
 ```
 
 ### Testing
 ```bash
 # Run all tests
-python -m pytest tests/
+pytest
 
-# Run specific test
-python -m pytest tests/test_cli.py -v
+# Run with coverage
+pytest --cov=marketpipe --cov-report=html
 
-# Test CLI directly
+# Run specific test file
+pytest tests/test_cli.py -v
+
+# Run single test function
+pytest tests/unit/cli/test_ingest_cli.py::test_ingest_help_no_validation -v
+
+# Run integration tests only
+pytest tests/integration/ -m "not auth_required and not slow"
+
+# Test CLI commands
 python -m marketpipe.cli --help
+marketpipe health-check --verbose
+```
+
+### Code Quality
+```bash
+# Format code
+black src/ tests/
+
+# Lint code
+ruff check src/ tests/
+
+# Type checking
+mypy src/marketpipe/
+
+# Pre-commit hooks (auto-installed)
+pre-commit run --all-files
+
+# All dependency groups available
+pip install -e '.[dev]'          # Complete development environment
+pip install -e '.[test]'         # Testing only
+pip install -e '.[quality]'      # Code quality tools
+pip install -e '.[postgres]'     # PostgreSQL support
 ```
 
 ## Architecture Overview
@@ -65,21 +105,28 @@ MarketPipe is a time-series ETL framework with a modular, threaded architecture:
 
 #### Metrics Integration
 - Prometheus metrics exported on configurable port (default 8000)
+- Beautiful human-friendly dashboard on port+1 (e.g., 8001)
 - `REQUESTS`, `ERRORS`, `LATENCY`, `BACKLOG` counters/histograms
-- Optional metrics server thread via `metrics_server.py`
+- AsyncMetricsServer with event loop lag monitoring
+- CLI command: `marketpipe metrics --port 8000` starts both servers
 
 ### Module Structure
 - `ingestion/`: Core ETL pipeline with connectors, validation, state management
-- `connectors/`: API client implementations and auth strategies  
+- `cli/`: Typer-based command line interface with sub-commands
+- `domain/`: DDD domain models (entities, value objects, aggregates, events)
+- `infrastructure/`: Storage engines, repositories, event publishers
+- `validation/`: Data quality validation with event-driven processing
+- `aggregation/`: DuckDB-based time frame aggregation
+- `metrics_server.py`: Async Prometheus server with dashboard
 - `loader.py`: DuckDB/Parquet data loading interface
-- `cli.py`: Typer-based command line interface
-- `metrics.py`: Prometheus metrics definitions
 
 ### Data Storage
-- Partitioned Parquet files with Hive-style partitioning
+- Partitioned Parquet files with Hive-style partitioning: `data/frame=1m/symbol=AAPL/date=2024-01-01/`
 - Schema validation via JSON Schema in `schema/schema_v1.json`
-- DuckDB integration for aggregation queries
+- DuckDB integration for aggregation queries and analytics
+- Multiple database backends: SQLite (default) and PostgreSQL
 - Configurable compression (snappy/zstd)
+- ParquetStorageEngine for high-performance writing
 
 ## Code Standards
 
@@ -89,13 +136,16 @@ MarketPipe is a time-series ETL framework with a modular, threaded architecture:
 - Include type hints for all function parameters and returns
 - Follow vendor-specific naming: `{vendor}_client.py` (e.g., `alpaca_client.py`)
 
-### Connector Architecture
-All API connectors must:
-- Inherit from `BaseApiClient`
-- Implement required abstract methods: `build_request_params()`, `endpoint_path()`, `next_cursor()`, `parse_response()`, `should_retry()`
-- Support both sync and async operations with clear naming (`fetch_batch()` / `async_fetch_batch()`)
+### Provider Architecture
+All market data providers must:
+- Implement the adapter pattern via `MarketDataAdapter` interface
+- Support provider registration via entry points in `pyproject.toml`
 - Include comprehensive metrics collection via `REQUESTS`, `ERRORS`, `LATENCY` labels
 - Return data in canonical OHLCV schema format with `schema_version: 1`
+- Handle rate limiting and retries appropriately
+- Support both sync and async operations where applicable
+
+Available providers: `alpaca`, `iex`, `fake` (for testing)
 
 ### Testing Patterns
 - Use descriptive test names: `test_alpaca_retry_on_429()`
@@ -108,6 +158,8 @@ All API connectors must:
 - Load credentials from environment variables via `python-dotenv`
 - Support CLI overrides for symbols, dates, and workers
 - Validate date ranges and output paths early with user-friendly error messages
+- Configuration versioning system with backward compatibility
+- YAML-based configuration files with schema validation
 
 ## Domain-Driven Design Architecture
 
@@ -157,6 +209,50 @@ Use consistent domain terminology across all code and documentation:
 - Communicate between contexts via well-defined interfaces
 - Apply ubiquitous language consistently in code, tests, and documentation
 - Organize code by bounded context, not technical layers
+
+## CLI Architecture
+
+### Command Structure
+MarketPipe uses a hierarchical CLI with Typer:
+- Main app: `marketpipe` with global commands
+- OHLCV sub-app: `marketpipe ohlcv <command>` for pipeline operations
+- Backward compatibility: deprecated aliases with warnings
+
+### Key CLI Commands
+- `marketpipe ingest-ohlcv`: Primary ingestion command with provider/symbol/date options
+- `marketpipe metrics`: Dual-server setup (Prometheus + dashboard)
+- `marketpipe health-check`: System validation and diagnostics
+- `marketpipe query`: Data querying with SQL-like interface
+- `marketpipe validate`: Data quality validation and reporting
+
+### CLI Validation
+All CLI inputs are validated upfront with user-friendly error messages:
+- Date range validation (ISO format, logical ordering, not in future)
+- Symbol validation (regex pattern, count limits)
+- Output directory validation (permissions, parent existence)
+- Provider/feed-type compatibility checking
+
+## Metrics System
+
+### Dual-Server Architecture
+The metrics system provides two interfaces:
+1. **Prometheus Server** (port 8000): Raw metrics in exposition format for monitoring systems
+2. **Dashboard Server** (port 8001): Beautiful human-friendly web interface
+
+### Dashboard Features
+- Visual metric cards categorized by type (MarketPipe, Python Runtime, System)
+- Auto-refresh every 30 seconds
+- Color-coded metric types (counter, gauge, histogram)
+- Error handling when metrics server is unreachable
+- Professional CSS styling with responsive design
+
+### Usage
+```bash
+marketpipe metrics --port 8000
+# Starts both servers:
+# - http://localhost:8000/metrics (Prometheus data)
+# - http://localhost:8001 (Beautiful dashboard)
+```
 
 ## Chat Date Context Rule
 
