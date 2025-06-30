@@ -1,0 +1,12 @@
+# MarketPipe sample configuration
+# Copy from config/example_config.yaml and customize
+
+symbols:
+  - AAPL
+  - GOOGL
+
+start: "2024-01-01"
+end: "2024-01-02"
+
+provider: fake  # No API keys needed for fake provider
+output_path: "./data"
