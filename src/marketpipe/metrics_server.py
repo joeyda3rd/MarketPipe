@@ -35,7 +35,10 @@ class AsyncMetricsServer:
     """Asynchronous Prometheus metrics server using asyncio.start_server."""
 
     def __init__(
-        self, port: int = 8000, host: str = "0.0.0.0", max_connections: int = MAX_CONNECTIONS
+        self,
+        port: int = 8000,
+        host: str = "localhost",
+        max_connections: int = MAX_CONNECTIONS,
     ):
         self.port = port
         self.host = host
@@ -69,7 +72,8 @@ class AsyncMetricsServer:
         logger.info(
             f"Async metrics server started on http://{self.host}:{self.port}/metrics (max_connections={self.max_connections})"
         )
-        print(f"📊 Async metrics server started on http://{self.host}:{self.port}/metrics")
+        print(f"📊 Metrics server started on http://{self.host}:{self.port}/metrics")
+        print("   Serving Prometheus format metrics data for monitoring systems")
 
     async def stop(self) -> None:
         """Stop the async metrics server gracefully."""
@@ -102,7 +106,9 @@ class AsyncMetricsServer:
             while b"\r\n\r\n" not in request_data:
                 chunk = await reader.read(1024)
                 if not chunk:
-                    await self._send_response(writer, 400, "Bad Request", b"Incomplete request")
+                    await self._send_response(
+                        writer, 400, "Bad Request", b"Incomplete request"
+                    )
                     return
 
                 request_data += chunk
@@ -119,23 +125,31 @@ class AsyncMetricsServer:
                 parts = request_line.split()
 
                 if len(parts) < 2:
-                    await self._send_response(writer, 400, "Bad Request", b"Invalid request line")
+                    await self._send_response(
+                        writer, 400, "Bad Request", b"Invalid request line"
+                    )
                     return
 
                 method, path = parts[0], parts[1]
 
             except (UnicodeDecodeError, IndexError):
-                await self._send_response(writer, 400, "Bad Request", b"Invalid request format")
+                await self._send_response(
+                    writer, 400, "Bad Request", b"Invalid request format"
+                )
                 return
 
             # Check HTTP method
             if method not in ("GET", "HEAD"):
-                await self._send_response(writer, 405, "Method Not Allowed", b"Method not allowed")
+                await self._send_response(
+                    writer, 405, "Method Not Allowed", b"Method not allowed"
+                )
                 return
 
             # Check exact path match
             if path != "/metrics":
-                await self._send_response(writer, 404, "Not Found", b"Not found - try /metrics")
+                await self._send_response(
+                    writer, 404, "Not Found", b"Not found - try /metrics"
+                )
                 return
 
             # Generate metrics data
@@ -236,12 +250,31 @@ class AsyncMetricsServer:
 _async_server_instance: Optional[AsyncMetricsServer] = None
 
 
-async def start_async_server(port: int = 8000, host: str = "0.0.0.0") -> AsyncMetricsServer:
+async def start_async_server(
+    port: int = 8000, host: str = "localhost"
+) -> AsyncMetricsServer:
     """Start the global async metrics server."""
     global _async_server_instance
 
     if _async_server_instance is not None:
-        raise RuntimeError("Async metrics server is already running")
+        raise RuntimeError(
+            f"Async metrics server is already running on port {_async_server_instance.port}"
+        )
+
+    # Check if port is available
+    import socket
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind((host, port))
+        sock.close()
+    except OSError as e:
+        if e.errno == 98:  # Address already in use
+            raise RuntimeError(
+                f"Port {port} is already in use. Another metrics server may be running."
+            )
+        else:
+            raise RuntimeError(f"Cannot bind to {host}:{port} - {e}")
 
     # Use METRICS_PORT env var if available
     port = int(os.getenv("METRICS_PORT", port))
@@ -286,14 +319,22 @@ def run(port: int = 8000, legacy: bool = False) -> None:
         if "PROMETHEUS_MULTIPROC_DIR" in os.environ:
             # Use multiprocess mode
             httpd = make_server("", port, metrics_app)
-            logger.info(f"Prometheus metrics server (multiprocess mode) serving on port {port}")
-            print(f"Prometheus metrics server (multiprocess mode) serving on port {port}")
+            logger.info(
+                f"Prometheus metrics server (multiprocess mode) serving on port {port}"
+            )
+            print(
+                f"Prometheus metrics server (multiprocess mode) serving on port {port}"
+            )
             httpd.serve_forever()
         else:
             # Use regular single-process mode
             start_http_server(port=port)
-            logger.info(f"Prometheus metrics server (single process mode) serving on port {port}")
-            print(f"Prometheus metrics server (single process mode) serving on port {port}")
+            logger.info(
+                f"Prometheus metrics server (single process mode) serving on port {port}"
+            )
+            print(
+                f"Prometheus metrics server (single process mode) serving on port {port}"
+            )
             # Block forever to maintain legacy behavior
             try:
                 while True:
