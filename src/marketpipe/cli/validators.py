@@ -93,7 +93,7 @@ def validate_symbols(symbols_csv: str | None) -> List[str]:
 def validate_output_dir(output: Path | None) -> None:
     if output is None:
         return
-    
+
     # If the output path exists, validate it's a directory
     if output.exists():
         if not output.is_dir():
@@ -137,33 +137,33 @@ def validate_config_file(config_path: str) -> None:
     """Validate configuration file exists and has valid YAML."""
     if not config_path:
         return  # Config is optional
-    
+
     path = Path(config_path)
-    
+
     # Check file exists
     if not path.exists():
         cli_error(f"config file not found: {config_path}")
-    
+
     # Check file is readable
     if not path.is_file():
         cli_error(f"config path is not a file: {config_path}")
-    
+
     # Validate YAML format
     try:
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             content = f.read().strip()
-            
+
         if not content:
             cli_error("config file is empty")
-            
+
         yaml_data = yaml.safe_load(content)
-        
+
         if yaml_data is None:
             cli_error("config file is empty")
-            
+
         if not isinstance(yaml_data, dict):
             cli_error("config file must contain a dictionary at the root level")
-            
+
     except yaml.YAMLError as e:
         cli_error(f"invalid YAML in config file: {e}")
     except Exception as e:
@@ -186,4 +186,4 @@ def validate_feed_type(provider: str, feed_type: str | None) -> None:
             cli_error(f"invalid feed type for alpaca: {feed_type}")
     elif provider == "polygon":
         if feed_type and feed_type not in {"delayed", "real-time"}:
-            cli_error(f"invalid feed type for polygon: {feed_type}") 
+            cli_error(f"invalid feed type for polygon: {feed_type}")

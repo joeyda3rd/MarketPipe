@@ -756,13 +756,13 @@ def ingest_ohlcv_convenience(
         show_default=False,
     ),
 ):
-    """Convenience wrapper around ingest for simple CLI usage."""
+    """Ingest OHLCV data from market data providers."""
 
     if help_flag:
         help_text = """
 Usage: ingest-ohlcv [OPTIONS]
 
-Convenience wrapper around ingest for simple CLI usage.
+Ingest OHLCV data from market data providers.
 
 Options:
   -c, --config PATH           Path to YAML configuration file
