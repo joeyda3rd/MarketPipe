@@ -130,6 +130,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+test_venv/
 env/
 venv/
 ENV/
@@ -234,3 +235,4 @@ config/pipeline_config_*.yaml
 # other files
 tests/integration/test_output/
 workbook/
+dev/

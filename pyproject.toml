@@ -52,6 +52,7 @@ test = [
     "pytest-cov>=5.0.0",
     "pytest-mock>=3.11.0",
     "pytest-timeout>=2.0.0",  # For timeout support in CI
+    "pytest-xdist>=3.0.0",  # For parallel test execution (-n auto)
     "coverage>=7.5.0",
     "respx>=0.20.0",  # For HTTP mocking in tests
 ]

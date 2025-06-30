@@ -87,7 +87,8 @@ class TestSCDWriter:
     ):
         """Test initial load creates new records with proper SCD-2 fields."""
         # Setup: Create snapshot and diff tables
-        pd.DataFrame(sample_snapshot_data)
+        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        empty_db.register("snapshot_df", snapshot_df)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
 
         # Create diff_insert table (all rows are new in first load)
@@ -136,7 +137,8 @@ class TestSCDWriter:
     def test_second_load_handles_updates(self, empty_db, temp_data_dir, sample_snapshot_data):
         """Test second load properly handles updates with SCD-2 semantics."""
         # First load - setup initial data
-        pd.DataFrame(sample_snapshot_data)
+        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        empty_db.register("snapshot_df", snapshot_df)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
 
         empty_db.execute("CREATE TABLE diff_insert AS SELECT * FROM symbols_snapshot")
@@ -154,7 +156,8 @@ class TestSCDWriter:
 
         # Clear and recreate snapshot table
         empty_db.execute("DROP TABLE symbols_snapshot")
-        pd.DataFrame(updated_data)
+        snapshot_df = pd.DataFrame(updated_data)
+        empty_db.register("snapshot_df", snapshot_df)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
 
         # Re-attach symbols_master with existing data
@@ -266,7 +269,8 @@ class TestSCDWriter:
             },
         ]
 
-        pd.DataFrame(initial_data)
+        snapshot_df = pd.DataFrame(initial_data)
+        empty_db.register("snapshot_df", snapshot_df)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
         empty_db.execute("CREATE TABLE diff_insert AS SELECT * FROM symbols_snapshot")
         empty_db.execute("CREATE TABLE diff_update AS SELECT * FROM symbols_snapshot WHERE 1=0")
@@ -309,7 +313,8 @@ class TestSCDWriter:
 
         # Update snapshot
         empty_db.execute("DROP TABLE symbols_snapshot")
-        pd.DataFrame(new_data)
+        snapshot_df = pd.DataFrame(new_data)
+        empty_db.register("snapshot_df", snapshot_df)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
 
         # Re-attach and setup diff tables
@@ -358,7 +363,8 @@ class TestSCDWriter:
     def test_dry_run_mode(self, empty_db, temp_data_dir, sample_snapshot_data):
         """Test dry run mode doesn't write files but returns statistics."""
         # Setup
-        pd.DataFrame(sample_snapshot_data)
+        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        empty_db.register("snapshot_df", snapshot_df)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
         empty_db.execute("CREATE TABLE diff_insert AS SELECT * FROM symbols_snapshot")
         empty_db.execute("CREATE TABLE diff_update AS SELECT * FROM symbols_snapshot WHERE 1=0")
@@ -466,7 +472,8 @@ class TestSCDWriter:
     def test_idempotent_operation(self, empty_db, temp_data_dir, sample_snapshot_data):
         """Test that running updater twice with no changes is idempotent."""
         # First run
-        pd.DataFrame(sample_snapshot_data)
+        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        empty_db.register("snapshot_df", snapshot_df)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
         empty_db.execute("CREATE TABLE diff_insert AS SELECT * FROM symbols_snapshot")
         empty_db.execute("CREATE TABLE diff_update AS SELECT * FROM symbols_snapshot WHERE 1=0")
@@ -564,7 +571,8 @@ class TestSCDWriter:
     def test_rollback_on_parquet_write_failure(self, empty_db, temp_data_dir, sample_snapshot_data):
         """Test that database changes are not committed if Parquet write fails."""
         # Setup test data similar to second_load test
-        pd.DataFrame(sample_snapshot_data)
+        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        empty_db.register("snapshot_df", snapshot_df)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
 
         # Create diff tables with some changes
