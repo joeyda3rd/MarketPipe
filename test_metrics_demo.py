@@ -10,7 +10,7 @@ from pathlib import Path
 # Add src to path so we can import marketpipe
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from marketpipe.cli.metrics_info import serve_metrics_info
+from marketpipe.cli.metrics_dashboard import serve_metrics_dashboard
 from marketpipe.metrics_server import start_async_server, stop_async_server
 
 
@@ -30,16 +30,18 @@ async def demo_metrics_server():
         print("   💡 Tip: Another server may be running. Try a different port.")
         return False
 
-    # Start info server on port 8001
-    print("\n2. Starting info server on http://localhost:8001...")
-    info_task = asyncio.create_task(serve_metrics_info(port=8001, host="localhost"))
+    # Start dashboard server on port 8001
+    print("\n2. Starting dashboard server on http://localhost:8001...")
+    dashboard_task = asyncio.create_task(
+        serve_metrics_dashboard(metrics_port=8000, dashboard_port=8001, host="localhost")
+    )
     await asyncio.sleep(1)  # Give it time to start
 
     print("\n✅ Both servers are now running!")
     print("\n📋 What to do next:")
-    print("   • Visit http://localhost:8001 for user-friendly information")
+    print("   • Visit http://localhost:8001 for BEAUTIFUL metrics dashboard 🎨")
     print("   • Visit http://localhost:8000/metrics for raw Prometheus data")
-    print("   • Use curl http://localhost:8000/metrics to see metrics in terminal")
+    print("   • Dashboard auto-refreshes every 30 seconds!")
     print("   • Press Ctrl+C to stop both servers")
 
     try:
@@ -50,7 +52,7 @@ async def demo_metrics_server():
         print("\n\n🛑 Shutting down servers...")
     finally:
         # Clean shutdown
-        info_task.cancel()
+        dashboard_task.cancel()
         await stop_async_server()
         print("✅ All servers stopped successfully")
 
