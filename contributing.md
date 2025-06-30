@@ -69,11 +69,7 @@ $ ruff .  # auto‑fixable issues: ruff --fix .
 $ black .
 ```
 
-Pre‑commit config is provided; install with:
-
-```bash
-pre-commit install
-```
+Code quality tools are available for manual use. Run formatting and linting as needed before committing.
 
 ---
 

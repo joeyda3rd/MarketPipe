@@ -108,9 +108,8 @@ pytest --cov=marketpipe --cov-report=html
 # Dead code detection
 vulture src/ --min-confidence 70
 
-# Pre-commit hooks
-pre-commit install
-pre-commit run --all-files
+# Code quality tools (run manually)
+# Linting and formatting are available but no longer run automatically
 ```
 
 ### Test Fixtures and Data Management
