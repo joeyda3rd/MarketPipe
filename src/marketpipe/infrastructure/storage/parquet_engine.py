@@ -186,14 +186,13 @@ class ParquetStorageEngine:
 
         This method provides compatibility with the coordinator service interface.
         """
+        from datetime import datetime, timezone
+        from marketpipe.ingestion.domain.value_objects import IngestionPartition
+
         if not bars:
             # Return a dummy partition for empty data
-            from datetime import datetime, timezone
-
-            from marketpipe.ingestion.domain.value_objects import IngestionPartition
-
             return IngestionPartition(
-                symbol=bars[0].symbol if bars else None,
+                symbol=None,  # Fixed: Don't access bars[0] when bars is empty
                 file_path=self._root / "empty.parquet",
                 record_count=0,
                 file_size_bytes=0,
@@ -202,7 +201,6 @@ class ParquetStorageEngine:
 
         # Group bars by trading day
         from collections import defaultdict
-        from datetime import datetime, timezone
         import pandas as pd
 
         bars_by_day = defaultdict(list)
@@ -212,7 +210,6 @@ class ParquetStorageEngine:
 
         # Store bars for each trading day separately
         partitions = []
-        total_records = 0
         
         for trading_day, day_bars in bars_by_day.items():
             # Convert bars to DataFrame
@@ -250,8 +247,6 @@ class ParquetStorageEngine:
             )
 
             # Create partition info for this day
-            from marketpipe.ingestion.domain.value_objects import IngestionPartition
-
             file_size = file_path.stat().st_size if file_path.exists() else 0
             partition = IngestionPartition(
                 symbol=first_bar.symbol,
@@ -261,26 +256,32 @@ class ParquetStorageEngine:
                 created_at=datetime.now(timezone.utc),
             )
             partitions.append(partition)
-            total_records += len(day_bars)
 
-        # Return the first partition (for backward compatibility)
-        # In a multi-day scenario, this represents the first day's partition
+        # Return consistent partition metadata
         if partitions:
-            # Update the record count to reflect total across all days
-            first_partition = partitions[0]
-            return IngestionPartition(
-                symbol=first_partition.symbol,
-                file_path=first_partition.file_path,
-                record_count=total_records,  # Total across all days
-                file_size_bytes=sum(p.file_size_bytes for p in partitions),
-                created_at=first_partition.created_at,
-            )
+            if len(partitions) == 1:
+                # Single day: return the actual partition
+                return partitions[0]
+            else:
+                # Multiple days: return summary partition with consistent metadata
+                first_partition = partitions[0]
+                total_records = sum(p.record_count for p in partitions)
+                total_size = sum(p.file_size_bytes for p in partitions)
+                
+                # Create a summary file path that represents the multi-day operation
+                summary_path = self._root / f"summary_{first_partition.symbol.value}_{len(partitions)}_days.parquet"
+                
+                return IngestionPartition(
+                    symbol=first_partition.symbol,
+                    file_path=summary_path,  # Summary path representing the entire operation
+                    record_count=total_records,
+                    file_size_bytes=total_size,
+                    created_at=first_partition.created_at,
+                )
         else:
-            # Fallback for empty data
-            from marketpipe.ingestion.domain.value_objects import IngestionPartition
-
+            # Fallback for empty partitions (should not happen if bars is not empty)
             return IngestionPartition(
-                symbol=bars[0].symbol,
+                symbol=bars[0].symbol if bars else None,  # Fixed: Safe access to bars
                 file_path=self._root / "empty.parquet",
                 record_count=0,
                 file_size_bytes=0,
