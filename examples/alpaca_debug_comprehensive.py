@@ -28,7 +28,6 @@ env_locations = [
     Path(".env"),
     Path(cwd / ".env"),
     Path.home() / "MarketPipe" / ".env",
-    Path("/home/joey/MarketPipe/.env"),
 ]
 
 env_file_found = None

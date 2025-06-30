@@ -1,0 +1,3 @@
+#!/bin/bash
+# Quick test alias for personal use
+python .workspace/test-runner/smart_test.py "$@"

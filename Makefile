@@ -1,64 +1,138 @@
-# MarketPipe Development Makefile
+# MarketPipe Development Commands
 
-.PHONY: help update-roadmap check-roadmap install-hooks coverage test lint format clean
+.PHONY: test test-all test-unit test-integration test-timing test-coverage test-watch test-ci fmt lint type-check arch-check clean help install dev-setup demo
 
-help: ## Show this help message
+# Default target
+help:
 	@echo "MarketPipe Development Commands:"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@echo "Testing:"
+	@echo "  make test           - Run tests (with common optimizations)"
+	@echo "  make test-all       - Run complete test suite"
+	@echo "  make test-unit      - Run unit tests only"
+	@echo "  make test-integration - Run integration tests only"
+	@echo "  make test-timing    - Show test timings"
+	@echo "  make test-coverage  - Run tests with coverage report"
+	@echo "  make test-watch     - Auto-run tests on file changes"
+	@echo "  make test-ci        - Simulate CI environment locally"
+	@echo ""
+	@echo "Code Quality:"
+	@echo "  make fmt           - Format code with black"
+	@echo "  make lint          - Run linting"
+	@echo "  make type-check    - Run type checking with mypy"
+	@echo "  make arch-check    - Check architecture boundaries"
+	@echo "  make check         - Run all code quality checks"
+	@echo ""
+	@echo "Development:"
+	@echo "  make dev-setup     - Complete development setup"
+	@echo "  make demo          - Run quick demo"
+	@echo "  make install       - Install in development mode"
+	@echo "  make clean         - Clean up cache files"
 
-# Cleanup
-clean: ## Clean up temporary files and development artifacts
-	@bash scripts/cleanup-root.sh
+# Primary test command - fast, smart defaults
+test:
+	@pytest -x --ff --tb=short
 
-# Roadmap Management
-update-roadmap: ## Update TODO.md based on current codebase state
-	@echo "🤖 Analyzing codebase and updating roadmap..."
-	python scripts/update_roadmap.py --verbose
+# Complete test suite
+test-all:
+	@pytest --tb=short
 
-check-roadmap: ## Check roadmap status without updating
-	@echo "🔍 Checking roadmap status..."
-	python scripts/update_roadmap.py --dry-run
+# Unit tests only
+test-unit:
+	@pytest tests/ -m "unit" --tb=short
 
-# Development Setup
-install-hooks: ## Install Git hooks for automatic roadmap checking
-	@echo "🔗 Installing Git hooks..."
-	@chmod +x scripts/pre-commit-roadmap-check.sh
-	@ln -sf ../../scripts/pre-commit-roadmap-check.sh .git/hooks/pre-commit
-	@echo "✅ Pre-commit hook installed"
+# Integration tests only  
+test-integration:
+	@pytest tests/ -m "integration" --tb=short
 
-# Testing & Quality
-test: ## Run all tests
-	python -m pytest tests/ -v
+# Show test timing information
+test-timing:
+	@pytest --durations=10 --tb=no -q
 
-coverage: ## Run tests with coverage report
-	python -m pytest --cov=src/marketpipe --cov-report=html --cov-report=term tests/
-	@echo "📊 Coverage report generated in htmlcov/"
+# Run tests with coverage report
+test-coverage:
+	@if python3 -c "import pytest_cov" 2>/dev/null; then \
+		echo "📊 Running tests with coverage..."; \
+		pytest --cov=src/marketpipe --cov-report=html --cov-report=term-missing; \
+		echo "📈 Coverage report: htmlcov/index.html"; \
+	else \
+		echo "⚠️  pytest-cov not found - install with: pip install pytest-cov"; \
+		echo "   Or install test dependencies: pip install -e .[test]"; \
+	fi
 
-lint: ## Run linting and type checking
-	python -m black src/ tests/ --check
-	python -m ruff check src/ tests/
-	python -m mypy src/
+# Auto-run tests on file changes (using scripts/watch)
+test-watch:
+	@scripts/watch
 
-format: ## Format code with black and ruff
-	python -m black src/ tests/
-	python -m ruff check src/ tests/ --fix
+# Simulate CI environment locally
+test-ci:
+	@echo "🤖 Simulating CI environment..."
+	@pytest --tb=short --strict-markers --cov=src/marketpipe --cov-fail-under=80
 
-# CLI Commands
-ingest: ## Run ingestion with example config (requires config file)
-	python -m marketpipe ingest --config config/example_config.yaml
+# Format code
+fmt:
+	@if command -v black >/dev/null 2>&1; then \
+		echo "🎨 Formatting with Black..."; \
+		black src/ tests/ examples/ --line-length 100; \
+	else \
+		echo "⚠️  Black not found - install with: pip install black"; \
+	fi
 
-validate: ## Run validation on existing data
-	python -m marketpipe validate --input ./data
+# Lint code
+lint:
+	@if command -v ruff >/dev/null 2>&1; then \
+		echo "🔍 Linting with Ruff..."; \
+		ruff check src/ tests/ examples/; \
+	else \
+		echo "⚠️  Ruff not found - install with: pip install ruff"; \
+	fi
 
-metrics: ## Start metrics server
-	python -m marketpipe metrics --port 8000
+# Type checking with mypy
+type-check:
+	@if command -v mypy >/dev/null 2>&1; then \
+		echo "🔍 Running type checks..."; \
+		mypy src/marketpipe --ignore-missing-imports; \
+	elif python3 -c "import mypy" 2>/dev/null; then \
+		echo "🔍 Running type checks..."; \
+		python3 -m mypy src/marketpipe --ignore-missing-imports; \
+	else \
+		echo "⚠️  mypy not found - install with: pip install mypy"; \
+	fi
 
-# Development Workflow
-dev-setup: install-hooks ## Complete development setup
-	@echo "🚀 Development environment ready!"
-	@echo "Run 'make help' to see available commands"
+# Check architecture boundaries
+arch-check:
+	@if command -v lint-imports >/dev/null 2>&1; then \
+		echo "🏗️  Checking architecture boundaries..."; \
+		lint-imports --config setup.cfg; \
+	else \
+		echo "⚠️  import-linter not found - install with: pip install import-linter"; \
+	fi
 
-# Continuous Integration simulation
-ci-check: lint test coverage check-roadmap ## Run all CI checks locally
-	@echo "✅ All CI checks passed!" 
+# Run all code quality checks
+check:
+	@echo "🔧 Running code quality checks..."
+	@$(MAKE) fmt
+	@$(MAKE) lint  
+	@$(MAKE) type-check
+	@$(MAKE) arch-check
+	@echo "✅ Code quality checks complete"
+
+# Complete development setup (using scripts/setup)
+dev-setup:
+	@scripts/setup
+
+# Run demo (using scripts/demo)
+demo:
+	@scripts/demo
+
+# Clean cache files
+clean:
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -name "*.pyc" -delete 2>/dev/null || true
+	@rm -rf .coverage htmlcov/ 2>/dev/null || true
+	@rm -rf build/ dist/ *.egg-info/ 2>/dev/null || true
+
+# Install in development mode
+install:
+	@pip install -e . 

@@ -1,0 +1,88 @@
+#!/bin/bash
+#
+# Pre-commit hook for MarketPipe
+# Automatically runs relevant tests based on changed files
+#
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}🔍 MarketPipe Pre-commit Hook${NC}"
+echo "================================"
+
+# Check if we're in the right directory
+if [ ! -f "pyproject.toml" ] || [ ! -d "src/marketpipe" ]; then
+    echo -e "${RED}❌ Error: Not in MarketPipe repository root${NC}"
+    exit 1
+fi
+
+# Check if smart test runner exists
+if [ ! -f "scripts/smart_test_runner.py" ]; then
+    echo -e "${RED}❌ Error: Smart test runner not found${NC}"
+    exit 1
+fi
+
+echo -e "${YELLOW}📝 Analyzing staged changes...${NC}"
+
+# Get staged files only
+STAGED_FILES=$(git diff --name-only --staged)
+
+if [ -z "$STAGED_FILES" ]; then
+    echo -e "${GREEN}✅ No staged changes to test${NC}"
+    exit 0
+fi
+
+echo "Staged files:"
+echo "$STAGED_FILES" | sed 's/^/  • /'
+
+# Run smart test analysis
+echo -e "\n${YELLOW}🧪 Determining relevant tests...${NC}"
+
+# Use the smart test runner to get the command
+TEST_CMD=$(python3 scripts/smart_test_runner.py --base-ref HEAD --fast --format command)
+
+if [ -z "$TEST_CMD" ]; then
+    echo -e "${RED}❌ Error: Could not determine test command${NC}"
+    exit 1
+fi
+
+echo -e "${BLUE}Command: $TEST_CMD${NC}"
+
+# Ask user if they want to run tests (optional for fast commits)
+if [ "${SKIP_TESTS}" != "1" ]; then
+    echo -e "\n${YELLOW}Run tests before committing? (Y/n/s=skip for this commit)${NC}"
+    read -r response
+    
+    case $response in
+        [nN]|[nN][oO])
+            echo -e "${YELLOW}⚠️  Skipping tests - make sure to run them later!${NC}"
+            exit 0
+            ;;
+        [sS]|[sS][kK][iI][pP])
+            echo -e "${YELLOW}⚠️  Skipping tests for this commit only${NC}"
+            exit 0
+            ;;
+        *)
+            # Default to yes
+            ;;
+    esac
+fi
+
+# Run the tests
+echo -e "\n${BLUE}🧪 Running relevant tests...${NC}"
+if eval $TEST_CMD; then
+    echo -e "\n${GREEN}✅ All tests passed! Proceeding with commit.${NC}"
+    exit 0
+else
+    echo -e "\n${RED}❌ Tests failed! Commit aborted.${NC}"
+    echo -e "${YELLOW}💡 To commit anyway: SKIP_TESTS=1 git commit${NC}"
+    echo -e "${YELLOW}💡 To run all tests: make test-all${NC}"
+    echo -e "${YELLOW}💡 To see test mapping: python3 scripts/smart_test_runner.py --show-mapping${NC}"
+    exit 1
+fi 
