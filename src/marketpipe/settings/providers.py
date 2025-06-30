@@ -10,6 +10,7 @@ type validation and documentation for required credentials.
 
 from __future__ import annotations
 
+import os
 from typing import Optional
 
 from pydantic import Field
