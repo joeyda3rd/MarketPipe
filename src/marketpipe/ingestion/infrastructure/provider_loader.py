@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from marketpipe.domain.market_data import IMarketDataProvider
 
@@ -13,7 +13,7 @@ from .provider_registry import get, list_providers
 logger = logging.getLogger(__name__)
 
 
-def build_provider(config: Dict[str, Any]) -> IMarketDataProvider:
+def build_provider(config: dict[str, Any]) -> IMarketDataProvider:
     """
     Build a market data provider from configuration.
 
@@ -68,7 +68,7 @@ def get_available_providers() -> list[str]:
     return list_providers()
 
 
-def validate_provider_config(config: Dict[str, Any]) -> bool:
+def validate_provider_config(config: dict[str, Any]) -> bool:
     """
     Validate provider configuration.
 

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List
 
 import pytest
 
@@ -70,7 +69,7 @@ class TestIngestionJobCreation:
     def test_validates_symbols_not_empty(self):
         """Test that job creation fails with empty symbols list."""
         job_id = IngestionJobId.generate()
-        symbols: List[Symbol] = []  # Empty list
+        symbols: list[Symbol] = []  # Empty list
         start_time = datetime(2023, 1, 2, 9, 30, tzinfo=timezone.utc)
         end_time = datetime(2023, 1, 2, 16, 0, tzinfo=timezone.utc)
         time_range = TimeRange(start=Timestamp(start_time), end=Timestamp(end_time))
@@ -93,11 +92,11 @@ class TestIngestionJobCreation:
 
     def test_validates_time_range_order(self):
         """Test that time range creation fails when start time is after end time."""
-        job_id = IngestionJobId.generate()
-        symbols = [Symbol("AAPL")]
+        IngestionJobId.generate()
+        [Symbol("AAPL")]
         start_time = datetime(2023, 1, 2, 16, 0, tzinfo=timezone.utc)
         end_time = datetime(2023, 1, 2, 9, 30, tzinfo=timezone.utc)  # Before start
-        configuration = create_test_ingestion_configuration()
+        create_test_ingestion_configuration()
 
         with pytest.raises(ValueError, match="Start time .* must be before end time"):
             TimeRange(start=Timestamp(start_time), end=Timestamp(end_time))

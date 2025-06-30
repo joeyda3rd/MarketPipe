@@ -35,7 +35,7 @@ class TestAlembicMigrations:
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute(
                 """
-                SELECT name FROM sqlite_master 
+                SELECT name FROM sqlite_master
                 WHERE type='table' AND name NOT LIKE 'sqlite_%'
                 ORDER BY name
             """
@@ -198,8 +198,8 @@ class TestPostgresMigrations:
                 result = conn.execute(
                     text(
                         """
-                    SELECT table_name FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
+                    SELECT table_name FROM information_schema.tables
+                    WHERE table_schema = 'public'
                     ORDER BY table_name
                 """
                     )
@@ -263,7 +263,7 @@ class TestLegacyCompatibility:
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute(
                 """
-                SELECT name FROM sqlite_master 
+                SELECT name FROM sqlite_master
                 WHERE type='table' AND name='symbol_bars_aggregates'
             """
             )

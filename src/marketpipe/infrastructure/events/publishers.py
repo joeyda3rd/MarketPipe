@@ -8,7 +8,6 @@ that handle the technical aspects of event distribution and delivery.
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, List
 
 from marketpipe.domain.events import DomainEvent, IEventPublisher
 
@@ -23,8 +22,8 @@ class InMemoryEventPublisher(IEventPublisher):
     """
 
     def __init__(self):
-        self._events: List[DomainEvent] = []
-        self._handlers: Dict[str, List] = {}
+        self._events: list[DomainEvent] = []
+        self._handlers: dict[str, list] = {}
 
     async def publish(self, event: DomainEvent) -> None:
         """Publish a single domain event."""
@@ -43,7 +42,7 @@ class InMemoryEventPublisher(IEventPublisher):
                     # Log error but don't let handler failures break the publisher
                     print(f"Event handler error for {event_type}: {e}")
 
-    async def publish_many(self, events: List[DomainEvent]) -> None:
+    async def publish_many(self, events: list[DomainEvent]) -> None:
         """Publish multiple domain events."""
         for event in events:
             await self.publish(event)
@@ -54,7 +53,7 @@ class InMemoryEventPublisher(IEventPublisher):
             self._handlers[event_type] = []
         self._handlers[event_type].append(handler)
 
-    def get_published_events(self) -> List[DomainEvent]:
+    def get_published_events(self) -> list[DomainEvent]:
         """Get all published events (useful for testing)."""
         return self._events.copy()
 

@@ -1,6 +1,5 @@
 """Tests for security masking utilities."""
 
-
 from marketpipe.security.mask import mask, safe_for_log
 
 

@@ -17,12 +17,12 @@ already takes care of repository wiring, validation, storage, etc.
 import asyncio
 import datetime as dt
 from pathlib import Path
-from typing import List, Optional
 
 import typer
 
 from marketpipe.bootstrap import bootstrap
 from marketpipe.cli.ohlcv_ingest import _ingest_impl  # pylint: disable=protected-access
+from marketpipe.config import ConfigVersionError, load_config
 from marketpipe.domain.events import BackfillJobCompleted, BackfillJobFailed
 from marketpipe.infrastructure.events import InMemoryEventPublisher
 from marketpipe.ingestion.services.gap_detector import GapDetectorService
@@ -41,7 +41,7 @@ app = typer.Typer(name="backfill", help="Detect and ingest missing daily gaps")
 @app.command("backfill")
 def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
     # NOTE: Typer automatically converts YYYY-MM-DD string to datetime.date
-    config: Optional[Path] = typer.Option(
+    config: Path | None = typer.Option(
         None,
         "--config",
         "-c",
@@ -50,23 +50,23 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
         file_okay=True,
         dir_okay=False,
     ),
-    lookback: Optional[int] = typer.Option(
+    lookback: int | None = typer.Option(
         None,
         "--lookback",
         help="Look-back window in days (default 365). Ignored if --from is given.",
     ),
-    since: Optional[str] = typer.Option(
+    since: str | None = typer.Option(
         None,
         "--from",
         help="Start date (YYYY-MM-DD) overriding --lookback.",
     ),
-    symbol: List[str] = typer.Option(
+    symbol: list[str] = typer.Option(
         None,
         "--symbol",
         "-s",
         help="Repeatable symbol filter. When omitted the configured universe is used.",
     ),
-    provider: Optional[str] = typer.Option(
+    provider: str | None = typer.Option(
         None,
         "--provider",
         help="Provider override passed through to ingestion command.",
@@ -84,7 +84,7 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
             start_date = dt.datetime.fromisoformat(since).date()
         except ValueError:
             typer.echo("❌ --from date must be in YYYY-MM-DD format", err=True)
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
     else:
         start_date = today - dt.timedelta(days=lookback or 365)
     end_date = today - dt.timedelta(days=1)  # yesterday – do not process current day
@@ -101,7 +101,6 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
                 "❌ Either specify --symbol OR provide --config with universe list.", err=True
             )
             raise typer.Exit(1)
-        from marketpipe.config import ConfigVersionError, load_config
 
         try:
             cfg = load_config(config)

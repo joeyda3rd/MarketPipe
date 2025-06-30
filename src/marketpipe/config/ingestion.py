@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -26,7 +26,7 @@ class IngestionJobConfig(BaseModel):
     config_version: str = Field(
         default=CURRENT_CONFIG_VERSION, description="Configuration schema version"
     )
-    symbols: List[str] = Field(
+    symbols: list[str] = Field(
         ...,
         description="List of stock symbols to ingest (e.g., ['AAPL', 'MSFT'])",
         min_length=1,
@@ -49,7 +49,7 @@ class IngestionJobConfig(BaseModel):
 
     @field_validator("symbols")
     @classmethod
-    def validate_symbols(cls, v: List[str]) -> List[str]:
+    def validate_symbols(cls, v: list[str]) -> list[str]:
         """Validate and normalize symbols."""
         if not v:
             raise ValueError("symbols list cannot be empty")
@@ -135,7 +135,7 @@ class IngestionJobConfig(BaseModel):
 
         return load_config(path)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation.
 
         Returns:

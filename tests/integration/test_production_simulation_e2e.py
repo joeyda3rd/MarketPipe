@@ -16,7 +16,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, List
 
 import pandas as pd
 import psutil
@@ -74,11 +73,7 @@ class ProductionWorkloadSimulator:
                 pass
 
     def generate_production_dataset(
-        self,
-        symbol: str,
-        days: int = 5,
-        bars_per_day: int = 390,
-        volatility: float = 0.02
+        self, symbol: str, days: int = 5, bars_per_day: int = 390, volatility: float = 0.02
     ) -> pd.DataFrame:
         """Generate production-scale realistic market data."""
 
@@ -88,7 +83,9 @@ class ProductionWorkloadSimulator:
 
         for day in range(days):
             trading_day = base_date + timedelta(days=day)
-            day_start = datetime.combine(trading_day, datetime.min.time()).replace(tzinfo=timezone.utc) + timedelta(hours=13, minutes=30)
+            day_start = datetime.combine(trading_day, datetime.min.time()).replace(
+                tzinfo=timezone.utc
+            ) + timedelta(hours=13, minutes=30)
 
             day_open_price = base_price
 
@@ -111,7 +108,7 @@ class ProductionWorkloadSimulator:
                 spread = current_price * random.uniform(0.001, 0.005)
 
                 open_price = current_price
-                close_price = current_price + random.gauss(0, spread/2)
+                close_price = current_price + random.gauss(0, spread / 2)
                 high_price = max(open_price, close_price) + random.uniform(0, spread)
                 low_price = min(open_price, close_price) - random.uniform(0, spread)
 
@@ -122,29 +119,27 @@ class ProductionWorkloadSimulator:
 
                 volume = int(base_volume * random.uniform(0.5, 2.0))
 
-                bars.append({
-                    "ts_ns": timestamp_ns,
-                    "symbol": symbol,
-                    "open": round(open_price, 2),
-                    "high": round(high_price, 2),
-                    "low": round(low_price, 2),
-                    "close": round(close_price, 2),
-                    "volume": volume,
-                    "trade_count": max(1, volume // 20),
-                    "vwap": round((open_price + high_price + low_price + close_price) / 4, 2),
-                })
+                bars.append(
+                    {
+                        "ts_ns": timestamp_ns,
+                        "symbol": symbol,
+                        "open": round(open_price, 2),
+                        "high": round(high_price, 2),
+                        "low": round(low_price, 2),
+                        "close": round(close_price, 2),
+                        "volume": volume,
+                        "trade_count": max(1, volume // 20),
+                        "vwap": round((open_price + high_price + low_price + close_price) / 4, 2),
+                    }
+                )
 
                 day_open_price = close_price  # Carry forward for next bar
 
         return pd.DataFrame(bars)
 
     async def simulate_production_ingestion_job(
-        self,
-        job_id: str,
-        symbols: List[str],
-        days: int = 1,
-        simulated_delay: float = 0.0
-    ) -> Dict:
+        self, job_id: str, symbols: list[str], days: int = 1, simulated_delay: float = 0.0
+    ) -> dict:
         """Simulate a production ingestion job with realistic processing."""
 
         start_time = time.monotonic()
@@ -154,9 +149,7 @@ class ProductionWorkloadSimulator:
             for symbol in symbols:
                 # Generate production data
                 df = self.generate_production_dataset(
-                    symbol=symbol,
-                    days=days,
-                    bars_per_day=390  # Full trading day
+                    symbol=symbol, days=days, bars_per_day=390  # Full trading day
                 )
 
                 # Simulate processing delay (network, API calls, etc.)
@@ -171,7 +164,7 @@ class ProductionWorkloadSimulator:
                     symbol=symbol,
                     trading_day=trading_day,
                     job_id=job_id,
-                    overwrite=True
+                    overwrite=True,
                 )
 
                 bars_processed += len(df)
@@ -199,7 +192,7 @@ class ProductionWorkloadSimulator:
                 "success": False,
             }
 
-    def get_performance_summary(self) -> Dict:
+    def get_performance_summary(self) -> dict:
         """Get comprehensive performance summary."""
 
         memory_usage = self.metrics["memory_usage_mb"]
@@ -223,14 +216,22 @@ class ProductionWorkloadSimulator:
             },
             "timing_stats": {
                 "total_time": sum(processing_times),
-                "avg_time": sum(processing_times) / len(processing_times) if processing_times else 0,
+                "avg_time": (
+                    sum(processing_times) / len(processing_times) if processing_times else 0
+                ),
                 "min_time": min(processing_times) if processing_times else 0,
                 "max_time": max(processing_times) if processing_times else 0,
             },
             "throughput": {
-                "bars_per_second": self.metrics["bars_processed"] / sum(processing_times) if processing_times else 0,
-                "jobs_per_minute": len(processing_times) * 60 / sum(processing_times) if processing_times else 0,
-            }
+                "bars_per_second": (
+                    self.metrics["bars_processed"] / sum(processing_times)
+                    if processing_times
+                    else 0
+                ),
+                "jobs_per_minute": (
+                    len(processing_times) * 60 / sum(processing_times) if processing_times else 0
+                ),
+            },
         }
 
 
@@ -241,10 +242,9 @@ class ResourceConstraintSimulator:
     def simulate_memory_pressure():
         """Simulate memory pressure by allocating large amounts of memory."""
         # Allocate large DataFrame to create memory pressure
-        large_data = pd.DataFrame({
-            'data': range(1000000),  # 1M rows
-            'values': [random.random() for _ in range(1000000)]
-        })
+        large_data = pd.DataFrame(
+            {"data": range(1000000), "values": [random.random() for _ in range(1000000)]}  # 1M rows
+        )
 
         # Hold reference briefly then release
         time.sleep(0.1)
@@ -255,7 +255,7 @@ class ResourceConstraintSimulator:
     def simulate_cpu_load():
         """Simulate CPU load with intensive computation."""
         # CPU-intensive calculation
-        result = sum(i ** 2 for i in range(100000))
+        result = sum(i**2 for i in range(100000))
         return result
 
     @staticmethod
@@ -267,14 +267,14 @@ class ResourceConstraintSimulator:
             temp_file = tmp_path / f"pressure_{i}.tmp"
 
             # Write 10MB of data
-            with open(temp_file, 'wb') as f:
+            with open(temp_file, "wb") as f:
                 f.write(os.urandom(10 * 1024 * 1024))
 
             temp_files.append(temp_file)
 
         # Read files back
         for temp_file in temp_files:
-            with open(temp_file, 'rb') as f:
+            with open(temp_file, "rb") as f:
                 _ = f.read()
 
         # Cleanup
@@ -302,7 +302,9 @@ class TestProductionSimulationEndToEnd:
             async def run_high_volume_workload():
                 # Process symbols in batches
                 batch_size = 10
-                symbol_batches = [symbols[i:i + batch_size] for i in range(0, len(symbols), batch_size)]
+                symbol_batches = [
+                    symbols[i : i + batch_size] for i in range(0, len(symbols), batch_size)
+                ]
 
                 results = []
                 for batch_idx, symbol_batch in enumerate(symbol_batches):
@@ -312,12 +314,14 @@ class TestProductionSimulationEndToEnd:
                         job_id=job_id,
                         symbols=symbol_batch,
                         days=5,  # 5 trading days
-                        simulated_delay=0.02  # 20ms delay per symbol
+                        simulated_delay=0.02,  # 20ms delay per symbol
                     )
 
                     results.append(result)
 
-                    print(f"  Batch {batch_idx + 1}/{len(symbol_batches)}: {result.get('bars_processed', 0)} bars")
+                    print(
+                        f"  Batch {batch_idx + 1}/{len(symbol_batches)}: {result.get('bars_processed', 0)} bars"
+                    )
 
                 return results
 
@@ -353,8 +357,8 @@ class TestProductionSimulationEndToEnd:
         print(f"  Error rate: {perf_summary['error_rate']:.1%}")
 
         # Resource constraints
-        assert perf_summary['memory_stats']['peak_mb'] < 2000, "Memory usage too high"
-        assert perf_summary['error_rate'] < 0.05, "Error rate too high"
+        assert perf_summary["memory_stats"]["peak_mb"] < 2000, "Memory usage too high"
+        assert perf_summary["error_rate"] < 0.05, "Error rate too high"
 
         print("✅ High-volume production workload test completed")
 
@@ -376,9 +380,7 @@ class TestProductionSimulationEndToEnd:
 
                 # Process job under memory pressure
                 result = await simulator.simulate_production_ingestion_job(
-                    job_id="memory-pressure-test",
-                    symbols=["MEMPRS"],
-                    days=2
+                    job_id="memory-pressure-test", symbols=["MEMPRS"], days=2
                 )
 
                 return result
@@ -400,9 +402,7 @@ class TestProductionSimulationEndToEnd:
 
                     # Process job under CPU load
                     result = await simulator.simulate_production_ingestion_job(
-                        job_id="cpu-load-test",
-                        symbols=["CPULOAD"],
-                        days=1
+                        job_id="cpu-load-test", symbols=["CPULOAD"], days=1
                     )
 
                     # Wait for CPU load tasks to complete
@@ -421,16 +421,13 @@ class TestProductionSimulationEndToEnd:
             async def test_disk_pressure():
                 # Create disk I/O pressure
                 disk_thread = threading.Thread(
-                    target=ResourceConstraintSimulator.simulate_disk_io_pressure,
-                    args=(tmp_path,)
+                    target=ResourceConstraintSimulator.simulate_disk_io_pressure, args=(tmp_path,)
                 )
                 disk_thread.start()
 
                 # Process job under disk pressure
                 result = await simulator.simulate_production_ingestion_job(
-                    job_id="disk-pressure-test",
-                    symbols=["DISKIO"],
-                    days=1
+                    job_id="disk-pressure-test", symbols=["DISKIO"], days=1
                 )
 
                 disk_thread.join()
@@ -447,7 +444,9 @@ class TestProductionSimulationEndToEnd:
         constraint_results = [memory_result, cpu_result, disk_result]
         successful_constraint_tests = sum(1 for r in constraint_results if r["success"])
 
-        assert successful_constraint_tests == 3, f"Only {successful_constraint_tests}/3 constraint tests passed"
+        assert (
+            successful_constraint_tests == 3
+        ), f"Only {successful_constraint_tests}/3 constraint tests passed"
 
         print("✅ Resource constraint scenarios test completed")
 
@@ -480,7 +479,7 @@ class TestProductionSimulationEndToEnd:
                         job_id=f"capacity-{scenario['name']}",
                         symbols=symbols,
                         days=scenario["days"],
-                        simulated_delay=scenario["delay"]
+                        simulated_delay=scenario["delay"],
                     )
                     return result
 
@@ -498,11 +497,13 @@ class TestProductionSimulationEndToEnd:
                         "success": True,
                     }
 
-                    print(f"    ✓ {scenario['name']}: {result['bars_processed']:,} bars, {throughput:.0f} bars/sec")
+                    print(
+                        f"    ✓ {scenario['name']}: {result['bars_processed']:,} bars, {throughput:.0f} bars/sec"
+                    )
                 else:
                     capacity_results[scenario["name"]] = {
                         "success": False,
-                        "error": result.get("error", "Unknown error")
+                        "error": result.get("error", "Unknown error"),
                     }
                     print(f"    ✗ {scenario['name']}: Failed - {result.get('error', 'Unknown')}")
 
@@ -529,11 +530,17 @@ class TestProductionSimulationEndToEnd:
                 print(f"  Scaling efficiency: {scaling_efficiency:.2f}x")
 
                 # Scaling should be reasonable (not drastically worse under load)
-                assert scaling_efficiency > 0.3, f"Poor scaling efficiency: {scaling_efficiency:.2f}x"
+                assert (
+                    scaling_efficiency > 0.3
+                ), f"Poor scaling efficiency: {scaling_efficiency:.2f}x"
 
         # Overall capacity test should succeed for at least light and medium loads
-        assert capacity_results.get("light_load", {}).get("success", False), "Light load test failed"
-        assert capacity_results.get("medium_load", {}).get("success", False), "Medium load test failed"
+        assert capacity_results.get("light_load", {}).get(
+            "success", False
+        ), "Light load test failed"
+        assert capacity_results.get("medium_load", {}).get(
+            "success", False
+        ), "Medium load test failed"
 
         perf_summary = simulator.get_performance_summary()
         print(f"  Total bars processed: {perf_summary['bars_processed']:,}")
@@ -553,10 +560,7 @@ class TestProductionSimulationEndToEnd:
 
         async def run_integrity_test():
             result = await simulator.simulate_production_ingestion_job(
-                job_id="integrity-scale-test",
-                symbols=symbols,
-                days=3,
-                simulated_delay=0.01
+                job_id="integrity-scale-test", symbols=symbols, days=3, simulated_delay=0.01
             )
             return result
 
@@ -594,7 +598,9 @@ class TestProductionSimulationEndToEnd:
                         ohlc_violations += 1
 
                 if ohlc_violations > 0:
-                    integrity_issues.append(f"OHLC violations in {file_path.name}: {ohlc_violations}")
+                    integrity_issues.append(
+                        f"OHLC violations in {file_path.name}: {ohlc_violations}"
+                    )
 
                 # Check for negative values
                 if (df[["open", "high", "low", "close", "volume"]] < 0).any().any():
@@ -640,7 +646,7 @@ def test_production_simulation_comprehensive_demo(tmp_path):
                 job_id="baseline-production",
                 symbols=baseline_symbols,
                 days=2,
-                simulated_delay=0.015
+                simulated_delay=0.015,
             )
 
         baseline_result = asyncio.run(baseline_test())
@@ -652,10 +658,7 @@ def test_production_simulation_comprehensive_demo(tmp_path):
 
         async def peak_test():
             return await simulator.simulate_production_ingestion_job(
-                job_id="peak-production",
-                symbols=peak_symbols,
-                days=1,
-                simulated_delay=0.01
+                job_id="peak-production", symbols=peak_symbols, days=1, simulated_delay=0.01
             )
 
         peak_result = asyncio.run(peak_test())
@@ -672,10 +675,7 @@ def test_production_simulation_comprehensive_demo(tmp_path):
 
             # Process under stress
             result = await simulator.simulate_production_ingestion_job(
-                job_id="stress-production",
-                symbols=stress_symbols,
-                days=3,
-                simulated_delay=0.02
+                job_id="stress-production", symbols=stress_symbols, days=3, simulated_delay=0.02
             )
 
             return result
@@ -699,10 +699,10 @@ def test_production_simulation_comprehensive_demo(tmp_path):
 
     # Production readiness validation
     production_checks = {
-        "throughput": perf_summary['throughput']['bars_per_second'] > 500,
-        "memory_efficiency": perf_summary['memory_stats']['peak_mb'] < 3000,
-        "reliability": perf_summary['error_rate'] < 0.02,
-        "performance_consistency": len(perf_summary['timing_stats']) > 0,
+        "throughput": perf_summary["throughput"]["bars_per_second"] > 500,
+        "memory_efficiency": perf_summary["memory_stats"]["peak_mb"] < 3000,
+        "reliability": perf_summary["error_rate"] < 0.02,
+        "performance_consistency": len(perf_summary["timing_stats"]) > 0,
     }
 
     passed_checks = sum(production_checks.values())
@@ -715,7 +715,11 @@ def test_production_simulation_comprehensive_demo(tmp_path):
         print(f"  {status} {check_name.replace('_', ' ').title()}")
 
     # Overall production readiness assertion
-    assert passed_checks >= total_checks * 0.75, f"Production readiness insufficient: {passed_checks}/{total_checks}"
+    assert (
+        passed_checks >= total_checks * 0.75
+    ), f"Production readiness insufficient: {passed_checks}/{total_checks}"
 
-    print("\n🎯 Production simulation demonstrates MarketPipe's readiness for enterprise deployment!")
+    print(
+        "\n🎯 Production simulation demonstrates MarketPipe's readiness for enterprise deployment!"
+    )
     print("=" * 70)

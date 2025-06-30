@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Dict, List, Optional
 
 from .entities import OHLCVBar
 from .events import (
@@ -33,14 +32,14 @@ class SymbolBarsAggregate:
     def __init__(self, symbol: Symbol, trading_date: date):
         self._symbol = symbol
         self._trading_date = trading_date
-        self._bars: Dict[Timestamp, OHLCVBar] = {}
-        self._events: List[DomainEvent] = []
+        self._bars: dict[Timestamp, OHLCVBar] = {}
+        self._events: list[DomainEvent] = []
         self._version = 1
         self._is_complete = False
         self._collection_started = False
         # Running totals for efficient calculations
-        self._running_high: Optional[Price] = None
-        self._running_low: Optional[Price] = None
+        self._running_high: Price | None = None
+        self._running_low: Price | None = None
         self._running_volume: Volume = Volume(0)
 
     @property
@@ -145,7 +144,7 @@ class SymbolBarsAggregate:
         )
         self._events.append(event)
 
-    def get_bar(self, timestamp: Timestamp) -> Optional[OHLCVBar]:
+    def get_bar(self, timestamp: Timestamp) -> OHLCVBar | None:
         """Retrieve a specific bar by timestamp.
 
         Args:
@@ -156,7 +155,7 @@ class SymbolBarsAggregate:
         """
         return self._bars.get(timestamp)
 
-    def get_all_bars(self) -> List[OHLCVBar]:
+    def get_all_bars(self) -> list[OHLCVBar]:
         """Get all bars sorted by timestamp.
 
         Returns:
@@ -164,7 +163,7 @@ class SymbolBarsAggregate:
         """
         return sorted(self._bars.values(), key=lambda b: b.timestamp.value)
 
-    def get_bars_in_range(self, time_range: TimeRange) -> List[OHLCVBar]:
+    def get_bars_in_range(self, time_range: TimeRange) -> list[OHLCVBar]:
         """Get bars within a specific time range.
 
         Args:
@@ -334,7 +333,7 @@ class SymbolBarsAggregate:
             last_bar_time=last_bar.timestamp,
         )
 
-    def get_uncommitted_events(self) -> List[DomainEvent]:
+    def get_uncommitted_events(self) -> list[DomainEvent]:
         """Get domain events that haven't been published.
 
         Returns:
@@ -372,9 +371,9 @@ class UniverseAggregate:
 
     def __init__(self, universe_id: str):
         self._universe_id = universe_id
-        self._symbols: Dict[str, Symbol] = {}
+        self._symbols: dict[str, Symbol] = {}
         self._active_symbols: set[Symbol] = set()
-        self._events: List[DomainEvent] = []
+        self._events: list[DomainEvent] = []
         self._version = 1
 
     @property
@@ -445,7 +444,7 @@ class UniverseAggregate:
         self._active_symbols.discard(symbol)
         self._version += 1
 
-    def get_active_symbols(self) -> List[Symbol]:
+    def get_active_symbols(self) -> list[Symbol]:
         """Get list of active symbols.
 
         Returns:
@@ -453,7 +452,7 @@ class UniverseAggregate:
         """
         return sorted(self._active_symbols, key=lambda s: s.value)
 
-    def get_all_symbols(self) -> List[Symbol]:
+    def get_all_symbols(self) -> list[Symbol]:
         """Get list of all symbols in universe.
 
         Returns:
@@ -487,7 +486,7 @@ class DailySummary:
     low_price: Price
     close_price: Price
     volume: Volume
-    vwap: Optional[Price]
+    vwap: Price | None
     bar_count: int
     first_bar_time: Timestamp
     last_bar_time: Timestamp

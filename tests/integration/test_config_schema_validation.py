@@ -19,7 +19,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 import yaml
@@ -28,19 +28,21 @@ import yaml
 @dataclass
 class ConfigTestCase:
     """Test case for configuration validation."""
+
     name: str
     description: str
-    config_data: Dict[str, Any]
-    env_vars: Dict[str, str] = field(default_factory=dict)
-    cli_overrides: Dict[str, Any] = field(default_factory=dict)
+    config_data: dict[str, Any]
+    env_vars: dict[str, str] = field(default_factory=dict)
+    cli_overrides: dict[str, Any] = field(default_factory=dict)
     expected_success: bool = True
-    expected_error_patterns: List[str] = field(default_factory=list)
+    expected_error_patterns: list[str] = field(default_factory=list)
     test_precedence: bool = False
 
 
 @dataclass
 class ConfigValidationResult:
     """Result of configuration validation."""
+
     test_case: ConfigTestCase
     config_parsed: bool = False
     command_succeeded: bool = False
@@ -48,22 +50,22 @@ class ConfigValidationResult:
     output: str = ""
     error_output: str = ""
     exit_code: int = -1
-    validation_errors: List[str] = field(default_factory=list)
+    validation_errors: list[str] = field(default_factory=list)
 
 
 class ConfigurationValidator:
     """Validates configuration files and precedence rules."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
 
     def validate_config_case(self, test_case: ConfigTestCase) -> ConfigValidationResult:
         """
         Validate a configuration test case.
-        
+
         Args:
             test_case: Configuration test case to validate
-            
+
         Returns:
             ConfigValidationResult with validation details
         """
@@ -75,7 +77,7 @@ class ConfigurationValidator:
 
                 # Create configuration file
                 config_file = temp_path / "test_config.yaml"
-                with open(config_file, 'w') as f:
+                with open(config_file, "w") as f:
                     yaml.dump(test_case.config_data, f)
 
                 # Setup environment
@@ -84,8 +86,12 @@ class ConfigurationValidator:
 
                 # Build command
                 cmd_args = [
-                    "python", "-m", "marketpipe", "ingest-ohlcv",
-                    "--config", str(config_file)
+                    "python",
+                    "-m",
+                    "marketpipe",
+                    "ingest-ohlcv",
+                    "--config",
+                    str(config_file),
                 ]
 
                 # Add CLI overrides
@@ -101,12 +107,7 @@ class ConfigurationValidator:
 
                 # Execute command
                 process_result = subprocess.run(
-                    cmd_args,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    env=env,
-                    cwd=self.base_dir
+                    cmd_args, capture_output=True, text=True, timeout=30, env=env, cwd=self.base_dir
                 )
 
                 result.exit_code = process_result.returncode
@@ -125,7 +126,9 @@ class ConfigurationValidator:
                     combined_output = (process_result.stdout + process_result.stderr).lower()
                     for pattern in test_case.expected_error_patterns:
                         if pattern.lower() not in combined_output:
-                            result.validation_errors.append(f"Expected error pattern not found: {pattern}")
+                            result.validation_errors.append(
+                                f"Expected error pattern not found: {pattern}"
+                            )
 
                 # Test precedence if required
                 if test_case.test_precedence:
@@ -144,23 +147,24 @@ class ConfigurationValidator:
             result.validation_errors.append(f"Validation error: {e}")
             return result
 
-    def _validate_precedence(self, test_case: ConfigTestCase, config_file: Path, env: Dict[str, str]) -> bool:
+    def _validate_precedence(
+        self, test_case: ConfigTestCase, config_file: Path, env: dict[str, str]
+    ) -> bool:
         """Validate that configuration precedence works correctly."""
         try:
             # Test without CLI overrides (should use config + env)
             base_cmd = [
-                "python", "-m", "marketpipe", "ingest-ohlcv",
-                "--config", str(config_file),
-                "--help"
+                "python",
+                "-m",
+                "marketpipe",
+                "ingest-ohlcv",
+                "--config",
+                str(config_file),
+                "--help",
             ]
 
             base_result = subprocess.run(
-                base_cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                env=env,
-                cwd=self.base_dir
+                base_cmd, capture_output=True, text=True, timeout=30, env=env, cwd=self.base_dir
             )
 
             # Test with CLI overrides (should override config + env)
@@ -173,17 +177,11 @@ class ConfigurationValidator:
             override_cmd.append("--help")
 
             override_result = subprocess.run(
-                override_cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                env=env,
-                cwd=self.base_dir
+                override_cmd, capture_output=True, text=True, timeout=30, env=env, cwd=self.base_dir
             )
 
             # Both should succeed, but precedence should apply
-            return (base_result.returncode == 0 and
-                   override_result.returncode == 0)
+            return base_result.returncode == 0 and override_result.returncode == 0
 
         except Exception:
             return False
@@ -192,327 +190,303 @@ class ConfigurationValidator:
 class ConfigTestGenerator:
     """Generates comprehensive configuration test cases."""
 
-    def generate_valid_config_tests(self) -> List[ConfigTestCase]:
+    def generate_valid_config_tests(self) -> list[ConfigTestCase]:
         """Generate test cases for valid configurations."""
         test_cases = []
 
         # Basic valid configuration
-        test_cases.append(ConfigTestCase(
-            name="basic_valid",
-            description="Basic valid configuration",
-            config_data={
-                "providers": {
-                    "fake": {
-                        "feed_type": "iex",
-                        "batch_size": 1000
-                    }
+        test_cases.append(
+            ConfigTestCase(
+                name="basic_valid",
+                description="Basic valid configuration",
+                config_data={
+                    "providers": {"fake": {"feed_type": "iex", "batch_size": 1000}},
+                    "ingestion": {
+                        "symbols": ["AAPL", "MSFT"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-31",
+                        "output_dir": "data/parquet",
+                        "workers": 4,
+                    },
                 },
-                "ingestion": {
-                    "symbols": ["AAPL", "MSFT"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-31",
-                    "output_dir": "data/parquet",
-                    "workers": 4
-                }
-            }
-        ))
+            )
+        )
 
         # Minimal configuration
-        test_cases.append(ConfigTestCase(
-            name="minimal_valid",
-            description="Minimal valid configuration",
-            config_data={
-                "ingestion": {
-                    "symbols": ["AAPL"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01"
-                }
-            }
-        ))
+        test_cases.append(
+            ConfigTestCase(
+                name="minimal_valid",
+                description="Minimal valid configuration",
+                config_data={
+                    "ingestion": {
+                        "symbols": ["AAPL"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-01",
+                    }
+                },
+            )
+        )
 
         # Multiple providers configuration
-        test_cases.append(ConfigTestCase(
-            name="multi_provider",
-            description="Multiple providers configuration",
-            config_data={
-                "providers": {
-                    "alpaca": {
-                        "feed_type": "iex",
-                        "batch_size": 1000
+        test_cases.append(
+            ConfigTestCase(
+                name="multi_provider",
+                description="Multiple providers configuration",
+                config_data={
+                    "providers": {
+                        "alpaca": {"feed_type": "iex", "batch_size": 1000},
+                        "iex": {"feed_type": "iex", "batch_size": 100},
+                        "fake": {"feed_type": "sip", "batch_size": 500},
                     },
-                    "iex": {
-                        "feed_type": "iex",
-                        "batch_size": 100
+                    "ingestion": {
+                        "symbols": ["AAPL"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-01",
+                        "workers": 2,
                     },
-                    "fake": {
-                        "feed_type": "sip",
-                        "batch_size": 500
-                    }
                 },
-                "ingestion": {
-                    "symbols": ["AAPL"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01",
-                    "workers": 2
-                }
-            }
-        ))
+            )
+        )
 
         # Complex configuration with all options
-        test_cases.append(ConfigTestCase(
-            name="complex_valid",
-            description="Complex configuration with all options",
-            config_data={
-                "providers": {
-                    "fake": {
-                        "feed_type": "iex",
-                        "batch_size": 1000,
-                        "rate_limit": 60,
-                        "timeout": 30
-                    }
+        test_cases.append(
+            ConfigTestCase(
+                name="complex_valid",
+                description="Complex configuration with all options",
+                config_data={
+                    "providers": {
+                        "fake": {
+                            "feed_type": "iex",
+                            "batch_size": 1000,
+                            "rate_limit": 60,
+                            "timeout": 30,
+                        }
+                    },
+                    "ingestion": {
+                        "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-12-31",
+                        "output_dir": "data/custom",
+                        "workers": 8,
+                        "batch_size": 2000,
+                    },
+                    "validation": {"enabled": True, "strict": False},
+                    "aggregation": {"timeframes": ["1min", "5min", "1h", "1d"], "enabled": True},
                 },
-                "ingestion": {
-                    "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-12-31",
-                    "output_dir": "data/custom",
-                    "workers": 8,
-                    "batch_size": 2000
-                },
-                "validation": {
-                    "enabled": True,
-                    "strict": False
-                },
-                "aggregation": {
-                    "timeframes": ["1min", "5min", "1h", "1d"],
-                    "enabled": True
-                }
-            }
-        ))
+            )
+        )
 
         return test_cases
 
-    def generate_invalid_config_tests(self) -> List[ConfigTestCase]:
+    def generate_invalid_config_tests(self) -> list[ConfigTestCase]:
         """Generate test cases for invalid configurations."""
         test_cases = []
 
         # Missing required fields
-        test_cases.append(ConfigTestCase(
-            name="missing_symbols",
-            description="Configuration missing symbols",
-            config_data={
-                "ingestion": {
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01"
-                }
-            },
-            expected_success=False,
-            expected_error_patterns=["symbol", "required"]
-        ))
+        test_cases.append(
+            ConfigTestCase(
+                name="missing_symbols",
+                description="Configuration missing symbols",
+                config_data={"ingestion": {"start_date": "2023-01-01", "end_date": "2023-01-01"}},
+                expected_success=False,
+                expected_error_patterns=["symbol", "required"],
+            )
+        )
 
         # Invalid date format
-        test_cases.append(ConfigTestCase(
-            name="invalid_date",
-            description="Configuration with invalid date format",
-            config_data={
-                "ingestion": {
-                    "symbols": ["AAPL"],
-                    "start_date": "invalid-date",
-                    "end_date": "2023-01-01"
-                }
-            },
-            expected_success=False,
-            expected_error_patterns=["date", "invalid", "format"]
-        ))
-
-        # Invalid date range
-        test_cases.append(ConfigTestCase(
-            name="invalid_date_range",
-            description="Configuration with end date before start date",
-            config_data={
-                "ingestion": {
-                    "symbols": ["AAPL"],
-                    "start_date": "2023-01-31",
-                    "end_date": "2023-01-01"
-                }
-            },
-            expected_success=False,
-            expected_error_patterns=["date", "range", "start", "end"]
-        ))
-
-        # Invalid provider
-        test_cases.append(ConfigTestCase(
-            name="invalid_provider",
-            description="Configuration with unknown provider",
-            config_data={
-                "providers": {
-                    "unknown_provider": {
-                        "feed_type": "iex"
+        test_cases.append(
+            ConfigTestCase(
+                name="invalid_date",
+                description="Configuration with invalid date format",
+                config_data={
+                    "ingestion": {
+                        "symbols": ["AAPL"],
+                        "start_date": "invalid-date",
+                        "end_date": "2023-01-01",
                     }
                 },
-                "ingestion": {
-                    "symbols": ["AAPL"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01"
-                }
-            },
-            expected_success=False,
-            expected_error_patterns=["provider", "unknown", "invalid"]
-        ))
+                expected_success=False,
+                expected_error_patterns=["date", "invalid", "format"],
+            )
+        )
+
+        # Invalid date range
+        test_cases.append(
+            ConfigTestCase(
+                name="invalid_date_range",
+                description="Configuration with end date before start date",
+                config_data={
+                    "ingestion": {
+                        "symbols": ["AAPL"],
+                        "start_date": "2023-01-31",
+                        "end_date": "2023-01-01",
+                    }
+                },
+                expected_success=False,
+                expected_error_patterns=["date", "range", "start", "end"],
+            )
+        )
+
+        # Invalid provider
+        test_cases.append(
+            ConfigTestCase(
+                name="invalid_provider",
+                description="Configuration with unknown provider",
+                config_data={
+                    "providers": {"unknown_provider": {"feed_type": "iex"}},
+                    "ingestion": {
+                        "symbols": ["AAPL"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-01",
+                    },
+                },
+                expected_success=False,
+                expected_error_patterns=["provider", "unknown", "invalid"],
+            )
+        )
 
         # Invalid numeric values
-        test_cases.append(ConfigTestCase(
-            name="invalid_numeric",
-            description="Configuration with invalid numeric values",
-            config_data={
-                "ingestion": {
-                    "symbols": ["AAPL"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01",
-                    "workers": -1,
-                    "batch_size": 0
-                }
-            },
-            expected_success=False,
-            expected_error_patterns=["worker", "batch", "invalid", "positive"]
-        ))
+        test_cases.append(
+            ConfigTestCase(
+                name="invalid_numeric",
+                description="Configuration with invalid numeric values",
+                config_data={
+                    "ingestion": {
+                        "symbols": ["AAPL"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-01",
+                        "workers": -1,
+                        "batch_size": 0,
+                    }
+                },
+                expected_success=False,
+                expected_error_patterns=["worker", "batch", "invalid", "positive"],
+            )
+        )
 
         return test_cases
 
-    def generate_precedence_tests(self) -> List[ConfigTestCase]:
+    def generate_precedence_tests(self) -> list[ConfigTestCase]:
         """Generate test cases for configuration precedence validation."""
         test_cases = []
 
         # CLI overrides config
-        test_cases.append(ConfigTestCase(
-            name="cli_overrides_config",
-            description="CLI options override config file",
-            config_data={
-                "ingestion": {
-                    "symbols": ["MSFT"],  # Should be overridden
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01",
-                    "workers": 2  # Should be overridden
-                }
-            },
-            cli_overrides={
-                "--symbols": "AAPL",  # Override
-                "--workers": "4"      # Override
-            },
-            test_precedence=True
-        ))
-
-        # Environment variables with config
-        test_cases.append(ConfigTestCase(
-            name="env_with_config",
-            description="Environment variables work with config",
-            config_data={
-                "providers": {
-                    "alpaca": {
-                        "feed_type": "iex"
+        test_cases.append(
+            ConfigTestCase(
+                name="cli_overrides_config",
+                description="CLI options override config file",
+                config_data={
+                    "ingestion": {
+                        "symbols": ["MSFT"],  # Should be overridden
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-01",
+                        "workers": 2,  # Should be overridden
                     }
                 },
-                "ingestion": {
-                    "symbols": ["AAPL"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01"
-                }
-            },
-            env_vars={
-                "ALPACA_KEY": "test_key",
-                "ALPACA_SECRET": "test_secret"
-            },
-            test_precedence=True
-        ))
+                cli_overrides={"--symbols": "AAPL", "--workers": "4"},  # Override  # Override
+                test_precedence=True,
+            )
+        )
+
+        # Environment variables with config
+        test_cases.append(
+            ConfigTestCase(
+                name="env_with_config",
+                description="Environment variables work with config",
+                config_data={
+                    "providers": {"alpaca": {"feed_type": "iex"}},
+                    "ingestion": {
+                        "symbols": ["AAPL"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-01",
+                    },
+                },
+                env_vars={"ALPACA_KEY": "test_key", "ALPACA_SECRET": "test_secret"},
+                test_precedence=True,
+            )
+        )
 
         # CLI overrides environment and config
-        test_cases.append(ConfigTestCase(
-            name="cli_overrides_all",
-            description="CLI overrides both environment and config",
-            config_data={
-                "ingestion": {
-                    "symbols": ["MSFT"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01",
-                    "workers": 2
-                }
-            },
-            env_vars={
-                "MP_WORKERS": "8"  # Should be overridden by CLI
-            },
-            cli_overrides={
-                "--symbols": "AAPL",
-                "--workers": "4"
-            },
-            test_precedence=True
-        ))
+        test_cases.append(
+            ConfigTestCase(
+                name="cli_overrides_all",
+                description="CLI overrides both environment and config",
+                config_data={
+                    "ingestion": {
+                        "symbols": ["MSFT"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-01",
+                        "workers": 2,
+                    }
+                },
+                env_vars={"MP_WORKERS": "8"},  # Should be overridden by CLI
+                cli_overrides={"--symbols": "AAPL", "--workers": "4"},
+                test_precedence=True,
+            )
+        )
 
         return test_cases
 
-    def generate_schema_validation_tests(self) -> List[ConfigTestCase]:
+    def generate_schema_validation_tests(self) -> list[ConfigTestCase]:
         """Generate test cases for schema validation."""
         test_cases = []
 
         # Valid schema structure
-        test_cases.append(ConfigTestCase(
-            name="valid_schema",
-            description="Configuration with valid schema structure",
-            config_data={
-                "schema_version": "1.0",
-                "providers": {
-                    "fake": {
-                        "feed_type": "iex",
-                        "batch_size": 1000
-                    }
+        test_cases.append(
+            ConfigTestCase(
+                name="valid_schema",
+                description="Configuration with valid schema structure",
+                config_data={
+                    "schema_version": "1.0",
+                    "providers": {"fake": {"feed_type": "iex", "batch_size": 1000}},
+                    "ingestion": {
+                        "symbols": ["AAPL"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-01",
+                        "output_dir": "data/parquet",
+                    },
                 },
-                "ingestion": {
-                    "symbols": ["AAPL"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01",
-                    "output_dir": "data/parquet"
-                }
-            }
-        ))
+            )
+        )
 
         # Extra fields (should be ignored)
-        test_cases.append(ConfigTestCase(
-            name="extra_fields",
-            description="Configuration with extra fields",
-            config_data={
-                "ingestion": {
-                    "symbols": ["AAPL"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01"
+        test_cases.append(
+            ConfigTestCase(
+                name="extra_fields",
+                description="Configuration with extra fields",
+                config_data={
+                    "ingestion": {
+                        "symbols": ["AAPL"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-01",
+                    },
+                    "extra_field": "should_be_ignored",
+                    "unknown_section": {"some_value": 123},
                 },
-                "extra_field": "should_be_ignored",
-                "unknown_section": {
-                    "some_value": 123
-                }
-            }
-        ))
+            )
+        )
 
         # Nested validation
-        test_cases.append(ConfigTestCase(
-            name="nested_validation",
-            description="Configuration with nested validation",
-            config_data={
-                "providers": {
-                    "fake": {
-                        "feed_type": "iex",
-                        "batch_size": 1000,
-                        "retry": {
-                            "max_attempts": 3,
-                            "backoff": 1.5
+        test_cases.append(
+            ConfigTestCase(
+                name="nested_validation",
+                description="Configuration with nested validation",
+                config_data={
+                    "providers": {
+                        "fake": {
+                            "feed_type": "iex",
+                            "batch_size": 1000,
+                            "retry": {"max_attempts": 3, "backoff": 1.5},
                         }
-                    }
+                    },
+                    "ingestion": {
+                        "symbols": ["AAPL"],
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-01",
+                    },
                 },
-                "ingestion": {
-                    "symbols": ["AAPL"],
-                    "start_date": "2023-01-01",
-                    "end_date": "2023-01-01"
-                }
-            }
-        ))
+            )
+        )
 
         return test_cases
 
@@ -542,7 +516,10 @@ class TestConfigSchemaValidation:
                 validation_failures.append(f"{test_case.name}: {result.validation_errors}")
 
         if validation_failures:
-            pytest.fail("Valid configuration tests failed:\n" + "\n".join(str(f) for f in validation_failures))
+            pytest.fail(
+                "Valid configuration tests failed:\n"
+                + "\n".join(str(f) for f in validation_failures)
+            )
 
     def test_invalid_configurations(self, config_generator, config_validator):
         """Test that invalid configurations are properly rejected."""
@@ -553,13 +530,18 @@ class TestConfigSchemaValidation:
             result = config_validator.validate_config_case(test_case)
 
             if result.config_parsed or result.command_succeeded:
-                validation_failures.append(f"{test_case.name}: Should have been rejected but was accepted")
+                validation_failures.append(
+                    f"{test_case.name}: Should have been rejected but was accepted"
+                )
 
             if result.validation_errors:
                 validation_failures.append(f"{test_case.name}: {result.validation_errors}")
 
         if validation_failures:
-            pytest.fail("Invalid configuration tests failed:\n" + "\n".join(str(f) for f in validation_failures))
+            pytest.fail(
+                "Invalid configuration tests failed:\n"
+                + "\n".join(str(f) for f in validation_failures)
+            )
 
     def test_configuration_precedence(self, config_generator, config_validator):
         """Test that configuration precedence rules work correctly."""
@@ -576,7 +558,10 @@ class TestConfigSchemaValidation:
                 precedence_failures.append(f"{test_case.name}: {result.validation_errors}")
 
         if precedence_failures:
-            pytest.fail("Configuration precedence tests failed:\n" + "\n".join(str(f) for f in precedence_failures))
+            pytest.fail(
+                "Configuration precedence tests failed:\n"
+                + "\n".join(str(f) for f in precedence_failures)
+            )
 
     def test_schema_validation(self, config_generator, config_validator):
         """Test schema validation works correctly."""
@@ -587,19 +572,19 @@ class TestConfigSchemaValidation:
             result = config_validator.validate_config_case(test_case)
 
             if not result.config_parsed or not result.command_succeeded:
-                schema_failures.append(f"{test_case.name}: Schema validation failed - {result.validation_errors}")
+                schema_failures.append(
+                    f"{test_case.name}: Schema validation failed - {result.validation_errors}"
+                )
 
         if schema_failures:
-            pytest.fail("Schema validation tests failed:\n" + "\n".join(str(f) for f in schema_failures))
+            pytest.fail(
+                "Schema validation tests failed:\n" + "\n".join(str(f) for f in schema_failures)
+            )
 
     def test_configuration_file_formats(self, config_validator):
         """Test different configuration file formats."""
         base_config = {
-            "ingestion": {
-                "symbols": ["AAPL"],
-                "start_date": "2023-01-01",
-                "end_date": "2023-01-01"
-            }
+            "ingestion": {"symbols": ["AAPL"], "start_date": "2023-01-01", "end_date": "2023-01-01"}
         }
 
         format_failures = []
@@ -609,13 +594,11 @@ class TestConfigSchemaValidation:
 
             # Test YAML format
             yaml_file = temp_path / "config.yaml"
-            with open(yaml_file, 'w') as f:
+            with open(yaml_file, "w") as f:
                 yaml.dump(base_config, f)
 
             yaml_test = ConfigTestCase(
-                name="yaml_format",
-                description="YAML configuration format",
-                config_data=base_config
+                name="yaml_format", description="YAML configuration format", config_data=base_config
             )
 
             result = config_validator.validate_config_case(yaml_test)
@@ -624,7 +607,7 @@ class TestConfigSchemaValidation:
 
             # Test JSON format (if supported)
             json_file = temp_path / "config.json"
-            with open(json_file, 'w') as f:
+            with open(json_file, "w") as f:
                 json.dump(base_config, f)
 
             # Note: This would require CLI to support JSON, which it may not
@@ -654,7 +637,9 @@ class TestConfigSchemaValidation:
                 error_message_failures.append(f"{test_case.name}: Unhelpful error message")
 
         if error_message_failures:
-            pytest.fail("Configuration error message tests failed:\n" + "\n".join(error_message_failures))
+            pytest.fail(
+                "Configuration error message tests failed:\n" + "\n".join(error_message_failures)
+            )
 
 
 if __name__ == "__main__":
@@ -666,7 +651,7 @@ if __name__ == "__main__":
         ("Valid Configurations", generator.generate_valid_config_tests()),
         ("Invalid Configurations", generator.generate_invalid_config_tests()),
         ("Precedence Tests", generator.generate_precedence_tests()),
-        ("Schema Validation", generator.generate_schema_validation_tests())
+        ("Schema Validation", generator.generate_schema_validation_tests()),
     ]
 
     print("Configuration Schema Validation Report")

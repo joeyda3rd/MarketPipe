@@ -6,7 +6,6 @@ from __future__ import annotations
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Union
 
 import duckdb
 import pandas as pd
@@ -137,18 +136,18 @@ def get_available_data() -> pd.DataFrame:
     WITH frame_data AS (
         SELECT '5m' as frame, symbol, date, COUNT(*) as row_count FROM bars_5m GROUP BY symbol, date
         UNION ALL
-        SELECT '15m' as frame, symbol, date, COUNT(*) as row_count FROM bars_15m GROUP BY symbol, date  
+        SELECT '15m' as frame, symbol, date, COUNT(*) as row_count FROM bars_15m GROUP BY symbol, date
         UNION ALL
         SELECT '1h' as frame, symbol, date, COUNT(*) as row_count FROM bars_1h GROUP BY symbol, date
         UNION ALL
         SELECT '1d' as frame, symbol, date, COUNT(*) as row_count FROM bars_1d GROUP BY symbol, date
     )
-    SELECT 
+    SELECT
         frame,
         symbol,
         COUNT(DISTINCT date) as date_count,
         SUM(row_count) as total_rows
-    FROM frame_data 
+    FROM frame_data
     WHERE symbol IS NOT NULL
     GROUP BY frame, symbol
     ORDER BY frame, symbol
@@ -187,7 +186,7 @@ def validate_views() -> dict[str, bool]:
     return status
 
 
-def set_agg_root(path: Union[str, Path]) -> None:
+def set_agg_root(path: str | Path) -> None:
     """Set the aggregation root path for testing or custom configurations.
 
     Args:

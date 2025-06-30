@@ -5,14 +5,15 @@ Revises: 0002
 Create Date: 2025-06-11 22:26:13.946793
 
 """
+
 from collections.abc import Sequence
 from typing import Union
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '0003'
-down_revision: Union[str, None] = '0002'
+revision: str = "0003"
+down_revision: Union[str, None] = "0002"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -23,7 +24,8 @@ def upgrade() -> None:
     # This is a SQLite-compatible approach using table recreation
 
     # Create new table with desired schema
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE ohlcv_bars_new (
             id TEXT PRIMARY KEY,
             symbol TEXT NOT NULL,
@@ -39,19 +41,22 @@ def upgrade() -> None:
             vwap TEXT,                   -- NEW COLUMN
             UNIQUE(symbol, timestamp_ns)
         )
-    """)
+    """
+    )
 
     # Copy existing data from original table
-    op.execute("""
+    op.execute(
+        """
         INSERT INTO ohlcv_bars_new (
-            id, symbol, timestamp_ns, open_price, high_price, low_price, 
+            id, symbol, timestamp_ns, open_price, high_price, low_price,
             close_price, volume, created_at
         )
-        SELECT 
-            id, symbol, timestamp_ns, open_price, high_price, low_price, 
+        SELECT
+            id, symbol, timestamp_ns, open_price, high_price, low_price,
             close_price, volume, created_at
         FROM ohlcv_bars
-    """)
+    """
+    )
 
     # Drop old table and rename new one
     op.execute("DROP TABLE ohlcv_bars")
@@ -66,18 +71,22 @@ def upgrade() -> None:
 
     if context.config.get_main_option("sqlalchemy.url").startswith("postgresql"):
         # PostgreSQL version
-        op.execute("""
-            UPDATE ohlcv_bars 
+        op.execute(
+            """
+            UPDATE ohlcv_bars
             SET trading_date = TO_CHAR(TO_TIMESTAMP(timestamp_ns / 1000000000.0), 'YYYY-MM-DD')
             WHERE trading_date IS NULL
-        """)
+        """
+        )
     else:
         # SQLite version
-        op.execute("""
-            UPDATE ohlcv_bars 
+        op.execute(
+            """
+            UPDATE ohlcv_bars
             SET trading_date = date(timestamp_ns / 1000000000, 'unixepoch')
             WHERE trading_date IS NULL
-        """)
+        """
+        )
 
     # Create new indexes
     op.execute("CREATE INDEX idx_ohlcv_trading_date ON ohlcv_bars(trading_date)")
@@ -87,7 +96,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Remove added columns from ohlcv_bars table."""
     # Recreate table without the new columns
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE ohlcv_bars_old (
             id TEXT PRIMARY KEY,
             symbol TEXT NOT NULL,
@@ -100,19 +110,22 @@ def downgrade() -> None:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(symbol, timestamp_ns)
         )
-    """)
+    """
+    )
 
     # Copy data back (excluding new columns)
-    op.execute("""
+    op.execute(
+        """
         INSERT INTO ohlcv_bars_old (
-            id, symbol, timestamp_ns, open_price, high_price, low_price, 
+            id, symbol, timestamp_ns, open_price, high_price, low_price,
             close_price, volume, created_at
         )
-        SELECT 
-            id, symbol, timestamp_ns, open_price, high_price, low_price, 
+        SELECT
+            id, symbol, timestamp_ns, open_price, high_price, low_price,
             close_price, volume, created_at
         FROM ohlcv_bars
-    """)
+    """
+    )
 
     # Drop new table and rename old one
     op.execute("DROP TABLE ohlcv_bars")

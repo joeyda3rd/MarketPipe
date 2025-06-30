@@ -5,7 +5,7 @@ import datetime as dt
 import random
 import time
 from collections.abc import Mapping
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -28,11 +28,11 @@ class AlpacaClient(BaseApiClient):
         symbol: str,
         start_ts: int,
         end_ts: int,
-        cursor: Optional[str] = None,
+        cursor: str | None = None,
     ) -> Mapping[str, str]:
         start = dt.datetime.utcfromtimestamp(start_ts / 1_000).strftime(ISO_FMT)
         end = dt.datetime.utcfromtimestamp(end_ts / 1_000).strftime(ISO_FMT)
-        qp: Dict[str, str] = {
+        qp: dict[str, str] = {
             "symbol": symbol,
             "timeframe": "1Min",
             "start": start,
@@ -43,11 +43,11 @@ class AlpacaClient(BaseApiClient):
             qp["page_token"] = cursor
         return qp
 
-    def next_cursor(self, raw_json: Dict[str, Any]) -> Optional[str]:
+    def next_cursor(self, raw_json: dict[str, Any]) -> str | None:
         return raw_json.get("next_page_token")
 
     # ---------- sync request ----------
-    def _request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+    def _request(self, params: Mapping[str, str]) -> dict[str, Any]:
         if self.rate_limiter:
             self.rate_limiter.acquire()
 
@@ -74,7 +74,7 @@ class AlpacaClient(BaseApiClient):
             time.sleep(sleep)
 
     # ---------- async request ----------
-    async def _async_request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+    async def _async_request(self, params: Mapping[str, str]) -> dict[str, Any]:
         if self.rate_limiter:
             await self.rate_limiter.async_acquire()
 
@@ -101,8 +101,8 @@ class AlpacaClient(BaseApiClient):
                 await asyncio.sleep(sleep)
 
     # ---------- parsing ----------
-    def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
-        rows: List[Dict[str, Any]] = []
+    def parse_response(self, raw_json: dict[str, Any]) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
         for bar in raw_json.get("bars", []):
             rows.append(
                 {
@@ -129,7 +129,7 @@ class AlpacaClient(BaseApiClient):
         return rows
 
     # ---------- helpers ----------
-    def should_retry(self, status: int, body: Dict[str, Any]) -> bool:
+    def should_retry(self, status: int, body: dict[str, Any]) -> bool:
         if status in {429, 500, 502, 503, 504}:
             return True
         if status == 403 and "too many requests" in str(body).lower():

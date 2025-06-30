@@ -44,7 +44,7 @@ class TestParquetStorageEngineInitialization:
     def test_init_creates_root_directory(self, tmp_path: Path):
         """Test that initialization creates the root directory."""
         engine_path = tmp_path / "storage"
-        engine = ParquetStorageEngine(engine_path)
+        ParquetStorageEngine(engine_path)
 
         assert engine_path.exists()
         assert engine_path.is_dir()

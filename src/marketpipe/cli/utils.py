@@ -7,7 +7,6 @@ import asyncio
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
 
 import typer
 
@@ -17,15 +16,11 @@ from marketpipe.metrics_server import start_async_server, stop_async_server
 
 
 def metrics(
-    port: int = typer.Option(
-        None, "--port", "-p", help="Port to run Prometheus metrics server"
-    ),
+    port: int = typer.Option(None, "--port", "-p", help="Port to run Prometheus metrics server"),
     legacy_metrics: bool = typer.Option(
         False, "--legacy-metrics", help="Use legacy blocking metrics server"
     ),
-    metric: str = typer.Option(
-        None, "--metric", "-m", help="Show specific metric history"
-    ),
+    metric: str = typer.Option(None, "--metric", "-m", help="Show specific metric history"),
     since: str = typer.Option(
         None, "--since", help="Show metrics since timestamp (e.g., '2024-01-01 10:00')"
     ),
@@ -54,16 +49,12 @@ def metrics(
         # If port is specified, start metrics server
         if port is not None:
             if legacy_metrics:
-                print(
-                    f"📊 Starting legacy metrics server on http://localhost:{port}/metrics"
-                )
+                print(f"📊 Starting legacy metrics server on http://localhost:{port}/metrics")
                 print(f"📋 Human-friendly dashboard will be available at http://localhost:{port+1}")
                 print("Press Ctrl+C to stop the server")
                 metrics_server_run(port=port, legacy=True)
             else:
-                print(
-                    f"📊 Starting metrics server on http://localhost:{port}/metrics"
-                )
+                print(f"📊 Starting metrics server on http://localhost:{port}/metrics")
                 print(f"📋 Human-friendly dashboard: http://localhost:{port+1}")
                 print("Press Ctrl+C to stop both servers")
 
@@ -72,15 +63,18 @@ def metrics(
                     try:
                         # Start the Prometheus metrics server
                         await start_async_server(port=port, host="localhost")
-                        
+
                         # Start the human-friendly dashboard on port+1
-                        from marketpipe.cli.metrics_dashboard import serve_metrics_dashboard
+                        from marketpipe.cli.metrics_dashboard import (
+                            serve_metrics_dashboard,
+                        )
+
                         dashboard_task = asyncio.create_task(
                             serve_metrics_dashboard(
-                                metrics_port=port, dashboard_port=port+1, host="localhost"
+                                metrics_port=port, dashboard_port=port + 1, host="localhost"
                             )
                         )
-                        
+
                         try:
                             while True:
                                 await asyncio.sleep(1)
@@ -102,9 +96,7 @@ def metrics(
             return
 
         # Setup metrics repository
-        metrics_repo = SqliteMetricsRepository(
-            os.getenv("METRICS_DB_PATH", "data/metrics.db")
-        )
+        metrics_repo = SqliteMetricsRepository(os.getenv("METRICS_DB_PATH", "data/metrics.db"))
 
         # Parse since timestamp if provided
         since_ts = None
@@ -172,16 +164,12 @@ def metrics(
 
                 for metric_name in sorted(metrics_list)[:10]:
                     averages = asyncio.run(
-                        metrics_repo.get_average_metrics(
-                            metric_name, window_seconds, since_ts
-                        )
+                        metrics_repo.get_average_metrics(metric_name, window_seconds, since_ts)
                     )
                     if averages:
                         latest_avg = averages[-1]
                         timestamp_str = latest_avg.timestamp.strftime("%Y-%m-%d %H:%M")
-                        print(
-                            f"{metric_name:30s}: {latest_avg.value:>8.1f} ({timestamp_str})"
-                        )
+                        print(f"{metric_name:30s}: {latest_avg.value:>8.1f} ({timestamp_str})")
 
                 if len(metrics_list) > 10:
                     print(f"... and {len(metrics_list) - 10} more metrics")
@@ -190,9 +178,7 @@ def metrics(
 
         if metric:
             # Show history for specific metric
-            points = asyncio.run(
-                metrics_repo.get_metrics_history(metric, since=since_ts)
-            )
+            points = asyncio.run(metrics_repo.get_metrics_history(metric, since=since_ts))
             if not points:
                 print(f"📊 No data found for metric: {metric}")
                 print("💡 Check metric name with --list")
@@ -229,12 +215,8 @@ def metrics(
         metrics_list = asyncio.run(metrics_repo.list_metric_names())
         if not metrics_list:
             print("📊 No metrics found in database")
-            print(
-                "💡 Try: marketpipe metrics --port 8000  # Start async metrics server"
-            )
-            print(
-                "💡 Or:  marketpipe metrics --port 8000 --legacy-metrics  # Start legacy server"
-            )
+            print("💡 Try: marketpipe metrics --port 8000  # Start async metrics server")
+            print("💡 Or:  marketpipe metrics --port 8000 --legacy-metrics  # Start legacy server")
             return
 
         print("📊 Recent Metrics Summary")
@@ -242,9 +224,7 @@ def metrics(
 
         # Show latest value for each metric
         for metric_name in sorted(metrics_list)[:10]:  # Top 10 metrics
-            points = asyncio.run(
-                metrics_repo.get_metrics_history(metric_name, since=since_ts)
-            )
+            points = asyncio.run(metrics_repo.get_metrics_history(metric_name, since=since_ts))
             if points:
                 latest = points[0]
                 timestamp_str = latest.timestamp.strftime("%Y-%m-%d %H:%M")
@@ -299,7 +279,7 @@ def migrate(
         raise typer.Exit(1)
 
 
-def _parse_time_window(window_str: str) -> Optional[int]:
+def _parse_time_window(window_str: str) -> int | None:
     """Parse time window string to seconds."""
     import re
 
@@ -321,7 +301,7 @@ def _parse_time_window(window_str: str) -> Optional[int]:
     return value * multipliers.get(unit, 1)
 
 
-def _create_sparkline(values: List[float]) -> str:
+def _create_sparkline(values: list[float]) -> str:
     """Create ASCII sparkline from list of values."""
     if not values:
         return ""

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from .alpaca_client import AlpacaClient as OriginalAlpacaClient
 from .auth import HeaderTokenAuth
@@ -40,7 +40,7 @@ class AlpacaApiClientWrapper:
             feed=feed,
         )
 
-    async def fetch_bars_raw(self, symbol: str, start_ms: int, end_ms: int) -> List[Dict[str, Any]]:
+    async def fetch_bars_raw(self, symbol: str, start_ms: int, end_ms: int) -> list[dict[str, Any]]:
         """
         Fetch raw bars from Alpaca API.
 
@@ -62,7 +62,7 @@ class AlpacaApiClientWrapper:
         except Exception:
             return False
 
-    def get_configuration_info(self) -> Dict[str, Any]:
+    def get_configuration_info(self) -> dict[str, Any]:
         """Get information about the current configuration."""
         return {
             "base_url": self._config.base_url,

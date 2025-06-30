@@ -15,7 +15,7 @@ def test_metrics_app_wsgi_interface():
     # Set up temporary multiprocess directory for the test
     with tempfile.TemporaryDirectory() as temp_dir:
         with patch.dict(os.environ, {"PROMETHEUS_MULTIPROC_DIR": temp_dir}):
-            with patch("prometheus_client.CollectorRegistry") as mock_registry:
+            with patch("prometheus_client.CollectorRegistry"):
                 with patch("prometheus_client.multiprocess.MultiProcessCollector"):
                     with patch(
                         "marketpipe.metrics_server.generate_latest",
@@ -108,8 +108,8 @@ def test_metrics_server_run_async_mode():
         await server.start()
         await server.stop()
 
-    with patch("marketpipe.metrics_server.start_async_server") as mock_start:
-        with patch("marketpipe.metrics_server.stop_async_server") as mock_stop:
+    with patch("marketpipe.metrics_server.start_async_server"):
+        with patch("marketpipe.metrics_server.stop_async_server"):
             with patch("asyncio.run") as mock_asyncio_run:
                 with patch("asyncio.sleep") as mock_async_sleep:
                     mock_async_sleep.side_effect = KeyboardInterrupt()

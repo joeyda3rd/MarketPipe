@@ -11,7 +11,7 @@ import json
 from collections.abc import AsyncIterator
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiosqlite
 
@@ -46,14 +46,14 @@ class SqliteSymbolBarsRepository(SqliteAsyncMixin, ISymbolBarsRepository):
 
     async def get_by_symbol_and_date(
         self, symbol: Symbol, trading_date: date
-    ) -> Optional[SymbolBarsAggregate]:
+    ) -> SymbolBarsAggregate | None:
         """Load aggregate for symbol and trading date."""
         try:
             async with self._conn() as db:
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
                     """
-                    SELECT symbol, trading_date, version, is_complete, 
+                    SELECT symbol, trading_date, version, is_complete,
                            collection_started, bar_count, created_at, updated_at
                     FROM symbol_bars_aggregates
                     WHERE symbol = ? AND trading_date = ?
@@ -99,7 +99,7 @@ class SqliteSymbolBarsRepository(SqliteAsyncMixin, ISymbolBarsRepository):
                 # Insert or update
                 await db.execute(
                     """
-                    INSERT OR REPLACE INTO symbol_bars_aggregates 
+                    INSERT OR REPLACE INTO symbol_bars_aggregates
                     (symbol, trading_date, version, is_complete, collection_started, bar_count, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """,
@@ -126,7 +126,7 @@ class SqliteSymbolBarsRepository(SqliteAsyncMixin, ISymbolBarsRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to save symbol bars aggregate: {e}") from e
 
-    async def find_symbols_with_data(self, start_date: date, end_date: date) -> List[Symbol]:
+    async def find_symbols_with_data(self, start_date: date, end_date: date) -> list[Symbol]:
         """Find symbols that have data in the specified date range."""
         try:
             async with self._conn() as db:
@@ -146,8 +146,8 @@ class SqliteSymbolBarsRepository(SqliteAsyncMixin, ISymbolBarsRepository):
             raise RepositoryError(f"Failed to find symbols with data: {e}") from e
 
     async def get_completion_status(
-        self, symbols: List[Symbol], trading_dates: List[date]
-    ) -> Dict[str, Dict[str, bool]]:
+        self, symbols: list[Symbol], trading_dates: list[date]
+    ) -> dict[str, dict[str, bool]]:
         """Get completion status for symbol/date combinations."""
         try:
             result = {}
@@ -222,7 +222,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
                     """
-                    SELECT id, symbol, timestamp_ns, open_price, high_price, low_price, 
+                    SELECT id, symbol, timestamp_ns, open_price, high_price, low_price,
                            close_price, volume, trade_count, vwap
                     FROM ohlcv_bars
                     WHERE symbol = ? AND timestamp_ns >= ? AND timestamp_ns <= ?
@@ -242,7 +242,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
             raise RepositoryError(f"Failed to get bars for symbol: {e}") from e
 
     async def get_bars_for_symbols(
-        self, symbols: List[Symbol], time_range: TimeRange
+        self, symbols: list[Symbol], time_range: TimeRange
     ) -> AsyncIterator[OHLCVBar]:
         """Stream bars for multiple symbols in time range."""
         try:
@@ -252,10 +252,10 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
 
                 cursor = await db.execute(
                     f"""
-                    SELECT id, symbol, timestamp_ns, open_price, high_price, low_price, 
+                    SELECT id, symbol, timestamp_ns, open_price, high_price, low_price,
                            close_price, volume, trade_count, vwap
                     FROM ohlcv_bars
-                    WHERE symbol IN ({symbol_placeholders}) 
+                    WHERE symbol IN ({symbol_placeholders})
                     AND timestamp_ns >= ? AND timestamp_ns <= ?
                     ORDER BY timestamp_ns, symbol
                 """,
@@ -284,15 +284,15 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
             vwap=Price.from_float(row["vwap"]) if row["vwap"] is not None else None,
         )
 
-    async def save_bars(self, bars: List[OHLCVBar]) -> None:
+    async def save_bars(self, bars: list[OHLCVBar]) -> None:
         """Batch save multiple bars."""
         try:
             async with self._conn() as db:
                 for bar in bars:
                     await db.execute(
                         """
-                        INSERT INTO ohlcv_bars 
-                        (id, symbol, timestamp_ns, trading_date, open_price, high_price, 
+                        INSERT INTO ohlcv_bars
+                        (id, symbol, timestamp_ns, trading_date, open_price, high_price,
                          low_price, close_price, volume, trade_count, vwap)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -338,7 +338,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to check if bar exists: {e}") from e
 
-    async def count_bars(self, symbol: Symbol, time_range: Optional[TimeRange] = None) -> int:
+    async def count_bars(self, symbol: Symbol, time_range: TimeRange | None = None) -> int:
         """Count bars for symbol in optional time range."""
         try:
             async with self._conn() as db:
@@ -368,7 +368,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to count bars: {e}") from e
 
-    async def get_latest_timestamp(self, symbol: Symbol) -> Optional[Timestamp]:
+    async def get_latest_timestamp(self, symbol: Symbol) -> Timestamp | None:
         """Get the latest timestamp for a symbol."""
         try:
             async with self._conn() as db:
@@ -386,7 +386,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to get latest timestamp: {e}") from e
 
-    async def delete_bars(self, symbol: Symbol, time_range: Optional[TimeRange] = None) -> int:
+    async def delete_bars(self, symbol: Symbol, time_range: TimeRange | None = None) -> int:
         """Delete bars for symbol in optional time range."""
         try:
             async with self._conn() as db:
@@ -430,14 +430,14 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, ICheckpointRepository):
         # Apply migrations on first use
         apply_pending(self._db_path)
 
-    async def save_checkpoint(self, symbol: Symbol, checkpoint_data: Dict[str, Any]) -> None:
+    async def save_checkpoint(self, symbol: Symbol, checkpoint_data: dict[str, Any]) -> None:
         """Save checkpoint data for a symbol."""
         try:
             async with self._conn() as db:
                 json_data = json.dumps(checkpoint_data)
                 await db.execute(
                     """
-                    INSERT OR REPLACE INTO checkpoints 
+                    INSERT OR REPLACE INTO checkpoints
                     (symbol, checkpoint_data, updated_at)
                     VALUES (?, ?, CURRENT_TIMESTAMP)
                 """,
@@ -448,7 +448,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, ICheckpointRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to save checkpoint: {e}") from e
 
-    async def get_checkpoint(self, symbol: Symbol) -> Optional[Dict[str, Any]]:
+    async def get_checkpoint(self, symbol: Symbol) -> dict[str, Any] | None:
         """Get checkpoint data for a symbol."""
         try:
             async with self._conn() as db:
@@ -483,7 +483,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, ICheckpointRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to delete checkpoint: {e}") from e
 
-    async def list_checkpoints(self) -> List[Symbol]:
+    async def list_checkpoints(self) -> list[Symbol]:
         """List all symbols with checkpoints."""
         try:
             async with self._conn() as db:

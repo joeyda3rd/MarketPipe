@@ -13,7 +13,6 @@ import secrets
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, List
 
 import pytest
 
@@ -27,7 +26,7 @@ class SecurityAuditLogger:
         self.audit_log_file = audit_dir / "security_audit.log"
         self.events = []
 
-    def log_event(self, event_type: str, details: Dict, severity: str = "info"):
+    def log_event(self, event_type: str, details: dict, severity: str = "info"):
         """Log a security event."""
 
         event = {
@@ -47,15 +46,15 @@ class SecurityAuditLogger:
         if severity in ["warning", "error", "critical"]:
             print(f"🔒 SECURITY EVENT [{severity.upper()}]: {event_type}")
 
-    def get_events_by_type(self, event_type: str) -> List[Dict]:
+    def get_events_by_type(self, event_type: str) -> list[dict]:
         """Get all events of a specific type."""
         return [e for e in self.events if e["event_type"] == event_type]
 
-    def get_events_by_severity(self, severity: str) -> List[Dict]:
+    def get_events_by_severity(self, severity: str) -> list[dict]:
         """Get all events of a specific severity."""
         return [e for e in self.events if e["severity"] == severity]
 
-    def generate_audit_report(self) -> Dict:
+    def generate_audit_report(self) -> dict:
         """Generate comprehensive audit report."""
 
         event_types = {}
@@ -76,7 +75,9 @@ class SecurityAuditLogger:
                 "start": self.events[0]["timestamp"] if self.events else None,
                 "end": self.events[-1]["timestamp"] if self.events else None,
             },
-            "high_severity_events": len([e for e in self.events if e["severity"] in ["error", "critical"]]),
+            "high_severity_events": len(
+                [e for e in self.events if e["severity"] in ["error", "critical"]]
+            ),
         }
 
 
@@ -87,12 +88,12 @@ class DataEncryptionManager:
         self.encryption_key = secrets.token_bytes(32)  # 256-bit key
         self.encrypted_data_cache = {}
 
-    def encrypt_sensitive_data(self, data: str, context: str = None) -> Dict:
+    def encrypt_sensitive_data(self, data: str, context: str = None) -> dict:
         """Encrypt sensitive data (simplified simulation)."""
 
         # Simulate encryption (in reality, use proper encryption libraries)
         data_hash = hashlib.sha256(data.encode()).hexdigest()
-        encrypted_data = hashlib.pbkdf2_hmac('sha256', data.encode(), self.encryption_key, 100000)
+        encrypted_data = hashlib.pbkdf2_hmac("sha256", data.encode(), self.encryption_key, 100000)
 
         encryption_metadata = {
             "encrypted_data": encrypted_data.hex(),
@@ -111,7 +112,7 @@ class DataEncryptionManager:
 
         return encryption_metadata
 
-    def decrypt_sensitive_data(self, encryption_metadata: Dict) -> str:
+    def decrypt_sensitive_data(self, encryption_metadata: dict) -> str:
         """Decrypt sensitive data (simplified simulation)."""
 
         data_hash = encryption_metadata["data_hash"]
@@ -121,7 +122,7 @@ class DataEncryptionManager:
         else:
             raise ValueError("Cannot decrypt data - key not found")
 
-    def rotate_encryption_key(self) -> Dict:
+    def rotate_encryption_key(self) -> dict:
         """Simulate encryption key rotation."""
 
         old_key_version = "v1"
@@ -156,7 +157,7 @@ class AccessControlManager:
         }
         self.active_sessions = {}
 
-    def create_user(self, username: str, role: str, department: str = None) -> Dict:
+    def create_user(self, username: str, role: str, department: str = None) -> dict:
         """Create a new user with specified role."""
 
         if username in self.users:
@@ -179,7 +180,7 @@ class AccessControlManager:
         self.users[username] = user
         return user
 
-    def authenticate_user(self, username: str, password: str = "mock_password") -> Dict:
+    def authenticate_user(self, username: str, password: str = "mock_password") -> dict:
         """Authenticate user and create session."""
 
         if username not in self.users:
@@ -230,7 +231,7 @@ class AccessControlManager:
 
         return required_permission in session["permissions"]
 
-    def get_access_summary(self) -> Dict:
+    def get_access_summary(self) -> dict:
         """Get summary of access control status."""
 
         return {
@@ -253,29 +254,34 @@ class ComplianceValidator:
             "data_retention": {"min_days": 2555, "max_days": 3650},  # 7-10 years
             "encryption_at_rest": {"required": True, "algorithms": ["AES-256", "PBKDF2-SHA256"]},
             "access_logging": {"required": True, "retention_days": 365},
-            "data_lineage": {"required": True, "tracking_fields": ["source", "timestamp", "processing_chain"]},
+            "data_lineage": {
+                "required": True,
+                "tracking_fields": ["source", "timestamp", "processing_chain"],
+            },
             "pii_protection": {"required": True, "masking": True},
         }
 
-    def validate_data_retention(self, storage_dir: Path) -> Dict:
+    def validate_data_retention(self, storage_dir: Path) -> dict:
         """Validate data retention compliance."""
 
         files = list(storage_dir.rglob("*.parquet"))
         retention_issues = []
 
         current_time = time.time()
-        min_retention_seconds = self.compliance_rules["data_retention"]["min_days"] * 24 * 3600
+        self.compliance_rules["data_retention"]["min_days"] * 24 * 3600
         max_retention_seconds = self.compliance_rules["data_retention"]["max_days"] * 24 * 3600
 
         for file_path in files:
             file_age_seconds = current_time - file_path.stat().st_mtime
 
             if file_age_seconds > max_retention_seconds:
-                retention_issues.append({
-                    "file": str(file_path),
-                    "issue": "exceeds_max_retention",
-                    "age_days": file_age_seconds / (24 * 3600),
-                })
+                retention_issues.append(
+                    {
+                        "file": str(file_path),
+                        "issue": "exceeds_max_retention",
+                        "age_days": file_age_seconds / (24 * 3600),
+                    }
+                )
 
         compliance_result = {
             "compliant": len(retention_issues) == 0,
@@ -288,12 +294,12 @@ class ComplianceValidator:
             self.audit_logger.log_event(
                 "compliance_violation",
                 {"rule": "data_retention", "violations": len(retention_issues)},
-                severity="warning"
+                severity="warning",
             )
 
         return compliance_result
 
-    def validate_encryption_compliance(self, encryption_metadata: List[Dict]) -> Dict:
+    def validate_encryption_compliance(self, encryption_metadata: list[dict]) -> dict:
         """Validate encryption compliance."""
 
         required_algorithms = self.compliance_rules["encryption_at_rest"]["algorithms"]
@@ -302,11 +308,13 @@ class ComplianceValidator:
         for item in encryption_metadata:
             algorithm = item.get("algorithm")
             if algorithm not in required_algorithms:
-                non_compliant_items.append({
-                    "item": item.get("context", "unknown"),
-                    "algorithm": algorithm,
-                    "issue": "non_compliant_algorithm",
-                })
+                non_compliant_items.append(
+                    {
+                        "item": item.get("context", "unknown"),
+                        "algorithm": algorithm,
+                        "issue": "non_compliant_algorithm",
+                    }
+                )
 
         compliance_result = {
             "compliant": len(non_compliant_items) == 0,
@@ -319,12 +327,12 @@ class ComplianceValidator:
             self.audit_logger.log_event(
                 "compliance_violation",
                 {"rule": "encryption_at_rest", "violations": len(non_compliant_items)},
-                severity="error"
+                severity="error",
             )
 
         return compliance_result
 
-    def validate_access_logging(self, access_events: List[Dict]) -> Dict:
+    def validate_access_logging(self, access_events: list[dict]) -> dict:
         """Validate access logging compliance."""
 
         required_fields = ["timestamp", "user", "action", "resource"]
@@ -333,10 +341,12 @@ class ComplianceValidator:
         for event in access_events:
             missing_fields = [field for field in required_fields if field not in event]
             if missing_fields:
-                incomplete_logs.append({
-                    "event_id": event.get("event_id", "unknown"),
-                    "missing_fields": missing_fields,
-                })
+                incomplete_logs.append(
+                    {
+                        "event_id": event.get("event_id", "unknown"),
+                        "missing_fields": missing_fields,
+                    }
+                )
 
         compliance_result = {
             "compliant": len(incomplete_logs) == 0,
@@ -349,16 +359,18 @@ class ComplianceValidator:
             self.audit_logger.log_event(
                 "compliance_violation",
                 {"rule": "access_logging", "violations": len(incomplete_logs)},
-                severity="warning"
+                severity="warning",
             )
 
         return compliance_result
 
-    def generate_compliance_report(self, validation_results: Dict) -> Dict:
+    def generate_compliance_report(self, validation_results: dict) -> dict:
         """Generate comprehensive compliance report."""
 
         total_rules = len(self.compliance_rules)
-        compliant_rules = sum(1 for result in validation_results.values() if result.get("compliant", False))
+        compliant_rules = sum(
+            1 for result in validation_results.values() if result.get("compliant", False)
+        )
 
         compliance_score = (compliant_rules / total_rules) * 100 if total_rules > 0 else 0
 
@@ -401,12 +413,11 @@ class TestSecurityComplianceEndToEnd:
             audit_logger.log_event(
                 "data_encryption_started",
                 {"context": item["context"], "data_type": "sensitive"},
-                severity="info"
+                severity="info",
             )
 
             encryption_metadata = encryption_manager.encrypt_sensitive_data(
-                data=item["data"],
-                context=item["context"]
+                data=item["data"], context=item["context"]
             )
 
             encrypted_items.append(encryption_metadata)
@@ -414,7 +425,7 @@ class TestSecurityComplianceEndToEnd:
             audit_logger.log_event(
                 "data_encryption_completed",
                 {"context": item["context"], "algorithm": encryption_metadata["algorithm"]},
-                severity="info"
+                severity="info",
             )
 
         print(f"✓ Encrypted {len(encrypted_items)} sensitive data items")
@@ -431,31 +442,27 @@ class TestSecurityComplianceEndToEnd:
                     audit_logger.log_event(
                         "data_decryption_successful",
                         {"context": encryption_metadata["context"]},
-                        severity="info"
+                        severity="info",
                     )
                 else:
                     audit_logger.log_event(
                         "data_decryption_failed",
                         {"context": encryption_metadata["context"], "reason": "data_mismatch"},
-                        severity="error"
+                        severity="error",
                     )
 
             except Exception as e:
                 audit_logger.log_event(
                     "data_decryption_error",
                     {"context": encryption_metadata["context"], "error": str(e)},
-                    severity="error"
+                    severity="error",
                 )
 
         print(f"✓ Successfully decrypted {decryption_successful}/{len(encrypted_items)} items")
 
         # Test key rotation
         rotation_result = encryption_manager.rotate_encryption_key()
-        audit_logger.log_event(
-            "encryption_key_rotated",
-            rotation_result,
-            severity="info"
-        )
+        audit_logger.log_event("encryption_key_rotated", rotation_result, severity="info")
 
         print(f"✓ Key rotation completed: {rotation_result['affected_data_items']} items affected")
 
@@ -463,7 +470,9 @@ class TestSecurityComplianceEndToEnd:
         validator = ComplianceValidator(audit_logger)
         encryption_compliance = validator.validate_encryption_compliance(encrypted_items)
 
-        assert encryption_compliance["compliant"], f"Encryption compliance failed: {encryption_compliance['issues']}"
+        assert encryption_compliance[
+            "compliant"
+        ], f"Encryption compliance failed: {encryption_compliance['issues']}"
         assert decryption_successful == len(encrypted_items), "Not all items decrypted successfully"
 
         print("✅ Data encryption pipeline test completed")
@@ -489,13 +498,13 @@ class TestSecurityComplianceEndToEnd:
             access_manager.create_user(
                 username=user_config["username"],
                 role=user_config["role"],
-                department=user_config["department"]
+                department=user_config["department"],
             )
 
             audit_logger.log_event(
                 "user_created",
                 {"username": user_config["username"], "role": user_config["role"]},
-                severity="info"
+                severity="info",
             )
 
         print(f"✓ Created {len(test_users)} test users")
@@ -506,8 +515,7 @@ class TestSecurityComplianceEndToEnd:
         for user_config in test_users:
             try:
                 session = access_manager.authenticate_user(
-                    username=user_config["username"],
-                    password="mock_password"
+                    username=user_config["username"], password="mock_password"
                 )
 
                 active_sessions[user_config["username"]] = session
@@ -515,21 +523,24 @@ class TestSecurityComplianceEndToEnd:
                 audit_logger.log_event(
                     "user_authenticated",
                     {"username": user_config["username"], "session_id": session["session_id"]},
-                    severity="info"
+                    severity="info",
                 )
 
             except Exception as e:
                 audit_logger.log_event(
                     "authentication_failed",
                     {"username": user_config["username"], "error": str(e)},
-                    severity="warning"
+                    severity="warning",
                 )
 
         print(f"✓ Authenticated {len(active_sessions)} users")
 
         # Test permission-based access control
         access_test_scenarios = [
-            {"action": "read", "users": ["admin_user", "operator_user", "analyst_user", "auditor_user"]},
+            {
+                "action": "read",
+                "users": ["admin_user", "operator_user", "analyst_user", "auditor_user"],
+            },
             {"action": "write", "users": ["admin_user", "operator_user"]},
             {"action": "delete", "users": ["admin_user"]},
             {"action": "audit", "users": ["admin_user", "auditor_user"]},
@@ -554,14 +565,14 @@ class TestSecurityComplianceEndToEnd:
                         audit_logger.log_event(
                             "access_granted",
                             {"user": username, "action": action, "resource": "test_resource"},
-                            severity="info"
+                            severity="info",
                         )
                     else:
                         access_results[action]["denied"].append(username)
                         audit_logger.log_event(
                             "access_denied",
                             {"user": username, "action": action, "resource": "test_resource"},
-                            severity="warning"
+                            severity="warning",
                         )
 
         # Verify access control works as expected
@@ -573,9 +584,15 @@ class TestSecurityComplianceEndToEnd:
         admin_session = active_sessions["admin_user"]["session_id"]
         analyst_session = active_sessions["analyst_user"]["session_id"]
 
-        assert access_manager.check_permission(admin_session, "delete"), "Admin should have delete permission"
-        assert not access_manager.check_permission(analyst_session, "delete"), "Analyst should not have delete permission"
-        assert access_manager.check_permission(analyst_session, "read"), "Analyst should have read permission"
+        assert access_manager.check_permission(
+            admin_session, "delete"
+        ), "Admin should have delete permission"
+        assert not access_manager.check_permission(
+            analyst_session, "delete"
+        ), "Analyst should not have delete permission"
+        assert access_manager.check_permission(
+            analyst_session, "read"
+        ), "Analyst should have read permission"
 
         print("✅ Access control enforcement test completed")
 
@@ -589,20 +606,65 @@ class TestSecurityComplianceEndToEnd:
 
         # Simulate various system activities that should be audited
         audit_activities = [
-            {"type": "user_login", "details": {"username": "admin_user", "ip": "192.168.1.100"}, "severity": "info"},
-            {"type": "data_access", "details": {"user": "analyst_user", "resource": "market_data", "action": "read"}, "severity": "info"},
-            {"type": "configuration_change", "details": {"user": "admin_user", "setting": "api_rate_limit", "old_value": "100", "new_value": "200"}, "severity": "warning"},
-            {"type": "data_export", "details": {"user": "operator_user", "dataset": "AAPL_2024", "destination": "external_system"}, "severity": "warning"},
-            {"type": "security_violation", "details": {"user": "unknown", "action": "unauthorized_access_attempt", "resource": "admin_panel"}, "severity": "error"},
-            {"type": "system_shutdown", "details": {"initiated_by": "admin_user", "reason": "maintenance"}, "severity": "info"},
-            {"type": "data_deletion", "details": {"user": "admin_user", "resource": "test_data", "retention_policy": "expired"}, "severity": "warning"},
+            {
+                "type": "user_login",
+                "details": {"username": "admin_user", "ip": "192.168.1.100"},
+                "severity": "info",
+            },
+            {
+                "type": "data_access",
+                "details": {"user": "analyst_user", "resource": "market_data", "action": "read"},
+                "severity": "info",
+            },
+            {
+                "type": "configuration_change",
+                "details": {
+                    "user": "admin_user",
+                    "setting": "api_rate_limit",
+                    "old_value": "100",
+                    "new_value": "200",
+                },
+                "severity": "warning",
+            },
+            {
+                "type": "data_export",
+                "details": {
+                    "user": "operator_user",
+                    "dataset": "AAPL_2024",
+                    "destination": "external_system",
+                },
+                "severity": "warning",
+            },
+            {
+                "type": "security_violation",
+                "details": {
+                    "user": "unknown",
+                    "action": "unauthorized_access_attempt",
+                    "resource": "admin_panel",
+                },
+                "severity": "error",
+            },
+            {
+                "type": "system_shutdown",
+                "details": {"initiated_by": "admin_user", "reason": "maintenance"},
+                "severity": "info",
+            },
+            {
+                "type": "data_deletion",
+                "details": {
+                    "user": "admin_user",
+                    "resource": "test_data",
+                    "retention_policy": "expired",
+                },
+                "severity": "warning",
+            },
         ]
 
         for activity in audit_activities:
             audit_logger.log_event(
                 event_type=activity["type"],
                 details=activity["details"],
-                severity=activity["severity"]
+                severity=activity["severity"],
             )
 
             # Small delay to ensure timestamp ordering
@@ -616,7 +678,9 @@ class TestSecurityComplianceEndToEnd:
         with open(audit_logger.audit_log_file) as f:
             log_lines = f.readlines()
 
-        assert len(log_lines) == len(audit_activities), f"Expected {len(audit_activities)} log lines, got {len(log_lines)}"
+        assert len(log_lines) == len(
+            audit_activities
+        ), f"Expected {len(audit_activities)} log lines, got {len(log_lines)}"
 
         # Test audit event querying
         security_events = audit_logger.get_events_by_type("security_violation")
@@ -644,13 +708,30 @@ class TestSecurityComplianceEndToEnd:
 
         # Create mock access events for compliance checking
         access_events = [
-            {"timestamp": "2024-01-15T10:00:00Z", "user": "admin_user", "action": "read", "resource": "config"},
-            {"timestamp": "2024-01-15T10:01:00Z", "user": "analyst_user", "action": "query", "resource": "data"},
-            {"timestamp": "2024-01-15T10:02:00Z", "user": "operator_user", "action": "write", "resource": "jobs"},
+            {
+                "timestamp": "2024-01-15T10:00:00Z",
+                "user": "admin_user",
+                "action": "read",
+                "resource": "config",
+            },
+            {
+                "timestamp": "2024-01-15T10:01:00Z",
+                "user": "analyst_user",
+                "action": "query",
+                "resource": "data",
+            },
+            {
+                "timestamp": "2024-01-15T10:02:00Z",
+                "user": "operator_user",
+                "action": "write",
+                "resource": "jobs",
+            },
         ]
 
         access_compliance = validator.validate_access_logging(access_events)
-        assert access_compliance["compliant"], f"Access logging compliance failed: {access_compliance['issues']}"
+        assert access_compliance[
+            "compliant"
+        ], f"Access logging compliance failed: {access_compliance['issues']}"
 
         print("✅ Audit trail generation test completed")
 
@@ -678,8 +759,7 @@ class TestSecurityComplianceEndToEnd:
         encryption_metadata = []
         for i in range(3):
             metadata = encryption_manager.encrypt_sensitive_data(
-                data=f"sensitive_data_{i}",
-                context=f"test_context_{i}"
+                data=f"sensitive_data_{i}", context=f"test_context_{i}"
             )
             encryption_metadata.append(metadata)
 
@@ -698,8 +778,20 @@ class TestSecurityComplianceEndToEnd:
 
         # 3. Access logging compliance
         access_events = [
-            {"timestamp": "2024-01-15T10:00:00Z", "user": "test_user", "action": "read", "resource": "data", "event_id": "evt_001"},
-            {"timestamp": "2024-01-15T10:01:00Z", "user": "test_user", "action": "write", "resource": "config", "event_id": "evt_002"},
+            {
+                "timestamp": "2024-01-15T10:00:00Z",
+                "user": "test_user",
+                "action": "read",
+                "resource": "data",
+                "event_id": "evt_001",
+            },
+            {
+                "timestamp": "2024-01-15T10:01:00Z",
+                "user": "test_user",
+                "action": "write",
+                "resource": "config",
+                "event_id": "evt_002",
+            },
         ]
 
         access_result = validator.validate_access_logging(access_events)
@@ -712,10 +804,14 @@ class TestSecurityComplianceEndToEnd:
         print("📊 Compliance Report:")
         print(f"  Overall score: {compliance_report['compliance_score']:.1f}%")
         print(f"  Status: {compliance_report['overall_status'].upper()}")
-        print(f"  Rules evaluated: {compliance_report['compliant_rules']}/{compliance_report['total_rules']}")
+        print(
+            f"  Rules evaluated: {compliance_report['compliant_rules']}/{compliance_report['total_rules']}"
+        )
 
         # Compliance assertions
-        assert compliance_report["compliance_score"] >= 80, f"Compliance score too low: {compliance_report['compliance_score']:.1f}%"
+        assert (
+            compliance_report["compliance_score"] >= 80
+        ), f"Compliance score too low: {compliance_report['compliance_score']:.1f}%"
         assert compliance_report["overall_status"] in ["compliant", "non_compliant"]
 
         # Verify audit events were generated for compliance issues
@@ -756,15 +852,13 @@ def test_security_compliance_integration_demo(tmp_path):
 
     for user in org_users:
         access_manager.create_user(
-            username=user["username"],
-            role=user["role"],
-            department=user["department"]
+            username=user["username"], role=user["role"], department=user["department"]
         )
 
         audit_logger.log_event(
             "user_provisioned",
             {"username": user["username"], "role": user["role"], "department": user["department"]},
-            severity="info"
+            severity="info",
         )
 
     print(f"✓ Provisioned {len(org_users)} organizational users")
@@ -783,15 +877,14 @@ def test_security_compliance_integration_demo(tmp_path):
     encrypted_assets = []
     for asset in sensitive_assets:
         metadata = encryption_manager.encrypt_sensitive_data(
-            data=asset["data"],
-            context=asset["context"]
+            data=asset["data"], context=asset["context"]
         )
         encrypted_assets.append(metadata)
 
         audit_logger.log_event(
             "sensitive_data_encrypted",
             {"context": asset["context"], "algorithm": metadata["algorithm"]},
-            severity="info"
+            severity="info",
         )
 
     print(f"✓ Encrypted {len(encrypted_assets)} sensitive assets")
@@ -799,7 +892,9 @@ def test_security_compliance_integration_demo(tmp_path):
     # Simulate key rotation schedule
     rotation_result = encryption_manager.rotate_encryption_key()
     audit_logger.log_event("encryption_key_rotation", rotation_result, severity="warning")
-    print(f"✓ Completed scheduled key rotation affecting {rotation_result['affected_data_items']} items")
+    print(
+        f"✓ Completed scheduled key rotation affecting {rotation_result['affected_data_items']} items"
+    )
 
     print("\n🔑 Phase 3: Access Control and Authorization")
 
@@ -812,18 +907,42 @@ def test_security_compliance_integration_demo(tmp_path):
 
         audit_logger.log_event(
             "user_authentication",
-            {"username": user["username"], "session_id": session["session_id"], "role": session["role"]},
-            severity="info"
+            {
+                "username": user["username"],
+                "session_id": session["session_id"],
+                "role": session["role"],
+            },
+            severity="info",
         )
 
     # Simulate realistic access scenarios
     access_scenarios = [
         {"user": "ciso", "action": "audit", "resource": "security_logs", "expected": True},
-        {"user": "sre_lead", "action": "configure", "resource": "ingestion_pipeline", "expected": True},
-        {"user": "compliance_officer", "action": "audit", "resource": "compliance_reports", "expected": True},
+        {
+            "user": "sre_lead",
+            "action": "configure",
+            "resource": "ingestion_pipeline",
+            "expected": True,
+        },
+        {
+            "user": "compliance_officer",
+            "action": "audit",
+            "resource": "compliance_reports",
+            "expected": True,
+        },
         {"user": "data_analyst", "action": "read", "resource": "market_data", "expected": True},
-        {"user": "data_analyst", "action": "delete", "resource": "production_data", "expected": False},
-        {"user": "dev_contractor", "action": "write", "resource": "system_config", "expected": False},
+        {
+            "user": "data_analyst",
+            "action": "delete",
+            "resource": "production_data",
+            "expected": False,
+        },
+        {
+            "user": "dev_contractor",
+            "action": "write",
+            "resource": "system_config",
+            "expected": False,
+        },
     ]
 
     access_violations = 0
@@ -841,17 +960,25 @@ def test_security_compliance_integration_demo(tmp_path):
             audit_logger.log_event(
                 "access_control_verified",
                 {"user": username, "action": action, "resource": resource, "granted": has_access},
-                severity="info"
+                severity="info",
             )
         else:
             access_violations += 1
             audit_logger.log_event(
                 "access_control_violation",
-                {"user": username, "action": action, "resource": resource, "expected": expected, "actual": has_access},
-                severity="error"
+                {
+                    "user": username,
+                    "action": action,
+                    "resource": resource,
+                    "expected": expected,
+                    "actual": has_access,
+                },
+                severity="error",
             )
 
-    print(f"✓ Tested {len(access_scenarios)} access scenarios, {access_violations} violations detected")
+    print(
+        f"✓ Tested {len(access_scenarios)} access scenarios, {access_violations} violations detected"
+    )
 
     print("\n⚖️  Phase 4: Compliance Validation")
 
@@ -882,7 +1009,9 @@ def test_security_compliance_integration_demo(tmp_path):
     print("📊 COMPLIANCE ASSESSMENT:")
     print(f"  Overall Score: {compliance_report['compliance_score']:.1f}%")
     print(f"  Status: {compliance_report['overall_status'].upper()}")
-    print(f"  Rules Passed: {compliance_report['compliant_rules']}/{compliance_report['total_rules']}")
+    print(
+        f"  Rules Passed: {compliance_report['compliant_rules']}/{compliance_report['total_rules']}"
+    )
 
     for rule_name, result in compliance_checks.items():
         status = "✅" if result["compliant"] else "❌"
@@ -904,11 +1033,11 @@ def test_security_compliance_integration_demo(tmp_path):
 
     # Security effectiveness validation
     security_metrics = {
-        "audit_coverage": audit_report['total_events'] > 10,
+        "audit_coverage": audit_report["total_events"] > 10,
         "encryption_deployed": len(encrypted_assets) > 0,
-        "access_control_active": access_summary['active_sessions'] > 0,
-        "compliance_passing": compliance_report['compliance_score'] >= 75,
-        "security_monitoring": len(audit_logger.get_events_by_severity('error')) >= 0,
+        "access_control_active": access_summary["active_sessions"] > 0,
+        "compliance_passing": compliance_report["compliance_score"] >= 75,
+        "security_monitoring": len(audit_logger.get_events_by_severity("error")) >= 0,
     }
 
     passed_metrics = sum(security_metrics.values())
@@ -921,10 +1050,16 @@ def test_security_compliance_integration_demo(tmp_path):
         print(f"  {status} {metric_name.replace('_', ' ').title()}")
 
     # Overall security validation
-    assert passed_metrics >= total_metrics * 0.8, f"Security posture insufficient: {passed_metrics}/{total_metrics}"
-    assert compliance_report['compliance_score'] >= 70, f"Compliance score too low: {compliance_report['compliance_score']:.1f}%"
+    assert (
+        passed_metrics >= total_metrics * 0.8
+    ), f"Security posture insufficient: {passed_metrics}/{total_metrics}"
+    assert (
+        compliance_report["compliance_score"] >= 70
+    ), f"Compliance score too low: {compliance_report['compliance_score']:.1f}%"
     assert access_violations <= 1, f"Too many access control violations: {access_violations}"
 
     print("\n🛡️  Security and compliance demonstration completed successfully!")
-    print("    MarketPipe demonstrates enterprise-grade security controls and regulatory compliance.")
+    print(
+        "    MarketPipe demonstrates enterprise-grade security controls and regulatory compliance."
+    )
     print("=" * 60)

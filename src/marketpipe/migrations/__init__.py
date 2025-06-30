@@ -82,7 +82,7 @@ def _ensure_schema_version_table(db_path: Path) -> None:
         conn.commit()
 
 
-def _get_applied_versions(db_path: Path) -> List[str]:
+def _get_applied_versions(db_path: Path) -> list[str]:
     """Get list of applied migration versions."""
     with sqlite3.connect(db_path) as conn:
         cursor = conn.execute("SELECT version FROM schema_version ORDER BY version")

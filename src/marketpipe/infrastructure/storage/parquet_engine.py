@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 from datetime import date
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import fasteners
 import pandas as pd
@@ -187,6 +186,7 @@ class ParquetStorageEngine:
         This method provides compatibility with the coordinator service interface.
         """
         from datetime import datetime, timezone
+
         from marketpipe.ingestion.domain.value_objects import IngestionPartition
 
         if not bars:
@@ -201,6 +201,7 @@ class ParquetStorageEngine:
 
         # Group bars by trading day
         from collections import defaultdict
+
         import pandas as pd
 
         bars_by_day = defaultdict(list)
@@ -210,7 +211,7 @@ class ParquetStorageEngine:
 
         # Store bars for each trading day separately
         partitions = []
-        
+
         for trading_day, day_bars in bars_by_day.items():
             # Convert bars to DataFrame
             data = []
@@ -267,10 +268,13 @@ class ParquetStorageEngine:
                 first_partition = partitions[0]
                 total_records = sum(p.record_count for p in partitions)
                 total_size = sum(p.file_size_bytes for p in partitions)
-                
+
                 # Create a summary file path that represents the multi-day operation
-                summary_path = self._root / f"summary_{first_partition.symbol.value}_{len(partitions)}_days.parquet"
-                
+                summary_path = (
+                    self._root
+                    / f"summary_{first_partition.symbol.value}_{len(partitions)}_days.parquet"
+                )
+
                 return IngestionPartition(
                     symbol=first_partition.symbol,
                     file_path=summary_path,  # Summary path representing the entire operation
@@ -332,7 +336,7 @@ class ParquetStorageEngine:
 
         return combined_df
 
-    def load_job_bars(self, job_id: str) -> Dict[str, pd.DataFrame]:
+    def load_job_bars(self, job_id: str) -> dict[str, pd.DataFrame]:
         """Load all symbol DataFrames written by a specific job.
 
         Args:
@@ -341,7 +345,7 @@ class ParquetStorageEngine:
         Returns:
             Dictionary mapping symbol names to their DataFrames
         """
-        symbol_dataframes: Dict[str, List[pd.DataFrame]] = {}
+        symbol_dataframes: dict[str, list[pd.DataFrame]] = {}
 
         # Search for all files with the job_id pattern
         for parquet_file in self._root.rglob(f"{job_id}.parquet"):
@@ -383,8 +387,8 @@ class ParquetStorageEngine:
         self,
         symbol: str,
         frame: str,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
     ) -> pd.DataFrame:
         """Load data for a symbol across multiple dates.
 
@@ -466,7 +470,7 @@ class ParquetStorageEngine:
         self.log.info(f"Deleted {removed_count} files for job {job_id}")
         return removed_count
 
-    def list_jobs(self, frame: str, symbol: str) -> List[str]:
+    def list_jobs(self, frame: str, symbol: str) -> list[str]:
         """List all job IDs for a given frame and symbol.
 
         Args:
@@ -488,7 +492,7 @@ class ParquetStorageEngine:
 
         return sorted(job_ids)
 
-    def get_storage_stats(self) -> Dict[str, any]:
+    def get_storage_stats(self) -> dict[str, any]:
         """Get storage statistics.
 
         Returns:
@@ -525,7 +529,7 @@ class ParquetStorageEngine:
             "symbols": sorted(symbols),
         }
 
-    def validate_integrity(self) -> Dict[str, any]:
+    def validate_integrity(self) -> dict[str, any]:
         """Validate storage integrity and return diagnostics.
 
         Returns:

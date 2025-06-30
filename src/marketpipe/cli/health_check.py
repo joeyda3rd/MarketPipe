@@ -21,15 +21,15 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import typer
 import yaml
 
 # Import MarketPipe components for testing
 try:
-    from marketpipe.config.loader import load_config
     from marketpipe.connectors.provider_loader import load_provider_registry
+
     MARKETPIPE_AVAILABLE = True
 except ImportError:
     MARKETPIPE_AVAILABLE = False
@@ -38,12 +38,13 @@ except ImportError:
 @dataclass
 class HealthCheckResult:
     """Result of a health check test."""
+
     name: str
     description: str
     passed: bool = False
     warning: bool = False
     error_message: str = ""
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
     execution_time_ms: float = 0.0
 
 
@@ -51,16 +52,18 @@ class MarketPipeHealthChecker:
     """Comprehensive health check for MarketPipe installation."""
 
     def __init__(self):
-        self.results: List[HealthCheckResult] = []
+        self.results: list[HealthCheckResult] = []
 
-    def run_all_checks(self, config_path: Optional[Path] = None, verbose: bool = False) -> List[HealthCheckResult]:
+    def run_all_checks(
+        self, config_path: Path | None = None, verbose: bool = False
+    ) -> list[HealthCheckResult]:
         """
         Run all health checks.
-        
+
         Args:
             config_path: Optional path to configuration file
             verbose: Show detailed output
-            
+
         Returns:
             List of HealthCheckResult objects
         """
@@ -97,8 +100,7 @@ class MarketPipeHealthChecker:
         start_time = time.time()
 
         result = HealthCheckResult(
-            name="python_version",
-            description="Python version compatibility"
+            name="python_version", description="Python version compatibility"
         )
 
         try:
@@ -109,15 +111,17 @@ class MarketPipeHealthChecker:
                 result.passed = True
                 result.details = {
                     "version": f"{version.major}.{version.minor}.{version.micro}",
-                    "compatible": True
+                    "compatible": True,
                 }
             else:
                 result.passed = False
-                result.error_message = f"Python {version.major}.{version.minor} is not supported. Requires Python 3.8+"
+                result.error_message = (
+                    f"Python {version.major}.{version.minor} is not supported. Requires Python 3.8+"
+                )
                 result.details = {
                     "version": f"{version.major}.{version.minor}.{version.micro}",
                     "compatible": False,
-                    "minimum_required": "3.8"
+                    "minimum_required": "3.8",
                 }
 
         except Exception as e:
@@ -134,14 +138,18 @@ class MarketPipeHealthChecker:
         """Check required dependencies are installed."""
         start_time = time.time()
 
-        result = HealthCheckResult(
-            name="dependencies",
-            description="Required dependencies"
-        )
+        result = HealthCheckResult(name="dependencies", description="Required dependencies")
 
         required_packages = [
-            "typer", "pydantic", "httpx", "pandas", "pyarrow",
-            "duckdb", "pyyaml", "python-dotenv", "prometheus-client"
+            "typer",
+            "pydantic",
+            "httpx",
+            "pandas",
+            "pyarrow",
+            "duckdb",
+            "pyyaml",
+            "python-dotenv",
+            "prometheus-client",
         ]
 
         missing_packages = []
@@ -159,14 +167,14 @@ class MarketPipeHealthChecker:
             result.passed = True
             result.details = {
                 "installed_packages": installed_packages,
-                "all_required_present": True
+                "all_required_present": True,
             }
         else:
             result.passed = False
             result.error_message = f"Missing required packages: {', '.join(missing_packages)}"
             result.details = {
                 "installed_packages": installed_packages,
-                "missing_packages": missing_packages
+                "missing_packages": missing_packages,
             }
 
         result.execution_time_ms = (time.time() - start_time) * 1000
@@ -178,19 +186,16 @@ class MarketPipeHealthChecker:
         start_time = time.time()
 
         result = HealthCheckResult(
-            name="marketpipe_installation",
-            description="MarketPipe installation"
+            name="marketpipe_installation", description="MarketPipe installation"
         )
 
         try:
             if MARKETPIPE_AVAILABLE:
                 # Try to import key modules
                 from marketpipe import __version__ as mp_version
+
                 result.passed = True
-                result.details = {
-                    "version": mp_version,
-                    "importable": True
-                }
+                result.details = {"version": mp_version, "importable": True}
             else:
                 result.passed = False
                 result.error_message = "MarketPipe modules not importable"
@@ -204,14 +209,11 @@ class MarketPipeHealthChecker:
         self.results.append(result)
         return result
 
-    def check_configuration(self, config_path: Optional[Path]) -> HealthCheckResult:
+    def check_configuration(self, config_path: Path | None) -> HealthCheckResult:
         """Check configuration file validity."""
         start_time = time.time()
 
-        result = HealthCheckResult(
-            name="configuration",
-            description="Configuration file validity"
-        )
+        result = HealthCheckResult(name="configuration", description="Configuration file validity")
 
         try:
             if config_path and config_path.exists():
@@ -223,7 +225,7 @@ class MarketPipeHealthChecker:
                 result.details = {
                     "config_file": str(config_path),
                     "parseable": True,
-                    "sections": list(config_data.keys()) if config_data else []
+                    "sections": list(config_data.keys()) if config_data else [],
                 }
             elif config_path:
                 result.passed = False
@@ -247,10 +249,7 @@ class MarketPipeHealthChecker:
         """Check provider registry functionality."""
         start_time = time.time()
 
-        result = HealthCheckResult(
-            name="provider_registry",
-            description="Provider registry"
-        )
+        result = HealthCheckResult(name="provider_registry", description="Provider registry")
 
         try:
             if MARKETPIPE_AVAILABLE:
@@ -260,7 +259,7 @@ class MarketPipeHealthChecker:
                 result.passed = len(providers) > 0
                 result.details = {
                     "available_providers": providers,
-                    "provider_count": len(providers)
+                    "provider_count": len(providers),
                 }
 
                 if not result.passed:
@@ -281,32 +280,19 @@ class MarketPipeHealthChecker:
         """Check fake provider functionality."""
         start_time = time.time()
 
-        result = HealthCheckResult(
-            name="fake_provider",
-            description="Fake provider functionality"
-        )
+        result = HealthCheckResult(name="fake_provider", description="Fake provider functionality")
 
         try:
             # Test fake provider via CLI
-            cmd = [
-                sys.executable, "-m", "marketpipe", "providers"
-            ]
+            cmd = [sys.executable, "-m", "marketpipe", "providers"]
 
-            process_result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
+            process_result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
             if process_result.returncode == 0:
                 output = process_result.stdout.lower()
                 if "fake" in output:
                     result.passed = True
-                    result.details = {
-                        "fake_provider_available": True,
-                        "cli_accessible": True
-                    }
+                    result.details = {"fake_provider_available": True, "cli_accessible": True}
                 else:
                     result.passed = False
                     result.error_message = "Fake provider not found in provider list"
@@ -327,8 +313,7 @@ class MarketPipeHealthChecker:
         start_time = time.time()
 
         result = HealthCheckResult(
-            name="database_connectivity",
-            description="Database connectivity"
+            name="database_connectivity", description="Database connectivity"
         )
 
         try:
@@ -346,10 +331,7 @@ class MarketPipeHealthChecker:
 
                 if res and res[0] == 1:
                     result.passed = True
-                    result.details = {
-                        "duckdb_working": True,
-                        "test_database_path": str(db_path)
-                    }
+                    result.details = {"duckdb_working": True, "test_database_path": str(db_path)}
                 else:
                     result.passed = False
                     result.error_message = "DuckDB test query failed"
@@ -367,8 +349,7 @@ class MarketPipeHealthChecker:
         start_time = time.time()
 
         result = HealthCheckResult(
-            name="data_directory_permissions",
-            description="Data directory permissions"
+            name="data_directory_permissions", description="Data directory permissions"
         )
 
         try:
@@ -383,17 +364,11 @@ class MarketPipeHealthChecker:
                 test_file.unlink()
 
                 result.passed = True
-                result.details = {
-                    "current_directory": str(current_dir),
-                    "writable": True
-                }
+                result.details = {"current_directory": str(current_dir), "writable": True}
             except Exception:
                 result.passed = False
                 result.error_message = f"No write permission in current directory: {current_dir}"
-                result.details = {
-                    "current_directory": str(current_dir),
-                    "writable": False
-                }
+                result.details = {"current_directory": str(current_dir), "writable": False}
 
         except Exception as e:
             result.passed = False
@@ -407,28 +382,17 @@ class MarketPipeHealthChecker:
         """Check CLI commands are accessible."""
         start_time = time.time()
 
-        result = HealthCheckResult(
-            name="cli_commands",
-            description="CLI commands accessibility"
-        )
+        result = HealthCheckResult(name="cli_commands", description="CLI commands accessibility")
 
         try:
             # Test main CLI help
             cmd = [sys.executable, "-m", "marketpipe", "--help"]
 
-            process_result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
+            process_result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
             if process_result.returncode == 0:
                 result.passed = True
-                result.details = {
-                    "cli_accessible": True,
-                    "help_working": True
-                }
+                result.details = {"cli_accessible": True, "help_working": True}
             else:
                 result.passed = False
                 result.error_message = f"CLI help command failed: {process_result.stderr}"
@@ -446,8 +410,7 @@ class MarketPipeHealthChecker:
         start_time = time.time()
 
         result = HealthCheckResult(
-            name="end_to_end_pipeline",
-            description="End-to-end pipeline test"
+            name="end_to_end_pipeline", description="End-to-end pipeline test"
         )
 
         try:
@@ -456,20 +419,23 @@ class MarketPipeHealthChecker:
 
                 # Test basic ingestion with fake provider
                 cmd = [
-                    sys.executable, "-m", "marketpipe", "ingest-ohlcv",
-                    "--provider", "fake",
-                    "--symbols", "AAPL",
-                    "--start", "2023-01-01",
-                    "--end", "2023-01-01",
-                    "--output", str(temp_path / "data")
+                    sys.executable,
+                    "-m",
+                    "marketpipe",
+                    "ingest-ohlcv",
+                    "--provider",
+                    "fake",
+                    "--symbols",
+                    "AAPL",
+                    "--start",
+                    "2023-01-01",
+                    "--end",
+                    "2023-01-01",
+                    "--output",
+                    str(temp_path / "data"),
                 ]
 
-                process_result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
+                process_result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
                 if process_result.returncode == 0:
                     # Check if data files were created
@@ -480,7 +446,7 @@ class MarketPipeHealthChecker:
                         result.details = {
                             "pipeline_working": True,
                             "files_created": len(data_files),
-                            "data_directory": str(temp_path / "data")
+                            "data_directory": str(temp_path / "data"),
                         }
                     else:
                         result.passed = False
@@ -557,20 +523,20 @@ class MarketPipeHealthChecker:
             "database_connectivity": "Verify DuckDB installation",
             "data_directory_permissions": "Ensure write permissions in data directory",
             "cli_commands": "Check MarketPipe installation and PATH configuration",
-            "end_to_end_pipeline": "Run individual components to isolate the issue"
+            "end_to_end_pipeline": "Run individual components to isolate the issue",
         }
 
         return recommendations.get(result.name, "Check error message for details")
 
 
 def health_check_command(
-    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Configuration file path"),
+    config: Path | None = typer.Option(None, "--config", "-c", help="Configuration file path"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
-    output_file: Optional[Path] = typer.Option(None, "--output", "-o", help="Save report to file")
+    output_file: Path | None = typer.Option(None, "--output", "-o", help="Save report to file"),
 ) -> None:
     """
     Run comprehensive health check of MarketPipe installation and configuration.
-    
+
     This command validates:
     - Python version compatibility
     - Required dependencies

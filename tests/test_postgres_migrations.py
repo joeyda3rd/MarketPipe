@@ -25,7 +25,7 @@ class TestPostgresMigrations:
     def test_postgres_migration_from_scratch(self, postgres_url):
         """Test Postgres migration from scratch."""
         # Import asyncpg to ensure it's available
-        asyncpg = pytest.importorskip("asyncpg")
+        pytest.importorskip("asyncpg")
 
         from alembic import command
         from alembic.config import Config
@@ -60,8 +60,8 @@ class TestPostgresMigrations:
     def test_postgres_specific_features(self, postgres_url):
         """Test Postgres-specific SQL features work correctly."""
         # Import required dependencies
-        asyncpg = pytest.importorskip("asyncpg")
-        sqlalchemy = pytest.importorskip("sqlalchemy")
+        pytest.importorskip("asyncpg")
+        pytest.importorskip("sqlalchemy")
 
         from sqlalchemy import create_engine, text
 
@@ -82,9 +82,9 @@ class TestPostgresMigrations:
             result = conn.execute(
                 text(
                     """
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_name = 'symbol_bars_aggregates'
             """
                 )
@@ -96,8 +96,8 @@ class TestPostgresMigrations:
             result = conn.execute(
                 text(
                     """
-                SELECT indexname 
-                FROM pg_indexes 
+                SELECT indexname
+                FROM pg_indexes
                 WHERE schemaname = 'public'
                 AND tablename = 'metrics'
                 AND indexname = 'idx_metrics_name_ts'
@@ -109,7 +109,7 @@ class TestPostgresMigrations:
 
     def test_postgres_concurrent_migrations(self, postgres_url):
         """Test that Postgres handles concurrent migration attempts gracefully."""
-        asyncpg = pytest.importorskip("asyncpg")
+        pytest.importorskip("asyncpg")
 
         import threading
         import time
@@ -157,7 +157,7 @@ class TestPostgresMigrations:
         assert "postgresql" in db_url, f"Expected Postgres URL, got: {db_url}"
 
         # Test connection
-        asyncpg = pytest.importorskip("asyncpg")
+        pytest.importorskip("asyncpg")
 
         from sqlalchemy import create_engine
 

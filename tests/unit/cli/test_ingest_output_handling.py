@@ -27,8 +27,10 @@ class TestCLIOutputHandling:
             output_path = Path(temp_dir) / "custom_output"
 
             # Mock the ingestion services and boundary check
-            with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-                 patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
+            with (
+                patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build,
+                patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check,
+            ):
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
@@ -76,8 +78,10 @@ class TestCLIOutputHandling:
             output_path = Path(temp_dir) / "test_output"
 
             # Mock the ingestion services and boundary check to simulate failure
-            with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-                 patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
+            with (
+                patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build,
+                patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check,
+            ):
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
@@ -123,9 +127,11 @@ class TestCLIOutputHandling:
         """Test that data goes to data/output when no --output flag is provided."""
 
         # Mock the ingestion services and boundary check
-        with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check, \
-             patch("marketpipe.cli.ohlcv_ingest.asyncio.run") as mock_asyncio_run:
+        with (
+            patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build,
+            patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check,
+            patch("marketpipe.cli.ohlcv_ingest.asyncio.run") as mock_asyncio_run,
+        ):
             # Mock the services
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
@@ -141,11 +147,14 @@ class TestCLIOutputHandling:
             mock_check.return_value = None  # Successful verification
 
             # Mock asyncio.run to return proper tuple
-            mock_asyncio_run.return_value = ("test_job", {
-                "symbols_processed": 1,
-                "total_bars": 1000,
-                "processing_time_seconds": 5.0,
-            })
+            mock_asyncio_run.return_value = (
+                "test_job",
+                {
+                    "symbols_processed": 1,
+                    "total_bars": 1000,
+                    "processing_time_seconds": 5.0,
+                },
+            )
 
             # Run ingestion without custom output path
             result = self.runner.invoke(
@@ -175,8 +184,10 @@ class TestCLIOutputHandling:
             output_path = Path(temp_dir) / "verification_test"
 
             # Mock the ingestion services and boundary check
-            with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-                 patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
+            with (
+                patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build,
+                patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check,
+            ):
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
@@ -238,9 +249,11 @@ class TestProviderSuggestions:
             output_path = Path(temp_dir) / "provider_test"
 
             # Mock the ingestion services and boundary check to simulate suggestions
-            with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-                 patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check, \
-                 patch("builtins.print") as mock_print:
+            with (
+                patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build,
+                patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check,
+                patch("builtins.print") as mock_print,
+            ):
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
@@ -287,9 +300,11 @@ class TestProviderSuggestions:
                 assert result.exit_code == 1
                 mock_print.assert_called()
                 # Verify the suggestion was printed
-                print_calls = [call for call in mock_print.call_args_list]
+                print_calls = list(mock_print.call_args_list)
                 suggestion_found = any("Try provider=" in str(call) for call in print_calls)
-                assert suggestion_found, f"Provider suggestions not found in print calls: {print_calls}"
+                assert (
+                    suggestion_found
+                ), f"Provider suggestions not found in print calls: {print_calls}"
 
     def test_verification_error_handling(self):
         """Test that verification errors are handled gracefully."""
@@ -297,8 +312,10 @@ class TestProviderSuggestions:
             output_path = Path(temp_dir) / "error_test"
 
             # Mock the ingestion services and boundary check
-            with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-                 patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check:
+            with (
+                patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build,
+                patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check,
+            ):
                 # Mock the services
                 mock_job_service = AsyncMock()
                 mock_coordinator_service = AsyncMock()
@@ -334,7 +351,9 @@ class TestProviderSuggestions:
                 )
 
                 # Should complete successfully and run verification
-                assert result.exit_code == 0, f"Command should complete successfully: {result.stdout}"
+                assert (
+                    result.exit_code == 0
+                ), f"Command should complete successfully: {result.stdout}"
                 assert "Job completed successfully" in result.stdout
 
 
@@ -420,9 +439,11 @@ class TestIngestOutputHandling:
         pq.write_table(table, parquet_dir / "data.parquet")
 
         # Mock the boundary check and ingestion services
-        with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check, \
-             patch("marketpipe.cli.ohlcv_ingest.asyncio.run") as mock_asyncio_run:
+        with (
+            patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build,
+            patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check,
+            patch("marketpipe.cli.ohlcv_ingest.asyncio.run") as mock_asyncio_run,
+        ):
             # Mock the services
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
@@ -440,11 +461,14 @@ class TestIngestOutputHandling:
             mock_check.return_value = None  # No exception = success
 
             # Mock asyncio.run to return proper tuple
-            mock_asyncio_run.return_value = ("test_job", {
-                "symbols_processed": 1,
-                "total_bars": 1000,
-                "processing_time_seconds": 5.0,
-            })
+            mock_asyncio_run.return_value = (
+                "test_job",
+                {
+                    "symbols_processed": 1,
+                    "total_bars": 1000,
+                    "processing_time_seconds": 5.0,
+                },
+            )
 
             result = self.runner.invoke(
                 app,

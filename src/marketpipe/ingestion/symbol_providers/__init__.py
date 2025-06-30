@@ -4,7 +4,7 @@ from typing import Dict, Type
 
 from .base import SymbolProviderBase
 
-_REGISTRY: Dict[str, Type[SymbolProviderBase]] = {}
+_REGISTRY: dict[str, type[SymbolProviderBase]] = {}
 
 
 def register(name: str):
@@ -21,7 +21,7 @@ def register(name: str):
         TypeError: If class doesn't inherit from SymbolProviderBase
     """
 
-    def decorator(cls: Type[SymbolProviderBase]):
+    def decorator(cls: type[SymbolProviderBase]):
         if name in _REGISTRY:
             raise ValueError(f"Provider name '{name}' already registered")
         if not issubclass(cls, SymbolProviderBase):

@@ -11,7 +11,6 @@ from __future__ import annotations
 import gc
 import time
 from datetime import date, datetime, timedelta, timezone
-from typing import List, Tuple
 
 import pandas as pd
 import pytest
@@ -30,17 +29,23 @@ class BoundaryTestDataGenerator:
     @staticmethod
     def create_minimal_dataset() -> pd.DataFrame:
         """Create minimal valid dataset (single bar)."""
-        return pd.DataFrame([{
-            "ts_ns": int(datetime(2024, 1, 15, 13, 30, 0, tzinfo=timezone.utc).timestamp() * 1e9),
-            "symbol": "MIN",
-            "open": 100.0,
-            "high": 100.01,
-            "low": 99.99,
-            "close": 100.0,
-            "volume": 1,
-            "trade_count": 1,
-            "vwap": 100.0,
-        }])
+        return pd.DataFrame(
+            [
+                {
+                    "ts_ns": int(
+                        datetime(2024, 1, 15, 13, 30, 0, tzinfo=timezone.utc).timestamp() * 1e9
+                    ),
+                    "symbol": "MIN",
+                    "open": 100.0,
+                    "high": 100.01,
+                    "low": 99.99,
+                    "close": 100.0,
+                    "volume": 1,
+                    "trade_count": 1,
+                    "vwap": 100.0,
+                }
+            ]
+        )
 
     @staticmethod
     def create_extreme_price_dataset() -> pd.DataFrame:
@@ -57,19 +62,21 @@ class BoundaryTestDataGenerator:
             (100.0, 200.0, 50.0, 150.0, "extreme_volatility"),
         ]
 
-        for i, (open_price, high_price, low_price, close_price, desc) in enumerate(extreme_cases):
+        for i, (open_price, high_price, low_price, close_price, _desc) in enumerate(extreme_cases):
             timestamp_ns = int((base_time + timedelta(minutes=i)).timestamp() * 1e9)
-            bars.append({
-                "ts_ns": timestamp_ns,
-                "symbol": "EXTREME",
-                "open": open_price,
-                "high": high_price,
-                "low": low_price,
-                "close": close_price,
-                "volume": 1000 if i < 3 else 0,  # Include zero volume case
-                "trade_count": 1 if i < 3 else 0,
-                "vwap": (high_price + low_price + close_price) / 3,
-            })
+            bars.append(
+                {
+                    "ts_ns": timestamp_ns,
+                    "symbol": "EXTREME",
+                    "open": open_price,
+                    "high": high_price,
+                    "low": low_price,
+                    "close": close_price,
+                    "volume": 1000 if i < 3 else 0,  # Include zero volume case
+                    "trade_count": 1 if i < 3 else 0,
+                    "vwap": (high_price + low_price + close_price) / 3,
+                }
+            )
 
         return pd.DataFrame(bars)
 
@@ -94,17 +101,19 @@ class BoundaryTestDataGenerator:
 
         for i, timestamp in enumerate(temporal_cases):
             timestamp_ns = int(timestamp.timestamp() * 1e9)
-            bars.append({
-                "ts_ns": timestamp_ns,
-                "symbol": "TEMPORAL",
-                "open": 100.0 + i,
-                "high": 101.0 + i,
-                "low": 99.0 + i,
-                "close": 100.5 + i,
-                "volume": 1000,
-                "trade_count": 50,
-                "vwap": 100.33 + i,
-            })
+            bars.append(
+                {
+                    "ts_ns": timestamp_ns,
+                    "symbol": "TEMPORAL",
+                    "open": 100.0 + i,
+                    "high": 101.0 + i,
+                    "low": 99.0 + i,
+                    "close": 100.5 + i,
+                    "volume": 1000,
+                    "trade_count": 50,
+                    "vwap": 100.33 + i,
+                }
+            )
 
         return pd.DataFrame(bars)
 
@@ -122,22 +131,24 @@ class BoundaryTestDataGenerator:
             # Gradual price movement
             price = base_price + (i * 0.001)
 
-            bars.append({
-                "ts_ns": timestamp_ns,
-                "symbol": "LARGE",
-                "open": price,
-                "high": price + 0.01,
-                "low": price - 0.01,
-                "close": price + 0.005,
-                "volume": 1000 + (i % 500),
-                "trade_count": 50 + (i % 20),
-                "vwap": price,
-            })
+            bars.append(
+                {
+                    "ts_ns": timestamp_ns,
+                    "symbol": "LARGE",
+                    "open": price,
+                    "high": price + 0.01,
+                    "low": price - 0.01,
+                    "close": price + 0.005,
+                    "volume": 1000 + (i % 500),
+                    "trade_count": 50 + (i % 20),
+                    "vwap": price,
+                }
+            )
 
         return pd.DataFrame(bars)
 
     @staticmethod
-    def create_malformed_data_variants() -> List[Tuple[pd.DataFrame, str]]:
+    def create_malformed_data_variants() -> list[tuple[pd.DataFrame, str]]:
         """Create various malformed data scenarios for resilience testing."""
         base_time = datetime(2024, 1, 15, 13, 30, 0, tzinfo=timezone.utc)
         base_timestamp_ns = int(base_time.timestamp() * 1e9)
@@ -145,81 +156,101 @@ class BoundaryTestDataGenerator:
         variants = []
 
         # Missing columns (should fail gracefully)
-        missing_columns = pd.DataFrame([{
-            "ts_ns": base_timestamp_ns,
-            "symbol": "MISSING",
-            "open": 100.0,
-            # Missing high, low, close, volume
-        }])
+        missing_columns = pd.DataFrame(
+            [
+                {
+                    "ts_ns": base_timestamp_ns,
+                    "symbol": "MISSING",
+                    "open": 100.0,
+                    # Missing high, low, close, volume
+                }
+            ]
+        )
         variants.append((missing_columns, "missing_required_columns"))
 
         # Negative prices (should be handled or rejected)
-        negative_prices = pd.DataFrame([{
-            "ts_ns": base_timestamp_ns,
-            "symbol": "NEGATIVE",
-            "open": -100.0,
-            "high": -99.0,
-            "low": -101.0,
-            "close": -100.5,
-            "volume": 1000,
-            "trade_count": 50,
-            "vwap": -100.0,
-        }])
+        negative_prices = pd.DataFrame(
+            [
+                {
+                    "ts_ns": base_timestamp_ns,
+                    "symbol": "NEGATIVE",
+                    "open": -100.0,
+                    "high": -99.0,
+                    "low": -101.0,
+                    "close": -100.5,
+                    "volume": 1000,
+                    "trade_count": 50,
+                    "vwap": -100.0,
+                }
+            ]
+        )
         variants.append((negative_prices, "negative_prices"))
 
         # Invalid OHLC relationships
-        invalid_ohlc = pd.DataFrame([{
-            "ts_ns": base_timestamp_ns,
-            "symbol": "INVALID",
-            "open": 100.0,
-            "high": 95.0,  # High < Open (invalid)
-            "low": 105.0,  # Low > Open (invalid)
-            "close": 110.0,  # Close > High (invalid)
-            "volume": 1000,
-            "trade_count": 50,
-            "vwap": 100.0,
-        }])
+        invalid_ohlc = pd.DataFrame(
+            [
+                {
+                    "ts_ns": base_timestamp_ns,
+                    "symbol": "INVALID",
+                    "open": 100.0,
+                    "high": 95.0,  # High < Open (invalid)
+                    "low": 105.0,  # Low > Open (invalid)
+                    "close": 110.0,  # Close > High (invalid)
+                    "volume": 1000,
+                    "trade_count": 50,
+                    "vwap": 100.0,
+                }
+            ]
+        )
         variants.append((invalid_ohlc, "invalid_ohlc_relationships"))
 
         # Extreme timestamps (far future/past)
-        extreme_timestamps = pd.DataFrame([{
-            "ts_ns": int(datetime(2100, 1, 1, tzinfo=timezone.utc).timestamp() * 1e9),  # Far future
-            "symbol": "FUTURE",
-            "open": 100.0,
-            "high": 101.0,
-            "low": 99.0,
-            "close": 100.5,
-            "volume": 1000,
-            "trade_count": 50,
-            "vwap": 100.0,
-        }])
+        extreme_timestamps = pd.DataFrame(
+            [
+                {
+                    "ts_ns": int(
+                        datetime(2100, 1, 1, tzinfo=timezone.utc).timestamp() * 1e9
+                    ),  # Far future
+                    "symbol": "FUTURE",
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": 100.5,
+                    "volume": 1000,
+                    "trade_count": 50,
+                    "vwap": 100.0,
+                }
+            ]
+        )
         variants.append((extreme_timestamps, "extreme_future_timestamp"))
 
         # Duplicate timestamps
-        duplicate_timestamps = pd.DataFrame([
-            {
-                "ts_ns": base_timestamp_ns,
-                "symbol": "DUP",
-                "open": 100.0,
-                "high": 101.0,
-                "low": 99.0,
-                "close": 100.5,
-                "volume": 1000,
-                "trade_count": 50,
-                "vwap": 100.0,
-            },
-            {
-                "ts_ns": base_timestamp_ns,  # Same timestamp
-                "symbol": "DUP",
-                "open": 101.0,
-                "high": 102.0,
-                "low": 100.0,
-                "close": 101.5,
-                "volume": 1100,
-                "trade_count": 55,
-                "vwap": 101.0,
-            }
-        ])
+        duplicate_timestamps = pd.DataFrame(
+            [
+                {
+                    "ts_ns": base_timestamp_ns,
+                    "symbol": "DUP",
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": 100.5,
+                    "volume": 1000,
+                    "trade_count": 50,
+                    "vwap": 100.0,
+                },
+                {
+                    "ts_ns": base_timestamp_ns,  # Same timestamp
+                    "symbol": "DUP",
+                    "open": 101.0,
+                    "high": 102.0,
+                    "low": 100.0,
+                    "close": 101.5,
+                    "volume": 1100,
+                    "trade_count": 55,
+                    "vwap": 101.0,
+                },
+            ]
+        )
         variants.append((duplicate_timestamps, "duplicate_timestamps"))
 
         return variants
@@ -251,7 +282,7 @@ class TestBoundaryConditionsEndToEnd:
             symbol="MIN",
             trading_day=date(2024, 1, 15),
             job_id=job_id,
-            overwrite=True
+            overwrite=True,
         )
 
         print(f"✓ Wrote minimal dataset: {len(minimal_data)} bar")
@@ -266,7 +297,7 @@ class TestBoundaryConditionsEndToEnd:
             symbol=Symbol("MIN"),
             trading_date=date(2024, 1, 15),
             bars_processed=1,
-            success=True
+            success=True,
         )
 
         # Should handle minimal data gracefully
@@ -281,7 +312,9 @@ class TestBoundaryConditionsEndToEnd:
             if not agg_data.empty:
                 print(f"✓ Aggregated minimal data: {len(agg_data)} bars")
             else:
-                print("⚠️  No aggregated data created from minimal dataset (expected for single bar)")
+                print(
+                    "⚠️  No aggregated data created from minimal dataset (expected for single bar)"
+                )
         except:
             print("⚠️  Aggregation skipped for insufficient data (expected)")
 
@@ -307,7 +340,7 @@ class TestBoundaryConditionsEndToEnd:
             symbol="EXTREME",
             trading_day=date(2024, 1, 15),
             job_id=job_id,
-            overwrite=True
+            overwrite=True,
         )
 
         print(f"✓ Wrote extreme price dataset: {len(extreme_data)} bars")
@@ -324,7 +357,7 @@ class TestBoundaryConditionsEndToEnd:
             symbol=Symbol("EXTREME"),
             trading_date=date(2024, 1, 15),
             bars_processed=len(extreme_data),
-            success=True
+            success=True,
         )
 
         # Should handle extreme prices without crashing
@@ -351,7 +384,7 @@ class TestBoundaryConditionsEndToEnd:
 
         # Test each temporal boundary case
         for i, row in temporal_data.iterrows():
-            trading_day = datetime.fromtimestamp(row['ts_ns'] / 1e9, tz=timezone.utc).date()
+            trading_day = datetime.fromtimestamp(row["ts_ns"] / 1e9, tz=timezone.utc).date()
             job_id = f"temporal-test-{i}"
 
             single_bar_df = pd.DataFrame([row])
@@ -363,7 +396,7 @@ class TestBoundaryConditionsEndToEnd:
                     symbol="TEMPORAL",
                     trading_day=trading_day,
                     job_id=job_id,
-                    overwrite=True
+                    overwrite=True,
                 )
                 print(f"✓ Processed temporal boundary: {trading_day}")
             except Exception as e:
@@ -386,6 +419,7 @@ class TestBoundaryConditionsEndToEnd:
 
         # Monitor memory usage
         import psutil
+
         process = psutil.Process()
         start_memory = process.memory_info().rss / 1024 / 1024  # MB
 
@@ -398,7 +432,7 @@ class TestBoundaryConditionsEndToEnd:
             symbol="LARGE",
             trading_day=date(2024, 1, 15),
             job_id=job_id,
-            overwrite=True
+            overwrite=True,
         )
 
         write_time = time.monotonic() - start_time
@@ -419,7 +453,7 @@ class TestBoundaryConditionsEndToEnd:
             symbol=Symbol("LARGE"),
             trading_date=date(2024, 1, 15),
             bars_processed=len(large_data),
-            success=True
+            success=True,
         )
 
         aggregation_service.handle_ingestion_completed(event)
@@ -433,7 +467,9 @@ class TestBoundaryConditionsEndToEnd:
         # Performance assertions (relaxed for CI environments)
         assert write_time < 30, f"Large dataset write too slow: {write_time:.1f}s"
         assert agg_time < 60, f"Large dataset aggregation too slow: {agg_time:.1f}s"
-        assert final_memory - start_memory < 500, f"Memory usage too high: {final_memory - start_memory:.1f} MB"
+        assert (
+            final_memory - start_memory < 500
+        ), f"Memory usage too high: {final_memory - start_memory:.1f} MB"
 
         print("✅ Large dataset stress test completed")
 
@@ -461,7 +497,7 @@ class TestBoundaryConditionsEndToEnd:
                     symbol="MALFORMED",
                     trading_day=date(2024, 1, 15),
                     job_id=job_id,
-                    overwrite=True
+                    overwrite=True,
                 )
 
                 resilience_results.append((description, "ACCEPTED", "Data written successfully"))
@@ -473,7 +509,7 @@ class TestBoundaryConditionsEndToEnd:
 
         # Summary of resilience testing
         print("\n📊 Malformed Data Resilience Summary:")
-        for description, result, details in resilience_results:
+        for description, result, _details in resilience_results:
             print(f"  {description}: {result}")
 
         # Count rejections (good) vs acceptances (may need review)
@@ -504,17 +540,27 @@ class TestBoundaryConditionsEndToEnd:
 
         try:
             for i in range(max_files):
-                small_data = pd.DataFrame([{
-                    "ts_ns": int((datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc) + timedelta(minutes=i)).timestamp() * 1e9),
-                    "symbol": f"FD{i:03d}",
-                    "open": 100.0,
-                    "high": 100.01,
-                    "low": 99.99,
-                    "close": 100.0,
-                    "volume": 1000,
-                    "trade_count": 50,
-                    "vwap": 100.0,
-                }])
+                small_data = pd.DataFrame(
+                    [
+                        {
+                            "ts_ns": int(
+                                (
+                                    datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc)
+                                    + timedelta(minutes=i)
+                                ).timestamp()
+                                * 1e9
+                            ),
+                            "symbol": f"FD{i:03d}",
+                            "open": 100.0,
+                            "high": 100.01,
+                            "low": 99.99,
+                            "close": 100.0,
+                            "volume": 1000,
+                            "trade_count": 50,
+                            "vwap": 100.0,
+                        }
+                    ]
+                )
 
                 raw_engine.write(
                     df=small_data,
@@ -522,7 +568,7 @@ class TestBoundaryConditionsEndToEnd:
                     symbol=f"FD{i:03d}",
                     trading_day=date(2024, 1, 15),
                     job_id=f"fd-test-{i}",
-                    overwrite=True
+                    overwrite=True,
                 )
                 files_created += 1
 
@@ -567,7 +613,7 @@ class TestBoundaryConditionsEndToEnd:
         raw_engine = ParquetStorageEngine(raw_dir)
 
         # Concurrent write test with boundary data
-        def write_boundary_data(thread_id: int) -> Tuple[int, str]:
+        def write_boundary_data(thread_id: int) -> tuple[int, str]:
             try:
                 # Each thread writes different boundary case
                 if thread_id % 4 == 0:
@@ -589,7 +635,7 @@ class TestBoundaryConditionsEndToEnd:
                     symbol=symbol,
                     trading_day=date(2024, 1, 15),
                     job_id=f"concurrent-boundary-{thread_id}",
-                    overwrite=True
+                    overwrite=True,
                 )
 
                 return thread_id, "SUCCESS"
@@ -618,7 +664,9 @@ class TestBoundaryConditionsEndToEnd:
                 print(f"    {error}")
 
         # Should handle most concurrent boundary conditions
-        assert successes >= thread_count * 0.7, f"Too many concurrent failures: {successes}/{thread_count}"
+        assert (
+            successes >= thread_count * 0.7
+        ), f"Too many concurrent failures: {successes}/{thread_count}"
 
         print("✅ Concurrent boundary conditions test completed")
 
@@ -663,7 +711,7 @@ def test_system_limits_documentation(tmp_path):
             symbol="LIMIT_TEST",
             trading_day=date(2024, 1, 15),
             job_id="limits-test",
-            overwrite=True
+            overwrite=True,
         )
 
         print(f"✓ Validated max_bars_per_file limit: {limits_tested['max_bars_per_file']:,} bars")

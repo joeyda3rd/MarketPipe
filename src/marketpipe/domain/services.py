@@ -12,7 +12,6 @@ from abc import ABC
 from collections.abc import Iterable
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
 
 from .aggregates import DailySummary
 from .entities import OHLCVBar
@@ -88,7 +87,7 @@ class OHLCVCalculationService(DomainService):
         Raises:
             ValueError: If no bars provided or bars span multiple days
         """
-        bars_list = sorted(list(bars), key=lambda b: b.timestamp.value)
+        bars_list = sorted(bars, key=lambda b: b.timestamp.value)
         if not bars_list:
             raise ValueError("Cannot calculate daily summary with no bars")
 
@@ -139,7 +138,7 @@ class OHLCVCalculationService(DomainService):
             last_bar_time=last_bar.timestamp,
         )
 
-    def resample(self, bars: Iterable[OHLCVBar], frame_seconds: int) -> List[OHLCVBar]:
+    def resample(self, bars: Iterable[OHLCVBar], frame_seconds: int) -> list[OHLCVBar]:
         """Resample bars to a different timeframe.
 
         Args:
@@ -205,7 +204,7 @@ class OHLCVCalculationService(DomainService):
 
         return resampled_bars
 
-    def _resample_bar_group(self, bars: List[OHLCVBar], period_start: datetime) -> OHLCVBar:
+    def _resample_bar_group(self, bars: list[OHLCVBar], period_start: datetime) -> OHLCVBar:
         """Resample a group of bars into a single bar.
 
         Args:
@@ -259,8 +258,8 @@ class OHLCVCalculationService(DomainService):
         )
 
     def aggregate_bars_to_timeframe(
-        self, bars: List[OHLCVBar], timeframe_minutes: int
-    ) -> List[OHLCVBar]:
+        self, bars: list[OHLCVBar], timeframe_minutes: int
+    ) -> list[OHLCVBar]:
         """Aggregate minute bars to larger timeframes (5min, 15min, etc.).
 
         Args:
@@ -278,8 +277,8 @@ class OHLCVCalculationService(DomainService):
         return self.resample(bars, frame_seconds)
 
     def calculate_sma(
-        self, bars: List[OHLCVBar], period: int, price_type: str = "close"
-    ) -> List[float]:
+        self, bars: list[OHLCVBar], period: int, price_type: str = "close"
+    ) -> list[float]:
         """Calculate Simple Moving Average for a series of bars.
 
         Args:
@@ -321,7 +320,7 @@ class OHLCVCalculationService(DomainService):
 
         return sma_values
 
-    def calculate_volatility(self, bars: List[OHLCVBar], period: int) -> List[Optional[float]]:
+    def calculate_volatility(self, bars: list[OHLCVBar], period: int) -> list[float | None]:
         """Calculate rolling volatility (standard deviation of returns).
 
         Args:
@@ -375,7 +374,7 @@ class MarketDataValidationService(DomainService):
     and cross-validation between related data points.
     """
 
-    def validate_bar(self, bar: OHLCVBar) -> List[str]:
+    def validate_bar(self, bar: OHLCVBar) -> list[str]:
         """Validate a single OHLCV bar against business rules.
 
         Args:
@@ -421,7 +420,7 @@ class MarketDataValidationService(DomainService):
 
         return errors
 
-    def validate_batch(self, bars: List[OHLCVBar]) -> List[str]:
+    def validate_batch(self, bars: list[OHLCVBar]) -> list[str]:
         """Validate a batch of OHLCV bars for business rule compliance.
 
         Args:
@@ -481,7 +480,7 @@ class MarketDataValidationService(DomainService):
         start_minute: int = 30,
         end_hour: int = 16,
         end_minute: int = 0,
-    ) -> List[str]:
+    ) -> list[str]:
         """Validate bar is within trading hours window.
 
         Args:
@@ -524,7 +523,7 @@ class MarketDataValidationService(DomainService):
 
         return errors
 
-    def validate_trading_hours(self, bar: OHLCVBar) -> List[str]:
+    def validate_trading_hours(self, bar: OHLCVBar) -> list[str]:
         """Validate that bar timestamp is within reasonable trading hours.
 
         Args:
@@ -536,8 +535,8 @@ class MarketDataValidationService(DomainService):
         return self._validate_trading_hours_window(bar)
 
     def validate_price_movements(
-        self, current_bar: OHLCVBar, previous_bar: Optional[OHLCVBar]
-    ) -> List[str]:
+        self, current_bar: OHLCVBar, previous_bar: OHLCVBar | None
+    ) -> list[str]:
         """Validate price movements for reasonableness.
 
         Args:
@@ -570,7 +569,7 @@ class MarketDataValidationService(DomainService):
 
         return errors
 
-    def validate_volume_patterns(self, bars: List[OHLCVBar]) -> List[str]:
+    def validate_volume_patterns(self, bars: list[OHLCVBar]) -> list[str]:
         """Validate volume patterns across multiple bars.
 
         Args:
@@ -626,7 +625,7 @@ class TradingCalendarService(DomainService):
         # Simplified: weekdays only
         return date.weekday() < 5
 
-    def get_trading_session_times(self, trading_date: date) -> Dict[str, datetime]:
+    def get_trading_session_times(self, trading_date: date) -> dict[str, datetime]:
         """Get trading session times for a specific date.
 
         Args:

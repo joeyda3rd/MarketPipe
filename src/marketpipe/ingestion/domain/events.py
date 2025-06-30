@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import List
 from uuid import UUID, uuid4
 
 from marketpipe.domain.events import DomainEvent
@@ -20,7 +19,7 @@ class IngestionJobStarted(DomainEvent):
     """Event raised when an ingestion job starts."""
 
     job_id: IngestionJobId
-    symbols: List[Symbol]
+    symbols: list[Symbol]
     time_range: TimeRange
     started_at: datetime
     event_id: UUID = None

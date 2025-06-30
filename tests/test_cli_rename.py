@@ -53,7 +53,7 @@ class TestCLIRename:
         """Test that deprecated ingest command shows warning."""
         mock_ingest.return_value = None
 
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             result = runner.invoke(
                 app, ["ingest", "--symbols", "AAPL", "--start", "2024-01-01", "--end", "2024-01-02"]
@@ -101,7 +101,7 @@ class TestCLIRename:
         """Test that new ohlcv ingest command works."""
         mock_ingest.return_value = None
 
-        result = runner.invoke(
+        runner.invoke(
             app,
             [
                 "ohlcv",
@@ -123,7 +123,7 @@ class TestCLIRename:
         """Test that convenience ingest-ohlcv command works."""
         mock_ingest.return_value = None
 
-        result = runner.invoke(
+        runner.invoke(
             app,
             ["ingest-ohlcv", "--symbols", "AAPL", "--start", "2024-01-01", "--end", "2024-01-02"],
         )
@@ -136,7 +136,7 @@ class TestCLIRename:
         """Test that new ohlcv validate command works."""
         mock_validate.return_value = None
 
-        result = runner.invoke(app, ["ohlcv", "validate", "--list"])
+        runner.invoke(app, ["ohlcv", "validate", "--list"])
 
         mock_validate.assert_called_once()
 
@@ -146,7 +146,7 @@ class TestCLIRename:
         """Test that new ohlcv aggregate command works."""
         mock_aggregate.return_value = None
 
-        result = runner.invoke(app, ["ohlcv", "aggregate", "test-job-id"])
+        runner.invoke(app, ["ohlcv", "aggregate", "test-job-id"])
 
         mock_aggregate.assert_called_once()
 

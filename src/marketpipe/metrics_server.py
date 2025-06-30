@@ -105,9 +105,7 @@ class AsyncMetricsServer:
             while b"\r\n\r\n" not in request_data:
                 chunk = await reader.read(1024)
                 if not chunk:
-                    await self._send_response(
-                        writer, 400, "Bad Request", b"Incomplete request"
-                    )
+                    await self._send_response(writer, 400, "Bad Request", b"Incomplete request")
                     return
 
                 request_data += chunk
@@ -124,31 +122,23 @@ class AsyncMetricsServer:
                 parts = request_line.split()
 
                 if len(parts) < 2:
-                    await self._send_response(
-                        writer, 400, "Bad Request", b"Invalid request line"
-                    )
+                    await self._send_response(writer, 400, "Bad Request", b"Invalid request line")
                     return
 
                 method, path = parts[0], parts[1]
 
             except (UnicodeDecodeError, IndexError):
-                await self._send_response(
-                    writer, 400, "Bad Request", b"Invalid request format"
-                )
+                await self._send_response(writer, 400, "Bad Request", b"Invalid request format")
                 return
 
             # Check HTTP method
             if method not in ("GET", "HEAD"):
-                await self._send_response(
-                    writer, 405, "Method Not Allowed", b"Method not allowed"
-                )
+                await self._send_response(writer, 405, "Method Not Allowed", b"Method not allowed")
                 return
 
             # Check exact path match
             if path != "/metrics":
-                await self._send_response(
-                    writer, 404, "Not Found", b"Not found - try /metrics"
-                )
+                await self._send_response(writer, 404, "Not Found", b"Not found - try /metrics")
                 return
 
             # Generate metrics data
@@ -249,9 +239,7 @@ class AsyncMetricsServer:
 _async_server_instance: AsyncMetricsServer | None = None
 
 
-async def start_async_server(
-    port: int = 8000, host: str = "localhost"
-) -> AsyncMetricsServer:
+async def start_async_server(port: int = 8000, host: str = "localhost") -> AsyncMetricsServer:
     """Start the global async metrics server."""
     import errno
     import socket
@@ -320,22 +308,14 @@ def run(port: int = 8000, legacy: bool = False) -> None:
         if "PROMETHEUS_MULTIPROC_DIR" in os.environ:
             # Use multiprocess mode
             httpd = make_server("", port, metrics_app)
-            logger.info(
-                f"Prometheus metrics server (multiprocess mode) serving on port {port}"
-            )
-            print(
-                f"Prometheus metrics server (multiprocess mode) serving on port {port}"
-            )
+            logger.info(f"Prometheus metrics server (multiprocess mode) serving on port {port}")
+            print(f"Prometheus metrics server (multiprocess mode) serving on port {port}")
             httpd.serve_forever()
         else:
             # Use regular single-process mode
             start_http_server(port=port)
-            logger.info(
-                f"Prometheus metrics server (single process mode) serving on port {port}"
-            )
-            print(
-                f"Prometheus metrics server (single process mode) serving on port {port}"
-            )
+            logger.info(f"Prometheus metrics server (single process mode) serving on port {port}")
+            print(f"Prometheus metrics server (single process mode) serving on port {port}")
             # Block forever to maintain legacy behavior
             try:
                 while True:

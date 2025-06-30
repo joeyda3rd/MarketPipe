@@ -9,7 +9,6 @@ reporting across the entire MarketPipe system.
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
-from typing import Dict
 
 import pandas as pd
 import pytest
@@ -35,7 +34,9 @@ class DataQualityGenerator:
             timestamp_ns = int(timestamp.timestamp() * 1e9)
 
             # Realistic price movement with proper OHLC relationships
-            price_change = (i * 0.01) + (0.1 if i % 10 == 0 else 0)  # Small trend with occasional jumps
+            price_change = (i * 0.01) + (
+                0.1 if i % 10 == 0 else 0
+            )  # Small trend with occasional jumps
             current_price = base_price + price_change
 
             # Ensure valid OHLC relationships
@@ -46,24 +47,25 @@ class DataQualityGenerator:
 
             volume = 1000 + (i * 10) + (500 if i % 20 == 0 else 0)  # Realistic volume with spikes
 
-            bars.append({
-                "ts_ns": timestamp_ns,
-                "symbol": symbol,
-                "open": round(open_price, 2),
-                "high": round(high_price, 2),
-                "low": round(low_price, 2),
-                "close": round(close_price, 2),
-                "volume": volume,
-                "trade_count": max(1, volume // 20),
-                "vwap": round((high_price + low_price + close_price) / 3, 2),
-            })
+            bars.append(
+                {
+                    "ts_ns": timestamp_ns,
+                    "symbol": symbol,
+                    "open": round(open_price, 2),
+                    "high": round(high_price, 2),
+                    "low": round(low_price, 2),
+                    "close": round(close_price, 2),
+                    "volume": volume,
+                    "trade_count": max(1, volume // 20),
+                    "vwap": round((high_price + low_price + close_price) / 3, 2),
+                }
+            )
 
         return pd.DataFrame(bars)
 
     @staticmethod
     def create_quality_issues_dataset(symbol: str) -> pd.DataFrame:
         """Create dataset with various quality issues for testing validation."""
-        bars = []
         base_time = datetime(2024, 1, 15, 13, 30, 0, tzinfo=timezone.utc)
 
         quality_issues = [
@@ -79,7 +81,6 @@ class DataQualityGenerator:
                 "trade_count": 50,
                 "vwap": 99.0,
             },
-
             # Issue 2: Zero volume
             {
                 "ts_ns": int((base_time + timedelta(minutes=1)).timestamp() * 1e9),
@@ -92,7 +93,6 @@ class DataQualityGenerator:
                 "trade_count": 0,
                 "vwap": 100.0,
             },
-
             # Issue 3: Extreme price gap (>10% jump)
             {
                 "ts_ns": int((base_time + timedelta(minutes=2)).timestamp() * 1e9),
@@ -105,10 +105,11 @@ class DataQualityGenerator:
                 "trade_count": 100,
                 "vwap": 120.33,
             },
-
             # Issue 4: Timestamp not aligned to minute boundary
             {
-                "ts_ns": int((base_time + timedelta(minutes=3, seconds=15)).timestamp() * 1e9),  # +15 seconds
+                "ts_ns": int(
+                    (base_time + timedelta(minutes=3, seconds=15)).timestamp() * 1e9
+                ),  # +15 seconds
                 "symbol": symbol,
                 "open": 120.5,
                 "high": 121.0,
@@ -118,7 +119,6 @@ class DataQualityGenerator:
                 "trade_count": 75,
                 "vwap": 120.6,
             },
-
             # Issue 5: Negative price
             {
                 "ts_ns": int((base_time + timedelta(minutes=4)).timestamp() * 1e9),
@@ -131,7 +131,6 @@ class DataQualityGenerator:
                 "trade_count": 50,
                 "vwap": -9.83,
             },
-
             # Issue 6: Duplicate timestamp
             {
                 "ts_ns": int(base_time.timestamp() * 1e9),  # Same as first bar
@@ -169,7 +168,7 @@ class DataQualityAnalyzer:
     """Analyze data quality metrics and patterns."""
 
     @staticmethod
-    def analyze_ohlc_consistency(df: pd.DataFrame) -> Dict[str, any]:
+    def analyze_ohlc_consistency(df: pd.DataFrame) -> dict[str, any]:
         """Analyze OHLC price relationship consistency."""
 
         issues = []
@@ -195,7 +194,7 @@ class DataQualityAnalyzer:
         }
 
     @staticmethod
-    def analyze_price_movements(df: pd.DataFrame) -> Dict[str, any]:
+    def analyze_price_movements(df: pd.DataFrame) -> dict[str, any]:
         """Analyze price movement patterns for anomalies."""
 
         if len(df) < 2:
@@ -206,29 +205,35 @@ class DataQualityAnalyzer:
         gaps = []
 
         for i in range(1, len(df_sorted)):
-            prev_close = df_sorted.iloc[i-1]["close"]
+            prev_close = df_sorted.iloc[i - 1]["close"]
             curr_open = df_sorted.iloc[i]["open"]
 
             gap = (curr_open - prev_close) / prev_close
             price_changes.append(gap)
 
             if abs(gap) > 0.05:  # >5% gap
-                gaps.append({
-                    "index": i,
-                    "gap_percent": gap * 100,
-                    "prev_close": prev_close,
-                    "curr_open": curr_open,
-                })
+                gaps.append(
+                    {
+                        "index": i,
+                        "gap_percent": gap * 100,
+                        "prev_close": prev_close,
+                        "curr_open": curr_open,
+                    }
+                )
 
         return {
             "price_changes": price_changes,
             "extreme_gaps": gaps,
             "max_gap_percent": max([abs(g) for g in price_changes]) * 100 if price_changes else 0,
-            "avg_absolute_change": sum([abs(g) for g in price_changes]) / len(price_changes) * 100 if price_changes else 0,
+            "avg_absolute_change": (
+                sum([abs(g) for g in price_changes]) / len(price_changes) * 100
+                if price_changes
+                else 0
+            ),
         }
 
     @staticmethod
-    def analyze_temporal_consistency(df: pd.DataFrame) -> Dict[str, any]:
+    def analyze_temporal_consistency(df: pd.DataFrame) -> dict[str, any]:
         """Analyze timestamp consistency and alignment."""
 
         issues = []
@@ -239,33 +244,31 @@ class DataQualityAnalyzer:
 
             # Check minute alignment
             if dt.second != 0 or dt.microsecond != 0:
-                issues.append({
-                    "index": i,
-                    "timestamp": dt.isoformat(),
-                    "issue": "not_minute_aligned"
-                })
+                issues.append(
+                    {"index": i, "timestamp": dt.isoformat(), "issue": "not_minute_aligned"}
+                )
 
             # Check market hours (simplified: 13:30-20:00 UTC)
             hour = dt.hour
             if hour < 13 or hour >= 20:
-                issues.append({
-                    "index": i,
-                    "timestamp": dt.isoformat(),
-                    "issue": "outside_market_hours"
-                })
+                issues.append(
+                    {"index": i, "timestamp": dt.isoformat(), "issue": "outside_market_hours"}
+                )
 
         # Check for duplicates
         duplicates = df[df.duplicated("ts_ns", keep=False)]
 
         return {
             "alignment_violations": len([i for i in issues if i["issue"] == "not_minute_aligned"]),
-            "market_hours_violations": len([i for i in issues if i["issue"] == "outside_market_hours"]),
+            "market_hours_violations": len(
+                [i for i in issues if i["issue"] == "outside_market_hours"]
+            ),
             "duplicate_timestamps": len(duplicates),
             "issues": issues[:10],  # First 10 issues
         }
 
     @staticmethod
-    def analyze_volume_patterns(df: pd.DataFrame) -> Dict[str, any]:
+    def analyze_volume_patterns(df: pd.DataFrame) -> dict[str, any]:
         """Analyze volume and trade count patterns."""
 
         volumes = df["volume"].tolist()
@@ -283,10 +286,12 @@ class DataQualityAnalyzer:
 
         if trade_counts:
             zero_trades_count = sum(1 for t in trade_counts if t <= 0)
-            analysis.update({
-                "zero_trade_count_bars": zero_trades_count,
-                "avg_trades_per_bar": sum(trade_counts) / len(trade_counts),
-            })
+            analysis.update(
+                {
+                    "zero_trade_count_bars": zero_trades_count,
+                    "avg_trades_per_bar": sum(trade_counts) / len(trade_counts),
+                }
+            )
 
         return analysis
 
@@ -306,7 +311,7 @@ class TestDataQualityValidationEndToEnd:
         reports_dir.mkdir()
 
         storage_engine = ParquetStorageEngine(storage_dir)
-        csv_repository = CsvReportRepository(reports_dir)
+        CsvReportRepository(reports_dir)
 
         # Create high-quality dataset
         high_quality_data = DataQualityGenerator.create_high_quality_dataset("AAPL", size=100)
@@ -318,7 +323,7 @@ class TestDataQualityValidationEndToEnd:
             symbol="AAPL",
             trading_day=date(2024, 1, 15),
             job_id=job_id,
-            overwrite=True
+            overwrite=True,
         )
 
         print(f"✓ Stored high-quality dataset: {len(high_quality_data)} bars")
@@ -336,10 +341,10 @@ class TestDataQualityValidationEndToEnd:
         print(f"  Zero Volume Bars: {volume_analysis['zero_volume_bars']}")
 
         # Expect high-quality data to pass validation
-        assert ohlc_analysis['ohlc_compliance_rate'] >= 0.99
-        assert price_analysis['max_gap_percent'] < 5.0
-        assert temporal_analysis['alignment_violations'] == 0
-        assert volume_analysis['zero_volume_bars'] == 0
+        assert ohlc_analysis["ohlc_compliance_rate"] >= 0.99
+        assert price_analysis["max_gap_percent"] < 5.0
+        assert temporal_analysis["alignment_violations"] == 0
+        assert volume_analysis["zero_volume_bars"] == 0
 
         print("✅ High-quality data validation test completed")
 
@@ -353,7 +358,7 @@ class TestDataQualityValidationEndToEnd:
         reports_dir.mkdir()
 
         storage_engine = ParquetStorageEngine(storage_dir)
-        csv_repository = CsvReportRepository(reports_dir)
+        CsvReportRepository(reports_dir)
 
         # Create dataset with known quality issues
         problem_data = DataQualityGenerator.create_quality_issues_dataset("PROBLEM")
@@ -365,7 +370,7 @@ class TestDataQualityValidationEndToEnd:
             symbol="PROBLEM",
             trading_day=date(2024, 1, 15),
             job_id=job_id,
-            overwrite=True
+            overwrite=True,
         )
 
         print(f"✓ Stored problematic dataset: {len(problem_data)} bars")
@@ -384,11 +389,11 @@ class TestDataQualityValidationEndToEnd:
         print(f"  Duplicate Timestamps: {temporal_analysis['duplicate_timestamps']}")
 
         # Verify issues are detected
-        assert ohlc_analysis['ohlc_violations'] > 0, "Should detect OHLC violations"
-        assert len(price_analysis['extreme_gaps']) > 0, "Should detect extreme price gaps"
-        assert temporal_analysis['alignment_violations'] > 0, "Should detect timestamp issues"
-        assert volume_analysis['zero_volume_bars'] > 0, "Should detect zero volume bars"
-        assert temporal_analysis['duplicate_timestamps'] > 0, "Should detect duplicate timestamps"
+        assert ohlc_analysis["ohlc_violations"] > 0, "Should detect OHLC violations"
+        assert len(price_analysis["extreme_gaps"]) > 0, "Should detect extreme price gaps"
+        assert temporal_analysis["alignment_violations"] > 0, "Should detect timestamp issues"
+        assert volume_analysis["zero_volume_bars"] > 0, "Should detect zero volume bars"
+        assert temporal_analysis["duplicate_timestamps"] > 0, "Should detect duplicate timestamps"
 
         print("✅ Quality issues detection test completed")
 
@@ -402,7 +407,7 @@ class TestDataQualityValidationEndToEnd:
         reports_dir.mkdir()
 
         storage_engine = ParquetStorageEngine(storage_dir)
-        csv_repository = CsvReportRepository(reports_dir)
+        CsvReportRepository(reports_dir)
 
         # Create mixed quality dataset
         mixed_data = DataQualityGenerator.create_mixed_quality_dataset("MIXED", size=100)
@@ -414,7 +419,7 @@ class TestDataQualityValidationEndToEnd:
             symbol="MIXED",
             trading_day=date(2024, 1, 15),
             job_id=job_id,
-            overwrite=True
+            overwrite=True,
         )
 
         print(f"✓ Stored mixed quality dataset: {len(mixed_data)} bars")
@@ -436,19 +441,25 @@ class TestDataQualityValidationEndToEnd:
 
         # Calculate overall quality score
         quality_score = 100.0
-        quality_score *= analyses['ohlc']['ohlc_compliance_rate']  # OHLC weight: 100%
-        quality_score -= min(20, len(analyses['price']['extreme_gaps']) * 5)  # Price gap penalty
-        quality_score -= min(15, analyses['temporal']['alignment_violations'] * 3)  # Timestamp penalty
-        quality_score -= min(10, analyses['volume']['zero_volume_bars'] * 2)  # Volume penalty
+        quality_score *= analyses["ohlc"]["ohlc_compliance_rate"]  # OHLC weight: 100%
+        quality_score -= min(20, len(analyses["price"]["extreme_gaps"]) * 5)  # Price gap penalty
+        quality_score -= min(
+            15, analyses["temporal"]["alignment_violations"] * 3
+        )  # Timestamp penalty
+        quality_score -= min(10, analyses["volume"]["zero_volume_bars"] * 2)  # Volume penalty
 
         quality_score = max(0, quality_score)
 
         print(f"📈 Overall Quality Score: {quality_score:.1f}/100")
 
         # Mixed data should have some issues but not fail completely
-        assert 30 <= quality_score <= 95, f"Quality score outside expected range: {quality_score:.1f}"
-        assert analyses['ohlc']['ohlc_violations'] > 0, "Should detect some OHLC issues"
-        assert analyses['ohlc']['ohlc_compliance_rate'] > 0.5, "Should still have majority good data"
+        assert (
+            30 <= quality_score <= 95
+        ), f"Quality score outside expected range: {quality_score:.1f}"
+        assert analyses["ohlc"]["ohlc_violations"] > 0, "Should detect some OHLC issues"
+        assert (
+            analyses["ohlc"]["ohlc_compliance_rate"] > 0.5
+        ), "Should still have majority good data"
 
         print("✅ Mixed quality data processing test completed")
 
@@ -483,7 +494,7 @@ class TestDataQualityValidationEndToEnd:
                 symbol=symbol,
                 trading_day=date(2024, 1, 15),
                 job_id=job_id,
-                overwrite=True
+                overwrite=True,
             )
 
             # Simulate validation service (simplified)
@@ -506,31 +517,27 @@ class TestDataQualityValidationEndToEnd:
             volume_analysis = DataQualityAnalyzer.analyze_volume_patterns(data)
 
             error_count = (
-                ohlc_analysis['ohlc_violations'] +
-                temporal_analysis['alignment_violations'] +
-                volume_analysis['zero_volume_bars']
+                ohlc_analysis["ohlc_violations"]
+                + temporal_analysis["alignment_violations"]
+                + volume_analysis["zero_volume_bars"]
             )
 
             # Create mock errors
             for i in range(min(error_count, 10)):  # Limit to 10 errors for testing
-                errors.append(BarError(
-                    ts_ns=int(data.iloc[i]['ts_ns']) if i < len(data) else 0,
-                    reason=f"Quality issue detected at index {i}"
-                ))
+                errors.append(
+                    BarError(
+                        ts_ns=int(data.iloc[i]["ts_ns"]) if i < len(data) else 0,
+                        reason=f"Quality issue detected at index {i}",
+                    )
+                )
 
-            validation_result = ValidationResult(
-                symbol=symbol,
-                total=len(data),
-                errors=errors
-            )
+            validation_result = ValidationResult(symbol=symbol, total=len(data), errors=errors)
 
             validator.validate_bars.return_value = validation_result
 
             # Create validation service and generate report
             validation_service = ValidationRunnerService(
-                storage_engine=storage_engine,
-                validator=validator,
-                reporter=csv_repository
+                storage_engine=storage_engine, validator=validator, reporter=csv_repository
             )
 
             # Simulate ingestion completed event
@@ -541,7 +548,7 @@ class TestDataQualityValidationEndToEnd:
                 symbol=Symbol(symbol),
                 trading_date=date(2024, 1, 15),
                 bars_processed=len(data),
-                success=True
+                success=True,
             )
 
             validation_service.handle_ingestion_completed(event)
@@ -563,12 +570,16 @@ class TestDataQualityValidationEndToEnd:
 
         print("📊 Quality Reporting Results:")
         for symbol, results in job_results.items():
-            print(f"  {symbol}: {results['error_rate']:.1%} error rate ({results['errors_found']}/{results['bars_processed']})")
+            print(
+                f"  {symbol}: {results['error_rate']:.1%} error rate ({results['errors_found']}/{results['bars_processed']})"
+            )
 
         # Verify quality expectations
         assert job_results["CLEAN"]["error_rate"] < 0.05, "Clean data should have <5% error rate"
         assert job_results["DIRTY"]["error_rate"] >= 0.5, "Dirty data should have >=50% error rate"
-        assert 0.1 <= job_results["MIXED"]["error_rate"] <= 0.4, "Mixed data should have 10-40% error rate"
+        assert (
+            0.1 <= job_results["MIXED"]["error_rate"] <= 0.4
+        ), "Mixed data should have 10-40% error rate"
 
         print("✅ Data quality reporting integration test completed")
 
@@ -584,7 +595,9 @@ class TestDataQualityValidationEndToEnd:
         raw_engine = ParquetStorageEngine(raw_dir)
 
         # Create high-frequency data (1-minute bars)
-        high_freq_data = DataQualityGenerator.create_high_quality_dataset("FREQ", size=300)  # 5 hours
+        high_freq_data = DataQualityGenerator.create_high_quality_dataset(
+            "FREQ", size=300
+        )  # 5 hours
 
         job_id = "timeframe-quality-test"
         raw_engine.write(
@@ -593,7 +606,7 @@ class TestDataQualityValidationEndToEnd:
             symbol="FREQ",
             trading_day=date(2024, 1, 15),
             job_id=job_id,
-            overwrite=True
+            overwrite=True,
         )
 
         # Test aggregation and quality preservation
@@ -614,7 +627,7 @@ class TestDataQualityValidationEndToEnd:
             symbol=Symbol("FREQ"),
             trading_date=date(2024, 1, 15),
             bars_processed=len(high_freq_data),
-            success=True
+            success=True,
         )
 
         aggregation_service.handle_ingestion_completed(event)
@@ -636,12 +649,14 @@ class TestDataQualityValidationEndToEnd:
 
                     quality_by_timeframe[timeframe] = {
                         "bars": len(agg_data),
-                        "ohlc_compliance": ohlc_analysis['ohlc_compliance_rate'],
-                        "max_gap_percent": price_analysis['max_gap_percent'],
-                        "zero_volume_bars": volume_analysis['zero_volume_bars'],
+                        "ohlc_compliance": ohlc_analysis["ohlc_compliance_rate"],
+                        "max_gap_percent": price_analysis["max_gap_percent"],
+                        "zero_volume_bars": volume_analysis["zero_volume_bars"],
                     }
 
-                    print(f"✓ {timeframe} timeframe: {len(agg_data)} bars, {ohlc_analysis['ohlc_compliance_rate']:.1%} OHLC compliance")
+                    print(
+                        f"✓ {timeframe} timeframe: {len(agg_data)} bars, {ohlc_analysis['ohlc_compliance_rate']:.1%} OHLC compliance"
+                    )
                 else:
                     print(f"⚠️  No {timeframe} aggregated data found")
 
@@ -652,12 +667,18 @@ class TestDataQualityValidationEndToEnd:
         if quality_by_timeframe:
             print("📊 Quality Across Timeframes:")
             for timeframe, metrics in quality_by_timeframe.items():
-                print(f"  {timeframe}: {metrics['ohlc_compliance']:.1%} OHLC, {metrics['zero_volume_bars']} zero volume")
+                print(
+                    f"  {timeframe}: {metrics['ohlc_compliance']:.1%} OHLC, {metrics['zero_volume_bars']} zero volume"
+                )
 
             # All aggregated timeframes should maintain high quality
             for timeframe, metrics in quality_by_timeframe.items():
-                assert metrics['ohlc_compliance'] >= 0.95, f"{timeframe} OHLC compliance too low: {metrics['ohlc_compliance']:.1%}"
-                assert metrics['zero_volume_bars'] == 0, f"{timeframe} has zero volume bars: {metrics['zero_volume_bars']}"
+                assert (
+                    metrics["ohlc_compliance"] >= 0.95
+                ), f"{timeframe} OHLC compliance too low: {metrics['ohlc_compliance']:.1%}"
+                assert (
+                    metrics["zero_volume_bars"] == 0
+                ), f"{timeframe} has zero volume bars: {metrics['zero_volume_bars']}"
 
         print("✅ Quality metrics across timeframes test completed")
 
@@ -673,7 +694,7 @@ class TestDataQualityValidationEndToEnd:
         reports_dir.mkdir()
 
         storage_engine = ParquetStorageEngine(storage_dir)
-        csv_repository = CsvReportRepository(reports_dir)
+        CsvReportRepository(reports_dir)
 
         # Create large dataset for performance testing
         large_dataset = DataQualityGenerator.create_mixed_quality_dataset("PERF", size=5000)
@@ -688,7 +709,7 @@ class TestDataQualityValidationEndToEnd:
             symbol="PERF",
             trading_day=date(2024, 1, 15),
             job_id=job_id,
-            overwrite=True
+            overwrite=True,
         )
         storage_time = time.monotonic() - storage_start
 
@@ -706,8 +727,12 @@ class TestDataQualityValidationEndToEnd:
 
         print("📊 Data Quality Performance Metrics:")
         print(f"  Dataset Size: {len(large_dataset):,} bars")
-        print(f"  Storage Time: {storage_time:.2f}s ({len(large_dataset)/storage_time:.0f} bars/sec)")
-        print(f"  Analysis Time: {analysis_time:.2f}s ({len(large_dataset)/analysis_time:.0f} bars/sec)")
+        print(
+            f"  Storage Time: {storage_time:.2f}s ({len(large_dataset)/storage_time:.0f} bars/sec)"
+        )
+        print(
+            f"  Analysis Time: {analysis_time:.2f}s ({len(large_dataset)/analysis_time:.0f} bars/sec)"
+        )
         print(f"  Total Time: {storage_time + analysis_time:.2f}s")
 
         # Performance assertions
@@ -716,9 +741,9 @@ class TestDataQualityValidationEndToEnd:
 
         # Verify analysis results are reasonable
         total_issues = (
-            quality_analyses["ohlc"]["ohlc_violations"] +
-            quality_analyses["temporal"]["alignment_violations"] +
-            quality_analyses["volume"]["zero_volume_bars"]
+            quality_analyses["ohlc"]["ohlc_violations"]
+            + quality_analyses["temporal"]["alignment_violations"]
+            + quality_analyses["volume"]["zero_volume_bars"]
         )
 
         print(f"  Quality Issues Found: {total_issues}")
@@ -765,7 +790,7 @@ def test_comprehensive_quality_dashboard(tmp_path):
             symbol=symbol,
             trading_day=date(2024, 1, 15),
             job_id=job_id,
-            overwrite=True
+            overwrite=True,
         )
 
         # Comprehensive analysis
@@ -799,13 +824,17 @@ def test_comprehensive_quality_dashboard(tmp_path):
     print("📊 COMPREHENSIVE DATA QUALITY DASHBOARD")
     print("=" * 80)
 
-    print(f"{'Symbol':<12} {'Bars':<6} {'Quality':<8} {'OHLC':<6} {'Gaps':<5} {'Time':<5} {'ZeroVol':<7} {'AvgVol':<8}")
+    print(
+        f"{'Symbol':<12} {'Bars':<6} {'Quality':<8} {'OHLC':<6} {'Gaps':<5} {'Time':<5} {'ZeroVol':<7} {'AvgVol':<8}"
+    )
     print("-" * 80)
 
     for symbol, metrics in dashboard_data.items():
-        print(f"{symbol:<12} {metrics['total_bars']:<6} {metrics['quality_score']:<7.1f} "
-              f"{metrics['ohlc_compliance']:<5.1%} {metrics['price_gaps']:<5} "
-              f"{metrics['timestamp_issues']:<5} {metrics['zero_volume_bars']:<7} {metrics['avg_volume']:<7.0f}")
+        print(
+            f"{symbol:<12} {metrics['total_bars']:<6} {metrics['quality_score']:<7.1f} "
+            f"{metrics['ohlc_compliance']:<5.1%} {metrics['price_gaps']:<5} "
+            f"{metrics['timestamp_issues']:<5} {metrics['zero_volume_bars']:<7} {metrics['avg_volume']:<7.0f}"
+        )
 
     print("-" * 80)
 
@@ -822,7 +851,9 @@ def test_comprehensive_quality_dashboard(tmp_path):
     medium_quality = [s for s, m in dashboard_data.items() if 70 <= m["quality_score"] < 90]
     low_quality = [s for s, m in dashboard_data.items() if m["quality_score"] < 70]
 
-    print(f"Quality Tiers: High={len(high_quality)}, Medium={len(medium_quality)}, Low={len(low_quality)}")
+    print(
+        f"Quality Tiers: High={len(high_quality)}, Medium={len(medium_quality)}, Low={len(low_quality)}"
+    )
 
     if low_quality:
         print(f"Low Quality Symbols: {', '.join(low_quality)}")

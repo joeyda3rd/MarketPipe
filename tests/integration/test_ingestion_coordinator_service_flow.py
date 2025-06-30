@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -28,7 +29,7 @@ from marketpipe.ingestion.domain.value_objects import (
     IngestionConfiguration,
 )
 from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
-import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from fakes.adapters import FakeMarketDataAdapter, create_test_ohlcv_bars
 from fakes.events import FakeEventPublisher
@@ -252,7 +253,9 @@ class TestIngestionCoordinatorEndToEndFlow:
         failing_symbol = Symbol("GOOGL")
 
         time_range = create_recent_time_range()
-        test_bars = create_test_ohlcv_bars(working_symbol, count=5, start_time=time_range.start.value)
+        test_bars = create_test_ohlcv_bars(
+            working_symbol, count=5, start_time=time_range.start.value
+        )
         market_data_adapter.set_bars_data(working_symbol, test_bars)
 
         # Configure adapter to fail for GOOGL only
@@ -328,7 +331,9 @@ class TestIngestionCoordinatorEndToEndFlow:
         retrieved_checkpoint = await checkpoint_repository.get_checkpoint(job_id, symbol)
         assert retrieved_checkpoint is not None
         assert retrieved_checkpoint.symbol == symbol
-        assert retrieved_checkpoint.records_processed == 10  # Updated after processing all test bars
+        assert (
+            retrieved_checkpoint.records_processed == 10
+        )  # Updated after processing all test bars
 
         # Verify job execution was successful
         assert result["status"] == "completed"

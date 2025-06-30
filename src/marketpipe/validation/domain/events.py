@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any
 from uuid import UUID, uuid4
 
 from marketpipe.events import DomainEvent
@@ -41,7 +41,7 @@ class ValidationCompleted(DomainEvent):
     def version(self) -> int:
         return self._version
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "symbol": str(self.result.symbol),
             "total_bars": self.result.total,

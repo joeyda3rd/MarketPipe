@@ -221,7 +221,7 @@ def test_ohlc_consistency_validation_in_domain_service():
     )
 
     # Test the internal validation method directly
-    assert service._validate_ohlc_consistency(valid_bar) == True
+    assert service._validate_ohlc_consistency(valid_bar)
 
     # For testing inconsistent OHLC, we would need to bypass the entity validation
     # which is not possible with the current design, so we test the validation logic works
@@ -235,9 +235,9 @@ def test_timestamp_alignment_validation():
 
     # Valid timestamp (on minute boundary)
     valid_bar = _bar(60_000_000_000)  # Exactly 1 minute
-    assert service._validate_timestamp_alignment(valid_bar) == True
+    assert service._validate_timestamp_alignment(valid_bar)
 
     # Invalid timestamp (not on minute boundary) - we test the logic directly
     # since we can't create bars with misaligned timestamps easily
     invalid_bar = _bar(90_000_000_000)  # 1.5 minutes
-    assert service._validate_timestamp_alignment(invalid_bar) == False
+    assert not service._validate_timestamp_alignment(invalid_bar)

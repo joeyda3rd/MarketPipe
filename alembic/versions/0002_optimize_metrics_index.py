@@ -5,14 +5,15 @@ Revises: 0001
 Create Date: 2025-06-11 22:25:39.165124
 
 """
+
 from collections.abc import Sequence
 from typing import Union
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '0002'
-down_revision: Union[str, None] = '0001'
+revision: str = "0002"
+down_revision: Union[str, None] = "0001"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

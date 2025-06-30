@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass
-from typing import Optional
 from uuid import UUID, uuid4
 
 from .value_objects import Price, Symbol, Timestamp, Volume
@@ -83,8 +82,8 @@ class OHLCVBar(Entity):
         low_price: Price,
         close_price: Price,
         volume: Volume,
-        trade_count: Optional[int] = None,
-        vwap: Optional[Price] = None,
+        trade_count: int | None = None,
+        vwap: Price | None = None,
     ):
         super().__init__(id)
         self._symbol = symbol
@@ -162,12 +161,12 @@ class OHLCVBar(Entity):
         return self._volume
 
     @property
-    def trade_count(self) -> Optional[int]:
+    def trade_count(self) -> int | None:
         """Get the number of trades (if available)."""
         return self._trade_count
 
     @property
-    def vwap(self) -> Optional[Price]:
+    def vwap(self) -> Price | None:
         """Get the volume-weighted average price (if available)."""
         return self._vwap
 

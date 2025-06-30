@@ -135,11 +135,11 @@ def install_dependencies():
     print_step("Installing Python dependencies")
 
     # Check if psycopg2 is available
-    try:
-        import psycopg2
+    import importlib.util
 
+    if importlib.util.find_spec("psycopg2") is not None:
         print("✅ psycopg2 is already available")
-    except ImportError:
+    else:
         print("📦 Installing psycopg2-binary...")
         if run_command(f"{sys.executable} -m pip install psycopg2-binary", "Install psycopg2"):
             print("✅ psycopg2-binary installed successfully")
@@ -255,8 +255,8 @@ def test_alembic_migrations():
             result = conn.execute(
                 text(
                     """
-                SELECT table_name FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public'
                 ORDER BY table_name
             """
                 )

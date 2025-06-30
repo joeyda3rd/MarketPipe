@@ -1,17 +1,18 @@
 """initial_schema
 
 Revision ID: 0001
-Revises: 
+Revises:
 Create Date: 2025-06-11 22:25:05.620787
 
 """
+
 from collections.abc import Sequence
 from typing import Union
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '0001'
+revision: str = "0001"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -20,7 +21,8 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Create initial schema tables."""
     # Symbol bars aggregates table
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE symbol_bars_aggregates (
             symbol TEXT NOT NULL,
             trading_date TEXT NOT NULL,
@@ -32,10 +34,12 @@ def upgrade() -> None:
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (symbol, trading_date)
         )
-    """)
+    """
+    )
 
     # OHLCV bars table
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE ohlcv_bars (
             id TEXT PRIMARY KEY,
             symbol TEXT NOT NULL,
@@ -48,27 +52,32 @@ def upgrade() -> None:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(symbol, timestamp_ns)
         )
-    """)
+    """
+    )
 
     # Checkpoints table
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE checkpoints (
             symbol TEXT PRIMARY KEY,
             checkpoint_data TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
+    """
+    )
 
     # Metrics table
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE metrics (
             ts INTEGER NOT NULL,
             name TEXT NOT NULL,
             value REAL NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
+    """
+    )
 
     # Basic indexes for performance
     op.execute("CREATE INDEX idx_symbol_bars_date ON symbol_bars_aggregates(trading_date)")

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 from datetime import date, datetime, timedelta, timezone
-from typing import Dict, List
 
 import pandas as pd
 import pytest
@@ -30,7 +29,7 @@ class FakeAlpacaProvider(IMarketDataProvider):
 
     async def fetch_bars_for_symbol(
         self, symbol: Symbol, time_range: TimeRange, max_bars: int = 1000
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """Simulate Alpaca data with specific characteristics."""
         self._call_count += 1
 
@@ -59,7 +58,7 @@ class FakeAlpacaProvider(IMarketDataProvider):
     async def is_available(self) -> bool:
         return True
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """Get supported symbols for testing."""
         symbols = ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"]
         return [Symbol(s) for s in symbols]
@@ -84,7 +83,7 @@ class FakePolygonProvider(IMarketDataProvider):
 
     async def fetch_bars_for_symbol(
         self, symbol: Symbol, time_range: TimeRange, max_bars: int = 1000
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """Simulate Polygon data with different characteristics."""
         self._call_count += 1
 
@@ -113,7 +112,7 @@ class FakePolygonProvider(IMarketDataProvider):
     async def is_available(self) -> bool:
         return True
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """Get supported symbols for testing."""
         symbols = ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "META"]
         return [Symbol(s) for s in symbols]
@@ -143,7 +142,7 @@ class FakeIEXProvider(IMarketDataProvider):
 
     async def fetch_bars_for_symbol(
         self, symbol: Symbol, time_range: TimeRange, max_bars: int = 1000
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """Simulate IEX data with potential failures."""
         self._call_count += 1
 
@@ -175,7 +174,7 @@ class FakeIEXProvider(IMarketDataProvider):
     async def is_available(self) -> bool:
         return not self._should_fail
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """Get supported symbols for testing."""
         symbols = ["AAPL", "GOOGL", "MSFT", "AMZN"]
         return [Symbol(s) for s in symbols]
@@ -194,17 +193,21 @@ class FakeIEXProvider(IMarketDataProvider):
 class MultiProviderOrchestrator:
     """Orchestrates multiple providers for comprehensive data collection."""
 
-    def __init__(self, providers: List[IMarketDataProvider]):
+    def __init__(self, providers: list[IMarketDataProvider]):
         self.providers = {p.provider_name: p for p in providers}
         self.provider_order = [p.provider_name for p in providers]
 
     async def fetch_with_fallback(
         self, symbol: Symbol, time_range: TimeRange, preferred_provider: str = None
-    ) -> Dict[str, List[OHLCVBar]]:
+    ) -> dict[str, list[OHLCVBar]]:
         """Fetch data with provider fallback capabilities."""
 
         results = {}
-        order = [preferred_provider] + self.provider_order if preferred_provider else self.provider_order
+        order = (
+            [preferred_provider] + self.provider_order
+            if preferred_provider
+            else self.provider_order
+        )
         order = [p for p in order if p in self.providers and p is not None]
 
         for provider_name in order:
@@ -227,7 +230,7 @@ class MultiProviderOrchestrator:
 
         return results
 
-    def analyze_provider_consistency(self, results: Dict[str, List[OHLCVBar]]) -> Dict[str, any]:
+    def analyze_provider_consistency(self, results: dict[str, list[OHLCVBar]]) -> dict[str, any]:
         """Analyze consistency across providers."""
 
         if not results:
@@ -250,19 +253,19 @@ class MultiProviderOrchestrator:
                 analysis["price_ranges"][provider_name] = {
                     "min": min(prices),
                     "max": max(prices),
-                    "avg": sum(prices) / len(prices)
+                    "avg": sum(prices) / len(prices),
                 }
 
                 analysis["volume_ranges"][provider_name] = {
                     "min": min(volumes),
                     "max": max(volumes),
-                    "avg": sum(volumes) / len(volumes)
+                    "avg": sum(volumes) / len(volumes),
                 }
 
                 analysis["timestamp_coverage"][provider_name] = {
                     "start": min(timestamps),
                     "end": max(timestamps),
-                    "span_minutes": (max(timestamps) - min(timestamps)).total_seconds() / 60
+                    "span_minutes": (max(timestamps) - min(timestamps)).total_seconds() / 60,
                 }
 
         return analysis
@@ -315,7 +318,7 @@ class TestMultiProviderIntegration:
         symbol = Symbol("AAPL")
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)),
         )
 
         # Fetch data from all providers
@@ -346,7 +349,9 @@ class TestMultiProviderIntegration:
 
             # Reasonable price consistency (within 5%)
             if price_spread / min(avg_prices) > 0.05:
-                print(f"⚠️  High price variance across providers: {price_spread / min(avg_prices) * 100:.1f}%")
+                print(
+                    f"⚠️  High price variance across providers: {price_spread / min(avg_prices) * 100:.1f}%"
+                )
             else:
                 print("✓ Good price consistency across providers")
 
@@ -365,11 +370,12 @@ class TestMultiProviderIntegration:
         symbol = Symbol("AAPL")
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)),
         )
 
         # Test normal operation
         print("🔄 Testing normal multi-provider operation...")
+
         async def test_normal():
             return await orchestrator.fetch_with_fallback(symbol, time_range, "alpaca")
 
@@ -415,7 +421,7 @@ class TestMultiProviderIntegration:
         symbol = Symbol("AAPL")
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)),
         )
 
         # Fetch data from all providers
@@ -431,18 +437,20 @@ class TestMultiProviderIntegration:
             # Convert OHLCVBar entities to DataFrame
             rows = []
             for bar in bars:
-                rows.append({
-                    "ts_ns": bar.timestamp_ns,
-                    "symbol": bar.symbol.value,
-                    "open": bar.open_price.to_float(),
-                    "high": bar.high_price.to_float(),
-                    "low": bar.low_price.to_float(),
-                    "close": bar.close_price.to_float(),
-                    "volume": bar.volume.value,
-                    "trade_count": getattr(bar, "trade_count", 1),
-                    "vwap": getattr(bar, "vwap", bar.close_price.to_float()),
-                    "provider": provider_name,  # Add provider tracking
-                })
+                rows.append(
+                    {
+                        "ts_ns": bar.timestamp_ns,
+                        "symbol": bar.symbol.value,
+                        "open": bar.open_price.to_float(),
+                        "high": bar.high_price.to_float(),
+                        "low": bar.low_price.to_float(),
+                        "close": bar.close_price.to_float(),
+                        "volume": bar.volume.value,
+                        "trade_count": getattr(bar, "trade_count", 1),
+                        "vwap": getattr(bar, "vwap", bar.close_price.to_float()),
+                        "provider": provider_name,  # Add provider tracking
+                    }
+                )
 
             df = pd.DataFrame(rows)
 
@@ -455,7 +463,7 @@ class TestMultiProviderIntegration:
                 symbol=symbol.value,
                 trading_day=date(2024, 1, 15),
                 job_id=job_id,
-                overwrite=True
+                overwrite=True,
             )
 
             print(f"✓ Stored {len(df)} bars from {provider_name}")
@@ -487,7 +495,7 @@ class TestMultiProviderIntegration:
             },
             {
                 "name": "polygon",
-                "rate_limit": 5,   # free tier limit
+                "rate_limit": 5,  # free tier limit
                 "batch_size": 5000,
                 "retry_attempts": 5,
             },
@@ -496,7 +504,7 @@ class TestMultiProviderIntegration:
                 "rate_limit": 100,
                 "batch_size": 500,
                 "retry_attempts": 2,
-            }
+            },
         ]
 
         # Simulate provider behavior based on configurations
@@ -520,7 +528,7 @@ class TestMultiProviderIntegration:
         symbol = Symbol("AAPL")
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)),
         )
 
         provider_data_counts = {}
@@ -555,7 +563,7 @@ class TestMultiProviderIntegration:
         symbol = Symbol("AAPL")
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)),
         )
 
         # Fetch data from all providers
@@ -574,7 +582,7 @@ class TestMultiProviderIntegration:
         # Check for timestamp overlaps between providers
         provider_names = list(results.keys())
         for i, provider1 in enumerate(provider_names):
-            for provider2 in provider_names[i+1:]:
+            for provider2 in provider_names[i + 1 :]:
                 bars1 = results[provider1]
                 bars2 = results[provider2]
 
@@ -585,7 +593,9 @@ class TestMultiProviderIntegration:
                 total_unique = len(timestamps1.union(timestamps2))
 
                 overlap_pct = (overlap / total_unique * 100) if total_unique > 0 else 0
-                validation_results["timestamp_overlaps"][f"{provider1}_vs_{provider2}"] = overlap_pct
+                validation_results["timestamp_overlaps"][
+                    f"{provider1}_vs_{provider2}"
+                ] = overlap_pct
 
         # Price correlation analysis
         for provider1 in provider_names:
@@ -623,7 +633,9 @@ class TestMultiProviderIntegration:
             print(f"    {provider}: {score:.1f}/100")
 
         # Validation assertions
-        avg_quality_score = sum(validation_results["data_quality_scores"].values()) / len(validation_results["data_quality_scores"])
+        avg_quality_score = sum(validation_results["data_quality_scores"].values()) / len(
+            validation_results["data_quality_scores"]
+        )
         assert avg_quality_score > 50, f"Average data quality too low: {avg_quality_score:.1f}"
 
         print("✅ Cross-provider data validation test completed")
@@ -646,7 +658,7 @@ def test_provider_performance_comparison(tmp_path):
     symbol = Symbol("AAPL")
     time_range = TimeRange(
         start=Timestamp(datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc)),
-        end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc))
+        end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)),
     )
 
     performance_results = {}
@@ -691,7 +703,9 @@ def test_provider_performance_comparison(tmp_path):
 
     # All providers should complete reasonably quickly
     for provider_name, metrics in performance_results.items():
-        assert metrics["duration_ms"] < 5000, f"{provider_name} too slow: {metrics['duration_ms']:.1f}ms"
+        assert (
+            metrics["duration_ms"] < 5000
+        ), f"{provider_name} too slow: {metrics['duration_ms']:.1f}ms"
         assert metrics["bars_count"] > 0, f"{provider_name} returned no data"
 
     print("✅ Provider performance comparison completed")

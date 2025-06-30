@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional
 
 from ..domain.entities import IngestionJobId, ProcessingState
 
@@ -22,9 +21,9 @@ class GetJobHistoryQuery:
     """Query to get job history with optional filtering."""
 
     limit: int = 100
-    state_filter: Optional[ProcessingState] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    state_filter: ProcessingState | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -38,9 +37,9 @@ class GetActiveJobsQuery:
 class GetJobMetricsQuery:
     """Query to get performance metrics for jobs."""
 
-    job_id: Optional[IngestionJobId] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    job_id: IngestionJobId | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -54,8 +53,8 @@ class GetJobProgressQuery:
 class SearchJobsQuery:
     """Query to search jobs by various criteria."""
 
-    symbols: Optional[List[str]] = None
-    state: Optional[ProcessingState] = None
-    created_after: Optional[datetime] = None
-    created_before: Optional[datetime] = None
+    symbols: list[str] | None = None
+    state: ProcessingState | None = None
+    created_after: datetime | None = None
+    created_before: datetime | None = None
     limit: int = 50

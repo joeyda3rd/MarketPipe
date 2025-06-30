@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from marketpipe.domain.value_objects import Symbol
 
@@ -19,7 +19,7 @@ class IngestionConfiguration:
     compression: str
     max_workers: int
     batch_size: int
-    rate_limit_per_minute: Optional[int]
+    rate_limit_per_minute: int | None
     feed_type: str
 
     def __post_init__(self):
@@ -40,7 +40,7 @@ class IngestionConfiguration:
             raise ValueError(f"Unsupported feed type: {self.feed_type}")
 
     @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> IngestionConfiguration:
+    def from_dict(cls, config_dict: dict[str, Any]) -> IngestionConfiguration:
         """Create configuration from dictionary."""
         return cls(
             output_path=Path(config_dict["output_path"]),
@@ -51,7 +51,7 @@ class IngestionConfiguration:
             feed_type=config_dict.get("feed", "iex"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "output_path": str(self.output_path),
@@ -106,7 +106,7 @@ class IngestionPartition:
     record_count: int
     file_size_bytes: int
     created_at: datetime
-    checksum: Optional[str] = None
+    checksum: str | None = None
 
     def __post_init__(self):
         """Validate partition data."""
@@ -131,7 +131,7 @@ class IngestionPartition:
             return 0.0
         return self.file_size_bytes / self.record_count
 
-    def get_storage_info(self) -> Dict[str, Any]:
+    def get_storage_info(self) -> dict[str, Any]:
         """Get storage information for the partition."""
         return {
             "symbol": self.symbol.value,
@@ -153,7 +153,7 @@ class ProcessingMetrics:
     total_bars_ingested: int
     total_processing_time_seconds: float
     average_processing_time_per_symbol: float
-    peak_memory_usage_mb: Optional[float] = None
+    peak_memory_usage_mb: float | None = None
 
     def __post_init__(self):
         """Validate metrics."""
@@ -187,7 +187,7 @@ class ProcessingMetrics:
             return 0.0
         return self.total_bars_ingested / self.total_processing_time_seconds
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "symbols_processed": self.symbols_processed,

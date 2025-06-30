@@ -62,8 +62,9 @@ def prune_parquet(
     # Validate age expression first so invalid formats error out before help.
     try:
         _parse_age(older_than)
-    except typer.BadParameter as e:
+    except typer.BadParameter:
         from marketpipe.cli.validators import cli_error
+
         cli_error("age format invalid")
 
     if help_flag:

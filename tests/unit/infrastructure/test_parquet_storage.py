@@ -2,15 +2,16 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from datetime import timezone
+from pathlib import Path
 
 import pyarrow.parquet as pq
 
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.ingestion.domain.value_objects import IngestionConfiguration
 from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
-import sys
-from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from fakes.adapters import create_test_ohlcv_bars
 

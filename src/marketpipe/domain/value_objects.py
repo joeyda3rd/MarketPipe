@@ -12,7 +12,6 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Union
 
 
 @dataclass(frozen=True)
@@ -116,13 +115,13 @@ class Price:
         """Subtract two prices."""
         return Price(self.value - other.value)
 
-    def __mul__(self, other: Union[Price, Decimal, int, float]) -> Price:
+    def __mul__(self, other: Price | Decimal | int | float) -> Price:
         """Multiply price by number or another price."""
         if isinstance(other, Price):
             return Price(self.value * other.value)
         return Price(self.value * Decimal(str(other)))
 
-    def __truediv__(self, other: Union[Price, Decimal, int, float]) -> Price:
+    def __truediv__(self, other: Price | Decimal | int | float) -> Price:
         """Divide price by number or another price."""
         if isinstance(other, Price):
             if other.value == 0:
@@ -350,7 +349,7 @@ class Volume:
             raise ValueError("Volume subtraction cannot result in negative value")
         return Volume(result)
 
-    def __mul__(self, factor: Union[int, float]) -> Volume:
+    def __mul__(self, factor: int | float) -> Volume:
         """Multiply volume by a factor."""
         result = int(self.value * factor)
         if result < 0:

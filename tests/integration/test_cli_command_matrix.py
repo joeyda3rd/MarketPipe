@@ -1,7 +1,7 @@
 """
 CLI Command Matrix Testing Framework
 
-Comprehensive validation framework that ensures every MarketPipe command and 
+Comprehensive validation framework that ensures every MarketPipe command and
 option works correctly across all supported scenarios.
 
 This module implements Phase 1 of the CLI validation framework:
@@ -20,7 +20,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import pytest
 
@@ -31,6 +31,7 @@ try:
     from typer.testing import CliRunner
 
     from marketpipe.cli import app
+
     TYPER_AVAILABLE = True
 except ImportError:
     TYPER_AVAILABLE = False
@@ -40,9 +41,10 @@ except ImportError:
 @dataclass
 class CommandInfo:
     """Information about a discovered CLI command."""
+
     name: str
-    path: List[str]  # Full command path (e.g., ['ohlcv', 'ingest'])
-    parameters: Dict[str, Any] = field(default_factory=dict)
+    path: list[str]  # Full command path (e.g., ['ohlcv', 'ingest'])
+    parameters: dict[str, Any] = field(default_factory=dict)
     is_subcommand: bool = False
     parent_app: str = ""
     help_text: str = ""
@@ -52,12 +54,13 @@ class CommandInfo:
 @dataclass
 class ValidationResult:
     """Result of command validation."""
+
     command: CommandInfo
     help_works: bool = False
     help_output: str = ""
     side_effects_clean: bool = False
-    created_files: List[Path] = field(default_factory=list)
-    error_messages: List[str] = field(default_factory=list)
+    created_files: list[Path] = field(default_factory=list)
+    error_messages: list[str] = field(default_factory=list)
     execution_time_ms: float = 0.0
 
 
@@ -65,13 +68,13 @@ class CLICommandDiscovery:
     """Discovers all available CLI commands and their structure."""
 
     def __init__(self):
-        self.discovered_commands: List[CommandInfo] = []
-        self.command_tree: Dict[str, Any] = {}
+        self.discovered_commands: list[CommandInfo] = []
+        self.command_tree: dict[str, Any] = {}
 
-    def discover_all_commands(self) -> List[CommandInfo]:
+    def discover_all_commands(self) -> list[CommandInfo]:
         """
         Auto-discover all CLI commands from the Typer app structure.
-        
+
         Returns:
             List of CommandInfo objects representing all available commands
         """
@@ -89,7 +92,7 @@ class CLICommandDiscovery:
         self.discovered_commands = commands
         return commands
 
-    def _discover_main_commands(self) -> List[CommandInfo]:
+    def _discover_main_commands(self) -> list[CommandInfo]:
         """Discover main-level commands."""
         commands = []
 
@@ -103,82 +106,56 @@ class CLICommandDiscovery:
             "providers",
             "migrate",
             "health-check",
-            "factory-reset"
+            "factory-reset",
         ]
 
         for cmd in main_commands:
-            commands.append(CommandInfo(
-                name=cmd,
-                path=[cmd],
-                is_subcommand=False
-            ))
+            commands.append(CommandInfo(name=cmd, path=[cmd], is_subcommand=False))
 
         return commands
 
-    def _discover_subapp_commands(self) -> List[CommandInfo]:
+    def _discover_subapp_commands(self) -> list[CommandInfo]:
         """Discover subapp commands."""
         commands = []
 
         # OHLCV subcommands
         ohlcv_commands = ["ingest", "validate", "aggregate", "backfill"]
         for cmd in ohlcv_commands:
-            commands.append(CommandInfo(
-                name=cmd,
-                path=["ohlcv", cmd],
-                is_subcommand=True,
-                parent_app="ohlcv"
-            ))
+            commands.append(
+                CommandInfo(name=cmd, path=["ohlcv", cmd], is_subcommand=True, parent_app="ohlcv")
+            )
 
         # Prune subcommands
         prune_commands = ["parquet", "database"]
         for cmd in prune_commands:
-            commands.append(CommandInfo(
-                name=cmd,
-                path=["prune", cmd],
-                is_subcommand=True,
-                parent_app="prune"
-            ))
+            commands.append(
+                CommandInfo(name=cmd, path=["prune", cmd], is_subcommand=True, parent_app="prune")
+            )
 
         # Symbols subcommands
         symbols_commands = ["update"]
         for cmd in symbols_commands:
-            commands.append(CommandInfo(
-                name=cmd,
-                path=["symbols", cmd],
-                is_subcommand=True,
-                parent_app="symbols"
-            ))
+            commands.append(
+                CommandInfo(
+                    name=cmd, path=["symbols", cmd], is_subcommand=True, parent_app="symbols"
+                )
+            )
 
         # Jobs subcommands
         jobs_commands = ["list", "status", "doctor", "kill"]
         for cmd in jobs_commands:
-            commands.append(CommandInfo(
-                name=cmd,
-                path=["jobs", cmd],
-                is_subcommand=True,
-                parent_app="jobs"
-            ))
+            commands.append(
+                CommandInfo(name=cmd, path=["jobs", cmd], is_subcommand=True, parent_app="jobs")
+            )
 
         return commands
 
-    def _get_deprecated_commands(self) -> List[CommandInfo]:
+    def _get_deprecated_commands(self) -> list[CommandInfo]:
         """Get known deprecated commands."""
         deprecated = [
-            CommandInfo(
-                name="ingest",
-                path=["ingest"],
-                deprecated=True
-            ),
-            CommandInfo(
-                name="validate",
-                path=["validate"],
-                deprecated=True
-            ),
-            CommandInfo(
-                name="aggregate",
-                path=["aggregate"],
-                deprecated=True
-            )
+            CommandInfo(name="ingest", path=["ingest"], deprecated=True),
+            CommandInfo(name="validate", path=["validate"], deprecated=True),
+            CommandInfo(name="aggregate", path=["aggregate"], deprecated=True),
         ]
         return deprecated
 
@@ -193,10 +170,10 @@ class CLICommandValidator:
     def validate_command(self, command: CommandInfo) -> ValidationResult:
         """
         Validate a single command for correctness.
-        
+
         Args:
             command: Command to validate
-            
+
         Returns:
             ValidationResult with validation details
         """
@@ -215,10 +192,10 @@ class CLICommandValidator:
 
         return result
 
-    def _test_help_command(self, command: CommandInfo) -> Tuple[bool, str, float]:
+    def _test_help_command(self, command: CommandInfo) -> tuple[bool, str, float]:
         """
         Test that help command works and returns valid output.
-        
+
         Returns:
             (success, output, execution_time_ms)
         """
@@ -234,15 +211,11 @@ class CLICommandValidator:
                     capture_output=True,
                     text=True,
                     timeout=30,
-                    cwd=Path(__file__).parent.parent.parent
+                    cwd=Path(__file__).parent.parent.parent,
                 )
                 execution_time = (time.time() - start_time) * 1000
 
-                return (
-                    result.returncode == 0,
-                    result.stdout + result.stderr,
-                    execution_time
-                )
+                return (result.returncode == 0, result.stdout + result.stderr, execution_time)
             except subprocess.TimeoutExpired:
                 return False, "Command timed out", (time.time() - start_time) * 1000
             except Exception as e:
@@ -256,20 +229,16 @@ class CLICommandValidator:
                 result = self.runner.invoke(app, full_cmd)
                 execution_time = (time.time() - start_time) * 1000
 
-                return (
-                    result.exit_code == 0,
-                    result.output,
-                    execution_time
-                )
+                return (result.exit_code == 0, result.output, execution_time)
             except Exception as e:
                 return False, f"CliRunner error: {e}", (time.time() - start_time) * 1000
 
         return False, "No testing method available", 0.0
 
-    def _test_no_side_effects(self, command: CommandInfo) -> Tuple[bool, List[Path]]:
+    def _test_no_side_effects(self, command: CommandInfo) -> tuple[bool, list[Path]]:
         """
         Test that help command doesn't create unwanted files or directories.
-        
+
         Returns:
             (no_side_effects, list_of_created_files)
         """
@@ -294,7 +263,7 @@ class CLICommandValidator:
                         capture_output=True,
                         text=True,
                         timeout=30,
-                        cwd=Path(__file__).parent.parent.parent
+                        cwd=Path(__file__).parent.parent.parent,
                     )
                 elif self.runner and app:
                     self.runner.invoke(app, cmd_path)
@@ -318,9 +287,9 @@ class CLIMatrixTestReporter:
     """Generates comprehensive reports of CLI validation results."""
 
     def __init__(self):
-        self.results: List[ValidationResult] = []
+        self.results: list[ValidationResult] = []
 
-    def add_results(self, results: List[ValidationResult]):
+    def add_results(self, results: list[ValidationResult]):
         """Add validation results to the reporter."""
         self.results.extend(results)
 
@@ -338,14 +307,20 @@ class CLIMatrixTestReporter:
 
         report.append("## Summary")
         report.append(f"- Total Commands Tested: {total_commands}")
-        report.append(f"- Help Commands Working: {help_working}/{total_commands} ({help_working/total_commands*100:.1f}%)")
-        report.append(f"- Side-Effect Clean: {clean_commands}/{total_commands} ({clean_commands/total_commands*100:.1f}%)")
+        report.append(
+            f"- Help Commands Working: {help_working}/{total_commands} ({help_working/total_commands*100:.1f}%)"
+        )
+        report.append(
+            f"- Side-Effect Clean: {clean_commands}/{total_commands} ({clean_commands/total_commands*100:.1f}%)"
+        )
         report.append("")
 
         # Command breakdown by category
         report.append("## Command Categories")
 
-        main_commands = [r for r in self.results if not r.command.is_subcommand and not r.command.deprecated]
+        main_commands = [
+            r for r in self.results if not r.command.is_subcommand and not r.command.deprecated
+        ]
         subcommands = [r for r in self.results if r.command.is_subcommand]
         deprecated = [r for r in self.results if r.command.deprecated]
 
@@ -376,7 +351,7 @@ class CLIMatrixTestReporter:
 
         return "\n".join(report)
 
-    def get_failed_commands(self) -> List[ValidationResult]:
+    def get_failed_commands(self) -> list[ValidationResult]:
         """Get commands that failed validation."""
         return [r for r in self.results if not r.help_works or not r.side_effects_clean]
 
@@ -408,9 +383,13 @@ class TestCLICommandMatrix:
         subcommands = [c for c in commands if c.is_subcommand]
         deprecated = [c for c in commands if c.deprecated]
 
-        assert len(main_commands) >= 7, f"Expected at least 7 main commands, found {len(main_commands)}"
+        assert (
+            len(main_commands) >= 7
+        ), f"Expected at least 7 main commands, found {len(main_commands)}"
         assert len(subcommands) >= 7, f"Expected at least 7 subcommands, found {len(subcommands)}"
-        assert len(deprecated) >= 3, f"Expected at least 3 deprecated commands, found {len(deprecated)}"
+        assert (
+            len(deprecated) >= 3
+        ), f"Expected at least 3 deprecated commands, found {len(deprecated)}"
 
         # Verify specific critical commands exist
         command_paths = [" ".join(c.path) for c in commands]
@@ -422,7 +401,7 @@ class TestCLICommandMatrix:
             "ohlcv validate",
             "ohlcv aggregate",
             "query",
-            "metrics"
+            "metrics",
         ]
 
         for critical in critical_commands:
@@ -458,9 +437,9 @@ class TestCLICommandMatrix:
                 failure_details.append(f"  - {cmd_path}: {', '.join(issues)}")
 
             pytest.fail(
-                f"Found {len(failed_commands)} commands with issues:\n" +
-                "\n".join(failure_details) +
-                f"\n\nFull report:\n{report}"
+                f"Found {len(failed_commands)} commands with issues:\n"
+                + "\n".join(failure_details)
+                + f"\n\nFull report:\n{report}"
             )
 
     def test_help_output_consistency(self, discovery, validator):
@@ -469,10 +448,7 @@ class TestCLICommandMatrix:
         inconsistencies = []
 
         # Commands that use custom help format (not standard Typer help)
-        custom_help_commands = {
-            "ingest-ohlcv",
-            "ohlcv ingest"
-        }
+        custom_help_commands = {"ingest-ohlcv", "ohlcv ingest"}
 
         for command in commands:
             if command.deprecated:
@@ -498,10 +474,15 @@ class TestCLICommandMatrix:
                     # Look for either "options:" or "Options" (which appears in the fancy box format)
                     has_options_section = "options:" in help_output or "options " in help_output
                     if "--" in result.help_output and not has_options_section:
-                        inconsistencies.append(f"{command_path}: Has options but missing 'Options:' section")
+                        inconsistencies.append(
+                            f"{command_path}: Has options but missing 'Options:' section"
+                        )
 
         if inconsistencies:
-            pytest.fail("Help output inconsistencies found:\n" + "\n".join(f"  - {issue}" for issue in inconsistencies))
+            pytest.fail(
+                "Help output inconsistencies found:\n"
+                + "\n".join(f"  - {issue}" for issue in inconsistencies)
+            )
 
     def test_deprecated_commands_show_warnings(self, discovery, validator):
         """Test that deprecated commands show appropriate warnings."""
@@ -517,17 +498,16 @@ class TestCLICommandMatrix:
                 help_output = result.help_output.lower()
 
                 # Should contain deprecation warning
-                has_warning = any(word in help_output for word in [
-                    "deprecated", "warning", "use instead", "please use"
-                ])
+                has_warning = any(
+                    word in help_output
+                    for word in ["deprecated", "warning", "use instead", "please use"]
+                )
 
                 if not has_warning:
                     missing_warnings.append(" ".join(command.path))
 
         if missing_warnings:
-            pytest.fail(
-                f"Deprecated commands missing warnings: {', '.join(missing_warnings)}"
-            )
+            pytest.fail(f"Deprecated commands missing warnings: {', '.join(missing_warnings)}")
 
     def test_command_execution_performance(self, discovery, validator):
         """Test that help commands execute within reasonable time limits."""
@@ -541,14 +521,12 @@ class TestCLICommandMatrix:
             result = validator.validate_command(command)
 
             if result.execution_time_ms > MAX_HELP_TIME_MS:
-                slow_commands.append(
-                    f"{' '.join(command.path)}: {result.execution_time_ms:.1f}ms"
-                )
+                slow_commands.append(f"{' '.join(command.path)}: {result.execution_time_ms:.1f}ms")
 
         if slow_commands:
             pytest.fail(
-                f"Commands exceeded {MAX_HELP_TIME_MS}ms timeout:\n" +
-                "\n".join(f"  - {cmd}" for cmd in slow_commands)
+                f"Commands exceeded {MAX_HELP_TIME_MS}ms timeout:\n"
+                + "\n".join(f"  - {cmd}" for cmd in slow_commands)
             )
 
 

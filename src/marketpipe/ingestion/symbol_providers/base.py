@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as _dt
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any
 
 from marketpipe.domain import SymbolRecord
 
@@ -26,7 +26,7 @@ class SymbolProviderBase(ABC):
 
     # ---------- public API --------------------------------------------------
 
-    async def fetch_symbols(self) -> List[SymbolRecord]:
+    async def fetch_symbols(self) -> list[SymbolRecord]:
         """Fetch, validate, and return a list of SymbolRecord."""
         raw = await self._fetch_raw()
         records = self._map_to_records(raw)
@@ -41,13 +41,13 @@ class SymbolProviderBase(ABC):
         ...
 
     @abstractmethod
-    def _map_to_records(self, payload: Any) -> List[SymbolRecord]:
+    def _map_to_records(self, payload: Any) -> list[SymbolRecord]:
         """Convert raw payload to list of validated SymbolRecord objects."""
         ...
 
     # ---------- convenience -------------------------------------------------
 
-    def fetch_symbols_sync(self) -> List[SymbolRecord]:
+    def fetch_symbols_sync(self) -> list[SymbolRecord]:
         """Blocking wrapper for non-async call sites."""
         import anyio
 

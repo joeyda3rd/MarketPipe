@@ -423,7 +423,7 @@ async def test_async_server_proper_logging():
     import marketpipe.metrics_server
 
     with patch.object(marketpipe.metrics_server.logger, "info") as mock_info:
-        with patch.object(marketpipe.metrics_server.logger, "error") as mock_error:
+        with patch.object(marketpipe.metrics_server.logger, "error"):
             try:
                 await server.start()
 

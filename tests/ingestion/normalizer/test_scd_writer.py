@@ -87,7 +87,7 @@ class TestSCDWriter:
     ):
         """Test initial load creates new records with proper SCD-2 fields."""
         # Setup: Create snapshot and diff tables
-        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        pd.DataFrame(sample_snapshot_data)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
 
         # Create diff_insert table (all rows are new in first load)
@@ -136,7 +136,7 @@ class TestSCDWriter:
     def test_second_load_handles_updates(self, empty_db, temp_data_dir, sample_snapshot_data):
         """Test second load properly handles updates with SCD-2 semantics."""
         # First load - setup initial data
-        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        pd.DataFrame(sample_snapshot_data)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
 
         empty_db.execute("CREATE TABLE diff_insert AS SELECT * FROM symbols_snapshot")
@@ -154,7 +154,7 @@ class TestSCDWriter:
 
         # Clear and recreate snapshot table
         empty_db.execute("DROP TABLE symbols_snapshot")
-        snapshot_df = pd.DataFrame(updated_data)
+        pd.DataFrame(updated_data)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
 
         # Re-attach symbols_master with existing data
@@ -266,7 +266,7 @@ class TestSCDWriter:
             },
         ]
 
-        snapshot_df = pd.DataFrame(initial_data)
+        pd.DataFrame(initial_data)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
         empty_db.execute("CREATE TABLE diff_insert AS SELECT * FROM symbols_snapshot")
         empty_db.execute("CREATE TABLE diff_update AS SELECT * FROM symbols_snapshot WHERE 1=0")
@@ -309,7 +309,7 @@ class TestSCDWriter:
 
         # Update snapshot
         empty_db.execute("DROP TABLE symbols_snapshot")
-        snapshot_df = pd.DataFrame(new_data)
+        pd.DataFrame(new_data)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
 
         # Re-attach and setup diff tables
@@ -358,7 +358,7 @@ class TestSCDWriter:
     def test_dry_run_mode(self, empty_db, temp_data_dir, sample_snapshot_data):
         """Test dry run mode doesn't write files but returns statistics."""
         # Setup
-        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        pd.DataFrame(sample_snapshot_data)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
         empty_db.execute("CREATE TABLE diff_insert AS SELECT * FROM symbols_snapshot")
         empty_db.execute("CREATE TABLE diff_update AS SELECT * FROM symbols_snapshot WHERE 1=0")
@@ -466,14 +466,14 @@ class TestSCDWriter:
     def test_idempotent_operation(self, empty_db, temp_data_dir, sample_snapshot_data):
         """Test that running updater twice with no changes is idempotent."""
         # First run
-        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        pd.DataFrame(sample_snapshot_data)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
         empty_db.execute("CREATE TABLE diff_insert AS SELECT * FROM symbols_snapshot")
         empty_db.execute("CREATE TABLE diff_update AS SELECT * FROM symbols_snapshot WHERE 1=0")
         empty_db.execute("CREATE TABLE diff_unchanged AS SELECT * FROM symbols_snapshot WHERE 1=0")
 
         attach_symbols_master(empty_db, temp_data_dir)
-        stats1 = run_scd_update(empty_db, temp_data_dir)
+        run_scd_update(empty_db, temp_data_dir)
 
         initial_file_count = _count_new_files(temp_data_dir)
 
@@ -564,7 +564,7 @@ class TestSCDWriter:
     def test_rollback_on_parquet_write_failure(self, empty_db, temp_data_dir, sample_snapshot_data):
         """Test that database changes are not committed if Parquet write fails."""
         # Setup test data similar to second_load test
-        snapshot_df = pd.DataFrame(sample_snapshot_data)
+        pd.DataFrame(sample_snapshot_data)
         empty_db.execute("CREATE TABLE symbols_snapshot AS SELECT * FROM snapshot_df")
 
         # Create diff tables with some changes
@@ -596,10 +596,10 @@ class TestSCDWriter:
         # Add some initial data to symbols_master to test rollback
         empty_db.execute(
             """
-            INSERT INTO symbols_master 
-            (id, natural_key, symbol, company_name, exchange, asset_type, status, market_cap, 
+            INSERT INTO symbols_master
+            (id, natural_key, symbol, company_name, exchange, asset_type, status, market_cap,
              sector, industry, country, currency, valid_from, valid_to, created_at, as_of)
-            VALUES 
+            VALUES
             (1, 'AAPL-NASDAQ', 'AAPL', 'Apple Inc.', 'NASDAQ', 'stock', 'active', 3000000000000,
              'Technology', 'Consumer Electronics', 'US', 'USD', '2024-01-15', NULL, CURRENT_TIMESTAMP, '2024-01-15'),
             (2, 'GOOGL-NASDAQ', 'GOOGL', 'Alphabet Inc.', 'NASDAQ', 'stock', 'active', 2000000000000,

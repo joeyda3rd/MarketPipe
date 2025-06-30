@@ -54,9 +54,11 @@ class TestIngestCLIBoundaryIntegration:
     def test_boundary_check_called_after_ingestion(self, tmp_path):
         """Test that boundary check is called after successful ingestion."""
         # Mock the ingestion services and boundary check
-        with patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build, \
-             patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check, \
-             patch("marketpipe.cli.ohlcv_ingest.asyncio.run") as mock_asyncio_run:
+        with (
+            patch("marketpipe.cli.ohlcv_ingest._build_ingestion_services") as mock_build,
+            patch("marketpipe.cli.ohlcv_ingest._check_boundaries") as mock_check,
+            patch("marketpipe.cli.ohlcv_ingest.asyncio.run") as mock_asyncio_run,
+        ):
             # Mock the services
             mock_job_service = AsyncMock()
             mock_coordinator_service = AsyncMock()
@@ -73,12 +75,15 @@ class TestIngestCLIBoundaryIntegration:
             mock_check.return_value = None  # Successful verification
 
             # Mock asyncio.run to return proper tuple
-            mock_asyncio_run.return_value = ("job_123", {
-                "symbols_processed": 1,
-                "total_bars": 100,
-                "processing_time_seconds": 5.0,
-                "symbols_failed": 0,
-            })
+            mock_asyncio_run.return_value = (
+                "job_123",
+                {
+                    "symbols_processed": 1,
+                    "total_bars": 100,
+                    "processing_time_seconds": 5.0,
+                    "symbols_failed": 0,
+                },
+            )
 
             # Create test config file
             config_file = tmp_path / "test_config.yaml"

@@ -34,7 +34,7 @@ def test_deprecated_validate_command_warning():
     """Test that 'mp validate' shows deprecation warning."""
     runner = CliRunner()
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory():
         result = runner.invoke(app, ["validate", "--help"])
 
         # Check that help text indicates deprecation
@@ -47,7 +47,7 @@ def test_deprecated_aggregate_command_warning():
     """Test that 'mp aggregate' shows deprecation warning."""
     runner = CliRunner()
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory():
         result = runner.invoke(app, ["aggregate", "--help"])
 
         # Check that help text indicates deprecation

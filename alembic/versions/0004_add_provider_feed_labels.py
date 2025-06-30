@@ -5,14 +5,15 @@ Revises: 0003
 Create Date: 2024-12-19 15:30:00.000000
 
 """
+
 from collections.abc import Sequence
 from typing import Union
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '0004'
-down_revision: Union[str, None] = '0003'
+revision: str = "0004"
+down_revision: Union[str, None] = "0003"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -39,22 +40,26 @@ def downgrade() -> None:
     op.execute("DROP INDEX IF EXISTS idx_metrics_name_provider_feed")
 
     # Drop columns (SQLite doesn't support DROP COLUMN directly, so we recreate the table)
-    op.execute("""
-        CREATE TABLE metrics_backup AS 
-        SELECT ts, name, value, created_at 
+    op.execute(
+        """
+        CREATE TABLE metrics_backup AS
+        SELECT ts, name, value, created_at
         FROM metrics
-    """)
+    """
+    )
 
     op.execute("DROP TABLE metrics")
 
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE metrics (
             ts INTEGER NOT NULL,
             name TEXT NOT NULL,
             value REAL NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
+    """
+    )
 
     op.execute("INSERT INTO metrics SELECT * FROM metrics_backup")
     op.execute("DROP TABLE metrics_backup")

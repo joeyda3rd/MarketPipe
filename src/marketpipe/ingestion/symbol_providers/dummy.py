@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from marketpipe.domain import SymbolRecord
 from marketpipe.domain.symbol import safe_create
 
@@ -31,7 +29,7 @@ class DummyProvider(SymbolProviderBase):
             }
         ]
 
-    def _map_to_records(self, payload) -> List[SymbolRecord]:
+    def _map_to_records(self, payload) -> list[SymbolRecord]:
         """Convert payload to SymbolRecord objects."""
         out = []
         for row in payload:

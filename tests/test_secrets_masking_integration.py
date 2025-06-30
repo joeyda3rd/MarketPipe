@@ -115,7 +115,8 @@ class TestSecretsInLogs:
                 import warnings
 
                 warnings.warn(
-                    "Log capture failed due to test isolation - main security check passed"
+                    "Log capture failed due to test isolation - main security check passed",
+                    stacklevel=2,
                 )
 
         finally:

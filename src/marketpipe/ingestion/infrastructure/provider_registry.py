@@ -5,14 +5,13 @@ from __future__ import annotations
 
 import logging
 from importlib.metadata import entry_points
-from typing import Dict, List, Type
 
 from marketpipe.domain.market_data import IMarketDataProvider
 
 logger = logging.getLogger(__name__)
 
 # Global registry of providers
-_REGISTRY: Dict[str, Type[IMarketDataProvider]] = {}
+_REGISTRY: dict[str, type[IMarketDataProvider]] = {}
 _AUTO_REGISTERED = False
 
 # Provider names that are bundled with MarketPipe itself. These are excluded
@@ -62,7 +61,7 @@ def _auto_register() -> None:
     _AUTO_REGISTERED = True
 
 
-def register(name: str, cls: Type[IMarketDataProvider]) -> None:
+def register(name: str, cls: type[IMarketDataProvider]) -> None:
     """
     Register a provider class with the given name.
 
@@ -77,7 +76,7 @@ def register(name: str, cls: Type[IMarketDataProvider]) -> None:
     logger.debug(f"Registered provider '{name}': {cls}")
 
 
-def get(name: str) -> Type[IMarketDataProvider]:
+def get(name: str) -> type[IMarketDataProvider]:
     """
     Get a provider class by name.
 
@@ -100,7 +99,7 @@ def get(name: str) -> Type[IMarketDataProvider]:
     return _REGISTRY[name]
 
 
-def list_providers() -> List[str]:
+def list_providers() -> list[str]:
     """
     Get list of all registered provider names.
 
@@ -158,7 +157,7 @@ def provider(name: str):
         Decorator function
     """
 
-    def decorator(cls: Type[IMarketDataProvider]) -> Type[IMarketDataProvider]:
+    def decorator(cls: type[IMarketDataProvider]) -> type[IMarketDataProvider]:
         register(name, cls)
         return cls
 

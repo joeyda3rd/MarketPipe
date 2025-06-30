@@ -157,9 +157,9 @@ def test_query_command_complex_sql(runner, mock_query_data):
         mock_query.return_value = aggregated_df
 
         complex_sql = """
-        SELECT symbol, COUNT(*) as count, AVG(close) as avg_close 
-        FROM bars_5m 
-        WHERE symbol='AAPL' 
+        SELECT symbol, COUNT(*) as count, AVG(close) as avg_close
+        FROM bars_5m
+        WHERE symbol='AAPL'
         GROUP BY symbol
         """
 

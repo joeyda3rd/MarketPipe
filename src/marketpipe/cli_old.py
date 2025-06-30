@@ -6,6 +6,8 @@ from __future__ import annotations
 import sys
 import warnings
 
+from marketpipe.cli import app, ohlcv_app
+
 
 def __getattr__(name):
     """Intercept all attribute access to provide deprecation warnings."""
@@ -17,8 +19,6 @@ def __getattr__(name):
     )
 
     # Delegate to the new CLI
-    from marketpipe.cli import app, ohlcv_app
-
     if name == "app":
         return app
     elif name == "ohlcv_app":
@@ -28,7 +28,6 @@ def __getattr__(name):
 
 
 # Legacy compatibility: re-export the main app
-from marketpipe.cli import app
 
 if __name__ == "__main__":
     warnings.warn(

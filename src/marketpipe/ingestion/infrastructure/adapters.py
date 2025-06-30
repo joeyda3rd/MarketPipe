@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import (
@@ -38,7 +38,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         api_secret: str,
         base_url: str,
         feed_type: str = "iex",
-        rate_limit_per_min: Optional[int] = None,
+        rate_limit_per_min: int | None = None,
     ):
         self._api_key = api_key
         self._api_secret = api_secret
@@ -64,7 +64,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         )
 
     @classmethod
-    def from_config(cls, config: Dict[str, Any]) -> AlpacaMarketDataAdapter:
+    def from_config(cls, config: dict[str, Any]) -> AlpacaMarketDataAdapter:
         """
         Create adapter from configuration dictionary.
 
@@ -89,7 +89,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """
         Fetch bars from Alpaca and translate to domain models.
 
@@ -130,7 +130,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
 
         return domain_bars
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """
         Get list of symbols supported by Alpaca.
 
@@ -179,7 +179,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
             ),  # SIP has more history
         )
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         """Get Alpaca provider information (legacy method for compatibility)."""
         return {
             "provider": "alpaca",
@@ -191,7 +191,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         }
 
     def _translate_alpaca_bar_to_domain(
-        self, alpaca_bar: Dict[str, Any], symbol: Symbol
+        self, alpaca_bar: dict[str, Any], symbol: Symbol
     ) -> OHLCVBar:
         """
         Translate Alpaca bar format to domain OHLCV bar.
@@ -208,7 +208,6 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
             timestamp_seconds = timestamp_ns / 1_000_000_000
 
             timestamp_dt = datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc)
-
 
             # Extract OHLCV values with proper type conversion
             open_price = self._safe_decimal(alpaca_bar.get("open", alpaca_bar.get("o", 0)))
@@ -261,7 +260,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         start_timestamp: int,
         end_timestamp: int,
         batch_size: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """Legacy method for backward compatibility."""
         start_ts = Timestamp.from_nanoseconds(start_timestamp)
         end_ts = Timestamp.from_nanoseconds(end_timestamp)
@@ -289,13 +288,13 @@ class IEXMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """Fetch bars from IEX and translate to domain models."""
         # This is a stub implementation - IEX integration would go here
         # For now, return empty list to avoid NotImplementedError
         return []
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """Get list of symbols supported by IEX."""
         # This is a stub implementation - would query IEX's symbols endpoint
         # For now, return empty list to avoid NotImplementedError
@@ -317,7 +316,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
             maximum_history_days=365 * 5,
         )
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         """Get IEX provider information (legacy method for compatibility)."""
         return {
             "provider": "iex",
@@ -334,7 +333,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
         start_timestamp: int,
         end_timestamp: int,
         batch_size: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """Legacy method for backward compatibility."""
         start_ts = Timestamp.from_nanoseconds(start_timestamp)
         end_ts = Timestamp.from_nanoseconds(end_timestamp)
@@ -363,7 +362,7 @@ class MarketDataProviderFactory:
         api_secret: str,
         base_url: str,
         feed_type: str = "iex",
-        rate_limit_per_min: Optional[int] = None,
+        rate_limit_per_min: int | None = None,
     ) -> AlpacaMarketDataAdapter:
         """Create an Alpaca market data adapter."""
         return AlpacaMarketDataAdapter(
@@ -380,7 +379,7 @@ class MarketDataProviderFactory:
         return IEXMarketDataAdapter(api_token=api_token, is_sandbox=is_sandbox)
 
     @staticmethod
-    def create_from_config(config: Dict[str, Any]) -> IMarketDataProvider:
+    def create_from_config(config: dict[str, Any]) -> IMarketDataProvider:
         """Create adapter from configuration dictionary."""
         provider_type = config.get("provider", "alpaca").lower()
 

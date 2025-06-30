@@ -28,7 +28,9 @@ def clear_all_job_conflicts():
             conn = sqlite3.connect(db_file)
 
             # Check if table exists
-            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ingestion_jobs'")
+            cursor = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='ingestion_jobs'"
+            )
             if not cursor.fetchone():
                 print(f"⏭️  {db_file}: No ingestion_jobs table")
                 conn.close()
@@ -51,6 +53,7 @@ def clear_all_job_conflicts():
     print("💡 All scheduling conflicts should now be resolved")
 
     return True
+
 
 if __name__ == "__main__":
     print("🧹 Clearing job scheduling conflicts from all databases...")

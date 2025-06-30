@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -130,17 +129,17 @@ def update(
     snapshot_as_of: str = typer.Option(
         str(date.today()), "--snapshot-as-of", help="Snapshot date (YYYY-MM-DD). Default: today"
     ),
-    db_path: Optional[Path] = typer.Option(
+    db_path: Path | None = typer.Option(
         None, "--db", help="DuckDB database path. Default: warehouse.duckdb"
     ),
-    data_dir: Optional[Path] = typer.Option(
+    data_dir: Path | None = typer.Option(
         None, "--data-dir", help="Parquet dataset root. Default: ./data"
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Run pipeline but skip Parquet writes"),
     diff_only: bool = typer.Option(
         False, "--diff-only", help="Skip provider fetch and SCD update only"
     ),
-    backfill: Optional[str] = typer.Option(
+    backfill: str | None = typer.Option(
         None, "--backfill", help="Back-fill symbols from this date (YYYY-MM-DD)"
     ),
     execute: bool = typer.Option(False, "--execute", help="Perform writes (not read-only)"),
@@ -182,6 +181,7 @@ def update(
 
     # Set defaults with environment variable support
     import os
+
     if db_path is None:
         db_path = Path(os.getenv("MP_DB", "warehouse.duckdb"))
     if data_dir is None:
@@ -202,7 +202,7 @@ def update(
         console.print(f"  providers: {', '.join(providers)}")
         console.print(f"  snapshot_as_of: {snapshot_date}")
         if backfill_date:
-            days_count = (snapshot_date - backfill_date).days + 1
+            (snapshot_date - backfill_date).days + 1
             console.print(f"  backfill: {backfill_date}")
         console.print(f"  db: {db_path}")
         console.print(f"  data_dir: {data_dir}")

@@ -7,7 +7,6 @@ import logging
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 import duckdb
 
@@ -22,21 +21,21 @@ class VerificationResult:
     provider: str
     requested_start: date
     requested_end: date
-    actual_start: Optional[date]
-    actual_end: Optional[date]
+    actual_start: date | None
+    actual_end: date | None
     total_bars: int
     passed: bool
-    error_message: Optional[str] = None
-    suggested_providers: Optional[List[str]] = None
+    error_message: str | None = None
+    suggested_providers: list[str] | None = None
 
 
 @dataclass
 class VerificationSummary:
     """Summary of verification results for multiple symbols."""
 
-    results: List[VerificationResult]
+    results: list[VerificationResult]
     all_passed: bool
-    failed_symbols: List[str]
+    failed_symbols: list[str]
     total_bars: int
 
 
@@ -54,7 +53,7 @@ class IngestionVerificationService:
 
     def verify_ingestion(
         self,
-        symbols: List[str],
+        symbols: list[str],
         requested_start: date,
         requested_end: date,
         provider: str,
@@ -169,7 +168,7 @@ class IngestionVerificationService:
 
     def _query_symbol_bounds(
         self, symbol: str, output_path: Path
-    ) -> Tuple[Optional[date], Optional[date], int]:
+    ) -> tuple[date | None, date | None, int]:
         """Query the min/max dates and bar count for a symbol."""
 
         # Construct glob pattern for symbol data
@@ -180,7 +179,7 @@ class IngestionVerificationService:
 
             # Query for date bounds and count
             query = f"""
-            SELECT 
+            SELECT
                 MIN(date) AS min_date,
                 MAX(date) AS max_date,
                 COUNT(*) AS total_bars
@@ -214,8 +213,8 @@ class IngestionVerificationService:
         self,
         requested_start: date,
         requested_end: date,
-        actual_start: Optional[date],
-        actual_end: Optional[date],
+        actual_start: date | None,
+        actual_end: date | None,
     ) -> bool:
         """Check if actual date boundaries are within tolerance of requested."""
         if actual_start is None or actual_end is None:

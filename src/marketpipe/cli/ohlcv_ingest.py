@@ -11,10 +11,18 @@ import time
 import warnings
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Tuple
 
 import typer
 
+from marketpipe.cli.validators import (
+    cli_error,
+    validate_batch_size,
+    validate_config_file,
+    validate_date_range,
+    validate_output_dir,
+    validate_symbols,
+    validate_workers,
+)
 from marketpipe.config import ConfigVersionError, IngestionJobConfig, load_config
 from marketpipe.domain.value_objects import Symbol, TimeRange
 from marketpipe.infrastructure.events import InMemoryEventPublisher
@@ -43,17 +51,6 @@ from marketpipe.ingestion.infrastructure.repositories import (
     SqliteMetricsRepository,
 )
 from marketpipe.validation.domain.services import ValidationDomainService
-from marketpipe.cli.validators import (
-    cli_error,
-    validate_batch_size,
-    validate_date_range,
-    validate_output_dir,
-    validate_symbols,
-    validate_workers,
-    validate_config_file,
-    validate_provider,
-    validate_feed_type,
-)
 
 
 class FilteredStderr:
@@ -103,9 +100,7 @@ class FilteredStderr:
             self.buffer.append(line)
 
             # Check if this line indicates an aiosqlite error
-            contains_aiosqlite = any(
-                indicator in line_lower for indicator in self.aiosqlite_indicators
-            )
+            any(indicator in line_lower for indicator in self.aiosqlite_indicators)
 
             # Check if this is the end of the error sequence (final RuntimeError line)
             is_error_end = line_stripped.startswith("RuntimeError:") and (
@@ -203,7 +198,7 @@ class CleanAsyncExecution:
 def _build_ingestion_services(
     provider_config: dict = None,
     output_path: str = "data/raw",
-) -> Tuple[IngestionJobService, IngestionCoordinatorService]:
+) -> tuple[IngestionJobService, IngestionCoordinatorService]:
     """Build and wire the DDD ingestion services with shared storage engine."""
     # Create data directory if it doesn't exist
     data_dir = Path("data")
@@ -242,8 +237,8 @@ def _build_ingestion_services(
     metrics_repo = SqliteMetricsRepository(str(data_dir / "metrics.db"))
 
     # Domain repositories
-    symbol_bars_repo = SqliteSymbolBarsRepository(core_db_path)
-    ohlcv_repo = SqliteOHLCVRepository(core_db_path)
+    SqliteSymbolBarsRepository(core_db_path)
+    SqliteOHLCVRepository(core_db_path)
 
     # Domain services
     domain_service = IngestionDomainService()
@@ -333,15 +328,15 @@ def _check_boundaries(path: str, symbol: str, start: str, end: str, provider: st
         SystemExit(1): If data is missing or outside the requested range
     """
     try:
-        from pathlib import Path
         from datetime import datetime
+        from pathlib import Path
 
         import duckdb
 
         # Convert string dates to date objects for comparison
         start_date = datetime.fromisoformat(start).date()
         end_date = datetime.fromisoformat(end).date()
-        
+
         # TimeRange.from_dates() treats end date as exclusive, so actual data ends on (end_date - 1)
         expected_end_date = end_date - timedelta(days=1)
 
@@ -362,9 +357,9 @@ def _check_boundaries(path: str, symbol: str, start: str, end: str, provider: st
 
         # Query to check data coverage
         query = f"""
-        SELECT 
-            MIN(DATE(to_timestamp(ts_ns / 1000000000))) as min_date, 
-            MAX(DATE(to_timestamp(ts_ns / 1000000000))) as max_date, 
+        SELECT
+            MIN(DATE(to_timestamp(ts_ns / 1000000000))) as min_date,
+            MAX(DATE(to_timestamp(ts_ns / 1000000000))) as max_date,
             COUNT(*) as bar_count
         FROM read_parquet('{symbol_path}/**/*.parquet')
         WHERE symbol = '{symbol}'
@@ -515,7 +510,9 @@ def _ingest_impl(
                 print(f"❌ Unsupported provider: {job_config.provider}")
                 raise typer.Exit(1)
 
-            job_service, coordinator_service = _build_ingestion_services(provider_config, job_config.output_path)
+            job_service, coordinator_service = _build_ingestion_services(
+                provider_config, job_config.output_path
+            )
 
             # Create domain command
             command = CreateIngestionJobCommand(
@@ -596,6 +593,7 @@ def _ingest_impl(
 # the caller includes a --help flag together with other options (the integration test
 # suite relies on this behaviour).  We re-introduce our own --help flag that is NOT
 # eager, so validation still runs first.
+
 
 def ingest_ohlcv(
     # Config file option

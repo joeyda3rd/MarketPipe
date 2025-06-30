@@ -200,7 +200,7 @@ class TestCliUtils:
 
             try:
                 providers()
-                assert False, "Expected exception was not raised"
+                raise AssertionError("Expected exception was not raised")
             except (SystemExit, Exception):
                 pass  # Expected - typer.Exit(1) raises different exceptions
 
@@ -232,7 +232,7 @@ class TestCliUtils:
         # Test failed migration
         try:
             migrate(tmp_path / "test.db")
-            assert False, "Expected exception was not raised"
+            raise AssertionError("Expected exception was not raised")
         except (SystemExit, Exception):
             pass  # Expected - typer.Exit(1) raises different exceptions
 

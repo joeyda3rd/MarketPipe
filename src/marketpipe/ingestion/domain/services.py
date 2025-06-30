@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import List, Optional
 
 from marketpipe.domain.services import DomainService
 from marketpipe.domain.value_objects import Symbol, TimeRange
@@ -18,7 +17,7 @@ from .value_objects import BatchConfiguration, IngestionConfiguration, Processin
 class JobCreationRequest:
     """Request for creating a new ingestion job."""
 
-    symbols: List[Symbol]
+    symbols: list[Symbol]
     time_range: TimeRange
     configuration: IngestionConfiguration
     batch_config: BatchConfiguration
@@ -80,9 +79,9 @@ class IngestionDomainService(DomainService):
 
     def calculate_optimal_batch_size(
         self,
-        symbols: List[Symbol],
+        symbols: list[Symbol],
         available_workers: int,
-        rate_limit_per_minute: Optional[int] = None,
+        rate_limit_per_minute: int | None = None,
     ) -> int:
         """
         Calculate optimal batch size based on symbols count and constraints.
@@ -110,8 +109,8 @@ class IngestionDomainService(DomainService):
         return min(base_batch_size, 50)
 
     def estimate_job_duration(
-        self, job: IngestionJob, historical_metrics: Optional[ProcessingMetrics] = None
-    ) -> Optional[float]:
+        self, job: IngestionJob, historical_metrics: ProcessingMetrics | None = None
+    ) -> float | None:
         """
         Estimate job completion time based on historical performance.
 
@@ -135,8 +134,8 @@ class IngestionDomainService(DomainService):
         return estimated_duration * 1.2
 
     def validate_job_schedule(
-        self, proposed_job: IngestionJob, active_jobs: List[IngestionJob]
-    ) -> List[str]:
+        self, proposed_job: IngestionJob, active_jobs: list[IngestionJob]
+    ) -> list[str]:
         """
         Validate that a proposed job doesn't conflict with active jobs.
 
@@ -177,7 +176,7 @@ class IngestionDomainService(DomainService):
 
     def determine_retry_strategy(
         self, job: IngestionJob, failure_reason: str
-    ) -> tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """
         Determine if and how a failed job should be retried.
 
@@ -218,7 +217,7 @@ class IngestionDomainService(DomainService):
         else:
             return True, "Standard retry with backoff"
 
-    def _validate_symbols(self, symbols: List[Symbol]) -> None:
+    def _validate_symbols(self, symbols: list[Symbol]) -> None:
         """Validate symbols list for business rules."""
         if not symbols:
             raise ValueError("Job must include at least one symbol")
@@ -302,7 +301,7 @@ class IngestionProgressTracker(DomainService):
 
         return progress
 
-    def calculate_throughput_metrics(self, job: IngestionJob) -> Optional[dict]:
+    def calculate_throughput_metrics(self, job: IngestionJob) -> dict | None:
         """Calculate throughput metrics for a job."""
         if not job.started_at or job.total_bars_processed == 0:
             return None

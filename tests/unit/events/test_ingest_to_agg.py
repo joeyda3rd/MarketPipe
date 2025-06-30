@@ -159,7 +159,7 @@ def test_aggregation_service_error_handling(monkeypatch):
                     )
                 )
                 # If we get here, the exception wasn't raised as expected
-                assert False, "Expected exception was not raised"
+                raise AssertionError("Expected exception was not raised")
             except Exception:
                 # This is expected due to re-raising in the service
                 pass

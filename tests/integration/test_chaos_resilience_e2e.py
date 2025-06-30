@@ -13,7 +13,6 @@ import random
 import threading
 import time
 from pathlib import Path
-from typing import Dict
 
 import pytest
 
@@ -65,9 +64,9 @@ class ChaosAgent:
         """Inject memory pressure to test memory handling."""
 
         pressure_levels = {
-            "low": 50 * 1024 * 1024,      # 50 MB
+            "low": 50 * 1024 * 1024,  # 50 MB
             "medium": 200 * 1024 * 1024,  # 200 MB
-            "high": 500 * 1024 * 1024,    # 500 MB
+            "high": 500 * 1024 * 1024,  # 500 MB
         }
 
         memory_size = pressure_levels.get(pressure_level, pressure_levels["medium"])
@@ -116,9 +115,9 @@ class ChaosAgent:
         """Inject CPU spike to test CPU handling."""
 
         intensity_levels = {
-            "low": 2,      # 2 threads
-            "medium": 4,   # 4 threads
-            "high": 8,     # 8 threads
+            "low": 2,  # 2 threads
+            "medium": 4,  # 4 threads
+            "high": 8,  # 8 threads
         }
 
         thread_count = intensity_levels.get(intensity, intensity_levels["medium"])
@@ -138,7 +137,7 @@ class ChaosAgent:
             end_time = time.time() + duration_seconds
             while time.time() < end_time:
                 # CPU-intensive calculation
-                sum(i ** 2 for i in range(10000))
+                sum(i**2 for i in range(10000))
 
         def cpu_spike_coordinator():
             threads = []
@@ -162,7 +161,9 @@ class ChaosAgent:
 
         return scenario
 
-    def inject_storage_failure(self, duration_seconds: float = 3.0, failure_type: str = "permission_denied"):
+    def inject_storage_failure(
+        self, duration_seconds: float = 3.0, failure_type: str = "permission_denied"
+    ):
         """Inject storage system failures."""
 
         scenario = {
@@ -191,7 +192,7 @@ class ChaosAgent:
 
         return scenario
 
-    def get_chaos_summary(self) -> Dict:
+    def get_chaos_summary(self) -> dict:
         """Get summary of chaos engineering activities."""
 
         total_scenarios = len(self.chaos_history) + len(self.active_chaos_scenarios)
@@ -227,21 +228,25 @@ class ResilienceMetrics:
         """Record system availability measurement."""
 
         timestamp = timestamp or time.time()
-        self.metrics["system_availability"].append({
-            "timestamp": timestamp,
-            "available": is_available,
-        })
+        self.metrics["system_availability"].append(
+            {
+                "timestamp": timestamp,
+                "available": is_available,
+            }
+        )
 
     def record_recovery_time(self, failure_start: float, recovery_end: float, failure_type: str):
         """Record system recovery time after failure."""
 
         recovery_time = recovery_end - failure_start
-        self.metrics["recovery_times"].append({
-            "failure_type": failure_type,
-            "recovery_time_seconds": recovery_time,
-            "failure_start": failure_start,
-            "recovery_end": recovery_end,
-        })
+        self.metrics["recovery_times"].append(
+            {
+                "failure_type": failure_type,
+                "recovery_time_seconds": recovery_time,
+                "failure_start": failure_start,
+                "recovery_end": recovery_end,
+            }
+        )
 
     def record_error_rate(self, error_count: int, total_operations: int, timestamp: float = None):
         """Record error rate measurement."""
@@ -249,25 +254,35 @@ class ResilienceMetrics:
         timestamp = timestamp or time.time()
         error_rate = error_count / total_operations if total_operations > 0 else 0
 
-        self.metrics["error_rates"].append({
-            "timestamp": timestamp,
-            "error_count": error_count,
-            "total_operations": total_operations,
-            "error_rate": error_rate,
-        })
+        self.metrics["error_rates"].append(
+            {
+                "timestamp": timestamp,
+                "error_count": error_count,
+                "total_operations": total_operations,
+                "error_rate": error_rate,
+            }
+        )
 
-    def record_throughput_degradation(self, baseline_throughput: float, actual_throughput: float, timestamp: float = None):
+    def record_throughput_degradation(
+        self, baseline_throughput: float, actual_throughput: float, timestamp: float = None
+    ):
         """Record throughput degradation during chaos."""
 
         timestamp = timestamp or time.time()
-        degradation_percent = ((baseline_throughput - actual_throughput) / baseline_throughput * 100) if baseline_throughput > 0 else 0
+        degradation_percent = (
+            ((baseline_throughput - actual_throughput) / baseline_throughput * 100)
+            if baseline_throughput > 0
+            else 0
+        )
 
-        self.metrics["throughput_degradation"].append({
-            "timestamp": timestamp,
-            "baseline_throughput": baseline_throughput,
-            "actual_throughput": actual_throughput,
-            "degradation_percent": degradation_percent,
-        })
+        self.metrics["throughput_degradation"].append(
+            {
+                "timestamp": timestamp,
+                "baseline_throughput": baseline_throughput,
+                "actual_throughput": actual_throughput,
+                "degradation_percent": degradation_percent,
+            }
+        )
 
     def calculate_resilience_score(self) -> float:
         """Calculate overall system resilience score (0-100)."""
@@ -282,26 +297,32 @@ class ResilienceMetrics:
 
         # Recovery time score (faster recovery = higher score)
         if self.metrics["recovery_times"]:
-            avg_recovery_time = sum(m["recovery_time_seconds"] for m in self.metrics["recovery_times"]) / len(self.metrics["recovery_times"])
+            avg_recovery_time = sum(
+                m["recovery_time_seconds"] for m in self.metrics["recovery_times"]
+            ) / len(self.metrics["recovery_times"])
             # Score: 100 for instant recovery, decreases with longer recovery times
             recovery_score = max(0, 100 - (avg_recovery_time * 10))
             scores.append(recovery_score)
 
         # Error rate score (lower error rate = higher score)
         if self.metrics["error_rates"]:
-            avg_error_rate = sum(m["error_rate"] for m in self.metrics["error_rates"]) / len(self.metrics["error_rates"])
+            avg_error_rate = sum(m["error_rate"] for m in self.metrics["error_rates"]) / len(
+                self.metrics["error_rates"]
+            )
             error_score = max(0, 100 - (avg_error_rate * 100))
             scores.append(error_score)
 
         # Throughput degradation score
         if self.metrics["throughput_degradation"]:
-            avg_degradation = sum(m["degradation_percent"] for m in self.metrics["throughput_degradation"]) / len(self.metrics["throughput_degradation"])
+            avg_degradation = sum(
+                m["degradation_percent"] for m in self.metrics["throughput_degradation"]
+            ) / len(self.metrics["throughput_degradation"])
             throughput_score = max(0, 100 - avg_degradation)
             scores.append(throughput_score)
 
         return sum(scores) / len(scores) if scores else 0
 
-    def get_metrics_summary(self) -> Dict:
+    def get_metrics_summary(self) -> dict:
         """Get comprehensive metrics summary."""
 
         summary = {
@@ -312,7 +333,9 @@ class ResilienceMetrics:
         # Availability statistics
         if self.metrics["system_availability"]:
             available_count = sum(1 for m in self.metrics["system_availability"] if m["available"])
-            summary["availability_percentage"] = (available_count / len(self.metrics["system_availability"])) * 100
+            summary["availability_percentage"] = (
+                available_count / len(self.metrics["system_availability"])
+            ) * 100
 
         # Recovery time statistics
         if self.metrics["recovery_times"]:
@@ -341,13 +364,13 @@ class FaultToleranceValidator:
         self.storage_dir = storage_dir
         self.storage_engine = ParquetStorageEngine(storage_dir)
 
-    async def test_graceful_degradation(self, chaos_agent: ChaosAgent) -> Dict:
+    async def test_graceful_degradation(self, chaos_agent: ChaosAgent) -> dict:
         """Test system's graceful degradation under failure conditions."""
 
         baseline_performance = await self._measure_baseline_performance()
 
         # Inject chaos scenarios
-        scenarios = [
+        [
             chaos_agent.inject_memory_pressure(duration_seconds=2.0, pressure_level="medium"),
             chaos_agent.inject_cpu_spike(duration_seconds=1.5, intensity="medium"),
         ]
@@ -365,15 +388,17 @@ class FaultToleranceValidator:
             "baseline_performance": baseline_performance,
             "degraded_performance": degraded_performance,
             "recovery_performance": recovery_performance,
-            "graceful_degradation": degraded_performance["success_rate"] >= 0.7,  # 70% success during chaos
-            "full_recovery": recovery_performance["success_rate"] >= baseline_performance["success_rate"] * 0.9,
+            "graceful_degradation": degraded_performance["success_rate"]
+            >= 0.7,  # 70% success during chaos
+            "full_recovery": recovery_performance["success_rate"]
+            >= baseline_performance["success_rate"] * 0.9,
         }
 
-    async def test_failure_isolation(self, chaos_agent: ChaosAgent) -> Dict:
+    async def test_failure_isolation(self, chaos_agent: ChaosAgent) -> dict:
         """Test system's ability to isolate failures."""
 
         # Simulate failures in different components
-        storage_failure = chaos_agent.inject_storage_failure(duration_seconds=2.0)
+        chaos_agent.inject_storage_failure(duration_seconds=2.0)
 
         # Test if other components remain functional
         isolation_results = {}
@@ -395,10 +420,11 @@ class FaultToleranceValidator:
 
         return {
             "isolation_results": isolation_results,
-            "isolation_effective": sum(isolation_results.values()) >= 2,  # At least 2 components isolated
+            "isolation_effective": sum(isolation_results.values())
+            >= 2,  # At least 2 components isolated
         }
 
-    async def _measure_baseline_performance(self) -> Dict:
+    async def _measure_baseline_performance(self) -> dict:
         """Measure baseline system performance."""
 
         operations = []
@@ -422,12 +448,12 @@ class FaultToleranceValidator:
             "avg_duration": 0.01,
         }
 
-    async def _measure_performance_under_chaos(self) -> Dict:
+    async def _measure_performance_under_chaos(self) -> dict:
         """Measure system performance during chaos conditions."""
 
         operations = []
         successful_operations = 0
-        
+
         # Use deterministic failure pattern for consistent test results
         # Fail operations 2 and 8 out of 10 (80% success rate)
         failure_indices = {2, 8}
@@ -456,7 +482,7 @@ class FaultToleranceValidator:
             "avg_duration": 0.02,
         }
 
-    async def _test_memory_operations(self) -> Dict:
+    async def _test_memory_operations(self) -> dict:
         """Test memory-based operations."""
 
         try:
@@ -469,19 +495,19 @@ class FaultToleranceValidator:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    async def _test_cpu_operations(self) -> Dict:
+    async def _test_cpu_operations(self) -> dict:
         """Test CPU-intensive operations."""
 
         try:
             # CPU-intensive calculation
-            result = sum(i ** 2 for i in range(1000))
+            result = sum(i**2 for i in range(1000))
 
             return {"success": True, "result": result}
 
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    async def _test_storage_operations(self) -> Dict:
+    async def _test_storage_operations(self) -> dict:
         """Test storage operations."""
 
         try:
@@ -513,7 +539,7 @@ class TestChaosResilienceEndToEnd:
         # Establish baseline
         async def baseline_operations():
             operations = []
-            for i in range(5):
+            for _i in range(5):
                 try:
                     # Simulate network-dependent operation
                     await asyncio.sleep(0.1)
@@ -527,7 +553,9 @@ class TestChaosResilienceEndToEnd:
 
         # Test baseline performance
         baseline_results = asyncio.run(baseline_operations())
-        baseline_success_rate = sum(1 for op in baseline_results if op["success"]) / len(baseline_results)
+        baseline_success_rate = sum(1 for op in baseline_results if op["success"]) / len(
+            baseline_results
+        )
 
         print(f"  Baseline success rate: {baseline_success_rate:.1%}")
 
@@ -540,13 +568,13 @@ class TestChaosResilienceEndToEnd:
         # Test operations during failure
         async def operations_during_failure():
             operations = []
-            for i in range(5):
+            for _i in range(5):
                 try:
                     # Operations should handle network failures gracefully
                     await asyncio.sleep(0.1)
 
                     # Simulate some operations succeeding despite network issues
-                    if random.random() > network_failure['failure_rate'] * 0.5:  # Some resilience
+                    if random.random() > network_failure["failure_rate"] * 0.5:  # Some resilience
                         operations.append({"success": True})
                         metrics.record_availability(True)
                     else:
@@ -563,7 +591,9 @@ class TestChaosResilienceEndToEnd:
         time.sleep(0.5)
 
         failure_results = asyncio.run(operations_during_failure())
-        failure_success_rate = sum(1 for op in failure_results if op["success"]) / len(failure_results)
+        failure_success_rate = sum(1 for op in failure_results if op["success"]) / len(
+            failure_results
+        )
 
         print(f"  Success rate during failure: {failure_success_rate:.1%}")
 
@@ -572,14 +602,18 @@ class TestChaosResilienceEndToEnd:
 
         recovery_start = time.time()
         recovery_results = asyncio.run(baseline_operations())
-        recovery_success_rate = sum(1 for op in recovery_results if op["success"]) / len(recovery_results)
+        recovery_success_rate = sum(1 for op in recovery_results if op["success"]) / len(
+            recovery_results
+        )
 
         metrics.record_recovery_time(failure_start, recovery_start, "network_failure")
 
         print(f"  Recovery success rate: {recovery_success_rate:.1%}")
 
         # Verify resilience characteristics
-        assert recovery_success_rate >= baseline_success_rate * 0.9, "System did not recover properly"
+        assert (
+            recovery_success_rate >= baseline_success_rate * 0.9
+        ), "System did not recover properly"
         assert failure_success_rate >= 0.3, "System not resilient enough during failure"
 
         resilience_score = metrics.calculate_resilience_score()
@@ -599,12 +633,16 @@ class TestChaosResilienceEndToEnd:
         async def resource_exhaustion_test():
             # Baseline measurement
             baseline_performance = await validator._measure_baseline_performance()
-            baseline_throughput = baseline_performance["successful_operations"] / baseline_performance.get("avg_duration", 1)
+            baseline_throughput = baseline_performance[
+                "successful_operations"
+            ] / baseline_performance.get("avg_duration", 1)
 
             print(f"  Baseline throughput: {baseline_throughput:.0f} ops/sec")
 
             # Inject multiple resource pressures simultaneously
-            memory_pressure = chaos_agent.inject_memory_pressure(duration_seconds=4.0, pressure_level="high")
+            memory_pressure = chaos_agent.inject_memory_pressure(
+                duration_seconds=4.0, pressure_level="high"
+            )
             cpu_spike = chaos_agent.inject_cpu_spike(duration_seconds=3.0, intensity="high")
 
             print(f"  Injected memory pressure: {memory_pressure['pressure_level']}")
@@ -614,12 +652,15 @@ class TestChaosResilienceEndToEnd:
             await asyncio.sleep(1.0)  # Let chaos take effect
 
             exhaustion_performance = await validator._measure_performance_under_chaos()
-            exhaustion_throughput = exhaustion_performance["successful_operations"] / exhaustion_performance.get("avg_duration", 1)
+            exhaustion_throughput = exhaustion_performance[
+                "successful_operations"
+            ] / exhaustion_performance.get("avg_duration", 1)
 
             metrics.record_throughput_degradation(baseline_throughput, exhaustion_throughput)
             metrics.record_error_rate(
-                exhaustion_performance["total_operations"] - exhaustion_performance["successful_operations"],
                 exhaustion_performance["total_operations"]
+                - exhaustion_performance["successful_operations"],
+                exhaustion_performance["total_operations"],
             )
 
             print(f"  Throughput under exhaustion: {exhaustion_throughput:.0f} ops/sec")
@@ -630,7 +671,9 @@ class TestChaosResilienceEndToEnd:
 
             # Measure recovery
             recovery_performance = await validator._measure_baseline_performance()
-            recovery_throughput = recovery_performance["successful_operations"] / recovery_performance.get("avg_duration", 1)
+            recovery_throughput = recovery_performance[
+                "successful_operations"
+            ] / recovery_performance.get("avg_duration", 1)
 
             print(f"  Recovery throughput: {recovery_throughput:.0f} ops/sec")
             print(f"  Recovery success rate: {recovery_performance['success_rate']:.1%}")
@@ -639,14 +682,18 @@ class TestChaosResilienceEndToEnd:
                 "baseline": baseline_performance,
                 "exhaustion": exhaustion_performance,
                 "recovery": recovery_performance,
-                "throughput_degradation": (baseline_throughput - exhaustion_throughput) / baseline_throughput * 100,
+                "throughput_degradation": (baseline_throughput - exhaustion_throughput)
+                / baseline_throughput
+                * 100,
                 "recovery_effectiveness": recovery_throughput / baseline_throughput,
             }
 
         results = asyncio.run(resource_exhaustion_test())
 
         # Verify resource exhaustion handling
-        assert results["exhaustion"]["success_rate"] >= 0.5, "System too fragile under resource pressure"
+        assert (
+            results["exhaustion"]["success_rate"] >= 0.5
+        ), "System too fragile under resource pressure"
         assert results["recovery_effectiveness"] >= 0.8, "System did not recover effectively"
         assert results["throughput_degradation"] <= 70, "Throughput degradation too severe"
 
@@ -659,7 +706,7 @@ class TestChaosResilienceEndToEnd:
         """Test prevention of cascading failures."""
 
         chaos_agent = ChaosAgent()
-        metrics = ResilienceMetrics()
+        ResilienceMetrics()
         validator = FaultToleranceValidator(tmp_path / "cascade_storage")
 
         print("🔗 Testing cascading failure prevention")
@@ -678,7 +725,9 @@ class TestChaosResilienceEndToEnd:
             await asyncio.sleep(1.0)
 
             # Phase 2: Memory pressure (should not cascade)
-            memory_pressure = chaos_agent.inject_memory_pressure(duration_seconds=2.0, pressure_level="medium")
+            memory_pressure = chaos_agent.inject_memory_pressure(
+                duration_seconds=2.0, pressure_level="medium"
+            )
             failures.append(memory_pressure)
 
             await asyncio.sleep(1.0)
@@ -690,12 +739,14 @@ class TestChaosResilienceEndToEnd:
             # Monitor system behavior during cascading scenarios
             cascade_metrics = []
 
-            for i in range(6):  # Monitor for 6 seconds
+            for _i in range(6):  # Monitor for 6 seconds
                 system_state = await validator._test_memory_operations()
-                cascade_metrics.append({
-                    "timestamp": time.time(),
-                    "memory_functional": system_state["success"],
-                })
+                cascade_metrics.append(
+                    {
+                        "timestamp": time.time(),
+                        "memory_functional": system_state["success"],
+                    }
+                )
 
                 await asyncio.sleep(1.0)
 
@@ -706,7 +757,8 @@ class TestChaosResilienceEndToEnd:
                 "isolation_results": isolation_results,
                 "failures_injected": len(failures),
                 "cascade_metrics": cascade_metrics,
-                "memory_availability": sum(1 for m in cascade_metrics if m["memory_functional"]) / len(cascade_metrics),
+                "memory_availability": sum(1 for m in cascade_metrics if m["memory_functional"])
+                / len(cascade_metrics),
             }
 
         results = asyncio.run(cascading_failure_test())
@@ -716,7 +768,9 @@ class TestChaosResilienceEndToEnd:
         print(f"  Isolation effective: {results['isolation_results']['isolation_effective']}")
 
         # Verify cascading failure prevention
-        assert results["isolation_results"]["isolation_effective"], "Failure isolation not effective"
+        assert results["isolation_results"][
+            "isolation_effective"
+        ], "Failure isolation not effective"
         assert results["memory_availability"] >= 0.7, "Cascading failures detected"
 
         cascade_prevention_score = results["memory_availability"] * 100
@@ -750,15 +804,11 @@ class TestChaosResilienceEndToEnd:
                 print(f"  Testing {scenario['name']} degradation scenario")
 
                 # Inject appropriate level of chaos
-                memory_chaos = chaos_agent.inject_memory_pressure(
-                    duration_seconds=2.0,
-                    pressure_level=scenario["memory_pressure"]
+                chaos_agent.inject_memory_pressure(
+                    duration_seconds=2.0, pressure_level=scenario["memory_pressure"]
                 )
 
-                cpu_chaos = chaos_agent.inject_cpu_spike(
-                    duration_seconds=1.5,
-                    intensity=scenario["cpu_spike"]
-                )
+                chaos_agent.inject_cpu_spike(duration_seconds=1.5, intensity=scenario["cpu_spike"])
 
                 await asyncio.sleep(0.5)  # Let chaos take effect
 
@@ -775,8 +825,9 @@ class TestChaosResilienceEndToEnd:
 
                 # Record metrics
                 metrics.record_error_rate(
-                    degraded_performance["total_operations"] - degraded_performance["successful_operations"],
                     degraded_performance["total_operations"]
+                    - degraded_performance["successful_operations"],
+                    degraded_performance["total_operations"],
                 )
 
                 # Wait for chaos to subside
@@ -830,7 +881,9 @@ def test_comprehensive_chaos_engineering_demo(tmp_path):
     async def establish_baseline():
         baseline_performance = await validator._measure_baseline_performance()
         print(f"  Baseline success rate: {baseline_performance['success_rate']:.1%}")
-        print(f"  Baseline operations: {baseline_performance['successful_operations']}/{baseline_performance['total_operations']}")
+        print(
+            f"  Baseline operations: {baseline_performance['successful_operations']}/{baseline_performance['total_operations']}"
+        )
         return baseline_performance
 
     baseline = asyncio.run(establish_baseline())
@@ -855,16 +908,18 @@ def test_comprehensive_chaos_engineering_demo(tmp_path):
         for i in range(8):  # Monitor for 8 seconds
             performance = await validator._measure_performance_under_chaos()
 
-            chaos_measurements.append({
-                "timestamp": time.time(),
-                "success_rate": performance["success_rate"],
-                "operations": performance["successful_operations"],
-            })
+            chaos_measurements.append(
+                {
+                    "timestamp": time.time(),
+                    "success_rate": performance["success_rate"],
+                    "operations": performance["successful_operations"],
+                }
+            )
 
             metrics.record_availability(performance["success_rate"] > 0.5)
             metrics.record_error_rate(
                 performance["total_operations"] - performance["successful_operations"],
-                performance["total_operations"]
+                performance["total_operations"],
             )
 
             print(f"    T+{i+1}s: {performance['success_rate']:.1%} success rate")
@@ -884,13 +939,15 @@ def test_comprehensive_chaos_engineering_demo(tmp_path):
     async def assess_recovery():
         recovery_measurements = []
 
-        for i in range(5):  # Monitor recovery for 5 seconds
+        for _i in range(5):  # Monitor recovery for 5 seconds
             performance = await validator._measure_baseline_performance()
 
-            recovery_measurements.append({
-                "timestamp": time.time(),
-                "success_rate": performance["success_rate"],
-            })
+            recovery_measurements.append(
+                {
+                    "timestamp": time.time(),
+                    "success_rate": performance["success_rate"],
+                }
+            )
 
             metrics.record_availability(performance["success_rate"] > 0.9)
 
@@ -913,20 +970,26 @@ def test_comprehensive_chaos_engineering_demo(tmp_path):
 
     isolation_results = asyncio.run(test_isolation())
 
-    print(f"  Failure isolation effective: {'✓' if isolation_results['isolation_effective'] else '✗'}")
+    print(
+        f"  Failure isolation effective: {'✓' if isolation_results['isolation_effective'] else '✗'}"
+    )
 
     print("\n📊 Phase 5: Comprehensive Analysis")
 
     # Calculate comprehensive resilience metrics
     resilience_score = metrics.calculate_resilience_score()
-    metrics_summary = metrics.get_metrics_summary()
+    metrics.get_metrics_summary()
     chaos_summary = chaos_agent.get_chaos_summary()
 
     # System availability during chaos
-    availability_during_chaos = sum(1 for m in chaos_measurements if m["success_rate"] > 0.5) / len(chaos_measurements)
+    availability_during_chaos = sum(1 for m in chaos_measurements if m["success_rate"] > 0.5) / len(
+        chaos_measurements
+    )
 
     # Recovery speed
-    recovery_speed = sum(1 for m in recovery_measurements if m["success_rate"] > 0.9) / len(recovery_measurements)
+    recovery_speed = sum(1 for m in recovery_measurements if m["success_rate"] > 0.9) / len(
+        recovery_measurements
+    )
 
     print("📈 CHAOS ENGINEERING RESULTS:")
     print(f"  Overall Resilience Score: {resilience_score:.1f}/100")
@@ -934,7 +997,9 @@ def test_comprehensive_chaos_engineering_demo(tmp_path):
     print(f"  Recovery Speed: {recovery_speed:.1%}")
     print(f"  Recovery Effectiveness: {recovery_effectiveness:.1%}")
     print(f"  Chaos Scenarios Executed: {chaos_summary['completed_scenarios']}")
-    print(f"  Failure Isolation: {'Effective' if isolation_results['isolation_effective'] else 'Ineffective'}")
+    print(
+        f"  Failure Isolation: {'Effective' if isolation_results['isolation_effective'] else 'Ineffective'}"
+    )
 
     # Resilience characteristics validation
     resilience_checks = {
@@ -955,9 +1020,13 @@ def test_comprehensive_chaos_engineering_demo(tmp_path):
         print(f"  {status} {check_name.replace('_', ' ').title()}")
 
     # Overall chaos engineering validation
-    assert passed_checks >= total_checks * 0.8, f"Resilience insufficient: {passed_checks}/{total_checks}"
+    assert (
+        passed_checks >= total_checks * 0.8
+    ), f"Resilience insufficient: {passed_checks}/{total_checks}"
     assert resilience_score >= 60, f"Resilience score too low: {resilience_score:.1f}"
-    assert recovery_effectiveness >= 0.8, f"Recovery effectiveness too low: {recovery_effectiveness:.1%}"
+    assert (
+        recovery_effectiveness >= 0.8
+    ), f"Recovery effectiveness too low: {recovery_effectiveness:.1%}"
 
     print("\n🛡️  Chaos engineering demonstration completed successfully!")
     print("    MarketPipe demonstrates exceptional resilience to real-world failure scenarios.")

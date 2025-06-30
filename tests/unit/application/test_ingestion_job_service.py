@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import sys
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
@@ -31,8 +33,7 @@ from marketpipe.ingestion.domain.value_objects import (
     BatchConfiguration,
     IngestionConfiguration,
 )
-import sys
-from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from fakes.events import FakeEventPublisher
 from fakes.repositories import (

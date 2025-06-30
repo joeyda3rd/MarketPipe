@@ -111,9 +111,7 @@ marketpipe metrics --no-server --format json > metrics.json</div>
 </body>
 </html>"""
 
-    async def handle_request(
-        reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-    ) -> None:
+    async def handle_request(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         """Handle HTTP requests for the info server."""
         try:
             # Read the request (we don't need to parse it, just respond with info)

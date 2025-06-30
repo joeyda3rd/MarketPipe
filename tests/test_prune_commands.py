@@ -98,7 +98,7 @@ class TestParquetPruning:
             file_path.write_text("fake parquet data")
 
         with patch("marketpipe.cli.prune.bootstrap"):
-            with patch("marketpipe.metrics.DATA_PRUNED_BYTES_TOTAL") as mock_metric:
+            with patch("marketpipe.metrics.DATA_PRUNED_BYTES_TOTAL"):
                 result = runner.invoke(prune_app, ["parquet", "3y", "--root", str(tmp_path)])
 
         assert result.exit_code == 0
@@ -173,7 +173,7 @@ class TestSQLitePruning:
                 "marketpipe.ingestion.infrastructure.repository_factory.create_ingestion_job_repository",
                 return_value=mock_repo,
             ):
-                with patch("marketpipe.metrics.DATA_PRUNED_ROWS_TOTAL") as mock_metric:
+                with patch("marketpipe.metrics.DATA_PRUNED_ROWS_TOTAL"):
                     result = runner.invoke(prune_app, ["database", "18m"])
 
         assert result.exit_code == 0
@@ -243,9 +243,9 @@ class TestMetricsIntegration:
         test_file.write_text("fake data")
 
         with patch("marketpipe.cli.prune.bootstrap"):
-            with patch("marketpipe.metrics.DATA_PRUNED_BYTES_TOTAL") as mock_metric:
+            with patch("marketpipe.metrics.DATA_PRUNED_BYTES_TOTAL"):
                 with patch("marketpipe.metrics.record_metric") as mock_record:
-                    result = runner.invoke(prune_app, ["parquet", "3y", "--root", str(tmp_path)])
+                    runner.invoke(prune_app, ["parquet", "3y", "--root", str(tmp_path)])
 
         # Verify metrics were called (if file was deleted)
         if not test_file.exists():
@@ -264,9 +264,9 @@ class TestMetricsIntegration:
                 "marketpipe.ingestion.infrastructure.repository_factory.create_ingestion_job_repository",
                 return_value=mock_repo,
             ):
-                with patch("marketpipe.metrics.DATA_PRUNED_ROWS_TOTAL") as mock_metric:
+                with patch("marketpipe.metrics.DATA_PRUNED_ROWS_TOTAL"):
                     with patch("marketpipe.metrics.record_metric") as mock_record:
-                        result = runner.invoke(prune_app, ["database", "18m"])
+                        runner.invoke(prune_app, ["database", "18m"])
 
         # Verify metrics were recorded
         mock_record.assert_called()
@@ -285,7 +285,7 @@ class TestDomainEvents:
         test_file.write_text("fake data")
 
         with patch("marketpipe.cli.prune.bootstrap"):
-            with patch("marketpipe.domain.events.DataPruned") as mock_event:
+            with patch("marketpipe.domain.events.DataPruned"):
                 result = runner.invoke(prune_app, ["parquet", "3y", "--root", str(tmp_path)])
 
         # Verify event was created (if file was deleted)
@@ -306,7 +306,7 @@ class TestDomainEvents:
                 "marketpipe.ingestion.infrastructure.repository_factory.create_ingestion_job_repository",
                 return_value=mock_repo,
             ):
-                with patch("marketpipe.domain.events.DataPruned") as mock_event:
+                with patch("marketpipe.domain.events.DataPruned"):
                     result = runner.invoke(prune_app, ["database", "18m"])
 
         # Verify command runs successfully

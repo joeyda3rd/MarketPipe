@@ -11,7 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Any, Callable, Dict, Optional, Protocol, Type
+from typing import Any, Callable, Protocol
 from uuid import UUID, uuid4
 
 from .value_objects import Symbol, Timestamp
@@ -24,7 +24,7 @@ class IEventBus(Protocol):
     must follow, enabling dependency inversion in the domain layer.
     """
 
-    def subscribe(self, etype: Type[DomainEvent], fn: Callable[[DomainEvent], None]) -> None:
+    def subscribe(self, etype: type[DomainEvent], fn: Callable[[DomainEvent], None]) -> None:
         """Subscribe a function to handle events of a specific type.
 
         Args:
@@ -80,7 +80,7 @@ class DomainEvent(ABC):
         pass
 
     @abstractmethod
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         """Get event-specific data for serialization.
 
         Returns:
@@ -126,7 +126,7 @@ class BarCollectionStarted(DomainEvent):
     def aggregate_id(self) -> str:
         return f"{self.symbol}_{self.trading_date.isoformat()}"
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "symbol": str(self.symbol),
             "trading_date": self.trading_date.isoformat(),
@@ -160,7 +160,7 @@ class BarCollectionCompleted(DomainEvent):
     def aggregate_id(self) -> str:
         return f"{self.symbol}_{self.trading_date.isoformat()}"
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "symbol": str(self.symbol),
             "trading_date": self.trading_date.isoformat(),
@@ -176,7 +176,7 @@ class ValidationFailed(DomainEvent):
     symbol: Symbol
     timestamp: Timestamp
     error_message: str
-    rule_id: Optional[str] = None
+    rule_id: str | None = None
     severity: str = "error"
     event_id: UUID = None
     occurred_at: datetime = None
@@ -197,7 +197,7 @@ class ValidationFailed(DomainEvent):
     def aggregate_id(self) -> str:
         return f"{self.symbol}_{self.timestamp.trading_date().isoformat()}"
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "symbol": str(self.symbol),
             "timestamp": str(self.timestamp),
@@ -234,7 +234,7 @@ class IngestionJobStarted(DomainEvent):
     def aggregate_id(self) -> str:
         return self.job_id
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "job_id": self.job_id,
             "symbol": str(self.symbol),
@@ -251,8 +251,8 @@ class IngestionJobCompleted(DomainEvent):
     trading_date: date
     bars_processed: int
     success: bool
-    error_message: Optional[str] = None
-    duration_seconds: Optional[float] = None
+    error_message: str | None = None
+    duration_seconds: float | None = None
     event_id: UUID = None
     occurred_at: datetime = None
     version: int = 1
@@ -272,7 +272,7 @@ class IngestionJobCompleted(DomainEvent):
     def aggregate_id(self) -> str:
         return self.job_id
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "job_id": self.job_id,
             "symbol": str(self.symbol),
@@ -312,7 +312,7 @@ class MarketDataReceived(DomainEvent):
     def aggregate_id(self) -> str:
         return f"{self.symbol}_{self.timestamp.trading_date().isoformat()}"
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "provider_id": self.provider_id,
             "symbol": str(self.symbol),
@@ -353,7 +353,7 @@ class DataStored(DomainEvent):
     def aggregate_id(self) -> str:
         return f"{self.symbol}_{self.trading_date.isoformat()}"
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "symbol": str(self.symbol),
             "trading_date": self.trading_date.isoformat(),
@@ -393,7 +393,7 @@ class RateLimitExceeded(DomainEvent):
     def aggregate_id(self) -> str:
         return self.provider_id
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "provider_id": self.provider_id,
             "rate_limit_type": self.rate_limit_type,
@@ -428,7 +428,7 @@ class SymbolActivated(DomainEvent):
     def aggregate_id(self) -> str:
         return self.universe_id
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "universe_id": self.universe_id,
             "symbol": str(self.symbol),
@@ -460,7 +460,7 @@ class SymbolDeactivated(DomainEvent):
     def aggregate_id(self) -> str:
         return self.universe_id
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "universe_id": self.universe_id,
             "symbol": str(self.symbol),
@@ -492,7 +492,7 @@ class BackfillJobCompleted(DomainEvent):
     def aggregate_id(self) -> str:
         return f"{self.symbol}_{self.trading_date.isoformat()}"
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "symbol": str(self.symbol),
             "trading_date": self.trading_date.isoformat(),
@@ -525,7 +525,7 @@ class BackfillJobFailed(DomainEvent):
     def aggregate_id(self) -> str:
         return f"{self.symbol}_{self.trading_date.isoformat()}"
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "symbol": str(self.symbol),
             "trading_date": self.trading_date.isoformat(),
@@ -558,7 +558,7 @@ class DataPruned(DomainEvent):
     def aggregate_id(self) -> str:
         return f"prune_{self.data_type}_{self.cutoff.isoformat()}"
 
-    def _get_event_data(self) -> Dict[str, Any]:
+    def _get_event_data(self) -> dict[str, Any]:
         return {
             "data_type": self.data_type,
             "amount": self.amount,

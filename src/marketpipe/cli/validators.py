@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime as dt
 import re
 from pathlib import Path
-from typing import List
 
 import typer
 import yaml
@@ -71,7 +70,7 @@ def validate_date_range(start: str | None, end: str | None) -> None:
 _SYMBOL_RE = re.compile(r"^[A-Z0-9\.]{1,10}$")
 
 
-def validate_symbols(symbols_csv: str | None) -> List[str]:
+def validate_symbols(symbols_csv: str | None) -> list[str]:
     if symbols_csv is None:
         return []
 
@@ -150,7 +149,7 @@ def validate_config_file(config_path: str) -> None:
 
     # Validate YAML format
     try:
-        with open(path, "r") as f:
+        with open(path) as f:
             content = f.read().strip()
 
         if not content:

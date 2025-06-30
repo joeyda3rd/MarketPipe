@@ -29,14 +29,15 @@ class TestConfigurationExecutionFlow:
         monkeypatch.chdir(tmp_path)
 
         # Create realistic config file with fake provider for deterministic testing
-        config_content = dedent(f"""
+        config_content = dedent(
+            f"""
             # MarketPipe Test Configuration
             config_version: "1"
-            
+
             symbols:
               - AAPL
               - GOOGL
-            
+
             start: "2024-01-15"
             end: "2024-01-17"
             output_path: "{tmp_path}/data"
@@ -44,7 +45,8 @@ class TestConfigurationExecutionFlow:
             feed_type: "iex"
             workers: 2
             batch_size: 1000
-        """)
+        """
+        )
 
         config_file = tmp_path / "test_config.yaml"
         config_file.write_text(config_content)
@@ -68,14 +70,23 @@ class TestConfigurationExecutionFlow:
 
         # Test with config file only (no CLI overrides)
         print("🔄 Testing config file loading...")
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(config_file),
-            "--symbols", "TSLA",  # CLI should override config symbols
-            "--start", "2024-01-17",  # CLI should override config start
-            "--end", "2024-01-18",    # CLI should override config end (must be after start)
-            "--output", str(tmp_path / "test_output"),  # Override output path
-        ], catch_exceptions=True)
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(config_file),
+                "--symbols",
+                "TSLA",  # CLI should override config symbols
+                "--start",
+                "2024-01-17",  # CLI should override config start
+                "--end",
+                "2024-01-18",  # CLI should override config end (must be after start)
+                "--output",
+                str(tmp_path / "test_output"),  # Override output path
+            ],
+            catch_exceptions=True,
+        )
 
         # Should succeed with config loading, even if execution has issues
         if result.exit_code != 0:
@@ -89,7 +100,7 @@ class TestConfigurationExecutionFlow:
         if config_loaded:
             print("✅ Config loading successful - configuration was parsed and displayed")
         else:
-            assert False, f"Config loading failed: {result.output}"
+            raise AssertionError(f"Config loading failed: {result.output}")
 
         # Verify CLI overrides are mentioned in output
         assert "TSLA" in result.stdout, "CLI symbol override not processed"
@@ -102,31 +113,40 @@ class TestConfigurationExecutionFlow:
         # CLI arguments should take precedence over environment variables
 
         # Create a config test with all override levels
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(config_file),
-            "--symbols", "MSFT,NVDA",  # CLI override
-            "--workers", "4",          # CLI override
-            "--output", str(tmp_path / "override_output"),  # CLI override
-        ], catch_exceptions=False)
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(config_file),
+                "--symbols",
+                "MSFT,NVDA",  # CLI override
+                "--workers",
+                "4",  # CLI override
+                "--output",
+                str(tmp_path / "override_output"),  # CLI override
+            ],
+            catch_exceptions=False,
+        )
 
         # Check for configuration loading success rather than execution success
         config_precedence_success = "📊 Ingestion Configuration:" in result.output
         if not config_precedence_success:
-            assert False, f"Configuration precedence test failed: {result.stdout}"
+            raise AssertionError(f"Configuration precedence test failed: {result.stdout}")
         print("✅ Configuration precedence validation passed")
 
         # Test actual execution with fake provider (no dry-run)
         print("🔄 Testing real execution with fake provider...")
 
         # Create a simple config that uses fake provider for actual execution
-        execution_config = dedent(f"""
+        execution_config = dedent(
+            f"""
             config_version: "1"
-            
+
             symbols:
               - AAPL
               - GOOGL
-              
+
             start: "2024-01-15"
             end: "2024-01-16"  # End must be after start
             output_path: "{tmp_path}/execution_data"
@@ -134,7 +154,8 @@ class TestConfigurationExecutionFlow:
             provider: "fake"
             feed_type: "iex"
             batch_size: 1000
-        """)
+        """
+        )
 
         execution_config_file = tmp_path / "execution_config.yaml"
         execution_config_file.write_text(execution_config)
@@ -142,10 +163,15 @@ class TestConfigurationExecutionFlow:
         # Set fake provider environment
         monkeypatch.setenv("MARKETPIPE_PROVIDER", "fake")
 
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(execution_config_file),
-        ], catch_exceptions=False)
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(execution_config_file),
+            ],
+            catch_exceptions=False,
+        )
 
         print(f"Execution result stdout: {result.stdout}")
         print(f"Execution result stderr: {result.stderr}")
@@ -156,14 +182,16 @@ class TestConfigurationExecutionFlow:
 
         if result.exit_code != 0:
             if execution_attempted and config_loaded:
-                print("⚠️  Execution completed but had post-processing issues (acceptable for fake provider)")
+                print(
+                    "⚠️  Execution completed but had post-processing issues (acceptable for fake provider)"
+                )
                 print("✅ Config loading and service initialization worked")
             elif config_loaded:
                 print("⚠️  Execution failed but config loading succeeded")
                 print("✅ Config loading worked")
             else:
                 print(f"❌ Config loading failure: {result.stdout}")
-                assert False, f"Config-related execution failure: {result.stdout}"
+                raise AssertionError(f"Config-related execution failure: {result.stdout}")
         else:
             print("✅ Full execution completed successfully")
 
@@ -192,28 +220,44 @@ class TestConfigurationExecutionFlow:
         invalid_yaml.write_text("invalid: yaml: content: [")
 
         runner = CliRunner()
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(invalid_yaml),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(invalid_yaml),
+            ],
+        )
 
         # Should fail gracefully with helpful error message
         assert result.exit_code != 0
-        assert "config" in result.stdout.lower() or "yaml" in result.stdout.lower() or "parse" in result.stdout.lower()
+        assert (
+            "config" in result.stdout.lower()
+            or "yaml" in result.stdout.lower()
+            or "parse" in result.stdout.lower()
+        )
         print("✅ Invalid YAML handled gracefully")
 
         # Test missing required fields
         incomplete_config = tmp_path / "incomplete.yaml"
-        incomplete_config.write_text(dedent("""
+        incomplete_config.write_text(
+            dedent(
+                """
             config_version: "1"
             # Missing symbols and date range
             output_path: "/tmp/test"
-        """))
+        """
+            )
+        )
 
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(incomplete_config),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(incomplete_config),
+            ],
+        )
 
         # Should either succeed with defaults or fail with helpful message
         if result.exit_code != 0:
@@ -224,19 +268,27 @@ class TestConfigurationExecutionFlow:
 
         # Test invalid date formats
         bad_dates_config = tmp_path / "bad_dates.yaml"
-        bad_dates_config.write_text(dedent("""
+        bad_dates_config.write_text(
+            dedent(
+                """
             config_version: "1"
             symbols:
               - AAPL
             start: "not-a-date"
             end: "also-not-a-date"
             output_path: "/tmp/test"
-        """))
+        """
+            )
+        )
 
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(bad_dates_config),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(bad_dates_config),
+            ],
+        )
 
         if result.exit_code != 0:
             # Should get helpful date format error, not stack trace
@@ -261,24 +313,33 @@ class TestConfigurationExecutionFlow:
 
         # Create minimal config file
         minimal_config = tmp_path / "minimal.yaml"
-        minimal_config.write_text(dedent("""
+        minimal_config.write_text(
+            dedent(
+                """
             config_version: "1"
             symbols:
               - AAPL
             start: "2024-01-15"
             end: "2024-01-16"
-        """))
+        """
+            )
+        )
 
         runner = CliRunner()
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(minimal_config),
-        ], catch_exceptions=False)
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(minimal_config),
+            ],
+            catch_exceptions=False,
+        )
 
         # Should succeed with config loading and use environment variables
         config_loaded = "📊 Ingestion Configuration:" in result.output
         if not config_loaded:
-            assert False, f"Environment variable integration failed: {result.stdout}"
+            raise AssertionError(f"Environment variable integration failed: {result.stdout}")
         print("✅ Environment variable integration successful")
 
     def test_cli_help_and_documentation(self, tmp_path):
@@ -309,43 +370,59 @@ class TestConfigurationExecutionFlow:
 
         # Test .yml extension (should work same as .yaml)
         yml_config = tmp_path / "test.yml"
-        yml_config.write_text(dedent("""
+        yml_config.write_text(
+            dedent(
+                """
             config_version: "1"
             symbols: [AAPL]
             start: "2024-01-15"
             end: "2024-01-16"
             output_path: "test_output"
-        """))
+        """
+            )
+        )
 
         runner = CliRunner()
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(yml_config),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(yml_config),
+            ],
+        )
 
         config_loaded = "📊 Ingestion Configuration:" in result.output
         if not config_loaded:
-            assert False, f"YML extension failed: {result.stdout}"
+            raise AssertionError(f"YML extension failed: {result.stdout}")
         print("✅ .yml extension supported")
 
         # Test absolute vs relative paths
         abs_path_config = tmp_path / "absolute.yaml"
-        abs_path_config.write_text(dedent(f"""
+        abs_path_config.write_text(
+            dedent(
+                f"""
             config_version: "1"
             symbols: [AAPL]
             start: "2024-01-15"
             end: "2024-01-16"
             output_path: "{tmp_path.absolute()}/abs_output"
-        """))
+        """
+            )
+        )
 
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(abs_path_config.absolute()),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(abs_path_config.absolute()),
+            ],
+        )
 
         config_loaded = "📊 Ingestion Configuration:" in result.output
         if not config_loaded:
-            assert False, f"Absolute path config failed: {result.stdout}"
+            raise AssertionError(f"Absolute path config failed: {result.stdout}")
         print("✅ Absolute config paths supported")
 
     def test_configuration_persistence_and_defaults(self, tmp_path):
@@ -353,14 +430,16 @@ class TestConfigurationExecutionFlow:
 
         # Create config with specific settings
         persistent_config = tmp_path / "persistent.yaml"
-        persistent_config.write_text(dedent(f"""
+        persistent_config.write_text(
+            dedent(
+                f"""
             config_version: "1"
-            
+
             symbols:
               - AAPL
               - GOOGL
               - MSFT
-            
+
             start: "2024-01-15"
             end: "2024-01-16"
             output_path: "{tmp_path}/persistent_output"
@@ -368,49 +447,62 @@ class TestConfigurationExecutionFlow:
             provider: "fake"
             feed_type: "iex"
             batch_size: 500
-        """))
+        """
+            )
+        )
 
         runner = CliRunner()
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(persistent_config),
-        ], catch_exceptions=False)
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(persistent_config),
+            ],
+            catch_exceptions=False,
+        )
 
         # Should process configuration without errors
         config_loaded = "📊 Ingestion Configuration:" in result.output
         if not config_loaded:
-            assert False, f"Configuration persistence test failed: {result.stdout}"
+            raise AssertionError(f"Configuration persistence test failed: {result.stdout}")
 
         # Verify configuration values are mentioned in output (when available)
         output_text = result.stdout.lower()
 
         # Look for evidence that config was processed
         config_indicators = ["aapl", "googl", "msft", "fake", "batch_size"]
-        found_indicators = [indicator for indicator in config_indicators if indicator in output_text]
+        found_indicators = [
+            indicator for indicator in config_indicators if indicator in output_text
+        ]
 
         if found_indicators:
             print(f"✓ Configuration indicators found in output: {found_indicators}")
 
         print("✅ Configuration persistence test completed")
 
+
 @pytest.mark.integration
 def test_config_integration_with_storage_engine(tmp_path):
     """Test that configuration properly initializes storage engine."""
 
     # Test that different compression settings actually work
-    storage_engine = ParquetStorageEngine(tmp_path)
+    ParquetStorageEngine(tmp_path)
 
     # Create test data
     import pandas as pd
-    test_df = pd.DataFrame({
-        "ts_ns": [1704103800000000000, 1704103860000000000],
-        "symbol": ["TEST", "TEST"],
-        "open": [100.0, 101.0],
-        "high": [101.0, 102.0],
-        "low": [99.0, 100.0],
-        "close": [100.5, 101.5],
-        "volume": [1000, 1100],
-    })
+
+    test_df = pd.DataFrame(
+        {
+            "ts_ns": [1704103800000000000, 1704103860000000000],
+            "symbol": ["TEST", "TEST"],
+            "open": [100.0, 101.0],
+            "high": [101.0, 102.0],
+            "low": [99.0, 100.0],
+            "close": [100.5, 101.5],
+            "volume": [1000, 1100],
+        }
+    )
 
     # Test different compression settings by creating different engines
     compressions = ["snappy", "zstd"]
@@ -425,7 +517,7 @@ def test_config_integration_with_storage_engine(tmp_path):
             symbol="TEST",
             trading_day=date(2024, 1, 15),
             job_id=f"compression-test-{compression}",
-            overwrite=True
+            overwrite=True,
         )
 
         assert output_path.exists(), f"Failed to create file with {compression} compression"

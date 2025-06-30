@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for provider registry system."""
 
-from typing import List
 from unittest.mock import Mock, patch
 
 import pytest
@@ -27,10 +26,10 @@ class MockProvider(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         return []
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         return [Symbol.from_string("TEST")]
 
     async def is_available(self) -> bool:
@@ -265,7 +264,7 @@ class TestProviderInstantiation:
 
         provider = IEXMarketDataAdapter.from_config(config)
         assert provider._api_token == "test_token"
-        assert provider._is_sandbox == True
+        assert provider._is_sandbox
         assert provider._timeout == 60.0
 
     def test_fake_provider_from_config(self):

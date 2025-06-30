@@ -4,11 +4,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
-
-import pandas as pd
 
 from marketpipe.domain.entities import OHLCVBar
 
@@ -27,7 +23,7 @@ class ParquetDataStorageAdapter(IDataStorage):
         self.log = logging.getLogger(self.__class__.__name__)
 
     async def store_bars(
-        self, bars: List[OHLCVBar], config: IngestionConfiguration
+        self, bars: list[OHLCVBar], config: IngestionConfiguration
     ) -> IngestionPartition:
         """Persist bars and return information about the created partition."""
         if not bars:
