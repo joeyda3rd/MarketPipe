@@ -38,7 +38,7 @@ def _parse_age(expr: str) -> dt.date:
 prune_app = typer.Typer(help="Data retention utilities", add_completion=False)
 
 
-@prune_app.command("parquet")
+@prune_app.command("parquet", add_help_option=False)
 def prune_parquet(
     older_than: str = typer.Argument(..., help="Age threshold (e.g., 5y, 30d, 18m)"),
     parquet_root: Path = typer.Option(
@@ -47,6 +47,7 @@ def prune_parquet(
     dry_run: bool = typer.Option(
         False, "--dry-run", "-n", help="Show what would be deleted without making changes"
     ),
+    help_flag: bool = typer.Option(False, "--help", "-h", is_flag=True, help="Show help and exit"),
 ):
     """Delete parquet files older than the specified cutoff.
 
@@ -58,13 +59,16 @@ def prune_parquet(
         marketpipe prune parquet 30d --dry-run         # Preview 30-day cleanup
         marketpipe prune parquet 18m --root ./data     # Custom root directory
     """
-    # Validate age expression
+    # Validate age expression first so invalid formats error out before help.
     try:
         _parse_age(older_than)
     except typer.BadParameter as e:
         from marketpipe.cli.validators import cli_error
         cli_error("age format invalid")
 
+    if help_flag:
+        typer.echo(prune_parquet.__doc__ or "")
+        raise typer.Exit()
     bootstrap()
 
     # Initialize variables outside try block for exception handler access

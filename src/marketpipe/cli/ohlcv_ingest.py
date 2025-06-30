@@ -695,7 +695,6 @@ Options:
     # Date and symbol validation
     validate_date_range(start, end)
     validate_symbols(symbols)
-
     # All good – run the actual implementation
     _ingest_impl(
         config=config,
