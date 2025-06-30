@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
 
 from marketpipe.ingestion.domain.repositories import IIngestionJobRepository
 
@@ -38,7 +37,7 @@ def create_ingestion_job_repository() -> IIngestionJobRepository:
 
 
 def create_ingestion_job_repository_with_url(
-    database_url: Optional[str] = None,
+    database_url: str | None = None,
 ) -> IIngestionJobRepository:
     """
     Create repository with explicit database URL override.

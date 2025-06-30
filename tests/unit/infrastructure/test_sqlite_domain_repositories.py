@@ -117,7 +117,7 @@ class TestSqliteSymbolBarsRepository:
         assert retrieved is not None
         assert retrieved.symbol == sample_symbol
         assert retrieved.trading_date == sample_trading_date
-        assert retrieved.is_complete == True
+        assert retrieved.is_complete
         assert retrieved.version == aggregate.version
 
     @pytest.mark.asyncio
@@ -212,10 +212,10 @@ class TestSqliteSymbolBarsRepository:
         # Get completion status
         status = await repo.get_completion_status([symbol1, symbol2], [date1, date2])
 
-        assert status[symbol1.value][date1.isoformat()] == True
-        assert status[symbol1.value][date2.isoformat()] == False
-        assert status[symbol2.value][date1.isoformat()] == False
-        assert status[symbol2.value][date2.isoformat()] == False
+        assert status[symbol1.value][date1.isoformat()]
+        assert not status[symbol1.value][date2.isoformat()]
+        assert not status[symbol2.value][date1.isoformat()]
+        assert not status[symbol2.value][date2.isoformat()]
 
     @pytest.mark.asyncio
     async def test_delete_aggregate(self, temp_db_path, sample_symbol, sample_trading_date):
@@ -232,7 +232,7 @@ class TestSqliteSymbolBarsRepository:
 
         # Delete it
         deleted = await repo.delete(sample_symbol, sample_trading_date)
-        assert deleted == True
+        assert deleted
 
         # Verify it's gone
         retrieved = await repo.get_by_symbol_and_date(sample_symbol, sample_trading_date)
@@ -240,7 +240,7 @@ class TestSqliteSymbolBarsRepository:
 
         # Try to delete again
         deleted = await repo.delete(sample_symbol, sample_trading_date)
-        assert deleted == False
+        assert not deleted
 
 
 class TestSqliteOHLCVRepository:
@@ -333,14 +333,14 @@ class TestSqliteOHLCVRepository:
 
         # Check non-existent bar
         exists = await repo.exists(sample_ohlcv_bar.symbol, sample_ohlcv_bar.timestamp)
-        assert exists == False
+        assert not exists
 
         # Save bar
         await repo.save_bars([sample_ohlcv_bar])
 
         # Check existing bar
         exists = await repo.exists(sample_ohlcv_bar.symbol, sample_ohlcv_bar.timestamp)
-        assert exists == True
+        assert exists
 
     @pytest.mark.asyncio
     async def test_count_bars(self, temp_db_path, sample_bars):
@@ -443,7 +443,7 @@ class TestSqliteCheckpointRepository:
 
         # Delete it
         deleted = await repo.delete_checkpoint(sample_symbol)
-        assert deleted == True
+        assert deleted
 
         # Verify it's gone
         retrieved = await repo.get_checkpoint(sample_symbol)
@@ -451,7 +451,7 @@ class TestSqliteCheckpointRepository:
 
         # Try to delete again
         deleted = await repo.delete_checkpoint(sample_symbol)
-        assert deleted == False
+        assert not deleted
 
     @pytest.mark.asyncio
     async def test_list_checkpoints(self, temp_db_path):
@@ -492,16 +492,16 @@ class TestRepositoryErrorHandling:
 
             # This should fail when trying to create the parent directory
             with pytest.raises((RepositoryError, PermissionError)):
-                repo = SqliteSymbolBarsRepository(invalid_path)
+                SqliteSymbolBarsRepository(invalid_path)
 
     @pytest.mark.asyncio
     async def test_repository_handles_invalid_data_gracefully(self, temp_db_path):
         """Test that repositories handle invalid data gracefully."""
-        repo = SqliteOHLCVRepository(temp_db_path)
+        SqliteOHLCVRepository(temp_db_path)
 
         # Try to create bar with invalid OHLC relationships
         with pytest.raises(ValueError):  # Should be caught by domain validation
-            invalid_bar = OHLCVBar(
+            OHLCVBar(
                 id=EntityId.generate(),
                 symbol=Symbol("AAPL"),
                 timestamp=Timestamp.now(),
@@ -539,7 +539,7 @@ class TestRepositoryIdempotency:
         # Verify only one aggregate exists
         retrieved = await repo.get_by_symbol_and_date(sample_symbol, sample_trading_date)
         assert retrieved is not None
-        assert retrieved.is_complete == True
+        assert retrieved.is_complete
 
     @pytest.mark.asyncio
     async def test_concurrent_access_safety(self, temp_db_path, sample_symbol):

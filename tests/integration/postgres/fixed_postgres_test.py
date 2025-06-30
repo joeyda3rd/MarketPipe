@@ -92,11 +92,11 @@ def run_tests():
             print("\n🔧 Testing Alembic migrations with PostgreSQL...")
 
             # Check for psycopg2 first
-            try:
-                import psycopg2
+            import importlib.util
 
+            if importlib.util.find_spec("psycopg2") is not None:
                 print("✅ psycopg2 is available")
-            except ImportError:
+            else:
                 print("❌ psycopg2 is missing - installing...")
                 import subprocess
 
@@ -148,8 +148,8 @@ def run_tests():
                 result = conn.execute(
                     text(
                         """
-                    SELECT table_name FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
+                    SELECT table_name FROM information_schema.tables
+                    WHERE table_schema = 'public'
                     ORDER BY table_name
                 """
                     )

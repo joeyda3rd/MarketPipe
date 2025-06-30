@@ -38,7 +38,6 @@ Usage:
 from __future__ import annotations
 
 import datetime as _dt
-from typing import List
 
 import httpx
 
@@ -84,7 +83,7 @@ class NasdaqDailyListProvider(SymbolProviderBase):
         self._user_provided_as_of = as_of is not None
         super().__init__(as_of=as_of, **provider_cfg)
 
-    async def _fetch_raw(self) -> List[str]:
+    async def _fetch_raw(self) -> list[str]:
         """Fetch raw Nasdaq Daily List text file.
 
         Downloads the nasdaqlisted.txt file from Nasdaq's public FTP server.
@@ -104,7 +103,7 @@ class NasdaqDailyListProvider(SymbolProviderBase):
             response.raise_for_status()
             return response.text.splitlines()
 
-    def _map_to_records(self, rows: List[str]) -> List[SymbolRecord]:
+    def _map_to_records(self, rows: list[str]) -> list[SymbolRecord]:
         """Convert Nasdaq Daily List rows to SymbolRecord objects.
 
         Parses pipe-delimited text format and converts each valid row
@@ -133,7 +132,7 @@ class NasdaqDailyListProvider(SymbolProviderBase):
         include_etfs = self.cfg.get("include_etfs", True)
         skip_test_issues = self.cfg.get("skip_test_issues", True)
 
-        records: List[SymbolRecord] = []
+        records: list[SymbolRecord] = []
 
         for row in data_rows:
             record = self._parse_row(row, header, effective_as_of, include_etfs, skip_test_issues)
@@ -142,7 +141,7 @@ class NasdaqDailyListProvider(SymbolProviderBase):
 
         return records
 
-    def _determine_effective_date(self, rows: List[str]) -> _dt.date:
+    def _determine_effective_date(self, rows: list[str]) -> _dt.date:
         """Determine effective as_of date with proper precedence.
 
         Priority:
@@ -181,7 +180,7 @@ class NasdaqDailyListProvider(SymbolProviderBase):
     def _parse_row(
         self,
         row: str,
-        header: List[str],
+        header: list[str],
         as_of: _dt.date,
         include_etfs: bool,
         skip_test_issues: bool,

@@ -2,7 +2,7 @@
 """
 Complete MarketPipe Pipeline Runner for COST and TSLA
 
-This script runs the entire MarketPipe pipeline (ingest -> validate -> aggregate) 
+This script runs the entire MarketPipe pipeline (ingest -> validate -> aggregate)
 for COST and TSLA using live market data from 3 months prior to yesterday.
 
 Usage:
@@ -19,13 +19,14 @@ import tempfile
 import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import yaml
 
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     # If python-dotenv is not available, try manual loading
@@ -34,8 +35,8 @@ except ImportError:
         with open(env_file) as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
                     os.environ[key.strip()] = value.strip()
 
 # Selected equities for focused pipeline testing
@@ -75,22 +76,21 @@ class PipelineRunner:
         config_data = {
             # REQUIRED: Config version field
             "config_version": "1",
-            
             # Basic pipeline configuration (simplified to only supported fields)
             "symbols": SELECTED_EQUITIES,
             "start": self.start_date,
             "end": self.end_date,
             "output_path": str(self.base_dir / "data"),
-            "workers": 3
+            "workers": 3,
         }
 
         # Create temporary config file
         config_file = tempfile.NamedTemporaryFile(
-            mode='w',
-            suffix='.yaml',
-            prefix='pipeline_config_',
+            mode="w",
+            suffix=".yaml",
+            prefix="pipeline_config_",
             delete=False,
-            dir=self.base_dir / "config"
+            dir=self.base_dir / "config",
         )
 
         yaml.dump(config_data, config_file, default_flow_style=False, indent=2)
@@ -104,66 +104,74 @@ class PipelineRunner:
     def check_stuck_jobs(self) -> bool:
         """Check for and fix stuck jobs that could block new ingestion."""
         print("🔍 Checking for stuck jobs...")
-        
+
         db_paths = ["data/ingestion_jobs.db", "ingestion_jobs.db", "data/db/core.db"]
         db_path = None
-        
+
         for path in db_paths:
             if Path(path).exists():
                 db_path = path
                 break
-        
+
         if not db_path:
             print("ℹ️  No job database found - this is normal for first run")
             return True
-        
+
         try:
             import sqlite3
+
             with sqlite3.connect(db_path) as conn:
                 cursor = conn.cursor()
-                
+
                 # Find jobs stuck in IN_PROGRESS for more than 5 minutes (very aggressive)
                 from datetime import timedelta, timezone
+
                 stuck_threshold = datetime.now(timezone.utc) - timedelta(minutes=5)
-                
-                cursor.execute("""
-                    SELECT id, symbol, day, state, created_at, updated_at 
-                    FROM ingestion_jobs 
-                    WHERE state = 'IN_PROGRESS' 
+
+                cursor.execute(
+                    """
+                    SELECT id, symbol, day, state, created_at, updated_at
+                    FROM ingestion_jobs
+                    WHERE state = 'IN_PROGRESS'
                     AND updated_at < ?
                     ORDER BY updated_at DESC
-                """, (stuck_threshold.isoformat(),))
-                
+                """,
+                    (stuck_threshold.isoformat(),),
+                )
+
                 stuck_jobs = cursor.fetchall()
-                
+
                 if stuck_jobs:
                     print(f"⚠️  Found {len(stuck_jobs)} stuck jobs:")
-                    for job_id, symbol, day, state, created_at, updated_at in stuck_jobs:
+                    for job_id, symbol, day, _state, _created_at, updated_at in stuck_jobs:
                         print(f"   📋 Job {job_id} - {symbol} {day} (stuck since {updated_at})")
-                    
+
                     if not self.dry_run:
                         print("🔧 Auto-fixing stuck jobs...")
-                        
-                        for job_id, symbol, day, state, created_at, updated_at in stuck_jobs:
-                            cursor.execute("""
-                                UPDATE ingestion_jobs 
-                                SET state = 'FAILED', 
-                                    payload = json_set(COALESCE(payload, '{}'), '$.error_message', 'Auto-fixed: Job was stuck in IN_PROGRESS state for >5 minutes') 
+
+                        for job_id, symbol, day, _state, _created_at, updated_at in stuck_jobs:
+                            cursor.execute(
+                                """
+                                UPDATE ingestion_jobs
+                                SET state = 'FAILED',
+                                    payload = json_set(COALESCE(payload, '{}'), '$.error_message', 'Auto-fixed: Job was stuck in IN_PROGRESS state for >5 minutes')
                                 WHERE id = ?
-                            """, (job_id,))
+                            """,
+                                (job_id,),
+                            )
                             print(f"   ✅ Fixed Job {job_id} ({symbol} {day})")
-                        
+
                         conn.commit()
                         print(f"🎯 Successfully fixed {len(stuck_jobs)} stuck jobs")
                     else:
                         print("   [DRY RUN] Would auto-fix these stuck jobs in live mode")
                 else:
                     print("✅ No stuck jobs found")
-                    
+
         except Exception as e:
             print(f"⚠️  Warning: Could not check for stuck jobs: {e}")
             # Continue anyway - this shouldn't block the pipeline
-        
+
         return True
 
     def validate_prerequisites(self) -> bool:
@@ -179,7 +187,7 @@ class PipelineRunner:
                 capture_output=True,
                 text=True,
                 timeout=10,
-                cwd=self.base_dir
+                cwd=self.base_dir,
             )
             if result.returncode != 0:
                 issues.append("MarketPipe CLI not accessible")
@@ -227,17 +235,21 @@ class PipelineRunner:
         if not self.check_stuck_jobs():
             issues.append("Stuck job detection failed")
 
-        # Estimate data requirements  
+        # Estimate data requirements
         trading_days_per_month = 21  # Approximately 30 days / 365 days * 252 trading days
         symbols_count = len(SELECTED_EQUITIES)
-        estimated_records = trading_days_per_month * symbols_count * 390  # ~390 minutes per trading day
+        estimated_records = (
+            trading_days_per_month * symbols_count * 390
+        )  # ~390 minutes per trading day
         estimated_size_mb = estimated_records * 0.1  # Rough estimate
 
         print("📊 Estimated data:")
         print(f"   - Records: ~{estimated_records:,}")
         print(f"   - Storage: ~{estimated_size_mb:.1f} MB")
         print(f"   - Symbols: {symbols_count}")
-        print(f"   - Date range: {(datetime.strptime(self.end_date, '%Y-%m-%d') - datetime.strptime(self.start_date, '%Y-%m-%d')).days} days")
+        print(
+            f"   - Date range: {(datetime.strptime(self.end_date, '%Y-%m-%d') - datetime.strptime(self.start_date, '%Y-%m-%d')).days} days"
+        )
 
         if issues:
             print("❌ Prerequisites validation failed:")
@@ -248,7 +260,9 @@ class PipelineRunner:
         print("✅ Prerequisites validation passed")
         return True
 
-    def run_command(self, cmd: List[str], description: str, timeout: int = 300) -> Tuple[bool, str, str]:
+    def run_command(
+        self, cmd: list[str], description: str, timeout: int = 300
+    ) -> tuple[bool, str, str]:
         """Run a CLI command with comprehensive error handling."""
         print(f"🔧 {description}")
 
@@ -259,11 +273,7 @@ class PipelineRunner:
         try:
             start_time = time.time()
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                cwd=self.base_dir
+                cmd, capture_output=True, text=True, timeout=timeout, cwd=self.base_dir
             )
             execution_time = time.time() - start_time
 
@@ -287,31 +297,32 @@ class PipelineRunner:
         if self.dry_run:
             # In dry run mode, simulate a job ID for testing
             return "dry-run-job-id-12345"
-        
+
         # Look for various patterns that might contain the job ID
         patterns = [
-            "Job ID:",         # Standard pattern
-            "job_id:",         # Alternative pattern
-            "Job started:",    # Another pattern
+            "Job ID:",  # Standard pattern
+            "job_id:",  # Alternative pattern
+            "Job started:",  # Another pattern
             "Ingestion job:",  # CLI output pattern
-            "Created job:",    # Possible pattern
+            "Created job:",  # Possible pattern
         ]
 
-        for line in output.split('\n'):
+        for line in output.split("\n"):
             for pattern in patterns:
                 if pattern in line:
                     # Extract the job ID (usually after the colon)
                     parts = line.split(pattern)
                     if len(parts) > 1:
                         # Get the first word after the pattern, clean it up
-                        job_id_candidate = parts[1].strip().split()[0].rstrip(',.:;')
+                        job_id_candidate = parts[1].strip().split()[0].rstrip(",.:;")
                         # Basic validation that it looks like a job ID
                         if len(job_id_candidate) > 5:
                             return job_id_candidate
 
         # If no explicit job ID found, look for UUID-like patterns
         import re
-        uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+
+        uuid_pattern = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
         matches = re.findall(uuid_pattern, output, re.IGNORECASE)
         if matches:
             return matches[-1]  # Return the last UUID found
@@ -322,22 +333,21 @@ class PipelineRunner:
         """Get the latest job ID from the database."""
         try:
             cmd = [
-                "python", "-m", "marketpipe", "query",
+                "python",
+                "-m",
+                "marketpipe",
+                "query",
                 "SELECT job_id FROM ingestion_jobs ORDER BY created_at DESC LIMIT 1",
-                "--csv"
+                "--csv",
             ]
 
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=self.base_dir
+                cmd, capture_output=True, text=True, timeout=30, cwd=self.base_dir
             )
 
             if result.returncode == 0 and result.stdout.strip():
                 # Parse CSV output to get job ID
-                lines = result.stdout.strip().split('\n')
+                lines = result.stdout.strip().split("\n")
                 if len(lines) > 1:  # Skip header
                     return lines[1].strip()
 
@@ -351,34 +361,37 @@ class PipelineRunner:
         try:
             # Wait a moment for the database to be updated
             time.sleep(2)
-            
+
             print("🔍 Checking recent job completions...")
-            
+
             # Check each symbol individually using the jobs list command
             completed_symbols = set()
-            
+
             for symbol in SELECTED_EQUITIES:
                 cmd = [
-                    "python", "-m", "marketpipe", "jobs", "list",
-                    "--symbol", symbol,
-                    "--limit", "5"
+                    "python",
+                    "-m",
+                    "marketpipe",
+                    "jobs",
+                    "list",
+                    "--symbol",
+                    symbol,
+                    "--limit",
+                    "5",
                 ]
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=self.base_dir
+                    cmd, capture_output=True, text=True, timeout=30, cwd=self.base_dir
                 )
 
                 if result.returncode == 0 and result.stdout.strip():
                     # Parse the jobs list output to check for recent COMPLETED jobs
-                    lines = result.stdout.strip().split('\n')
+                    lines = result.stdout.strip().split("\n")
                     for line in lines:
-                        if 'COMPLETED' in line and symbol in line:
+                        if "COMPLETED" in line and symbol in line:
                             # Check if the job is recent (contains today's date)
                             from datetime import datetime
+
                             today = datetime.now().strftime("%m-%d")  # Format: MM-DD
                             if today in line:
                                 completed_symbols.add(symbol)
@@ -388,16 +401,20 @@ class PipelineRunner:
                         print(f"   ⚠️  {symbol}: No recent completed jobs found")
                 else:
                     print(f"   ❌ {symbol}: Could not check job status")
-            
+
             # Check if at least one symbol completed successfully (more lenient)
             target_symbols = set(SELECTED_EQUITIES)
             if completed_symbols:
                 if target_symbols.issubset(completed_symbols):
-                    print(f"✅ All symbols have recent successful completions: {', '.join(completed_symbols)}")
+                    print(
+                        f"✅ All symbols have recent successful completions: {', '.join(completed_symbols)}"
+                    )
                     return True
                 else:
                     missing = target_symbols - completed_symbols
-                    print(f"⚠️  Partial success - completed: {', '.join(completed_symbols)}, missing: {', '.join(missing)}")
+                    print(
+                        f"⚠️  Partial success - completed: {', '.join(completed_symbols)}, missing: {', '.join(missing)}"
+                    )
                     print("✅ Proceeding with partial success since some data was ingested")
                     return True  # Allow partial success
             else:
@@ -410,9 +427,9 @@ class PipelineRunner:
 
     def run_ingestion(self) -> bool:
         """Run the data ingestion phase."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("📥 PHASE 1: DATA INGESTION")
-        print("="*60)
+        print("=" * 60)
 
         # Ingest using Alpaca provider
         cmd = [
@@ -425,7 +442,7 @@ class PipelineRunner:
         success, stdout, stderr = self.run_command(
             cmd,
             f"Ingesting data for {len(SELECTED_EQUITIES)} symbols over 3 days",
-            timeout=1200  # 20 minute timeout (reduced for smaller dataset)
+            timeout=1200,  # 20 minute timeout (reduced for smaller dataset)
         )
 
         if not success:
@@ -461,34 +478,29 @@ class PipelineRunner:
 
     def run_validation(self) -> bool:
         """Run the data validation phase."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("🔍 PHASE 2: DATA VALIDATION")
-        print("="*60)
+        print("=" * 60)
 
         # Try with job ID first, fall back to general validation
         if self.job_id:
-            cmd = [
-                "python", "-m", "marketpipe", "validate-ohlcv",
-                "--job-id", self.job_id
-            ]
+            cmd = ["python", "-m", "marketpipe", "validate-ohlcv", "--job-id", self.job_id]
             description = f"Validating data quality for job {self.job_id}"
         else:
             cmd = ["python", "-m", "marketpipe", "validate-ohlcv"]
             description = "Validating data quality (no specific job ID)"
 
         success, stdout, stderr = self.run_command(
-            cmd,
-            description,
-            timeout=600  # 10 minute timeout
+            cmd, description, timeout=600  # 10 minute timeout
         )
 
         return success
 
     def run_aggregation(self) -> bool:
         """Run the data aggregation phase."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("📊 PHASE 3: DATA AGGREGATION")
-        print("="*60)
+        print("=" * 60)
 
         if not self.job_id:
             print("⚠️  No job ID available - attempting to get latest job from database")
@@ -499,46 +511,43 @@ class PipelineRunner:
                     self.job_id = latest_job_id
                 else:
                     print("❌ Cannot determine job ID for aggregation")
-                    print("   You may need to run aggregation manually with: python -m marketpipe aggregate-ohlcv <job_id>")
+                    print(
+                        "   You may need to run aggregation manually with: python -m marketpipe aggregate-ohlcv <job_id>"
+                    )
                     return False
             else:
                 # In dry run mode, we already set a fake job ID
                 pass
 
-        cmd = [
-            "python", "-m", "marketpipe", "aggregate-ohlcv",
-            self.job_id
-        ]
+        cmd = ["python", "-m", "marketpipe", "aggregate-ohlcv", self.job_id]
 
         success, stdout, stderr = self.run_command(
-            cmd,
-            f"Aggregating data for job {self.job_id}",
-            timeout=1800  # 30 minute timeout
+            cmd, f"Aggregating data for job {self.job_id}", timeout=1800  # 30 minute timeout
         )
 
         return success
 
     def run_health_check(self) -> bool:
         """Run health check to validate the installation."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("🏥 HEALTH CHECK")
-        print("="*60)
+        print("=" * 60)
 
         cmd = ["python", "-m", "marketpipe", "health-check", "--verbose"]
 
         success, stdout, stderr = self.run_command(
-            cmd,
-            "Running MarketPipe health check",
-            timeout=120
+            cmd, "Running MarketPipe health check", timeout=120
         )
 
         return success
 
-    def generate_summary(self, ingestion_success: bool, validation_success: bool, aggregation_success: bool):
+    def generate_summary(
+        self, ingestion_success: bool, validation_success: bool, aggregation_success: bool
+    ):
         """Generate execution summary report."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("📋 EXECUTION SUMMARY")
-        print("="*60)
+        print("=" * 60)
 
         print(f"🔧 Mode: {'DRY RUN' if self.dry_run else 'LIVE EXECUTION'}")
         print(f"📅 Date Range: {self.start_date} to {self.end_date}")
@@ -560,7 +569,9 @@ class PipelineRunner:
             print("\n🎉 PIPELINE COMPLETED SUCCESSFULLY!")
             if not self.dry_run:
                 print(f"   Data available in: {self.base_dir / 'data'}")
-                print("   Query data with: python -m marketpipe query 'SELECT * FROM aggregated_ohlcv LIMIT 10'")
+                print(
+                    "   Query data with: python -m marketpipe query 'SELECT * FROM aggregated_ohlcv LIMIT 10'"
+                )
         else:
             print("\n⚠️  PIPELINE COMPLETED WITH ISSUES")
             if not self.dry_run:
@@ -578,7 +589,7 @@ class PipelineRunner:
         """Execute the complete pipeline."""
         symbols_str = " and ".join(SELECTED_EQUITIES)
         print(f"🚀 Starting MarketPipe Full Pipeline for {symbols_str}")
-        print("="*60)
+        print("=" * 60)
 
         # Create configuration
         self.create_configuration()
@@ -635,19 +646,17 @@ The script will:
     6. Generate execution summary
 
 Data will be stored in the 'data/' directory with partitioned Parquet files.
-        """
+        """,
     )
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "--dry-run",
         action="store_true",
-        help="Test configuration and show commands without executing"
+        help="Test configuration and show commands without executing",
     )
     group.add_argument(
-        "--execute",
-        action="store_true",
-        help="Execute the full pipeline with live data"
+        "--execute", action="store_true", help="Execute the full pipeline with live data"
     )
 
     args = parser.parse_args()

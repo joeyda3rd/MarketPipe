@@ -37,7 +37,7 @@ async def check_postgres_connection():
         # Test JSONB functionality (PostgreSQL-specific)
         await conn.execute(
             """
-            INSERT INTO test_pg_table (name, data) 
+            INSERT INTO test_pg_table (name, data)
             VALUES ('test', '{"key": "value", "number": 42}')
         """
         )

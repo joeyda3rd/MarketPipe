@@ -63,9 +63,7 @@ async def test_basic_endpoints():
             try:
                 response = await client.get(url, headers=headers, params=query_params)
                 print(f"   📥 Status: {response.status_code}")
-                print(
-                    f"   📑 Content-Type: {response.headers.get('content-type', 'unknown')}"
-                )
+                print(f"   📑 Content-Type: {response.headers.get('content-type', 'unknown')}")
 
                 if response.status_code == 200:
                     try:
@@ -73,14 +71,10 @@ async def test_basic_endpoints():
                         print(
                             f"   ✅ SUCCESS! Response keys: {list(data.keys()) if isinstance(data, dict) else type(data)}"
                         )
-                        if (
-                            isinstance(data, dict) and len(data) < 10
-                        ):  # Small response, show it
+                        if isinstance(data, dict) and len(data) < 10:  # Small response, show it
                             print(f"   📄 Data: {data}")
                     except:
-                        print(
-                            f"   ✅ SUCCESS! (Non-JSON response: {response.text[:100]})"
-                        )
+                        print(f"   ✅ SUCCESS! (Non-JSON response: {response.text[:100]})")
                 else:
                     content = response.text[:150]
                     print(f"   ❌ Error: {content}")

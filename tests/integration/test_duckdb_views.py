@@ -107,9 +107,9 @@ def test_query_aggregation(mock_agg_root):
     """Test aggregation queries across symbols."""
     result = duckdb_views.query(
         """
-        SELECT symbol, COUNT(*) as cnt, AVG(close) as avg_close 
-        FROM bars_5m 
-        GROUP BY symbol 
+        SELECT symbol, COUNT(*) as cnt, AVG(close) as avg_close
+        FROM bars_5m
+        GROUP BY symbol
         ORDER BY symbol
     """
     )
@@ -229,7 +229,7 @@ def test_complex_query_with_joins(mock_agg_root):
     # Query that joins different timeframes (if data allows)
     result = duckdb_views.query(
         """
-        SELECT 
+        SELECT
             d.symbol,
             d.date,
             d.close as daily_close,
@@ -250,9 +250,9 @@ def test_query_with_time_filters(mock_agg_root):
     # Query with timestamp range
     result = duckdb_views.query(
         """
-        SELECT symbol, ts_ns, close 
-        FROM bars_5m 
-        WHERE ts_ns >= 1704067800000000000 
+        SELECT symbol, ts_ns, close
+        FROM bars_5m
+        WHERE ts_ns >= 1704067800000000000
         ORDER BY ts_ns
     """
     )

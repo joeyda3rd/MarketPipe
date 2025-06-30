@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime as dt
 from pathlib import Path
-from typing import List, Set
 
 
 class GapDetectorService:  # pylint: disable=too-few-public-methods
@@ -36,10 +35,10 @@ class GapDetectorService:  # pylint: disable=too-few-public-methods
         symbol: str,
         start: dt.date,
         end: dt.date,
-    ) -> List[dt.date]:
+    ) -> list[dt.date]:
         """Return all trading days in *[start, end]* with **no** parquet file."""
         existing = self._existing_days(symbol, start, end)
-        expected: Set[dt.date] = {
+        expected: set[dt.date] = {
             start + dt.timedelta(days=i) for i in range((end - start).days + 1)
         }
         return sorted(expected - existing)
@@ -49,7 +48,7 @@ class GapDetectorService:  # pylint: disable=too-few-public-methods
         symbol: str,
         start: dt.date,
         end: dt.date,
-    ) -> List[dt.date]:
+    ) -> list[dt.date]:
         """Async wrapper around :pymeth:`find_missing_days`. Useful in trio/asyncio."""
         # Lazily import to avoid mandatory asyncio dependency for sync callers.
         import asyncio  # pylint: disable=import-outside-toplevel
@@ -65,13 +64,13 @@ class GapDetectorService:  # pylint: disable=too-few-public-methods
         symbol: str,
         start: dt.date,
         end: dt.date,
-    ) -> Set[dt.date]:
+    ) -> set[dt.date]:
         """Collect all days that *already* exist on disk for *symbol* in range."""
         base = self._root / f"symbol={symbol.upper()}"
         if not base.exists():
             return set()
 
-        existing: Set[dt.date] = set()
+        existing: set[dt.date] = set()
         # Walk year/month directories lazily to avoid many globs when slice is small
         for year_path in base.glob("year=*"):
             try:

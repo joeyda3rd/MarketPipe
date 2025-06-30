@@ -41,7 +41,7 @@ def test_migrations_create_schema_version_table(tmp_path):
         # Check that schema_version table exists
         cursor = conn.execute(
             """
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name='schema_version'
         """
         )
@@ -67,7 +67,7 @@ def test_migrations_create_core_tables(tmp_path):
         # Check that all expected tables exist
         cursor = conn.execute(
             """
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name NOT LIKE 'sqlite_%'
             ORDER BY name
         """
@@ -96,7 +96,7 @@ def test_migrations_create_indexes(tmp_path):
         # Check that indexes exist
         cursor = conn.execute(
             """
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='index' AND name NOT LIKE 'sqlite_%'
             ORDER BY name
         """

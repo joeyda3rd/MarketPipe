@@ -44,7 +44,7 @@ class TestRepositoryFactoryFixes:
                     "marketpipe.ingestion.infrastructure.repository_factory.SqliteIngestionJobRepository"
                 ) as mock_sqlite:
 
-                    repo = create_ingestion_job_repository()
+                    create_ingestion_job_repository()
 
                     if expected_type == "PostgresIngestionJobRepository":
                         mock_postgres.assert_called_once_with(database_url)
@@ -186,9 +186,7 @@ class TestSimpleJobAdapterFixes:
         mock_job.can_fail = True
         mock_job.can_cancel = True
 
-        with patch.object(
-            simple_adapter, "_find_job_by_symbol_day", return_value=None
-        ) as mock_find:
+        with patch.object(simple_adapter, "_find_job_by_symbol_day", return_value=None):
             with patch.object(simple_adapter, "_create_minimal_job", return_value=mock_job):
                 # Test upsert with mixed case
                 await simple_adapter.upsert("AAPL", "2024-01-15", mixed_case_status)

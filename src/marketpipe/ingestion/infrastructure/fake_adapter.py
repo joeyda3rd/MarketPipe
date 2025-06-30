@@ -6,7 +6,7 @@ from __future__ import annotations
 import random
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any
 
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import (
@@ -33,7 +33,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         base_price: float = 100.0,
         volatility: float = 0.02,
         fail_probability: float = 0.0,
-        supported_symbols: List[str] = None,
+        supported_symbols: list[str] = None,
     ):
         self._base_price = base_price
         self._volatility = volatility
@@ -51,7 +51,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         ]
 
     @classmethod
-    def from_config(cls, config: Dict[str, Any]) -> FakeMarketDataAdapter:
+    def from_config(cls, config: dict[str, Any]) -> FakeMarketDataAdapter:
         """
         Create adapter from configuration dictionary.
 
@@ -74,7 +74,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """
         Generate fake OHLCV bars for the given symbol and time range.
         """
@@ -91,7 +91,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         end_time = time_range.end.value
         time_diff = end_time - start_time
         expected_bars = int(time_diff.total_seconds() / 60)  # 1 bar per minute
-        
+
         # Use a more generous max_bars limit to ensure we cover the full range
         # Allow up to 10,000 bars or the expected number, whichever is higher
         effective_max_bars = max(max_bars, expected_bars, 10000)
@@ -99,7 +99,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         # Generate bars for the time range
         bars = []
         current_time = start_time
-        
+
         # Use symbol name to seed price variation
         symbol_seed = hash(symbol.value) % 1000
         current_price = self._base_price + (symbol_seed / 10)
@@ -153,7 +153,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
             volume=Volume(volume),
         )
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """Get list of supported symbols."""
         return [Symbol.from_string(s) for s in self._supported_symbols]
 
@@ -179,7 +179,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         start_timestamp: int,
         end_timestamp: int,
         batch_size: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """Legacy method for backward compatibility."""
         from marketpipe.domain.value_objects import TimeRange, Timestamp
 

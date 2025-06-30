@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
@@ -17,8 +17,8 @@ class FakeMarketDataAdapter(IMarketDataProvider):
 
     def __init__(self, provider_name: str = "fake"):
         self.provider_name = provider_name
-        self._bars_data: Dict[Symbol, List[OHLCVBar]] = {}
-        self._fetch_calls: List[tuple[Symbol, TimeRange]] = []
+        self._bars_data: dict[Symbol, list[OHLCVBar]] = {}
+        self._fetch_calls: list[tuple[Symbol, TimeRange]] = []
         self._should_fail = False
         self._failure_message = "Simulated provider failure"
         self._failing_symbols: set[Symbol] = set()
@@ -29,7 +29,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
             Symbol.from_string("MSFT"),
         ]
 
-    def set_bars_data(self, symbol: Symbol, bars: List[OHLCVBar]) -> None:
+    def set_bars_data(self, symbol: Symbol, bars: list[OHLCVBar]) -> None:
         """Set the bars data that will be returned for a symbol."""
         self._bars_data[symbol] = bars
 
@@ -49,7 +49,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         """Configure the connection status for testing."""
         self._connection_working = is_working
 
-    def set_supported_symbols(self, symbols: List[Symbol]) -> None:
+    def set_supported_symbols(self, symbols: list[Symbol]) -> None:
         """Set the list of symbols supported by this provider."""
         self._supported_symbols = symbols
 
@@ -58,7 +58,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """Fetch OHLCV bars for a symbol within a time range."""
         # Record the call for testing
         self._fetch_calls.append((symbol, time_range))
@@ -82,7 +82,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
 
         return filtered_bars[:max_bars]
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """Get list of symbols supported by this provider."""
         return self._supported_symbols.copy()
 
@@ -101,7 +101,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
             maximum_history_days=365,
         )
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         """Get information about the provider (legacy method for compatibility)."""
         return {
             "provider": self.provider_name,
@@ -118,7 +118,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         start_timestamp: int,
         end_timestamp: int,
         batch_size: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """Legacy method for backward compatibility."""
         start_ts = Timestamp.from_nanoseconds(start_timestamp)
         end_ts = Timestamp.from_nanoseconds(end_timestamp)
@@ -130,7 +130,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         return await self.is_available()
 
     # Test helpers
-    def get_fetch_calls(self) -> List[tuple[Symbol, TimeRange]]:
+    def get_fetch_calls(self) -> list[tuple[Symbol, TimeRange]]:
         """Get list of fetch calls made (for testing)."""
         return self._fetch_calls.copy()
 
@@ -138,14 +138,14 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         """Clear the list of fetch calls (for testing)."""
         self._fetch_calls.clear()
 
-    def get_configured_symbols(self) -> List[Symbol]:
+    def get_configured_symbols(self) -> list[Symbol]:
         """Get list of symbols that have configured data (for testing)."""
         return list(self._bars_data.keys())
 
 
 def create_test_ohlcv_bars(
-    symbol: Symbol, count: int = 10, start_time: Optional[datetime] = None
-) -> List[OHLCVBar]:
+    symbol: Symbol, count: int = 10, start_time: datetime | None = None
+) -> list[OHLCVBar]:
     """Create test OHLCV bars for testing purposes."""
     if start_time is None:
         start_time = datetime(2023, 1, 2, 13, 30, tzinfo=timezone.utc)
@@ -177,7 +177,7 @@ def create_test_ohlcv_bar_dict(
     low_price: float = 99.0,
     close_price: float = 100.5,
     volume: int = 1000,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create test OHLCV bar dictionary in the format expected by legacy tests."""
     timestamp_ns = int(timestamp.timestamp() * 1_000_000_000)
 

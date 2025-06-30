@@ -8,7 +8,7 @@ using an in-memory message bus with simple synchronous delivery.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Callable, Dict, List, Type
+from typing import Callable
 
 from marketpipe.domain.events import DomainEvent, IEventBus
 
@@ -23,9 +23,9 @@ class InMemoryEventBus(IEventBus):
     EventBus class while implementing the IEventBus protocol.
     """
 
-    _subs: Dict[Type[DomainEvent], List[Subscriber]] = defaultdict(list)
+    _subs: dict[type[DomainEvent], list[Subscriber]] = defaultdict(list)
 
-    def subscribe(self, etype: Type[DomainEvent], fn: Subscriber) -> None:
+    def subscribe(self, etype: type[DomainEvent], fn: Subscriber) -> None:
         """Subscribe a function to handle events of a specific type.
 
         Args:
@@ -57,10 +57,10 @@ class EventBus:
     an IEventBus instance, or inject IEventBus into your classes.
     """
 
-    _subs: Dict[Type[DomainEvent], List[Subscriber]] = defaultdict(list)
+    _subs: dict[type[DomainEvent], list[Subscriber]] = defaultdict(list)
 
     @classmethod
-    def subscribe(cls, etype: Type[DomainEvent], fn: Subscriber) -> None:
+    def subscribe(cls, etype: type[DomainEvent], fn: Subscriber) -> None:
         """Subscribe a function to handle events of a specific type."""
         cls._subs[etype].append(fn)
 

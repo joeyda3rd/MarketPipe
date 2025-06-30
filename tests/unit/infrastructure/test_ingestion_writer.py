@@ -120,7 +120,7 @@ class TestWriteParquet:
         ]
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            result_path = write_parquet(rows, temp_dir)
+            write_parquet(rows, temp_dir)
 
             # Check that directories were created
             expected_dirs = [

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from marketpipe.domain.events import IEventPublisher
 from marketpipe.domain.value_objects import Symbol
@@ -197,7 +197,7 @@ class IngestionJobService:
 
         return new_job.job_id
 
-    async def get_job_status(self, query: GetJobStatusQuery) -> Optional[Dict[str, Any]]:
+    async def get_job_status(self, query: GetJobStatusQuery) -> dict[str, Any] | None:
         """Get the current status of a job."""
         job = await self._job_repository.get_by_id(query.job_id)
         if not job:
@@ -213,7 +213,7 @@ class IngestionJobService:
 
         return progress
 
-    async def get_job_history(self, query: GetJobHistoryQuery) -> List[Dict[str, Any]]:
+    async def get_job_history(self, query: GetJobHistoryQuery) -> list[dict[str, Any]]:
         """Get job history with optional filtering."""
         if query.state_filter:
             jobs = await self._job_repository.get_by_state(query.state_filter)
@@ -226,7 +226,7 @@ class IngestionJobService:
 
         return [job.get_processing_summary() for job in jobs]
 
-    async def get_active_jobs(self, query: GetActiveJobsQuery) -> List[Dict[str, Any]]:
+    async def get_active_jobs(self, query: GetActiveJobsQuery) -> list[dict[str, Any]]:
         """Get all currently active jobs."""
         jobs = await self._job_repository.get_active_jobs()
         return [
@@ -237,7 +237,7 @@ class IngestionJobService:
             for job in jobs
         ]
 
-    async def get_job_metrics(self, query: GetJobMetricsQuery) -> Optional[Dict[str, Any]]:
+    async def get_job_metrics(self, query: GetJobMetricsQuery) -> dict[str, Any] | None:
         """Get performance metrics for jobs."""
         if query.job_id:
             metrics = await self._metrics_repository.get_metrics(query.job_id)
@@ -284,7 +284,7 @@ class IngestionCoordinatorService:
         self._data_storage = data_storage
         self._event_publisher = event_publisher
 
-    async def execute_job(self, job_id: IngestionJobId) -> Dict[str, Any]:
+    async def execute_job(self, job_id: IngestionJobId) -> dict[str, Any]:
         """
         Execute an ingestion job end-to-end.
 
@@ -345,11 +345,9 @@ class IngestionCoordinatorService:
                     # Record symbol-level failure metrics
                     from marketpipe.metrics import record_metric
 
-
                     record_metric("ingest_symbol_failures", 1, provider=provider, feed=feed)
                     record_metric(
                         f"ingest_failures_{symbol.value}", 1, provider=provider, feed=feed
-
                     )
                 else:
                     try:
@@ -373,7 +371,6 @@ class IngestionCoordinatorService:
                         )
                         record_metric(
                             f"ingest_success_{symbol.value}", 1, provider=provider, feed=feed
-
                         )
 
                         # Publish events
@@ -390,9 +387,7 @@ class IngestionCoordinatorService:
                         # Record metrics
                         from marketpipe.metrics import record_metric
 
-                        record_metric(
-                            "ingest_symbol_failures", 1, provider=provider, feed=feed
-                        )
+                        record_metric("ingest_symbol_failures", 1, provider=provider, feed=feed)
 
             # Job should auto-complete when all symbols are processed
             # Calculate and save final metrics
@@ -403,11 +398,9 @@ class IngestionCoordinatorService:
             from marketpipe.metrics import record_metric
 
             record_metric(
-
                 "ingest_job_duration_seconds", processing_time, provider=provider, feed=feed
             )
             record_metric("ingest_job_total_bars", total_bars, provider=provider, feed=feed)
-
 
             # Record success/failure metrics
             if failed_symbols == 0:
@@ -490,9 +483,7 @@ class IngestionCoordinatorService:
             start_timestamp = checkpoint.last_processed_timestamp
         else:
             # Convert job's start time to nanoseconds
-            start_timestamp = int(
-                job.time_range.start.value.timestamp() * 1_000_000_000
-            )
+            start_timestamp = int(job.time_range.start.value.timestamp() * 1_000_000_000)
 
         # Fetch data from market data provider (anti-corruption layer)
         bars = await self._market_data_provider.fetch_bars(
@@ -519,9 +510,7 @@ class IngestionCoordinatorService:
             from marketpipe.metrics import record_metric
 
             record_metric(
-
                 "validation_failures", len(validation_result.errors), provider=provider, feed=feed
-
             )
             record_metric(
                 f"validation_failures_{symbol.value}",

@@ -54,11 +54,11 @@ def _aggregate_impl(job_id: str):
                 print(f"⚠️  Warning: Failed to refresh DuckDB views: {e}")
         except Exception as e:
             print(f"❌ Aggregation failed: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     except Exception as e:
         print(f"❌ Aggregation failed: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 def aggregate_ohlcv(job_id: str):

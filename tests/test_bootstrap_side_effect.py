@@ -231,8 +231,8 @@ class TestCliCommandBootstrap:
 
             with (
                 patch("marketpipe.bootstrap.apply_pending_alembic") as mock_apply,
-                patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg,
-                patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg,
+                patch("marketpipe.validation.ValidationRunnerService.register"),
+                patch("marketpipe.aggregation.AggregationRunnerService.register"),
                 patch("marketpipe.cli.ohlcv_validate.CsvReportRepository") as mock_repo,
             ):
 
@@ -296,8 +296,8 @@ class TestCliCommandBootstrap:
 
             with (
                 patch("marketpipe.bootstrap.apply_pending_alembic") as mock_apply,
-                patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg,
-                patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg,
+                patch("marketpipe.validation.ValidationRunnerService.register"),
+                patch("marketpipe.aggregation.AggregationRunnerService.register"),
                 patch("marketpipe.metrics.SqliteMetricsRepository") as mock_repo,
             ):
 
@@ -335,8 +335,8 @@ class TestCliCommandBootstrap:
 
             with (
                 patch("marketpipe.bootstrap.apply_pending_alembic") as mock_apply,
-                patch("marketpipe.validation.ValidationRunnerService.register") as mock_val_reg,
-                patch("marketpipe.aggregation.AggregationRunnerService.register") as mock_agg_reg,
+                patch("marketpipe.validation.ValidationRunnerService.register"),
+                patch("marketpipe.aggregation.AggregationRunnerService.register"),
                 patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query,
             ):
 

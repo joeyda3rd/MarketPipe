@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """End-to-end performance integration tests with realistic workload scenarios.
 
-This test validates performance characteristics of the complete MarketPipe 
+This test validates performance characteristics of the complete MarketPipe
 system under realistic data volumes and concurrent operations, establishing
 baseline performance metrics and detecting regressions.
 """
@@ -13,7 +13,6 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta, timezone
-from typing import Dict, List
 
 import pandas as pd
 import psutil
@@ -51,7 +50,7 @@ class PerformanceMonitor:
         self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._monitor_thread.start()
 
-    def stop(self) -> Dict[str, float]:
+    def stop(self) -> dict[str, float]:
         """Stop monitoring and return performance metrics."""
         self.monitoring = False
         self.end_time = time.monotonic()
@@ -79,7 +78,7 @@ class PerformanceMonitor:
                 break
 
 
-def generate_trading_calendar(start_date: date, end_date: date) -> List[date]:
+def generate_trading_calendar(start_date: date, end_date: date) -> list[date]:
     """Generate list of trading days (weekdays only for simplicity)."""
     current = start_date
     trading_days = []
@@ -94,13 +93,12 @@ def generate_trading_calendar(start_date: date, end_date: date) -> List[date]:
 
 
 def generate_realistic_trading_data(
-    symbols: List[str],
-    trading_days: List[date],
-    bars_per_day: int = 390
-) -> Dict[str, pd.DataFrame]:
+    symbols: list[str], trading_days: list[date], bars_per_day: int = 390
+) -> dict[str, pd.DataFrame]:
     """Generate realistic trading data for performance testing."""
 
     import random
+
     random.seed(42)  # Reproducible test data
 
     symbol_data = {}
@@ -111,7 +109,9 @@ def generate_realistic_trading_data(
 
         for trading_day in trading_days:
             # Generate a full trading day of minute bars
-            market_open = datetime.combine(trading_day, datetime.min.time()) + timedelta(hours=13, minutes=30)
+            market_open = datetime.combine(trading_day, datetime.min.time()) + timedelta(
+                hours=13, minutes=30
+            )
             market_open = market_open.replace(tzinfo=timezone.utc)
 
             current_price = base_price
@@ -119,14 +119,20 @@ def generate_realistic_trading_data(
 
             for minute in range(bars_per_day):
                 # Realistic price movement
-                price_change = random.gauss(0, daily_volatility / (bars_per_day ** 0.5))
-                current_price *= (1 + price_change)
+                price_change = random.gauss(0, daily_volatility / (bars_per_day**0.5))
+                current_price *= 1 + price_change
 
                 # Generate OHLC
                 open_price = current_price
-                close_price = current_price * (1 + random.gauss(0, daily_volatility / (bars_per_day ** 0.5)))
-                high_price = max(open_price, close_price) * (1 + abs(random.gauss(0, daily_volatility / (bars_per_day * 2))))
-                low_price = min(open_price, close_price) * (1 - abs(random.gauss(0, daily_volatility / (bars_per_day * 2))))
+                close_price = current_price * (
+                    1 + random.gauss(0, daily_volatility / (bars_per_day**0.5))
+                )
+                high_price = max(open_price, close_price) * (
+                    1 + abs(random.gauss(0, daily_volatility / (bars_per_day * 2)))
+                )
+                low_price = min(open_price, close_price) * (
+                    1 - abs(random.gauss(0, daily_volatility / (bars_per_day * 2)))
+                )
 
                 # Volume with intraday patterns
                 volume_base = 1000
@@ -138,17 +144,19 @@ def generate_realistic_trading_data(
                 timestamp = market_open + timedelta(minutes=minute)
                 timestamp_ns = int(timestamp.timestamp() * 1_000_000_000)
 
-                all_bars.append({
-                    "ts_ns": timestamp_ns,
-                    "symbol": symbol,
-                    "open": round(open_price, 2),
-                    "high": round(high_price, 2),
-                    "low": round(low_price, 2),
-                    "close": round(close_price, 2),
-                    "volume": volume,
-                    "trade_count": random.randint(50, 200),
-                    "vwap": round((high_price + low_price + close_price) / 3, 2),
-                })
+                all_bars.append(
+                    {
+                        "ts_ns": timestamp_ns,
+                        "symbol": symbol,
+                        "open": round(open_price, 2),
+                        "high": round(high_price, 2),
+                        "low": round(low_price, 2),
+                        "close": round(close_price, 2),
+                        "volume": volume,
+                        "trade_count": random.randint(50, 200),
+                        "vwap": round((high_price + low_price + close_price) / 3, 2),
+                    }
+                )
 
                 current_price = close_price
 
@@ -170,7 +178,7 @@ class TestPerformanceIntegration:
 
         # Performance expectations (adjust based on system capabilities)
         MAX_EXECUTION_TIME = 60  # seconds
-        MAX_MEMORY_USAGE = 500   # MB
+        MAX_MEMORY_USAGE = 500  # MB
 
         monitor = PerformanceMonitor()
         monitor.start()
@@ -180,7 +188,9 @@ class TestPerformanceIntegration:
         trading_days = generate_trading_calendar(date(2024, 1, 1), date(2024, 12, 31))
         bars_per_day = 390  # Full trading day
 
-        print(f"🔄 Testing single symbol with {len(trading_days)} trading days ({len(trading_days) * bars_per_day:,} total bars)")
+        print(
+            f"🔄 Testing single symbol with {len(trading_days)} trading days ({len(trading_days) * bars_per_day:,} total bars)"
+        )
 
         # Generate realistic data
         symbol_data = generate_realistic_trading_data(symbols, trading_days, bars_per_day)
@@ -203,7 +213,9 @@ class TestPerformanceIntegration:
 
             # Split by trading day for realistic partitioning
             for trading_day in trading_days:
-                day_start = datetime.combine(trading_day, datetime.min.time()).replace(tzinfo=timezone.utc)
+                day_start = datetime.combine(trading_day, datetime.min.time()).replace(
+                    tzinfo=timezone.utc
+                )
                 day_end = day_start + timedelta(days=1)
 
                 day_start_ns = int(day_start.timestamp() * 1e9)
@@ -218,12 +230,14 @@ class TestPerformanceIntegration:
                         symbol=symbol,
                         trading_day=trading_day,
                         job_id=job_id,
-                        overwrite=True
+                        overwrite=True,
                     )
                     total_bars_written += len(day_df)
 
         write_duration = time.monotonic() - write_start
-        print(f"✓ Wrote {total_bars_written:,} bars in {write_duration:.1f}s ({total_bars_written/write_duration:.0f} bars/sec)")
+        print(
+            f"✓ Wrote {total_bars_written:,} bars in {write_duration:.1f}s ({total_bars_written/write_duration:.0f} bars/sec)"
+        )
 
         # Test aggregation performance
         duckdb_engine = DuckDBAggregationEngine(raw_root=raw_dir, agg_root=agg_dir)
@@ -236,7 +250,7 @@ class TestPerformanceIntegration:
             symbol=Symbol(symbols[0]),
             trading_date=trading_days[0],
             bars_processed=total_bars_written,
-            success=True
+            success=True,
         )
 
         aggregation_service.handle_ingestion_completed(event)
@@ -254,11 +268,13 @@ class TestPerformanceIntegration:
         print(f"   Throughput: {total_bars_written / metrics['duration_seconds']:.0f} bars/sec")
 
         # Performance assertions
-        assert metrics['duration_seconds'] < MAX_EXECUTION_TIME, \
-            f"Performance regression: {metrics['duration_seconds']:.1f}s > {MAX_EXECUTION_TIME}s"
+        assert (
+            metrics["duration_seconds"] < MAX_EXECUTION_TIME
+        ), f"Performance regression: {metrics['duration_seconds']:.1f}s > {MAX_EXECUTION_TIME}s"
 
-        assert metrics['peak_memory_mb'] < MAX_MEMORY_USAGE, \
-            f"Memory regression: {metrics['peak_memory_mb']:.1f}MB > {MAX_MEMORY_USAGE}MB"
+        assert (
+            metrics["peak_memory_mb"] < MAX_MEMORY_USAGE
+        ), f"Memory regression: {metrics['peak_memory_mb']:.1f}MB > {MAX_MEMORY_USAGE}MB"
 
         print("✅ Single symbol full year performance test passed")
 
@@ -301,13 +317,15 @@ class TestPerformanceIntegration:
                 symbol=symbol,
                 trading_day=trading_days[0],
                 job_id=job_id,
-                overwrite=True
+                overwrite=True,
             )
             return len(df)
 
         # Concurrent writes
         with ThreadPoolExecutor(max_workers=4) as executor:
-            write_futures = {executor.submit(write_symbol_data, symbol): symbol for symbol in symbols}
+            write_futures = {
+                executor.submit(write_symbol_data, symbol): symbol for symbol in symbols
+            }
 
             for future in as_completed(write_futures):
                 bars_written = future.result()
@@ -325,7 +343,7 @@ class TestPerformanceIntegration:
             symbol=Symbol(symbols[0]),
             trading_date=trading_days[0],
             bars_processed=total_bars,
-            success=True
+            success=True,
         )
 
         aggregation_service.handle_ingestion_completed(event)
@@ -339,11 +357,13 @@ class TestPerformanceIntegration:
         print(f"   Symbols/Second: {len(symbols) / metrics['duration_seconds']:.1f}")
 
         # Performance assertions
-        assert metrics['duration_seconds'] < MAX_EXECUTION_TIME, \
-            f"Multi-symbol performance regression: {metrics['duration_seconds']:.1f}s > {MAX_EXECUTION_TIME}s"
+        assert (
+            metrics["duration_seconds"] < MAX_EXECUTION_TIME
+        ), f"Multi-symbol performance regression: {metrics['duration_seconds']:.1f}s > {MAX_EXECUTION_TIME}s"
 
-        assert metrics['peak_memory_mb'] < MAX_MEMORY_USAGE, \
-            f"Multi-symbol memory regression: {metrics['peak_memory_mb']:.1f}MB > {MAX_MEMORY_USAGE}MB"
+        assert (
+            metrics["peak_memory_mb"] < MAX_MEMORY_USAGE
+        ), f"Multi-symbol memory regression: {metrics['peak_memory_mb']:.1f}MB > {MAX_MEMORY_USAGE}MB"
 
         print("✅ Multi-symbol single day performance test passed")
 
@@ -370,10 +390,17 @@ class TestPerformanceIntegration:
         for symbol in symbols[:2]:  # Write first 2 symbols
             for trading_day in trading_days:
                 day_data = symbol_data[symbol]
-                day_start_ns = int(datetime.combine(trading_day, datetime.min.time()).replace(tzinfo=timezone.utc).timestamp() * 1e9)
+                day_start_ns = int(
+                    datetime.combine(trading_day, datetime.min.time())
+                    .replace(tzinfo=timezone.utc)
+                    .timestamp()
+                    * 1e9
+                )
                 day_end_ns = day_start_ns + int(24 * 60 * 60 * 1e9)
 
-                day_df = day_data[(day_data["ts_ns"] >= day_start_ns) & (day_data["ts_ns"] < day_end_ns)]
+                day_df = day_data[
+                    (day_data["ts_ns"] >= day_start_ns) & (day_data["ts_ns"] < day_end_ns)
+                ]
                 if not day_df.empty:
                     raw_engine.write(
                         df=day_df,
@@ -381,7 +408,7 @@ class TestPerformanceIntegration:
                         symbol=symbol,
                         trading_day=trading_day,
                         job_id=job_id,
-                        overwrite=True
+                        overwrite=True,
                     )
 
         # Phase 2: Concurrent reads and writes
@@ -405,10 +432,17 @@ class TestPerformanceIntegration:
                 for symbol in symbols[2:]:  # Write remaining symbols
                     for trading_day in trading_days:
                         day_data = symbol_data[symbol]
-                        day_start_ns = int(datetime.combine(trading_day, datetime.min.time()).replace(tzinfo=timezone.utc).timestamp() * 1e9)
+                        day_start_ns = int(
+                            datetime.combine(trading_day, datetime.min.time())
+                            .replace(tzinfo=timezone.utc)
+                            .timestamp()
+                            * 1e9
+                        )
                         day_end_ns = day_start_ns + int(24 * 60 * 60 * 1e9)
 
-                        day_df = day_data[(day_data["ts_ns"] >= day_start_ns) & (day_data["ts_ns"] < day_end_ns)]
+                        day_df = day_data[
+                            (day_data["ts_ns"] >= day_start_ns) & (day_data["ts_ns"] < day_end_ns)
+                        ]
                         if not day_df.empty:
                             raw_engine.write(
                                 df=day_df,
@@ -416,7 +450,7 @@ class TestPerformanceIntegration:
                                 symbol=symbol,
                                 trading_day=trading_day,
                                 job_id=job_id,
-                                overwrite=True
+                                overwrite=True,
                             )
                             write_results.append(len(day_df))
                         time.sleep(0.05)
@@ -441,8 +475,9 @@ class TestPerformanceIntegration:
         print(f"   Errors: {len(errors)}")
 
         # Performance assertions
-        assert metrics['duration_seconds'] < MAX_EXECUTION_TIME, \
-            f"Concurrent operation timeout: {metrics['duration_seconds']:.1f}s > {MAX_EXECUTION_TIME}s"
+        assert (
+            metrics["duration_seconds"] < MAX_EXECUTION_TIME
+        ), f"Concurrent operation timeout: {metrics['duration_seconds']:.1f}s > {MAX_EXECUTION_TIME}s"
 
         assert len(errors) == 0, f"Concurrent operation errors: {errors}"
         assert len(read_results) > 5, "Too few successful reads during concurrent operations"
@@ -480,7 +515,7 @@ class TestPerformanceIntegration:
                 symbol=symbols[0],
                 trading_day=trading_days[0],
                 job_id=job_id,
-                overwrite=True
+                overwrite=True,
             )
 
             # Read data back
@@ -495,7 +530,7 @@ class TestPerformanceIntegration:
             # Small delay to allow any background cleanup
             time.sleep(0.1)
 
-        metrics = monitor.stop()
+        monitor.stop()
 
         # Analyze memory trend
         initial_memory = memory_readings[0]
@@ -516,8 +551,9 @@ class TestPerformanceIntegration:
         # Memory leak assertions (allow some growth but not excessive)
         MAX_MEMORY_GROWTH_PERCENT = 50  # 50% growth allowance
 
-        assert memory_growth_percent < MAX_MEMORY_GROWTH_PERCENT, \
-            f"Potential memory leak detected: {memory_growth_percent:.1f}% growth > {MAX_MEMORY_GROWTH_PERCENT}%"
+        assert (
+            memory_growth_percent < MAX_MEMORY_GROWTH_PERCENT
+        ), f"Potential memory leak detected: {memory_growth_percent:.1f}% growth > {MAX_MEMORY_GROWTH_PERCENT}%"
 
         print("✅ No significant memory leaks detected")
 
@@ -525,7 +561,7 @@ class TestPerformanceIntegration:
         """Test performance with large individual files."""
 
         MAX_EXECUTION_TIME = 30  # seconds
-        MAX_MEMORY_USAGE = 800   # MB
+        MAX_MEMORY_USAGE = 800  # MB
 
         monitor = PerformanceMonitor()
         monitor.start()
@@ -557,7 +593,7 @@ class TestPerformanceIntegration:
             symbol=symbols[0],
             trading_day=trading_days[0],
             job_id=job_id,
-            overwrite=True
+            overwrite=True,
         )
         write_duration = time.monotonic() - write_start
 
@@ -582,7 +618,7 @@ class TestPerformanceIntegration:
             symbol=Symbol(symbols[0]),
             trading_date=trading_days[0],
             bars_processed=len(large_df),
-            success=True
+            success=True,
         )
 
         aggregation_service.handle_ingestion_completed(event)
@@ -600,11 +636,13 @@ class TestPerformanceIntegration:
         print(f"   Read Throughput: {len(large_df) / read_duration:.0f} bars/sec")
 
         # Performance assertions
-        assert metrics['duration_seconds'] < MAX_EXECUTION_TIME, \
-            f"Large file performance regression: {metrics['duration_seconds']:.1f}s > {MAX_EXECUTION_TIME}s"
+        assert (
+            metrics["duration_seconds"] < MAX_EXECUTION_TIME
+        ), f"Large file performance regression: {metrics['duration_seconds']:.1f}s > {MAX_EXECUTION_TIME}s"
 
-        assert metrics['peak_memory_mb'] < MAX_MEMORY_USAGE, \
-            f"Large file memory regression: {metrics['peak_memory_mb']:.1f}MB > {MAX_MEMORY_USAGE}MB"
+        assert (
+            metrics["peak_memory_mb"] < MAX_MEMORY_USAGE
+        ), f"Large file memory regression: {metrics['peak_memory_mb']:.1f}MB > {MAX_MEMORY_USAGE}MB"
 
         print("✅ Large file handling performance test passed")
 
@@ -638,7 +676,12 @@ def test_performance_baseline_establishment(tmp_path):
 
     for trading_day in trading_days:
         day_data = symbol_data[symbols[0]]
-        day_start_ns = int(datetime.combine(trading_day, datetime.min.time()).replace(tzinfo=timezone.utc).timestamp() * 1e9)
+        day_start_ns = int(
+            datetime.combine(trading_day, datetime.min.time())
+            .replace(tzinfo=timezone.utc)
+            .timestamp()
+            * 1e9
+        )
         day_end_ns = day_start_ns + int(24 * 60 * 60 * 1e9)
 
         day_df = day_data[(day_data["ts_ns"] >= day_start_ns) & (day_data["ts_ns"] < day_end_ns)]
@@ -649,7 +692,7 @@ def test_performance_baseline_establishment(tmp_path):
                 symbol=symbols[0],
                 trading_day=trading_day,
                 job_id=job_id,
-                overwrite=True
+                overwrite=True,
             )
             total_bars += len(day_df)
 
@@ -663,7 +706,7 @@ def test_performance_baseline_establishment(tmp_path):
         symbol=Symbol(symbols[0]),
         trading_date=trading_days[0],
         bars_processed=total_bars,
-        success=True
+        success=True,
     )
 
     aggregation_service.handle_ingestion_completed(event)
@@ -673,10 +716,10 @@ def test_performance_baseline_establishment(tmp_path):
     # Document baseline performance
     baseline_metrics = {
         "bars_processed": total_bars,
-        "duration_seconds": metrics['duration_seconds'],
-        "peak_memory_mb": metrics['peak_memory_mb'],
-        "throughput_bars_per_sec": total_bars / metrics['duration_seconds'],
-        "memory_per_1k_bars_mb": metrics['peak_memory_mb'] / (total_bars / 1000),
+        "duration_seconds": metrics["duration_seconds"],
+        "peak_memory_mb": metrics["peak_memory_mb"],
+        "throughput_bars_per_sec": total_bars / metrics["duration_seconds"],
+        "memory_per_1k_bars_mb": metrics["peak_memory_mb"] / (total_bars / 1000),
     }
 
     print("📊 Performance Baseline Metrics:")
@@ -685,6 +728,8 @@ def test_performance_baseline_establishment(tmp_path):
 
     # Basic sanity checks (not strict performance requirements)
     assert baseline_metrics["throughput_bars_per_sec"] > 100, "Baseline throughput too low"
-    assert baseline_metrics["memory_per_1k_bars_mb"] < 200, "Baseline memory usage too high"  # Relaxed for test environment
+    assert (
+        baseline_metrics["memory_per_1k_bars_mb"] < 200
+    ), "Baseline memory usage too high"  # Relaxed for test environment
 
     print("✅ Performance baseline established")

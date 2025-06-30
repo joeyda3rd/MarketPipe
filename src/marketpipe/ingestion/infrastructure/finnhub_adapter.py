@@ -7,7 +7,7 @@ import asyncio
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -36,7 +36,7 @@ class FinnhubMarketDataAdapter(IMarketDataProvider):
         rate_limit_per_minute: int = 60,  # Free tier limit
         timeout: float = 30.0,
         max_retries: int = 3,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
@@ -46,7 +46,7 @@ class FinnhubMarketDataAdapter(IMarketDataProvider):
         self.log = logger or logging.getLogger(self.__class__.__name__)
 
         # Rate limiting state
-        self._request_times: List[float] = []
+        self._request_times: list[float] = []
         self._rate_limit_lock = asyncio.Lock()
 
         self.log.info(
@@ -58,7 +58,7 @@ class FinnhubMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """
         Fetch OHLCV bars from Finnhub API.
 
@@ -122,7 +122,7 @@ class FinnhubMarketDataAdapter(IMarketDataProvider):
             self.log.error(f"Failed to fetch data for {symbol.value}: {e}")
             raise
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """Get list of supported US stock symbols from Finnhub."""
         try:
             await self._apply_rate_limit()
@@ -201,7 +201,7 @@ class FinnhubMarketDataAdapter(IMarketDataProvider):
             # Record this request
             self._request_times.append(now)
 
-    async def _make_request(self, url: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _make_request(self, url: str, params: dict[str, Any]) -> dict[str, Any]:
         """Make HTTP request with retry logic."""
         headers = {
             "User-Agent": "MarketPipe/1.0 (Finnhub.io Adapter)",
@@ -282,8 +282,8 @@ class FinnhubMarketDataAdapter(IMarketDataProvider):
         return timeframe_map[timeframe]
 
     def _parse_finnhub_response(
-        self, response_data: Dict[str, Any], symbol: Symbol, timeframe: str
-    ) -> List[OHLCVBar]:
+        self, response_data: dict[str, Any], symbol: Symbol, timeframe: str
+    ) -> list[OHLCVBar]:
         """Parse Finnhub API response into OHLCVBar objects."""
         bars = []
 

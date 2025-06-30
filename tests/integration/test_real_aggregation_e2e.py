@@ -25,18 +25,20 @@ def generate_realistic_minute_bars(
     symbol: str, trading_day: date, count: int = 390, base_price: float = 150.0
 ) -> pd.DataFrame:
     """Generate realistic 1-minute OHLCV bars for a full trading day.
-    
+
     Args:
         symbol: Stock symbol (e.g., "AAPL")
         trading_day: Trading date
         count: Number of minute bars (390 = full trading day)
         base_price: Starting price for realistic movements
-        
+
     Returns:
         DataFrame with realistic OHLCV data
     """
     # Start at market open (9:30 AM ET)
-    market_open = datetime.combine(trading_day, datetime.min.time()) + timedelta(hours=13, minutes=30)
+    market_open = datetime.combine(trading_day, datetime.min.time()) + timedelta(
+        hours=13, minutes=30
+    )
     market_open = market_open.replace(tzinfo=timezone.utc)
 
     bars = []
@@ -45,8 +47,9 @@ def generate_realistic_minute_bars(
     for i in range(count):
         # Market realistic price movement (random walk with slight upward bias)
         import random
+
         price_change = random.gauss(0.001, 0.002)  # Small random walk
-        current_price *= (1 + price_change)
+        current_price *= 1 + price_change
 
         # Generate OHLC around current price
         open_price = current_price
@@ -66,17 +69,19 @@ def generate_realistic_minute_bars(
         timestamp = market_open + timedelta(minutes=i)
         timestamp_ns = int(timestamp.timestamp() * 1_000_000_000)
 
-        bars.append({
-            "ts_ns": timestamp_ns,
-            "symbol": symbol,
-            "open": round(open_price, 2),
-            "high": round(high_price, 2),
-            "low": round(low_price, 2),
-            "close": round(close_price, 2),
-            "volume": volume,
-            "trade_count": random.randint(50, 200),
-            "vwap": round((high_price + low_price + close_price) / 3, 2),
-        })
+        bars.append(
+            {
+                "ts_ns": timestamp_ns,
+                "symbol": symbol,
+                "open": round(open_price, 2),
+                "high": round(high_price, 2),
+                "low": round(low_price, 2),
+                "close": round(close_price, 2),
+                "volume": volume,
+                "trade_count": random.randint(50, 200),
+                "vwap": round((high_price + low_price + close_price) / 3, 2),
+            }
+        )
 
         current_price = close_price  # Price continues from close
 
@@ -118,31 +123,34 @@ class TestRealAggregationEndToEnd:
                     symbol=symbol,
                     trading_day=trading_day,
                     job_id=job_id,
-                    overwrite=True
+                    overwrite=True,
                 )
                 total_bars += len(bars_1m)
 
-        print(f"✓ Created {total_bars} raw 1-minute bars across {len(symbols)} symbols and {len(date_range)} days")
+        print(
+            f"✓ Created {total_bars} raw 1-minute bars across {len(symbols)} symbols and {len(date_range)} days"
+        )
 
         # Verify raw data was written correctly
         job_data = raw_engine.load_job_bars(job_id)
-        assert len(job_data) == len(symbols), f"Expected {len(symbols)} symbols, got {len(job_data)}"
+        assert len(job_data) == len(
+            symbols
+        ), f"Expected {len(symbols)} symbols, got {len(job_data)}"
 
         for symbol in symbols:
             assert symbol in job_data, f"Symbol {symbol} not found in job data"
             symbol_df = job_data[symbol]
             expected_bars = 390 * len(date_range)  # 390 bars per day
-            assert len(symbol_df) == expected_bars, f"Expected {expected_bars} bars for {symbol}, got {len(symbol_df)}"
+            assert (
+                len(symbol_df) == expected_bars
+            ), f"Expected {expected_bars} bars for {symbol}, got {len(symbol_df)}"
 
         # Initialize real DuckDB aggregation engine
         duckdb_engine = DuckDBAggregationEngine(raw_root=raw_dir, agg_root=agg_dir)
         domain_service = AggregationDomainService()
 
         # Create real aggregation service (no mocking)
-        aggregation_service = AggregationRunnerService(
-            engine=duckdb_engine,
-            domain=domain_service
-        )
+        aggregation_service = AggregationRunnerService(engine=duckdb_engine, domain=domain_service)
 
         # Create realistic ingestion completed event
         event = IngestionJobCompleted(
@@ -150,7 +158,7 @@ class TestRealAggregationEndToEnd:
             symbol=Symbol(symbols[0]),  # Primary symbol
             trading_date=date_range[0],  # Primary date
             bars_processed=total_bars,
-            success=True
+            success=True,
         )
 
         # Execute real aggregation (this is the core test - no mocking!)
@@ -166,7 +174,9 @@ class TestRealAggregationEndToEnd:
                 for spec in DEFAULT_SPECS:
                     # Check that aggregated data exists
                     symbol_agg_data = agg_engine.load_symbol_data(symbol=symbol, frame=spec.name)
-                    assert not symbol_agg_data.empty, f"No {spec.name} data found for {symbol} on {trading_day}"
+                    assert (
+                        not symbol_agg_data.empty
+                    ), f"No {spec.name} data found for {symbol} on {trading_day}"
 
                     print(f"✓ Found {len(symbol_agg_data)} {spec.name} bars for {symbol}")
 
@@ -176,13 +186,29 @@ class TestRealAggregationEndToEnd:
         # Test specific aggregation: AAPL on first day, 5-minute bars
         aapl_1m = job_data["AAPL"]
         aapl_1m_day1 = aapl_1m[
-            aapl_1m["ts_ns"] >= int(datetime.combine(date_range[0], datetime.min.time()).replace(tzinfo=timezone.utc).timestamp() * 1e9)
-        ].head(390)  # First day only
+            aapl_1m["ts_ns"]
+            >= int(
+                datetime.combine(date_range[0], datetime.min.time())
+                .replace(tzinfo=timezone.utc)
+                .timestamp()
+                * 1e9
+            )
+        ].head(
+            390
+        )  # First day only
 
         aapl_5m = agg_engine.load_symbol_data(symbol="AAPL", frame="5m")
         aapl_5m_day1 = aapl_5m[
-            aapl_5m["ts_ns"] >= int(datetime.combine(date_range[0], datetime.min.time()).replace(tzinfo=timezone.utc).timestamp() * 1e9)
-        ].head(78)  # 390 minutes / 5 = 78 bars
+            aapl_5m["ts_ns"]
+            >= int(
+                datetime.combine(date_range[0], datetime.min.time())
+                .replace(tzinfo=timezone.utc)
+                .timestamp()
+                * 1e9
+            )
+        ].head(
+            78
+        )  # 390 minutes / 5 = 78 bars
 
         assert len(aapl_5m_day1) == 78, f"Expected 78 5-minute bars, got {len(aapl_5m_day1)}"
 
@@ -199,11 +225,21 @@ class TestRealAggregationEndToEnd:
         expected_volume = first_5_mins["volume"].sum()
 
         # Allow small floating point differences
-        assert abs(first_5m_bar["open"] - expected_open) < 0.01, f"Open mismatch: {first_5m_bar['open']} vs {expected_open}"
-        assert abs(first_5m_bar["close"] - expected_close) < 0.01, f"Close mismatch: {first_5m_bar['close']} vs {expected_close}"
-        assert abs(first_5m_bar["high"] - expected_high) < 0.01, f"High mismatch: {first_5m_bar['high']} vs {expected_high}"
-        assert abs(first_5m_bar["low"] - expected_low) < 0.01, f"Low mismatch: {first_5m_bar['low']} vs {expected_low}"
-        assert first_5m_bar["volume"] == expected_volume, f"Volume mismatch: {first_5m_bar['volume']} vs {expected_volume}"
+        assert (
+            abs(first_5m_bar["open"] - expected_open) < 0.01
+        ), f"Open mismatch: {first_5m_bar['open']} vs {expected_open}"
+        assert (
+            abs(first_5m_bar["close"] - expected_close) < 0.01
+        ), f"Close mismatch: {first_5m_bar['close']} vs {expected_close}"
+        assert (
+            abs(first_5m_bar["high"] - expected_high) < 0.01
+        ), f"High mismatch: {first_5m_bar['high']} vs {expected_high}"
+        assert (
+            abs(first_5m_bar["low"] - expected_low) < 0.01
+        ), f"Low mismatch: {first_5m_bar['low']} vs {expected_low}"
+        assert (
+            first_5m_bar["volume"] == expected_volume
+        ), f"Volume mismatch: {first_5m_bar['volume']} vs {expected_volume}"
 
         print("✅ OHLCV aggregation mathematics verified")
 
@@ -218,16 +254,22 @@ class TestRealAggregationEndToEnd:
 
                 if spec.name == "5m":
                     # 5-minute bars should align to 5-minute boundaries
-                    assert first_datetime.minute % 5 == 0, f"5m timestamp not aligned: {first_datetime}"
+                    assert (
+                        first_datetime.minute % 5 == 0
+                    ), f"5m timestamp not aligned: {first_datetime}"
                 elif spec.name == "15m":
                     # 15-minute bars should align to 15-minute boundaries
-                    assert first_datetime.minute % 15 == 0, f"15m timestamp not aligned: {first_datetime}"
+                    assert (
+                        first_datetime.minute % 15 == 0
+                    ), f"15m timestamp not aligned: {first_datetime}"
                 elif spec.name == "1h":
                     # 1-hour bars should align to hour boundaries
                     assert first_datetime.minute == 0, f"1h timestamp not aligned: {first_datetime}"
                 elif spec.name == "1d":
                     # 1-day bars should align to day boundaries (market open)
-                    assert first_datetime.hour == 13 and first_datetime.minute == 30, f"1d timestamp not aligned: {first_datetime}"
+                    assert (
+                        first_datetime.hour == 13 and first_datetime.minute == 30
+                    ), f"1d timestamp not aligned: {first_datetime}"
 
                 print(f"✓ {spec.name} timestamps properly aligned")
 
@@ -245,14 +287,17 @@ class TestRealAggregationEndToEnd:
 
             # Volume should be sum of 3 5-minute bars
             expected_15m_volume = first_3_5m["volume"].sum()
-            assert first_15m_bar["volume"] == expected_15m_volume, \
-                f"15m volume aggregation error: {first_15m_bar['volume']} vs {expected_15m_volume}"
+            assert (
+                first_15m_bar["volume"] == expected_15m_volume
+            ), f"15m volume aggregation error: {first_15m_bar['volume']} vs {expected_15m_volume}"
 
             print("✅ Multi-level aggregation verified")
 
         print("🎉 Real aggregation E2E test completed successfully!")
         print(f"✅ Processed {total_bars} bars across {len(symbols)} symbols")
-        print(f"✅ Generated all {len(DEFAULT_SPECS)} timeframes: {[spec.name for spec in DEFAULT_SPECS]}")
+        print(
+            f"✅ Generated all {len(DEFAULT_SPECS)} timeframes: {[spec.name for spec in DEFAULT_SPECS]}"
+        )
         print("✅ Mathematical aggregation accuracy verified")
         print("✅ Timestamp alignment verified for all timeframes")
 
@@ -271,11 +316,7 @@ class TestRealAggregationEndToEnd:
         # Only create data for AAPL
         aapl_bars = generate_realistic_minute_bars("AAPL", date(2024, 1, 15), count=100)
         raw_engine.write(
-            df=aapl_bars,
-            frame="1m",
-            symbol="AAPL",
-            trading_day=date(2024, 1, 15),
-            job_id=job_id
+            df=aapl_bars, frame="1m", symbol="AAPL", trading_day=date(2024, 1, 15), job_id=job_id
         )
 
         # Initialize aggregation components
@@ -289,7 +330,7 @@ class TestRealAggregationEndToEnd:
             symbol=Symbol("AAPL"),
             trading_date=date(2024, 1, 15),
             bars_processed=100,
-            success=True
+            success=True,
         )
 
         # Should not raise exception even with only partial symbol data
@@ -320,7 +361,7 @@ class TestRealAggregationEndToEnd:
             symbol=Symbol("AAPL"),
             trading_date=date(2024, 1, 15),
             bars_processed=0,
-            success=True
+            success=True,
         )
 
         # Should not raise exception for empty job

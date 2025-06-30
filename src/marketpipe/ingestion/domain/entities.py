@@ -7,7 +7,6 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Optional, Set
 from uuid import uuid4
 
 from marketpipe.domain.entities import Entity, EntityId
@@ -92,7 +91,7 @@ class IngestionJobId:
 
     _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}$")
 
-    def _decompose(self) -> tuple[Optional[str], Optional[str]]:
+    def _decompose(self) -> tuple[str | None, str | None]:
         """Return `(symbol_str, day_str)` if identifier is composite, else `(None, None)`."""
         parts = self._raw.rsplit("_", 1)
         if len(parts) != 2:
@@ -109,7 +108,7 @@ class IngestionJobId:
         return symbol_part, day_part
 
     @property
-    def symbol(self) -> Optional[Symbol]:
+    def symbol(self) -> Symbol | None:
         """Extract the *symbol* component if available (composite IDs only)."""
         symbol_part, _ = self._decompose()
         if symbol_part is None:
@@ -123,7 +122,7 @@ class IngestionJobId:
             return None
 
     @property
-    def day(self) -> Optional[str]:
+    def day(self) -> str | None:
         """Extract the *day* (``YYYY-MM-DD``) component if available."""
         _, day_part = self._decompose()
         return day_part
@@ -150,7 +149,7 @@ class IngestionJob(Entity):
         self,
         job_id: IngestionJobId,
         configuration: IngestionConfiguration,
-        symbols: List[Symbol],
+        symbols: list[Symbol],
         time_range: TimeRange,
     ):
         super().__init__(EntityId.generate())
@@ -160,14 +159,14 @@ class IngestionJob(Entity):
         self._time_range = time_range
         self._state = ProcessingState.PENDING
         self._created_at = datetime.now(timezone.utc)
-        self._started_at: Optional[datetime] = None
-        self._completed_at: Optional[datetime] = None
-        self._failed_at: Optional[datetime] = None
-        self._error_message: Optional[str] = None
-        self._processed_symbols: Set[Symbol] = set()
-        self._completed_partitions: List[IngestionPartition] = []
+        self._started_at: datetime | None = None
+        self._completed_at: datetime | None = None
+        self._failed_at: datetime | None = None
+        self._error_message: str | None = None
+        self._processed_symbols: set[Symbol] = set()
+        self._completed_partitions: list[IngestionPartition] = []
         self._total_bars_processed = 0
-        self._domain_events: List[DomainEvent] = []
+        self._domain_events: list[DomainEvent] = []
 
         # Validate business rules
         self._validate_symbols()
@@ -184,7 +183,7 @@ class IngestionJob(Entity):
         return self._configuration
 
     @property
-    def symbols(self) -> List[Symbol]:
+    def symbols(self) -> list[Symbol]:
         """Get the symbols to be processed."""
         return self._symbols.copy()
 
@@ -204,32 +203,32 @@ class IngestionJob(Entity):
         return self._created_at
 
     @property
-    def started_at(self) -> Optional[datetime]:
+    def started_at(self) -> datetime | None:
         """Get when the job was started."""
         return self._started_at
 
     @property
-    def completed_at(self) -> Optional[datetime]:
+    def completed_at(self) -> datetime | None:
         """Get when the job was completed."""
         return self._completed_at
 
     @property
-    def failed_at(self) -> Optional[datetime]:
+    def failed_at(self) -> datetime | None:
         """Get when the job failed."""
         return self._failed_at
 
     @property
-    def error_message(self) -> Optional[str]:
+    def error_message(self) -> str | None:
         """Get the error message if job failed."""
         return self._error_message
 
     @property
-    def processed_symbols(self) -> Set[Symbol]:
+    def processed_symbols(self) -> set[Symbol]:
         """Get the symbols that have been processed."""
         return self._processed_symbols.copy()
 
     @property
-    def completed_partitions(self) -> List[IngestionPartition]:
+    def completed_partitions(self) -> list[IngestionPartition]:
         """Get the completed data partitions."""
         return self._completed_partitions.copy()
 
@@ -379,7 +378,7 @@ class IngestionJob(Entity):
         if self.can_complete:
             self.complete()
 
-    def estimate_remaining_time(self, average_processing_time_per_symbol: float) -> Optional[float]:
+    def estimate_remaining_time(self, average_processing_time_per_symbol: float) -> float | None:
         """Estimate remaining processing time in seconds."""
         if self._state != ProcessingState.IN_PROGRESS:
             return None
@@ -405,7 +404,7 @@ class IngestionJob(Entity):
         }
 
     @property
-    def domain_events(self) -> List[DomainEvent]:
+    def domain_events(self) -> list[DomainEvent]:
         """Get domain events for testing and publishing."""
         return self._domain_events.copy()
 
@@ -413,7 +412,7 @@ class IngestionJob(Entity):
         """Clear domain events (primarily for testing)."""
         self._domain_events.clear()
 
-    def get_uncommitted_events(self) -> List[DomainEvent]:
+    def get_uncommitted_events(self) -> list[DomainEvent]:
         """Get domain events that haven't been published."""
         return self._domain_events.copy()
 

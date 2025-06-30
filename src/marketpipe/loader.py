@@ -67,14 +67,10 @@ def load_ohlcv(
     """
     # Input validation
     if as_polars and not POLARS_AVAILABLE:
-        raise ImportError(
-            "polars is required for as_polars=True. Install with: pip install polars"
-        )
+        raise ImportError("polars is required for as_polars=True. Install with: pip install polars")
 
     if timeframe not in {"1m", "5m", "15m", "1h", "1d"}:
-        raise ValueError(
-            f"Invalid timeframe: {timeframe}. Must be one of: 1m, 5m, 15m, 1h, 1d"
-        )
+        raise ValueError(f"Invalid timeframe: {timeframe}. Must be one of: 1m, 5m, 15m, 1h, 1d")
 
     # Normalize symbols to list
     symbols = [symbols] if isinstance(symbols, str) else list(symbols)
@@ -114,9 +110,7 @@ def load_ohlcv(
                 frames.append(symbol_df)
 
         if not frames:
-            logger.warning(
-                f"No data found for symbols {symbols} in timeframe {timeframe}"
-            )
+            logger.warning(f"No data found for symbols {symbols} in timeframe {timeframe}")
             # Return empty DataFrame with proper structure
             empty_df = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
             empty_df.index.name = "timestamp"

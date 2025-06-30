@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 from marketpipe.domain.value_objects import Symbol, TimeRange
 
@@ -16,7 +15,7 @@ from ..domain.value_objects import BatchConfiguration, IngestionConfiguration
 class CreateIngestionJobCommand:
     """Command to create a new ingestion job."""
 
-    symbols: List[Symbol]
+    symbols: list[Symbol]
     time_range: TimeRange
     configuration: IngestionConfiguration
     batch_config: BatchConfiguration

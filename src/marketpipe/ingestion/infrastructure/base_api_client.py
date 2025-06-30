@@ -4,7 +4,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Iterable, Mapping
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .auth import AuthStrategy
 from .models import ClientConfig
@@ -24,10 +24,10 @@ class BaseApiClient(abc.ABC):
         self,
         config: ClientConfig,
         auth: AuthStrategy,
-        rate_limiter: Optional[RateLimiter] = None,
-        metrics_collector: Optional[callable] = None,
-        state_backend: Optional[StateBackend] = None,
-        logger: Optional[logging.Logger] = None,
+        rate_limiter: RateLimiter | None = None,
+        metrics_collector: callable | None = None,
+        state_backend: StateBackend | None = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         self.config = config
         self.auth = auth
@@ -43,7 +43,7 @@ class BaseApiClient(abc.ABC):
         symbol: str,
         start_ts: int,
         end_ts: int,
-        cursor: Optional[str] = None,
+        cursor: str | None = None,
     ) -> Mapping[str, str]:
         """Return query parameters dict specific to this vendor."""
 
@@ -58,7 +58,7 @@ class BaseApiClient(abc.ABC):
         start_ts: int,
         end_ts: int,
         **kwargs: Any,
-    ) -> Iterable[Dict[str, Any]]:
+    ) -> Iterable[dict[str, Any]]:
         """Default page iterator.
 
         Args:
@@ -69,7 +69,7 @@ class BaseApiClient(abc.ABC):
         Yields:
             Raw JSON pages from the vendor API.
         """
-        cursor: Optional[str] = None
+        cursor: str | None = None
         while True:
             params = self.build_request_params(symbol, start_ts, end_ts, cursor)
             raw_json = self._request(params)
@@ -79,15 +79,15 @@ class BaseApiClient(abc.ABC):
                 break
 
     @abc.abstractmethod
-    def next_cursor(self, raw_json: Dict[str, Any]) -> Optional[str]:
+    def next_cursor(self, raw_json: dict[str, Any]) -> str | None:
         """Extract pagination cursor/offset from response JSON."""
 
     # ---------- Low-level request ----------
-    def _request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+    def _request(self, params: Mapping[str, str]) -> dict[str, Any]:
         """Blocking HTTP request with rate-limit, retry, and auth handling."""
         ...
 
-    async def _async_request(self, params: Mapping[str, str]) -> Dict[str, Any]:
+    async def _async_request(self, params: Mapping[str, str]) -> dict[str, Any]:
         """Async HTTP request (same semantics as :meth:`_request`)."""
         ...
 
@@ -97,9 +97,9 @@ class BaseApiClient(abc.ABC):
         symbol: str,
         start_ts: int,
         end_ts: int,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """High-level helper returning a list of normalized OHLCV rows."""
-        rows: List[Dict[str, Any]] = []
+        rows: list[dict[str, Any]] = []
         for page in self.paginate(symbol, start_ts, end_ts):
             rows.extend(self.parse_response(page))
         return rows
@@ -109,8 +109,8 @@ class BaseApiClient(abc.ABC):
         symbol: str,
         start_ts: int,
         end_ts: int,
-    ) -> List[Dict[str, Any]]:
-        rows: List[Dict[str, Any]] = []
+    ) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
         async for page in self.async_paginate(symbol, start_ts, end_ts):
             rows.extend(self.parse_response(page))
         return rows
@@ -123,7 +123,7 @@ class BaseApiClient(abc.ABC):
         **kwargs: Any,
     ):
         """Async generator version of :meth:`paginate`."""
-        cursor: Optional[str] = None
+        cursor: str | None = None
         while True:
             params = self.build_request_params(symbol, start_ts, end_ts, cursor)
             raw_json = await self._async_request(params)
@@ -134,12 +134,12 @@ class BaseApiClient(abc.ABC):
 
     # ---------- Response handling ----------
     @abc.abstractmethod
-    def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def parse_response(self, raw_json: dict[str, Any]) -> list[dict[str, Any]]:
         """Convert vendor response to list of canonical OHLCV rows."""
 
     # ---------- Error / rate-limit ----------
     @abc.abstractmethod
-    def should_retry(self, status_code: int, json_body: Dict[str, Any]) -> bool:
+    def should_retry(self, status_code: int, json_body: dict[str, Any]) -> bool:
         """Return True if the request should be retried."""
 
     # ---------- State checkpointing ----------
@@ -148,7 +148,7 @@ class BaseApiClient(abc.ABC):
         if self.state:
             self.state.set(symbol, checkpoint)
 
-    def load_checkpoint(self, symbol: str) -> Optional[str | int]:
+    def load_checkpoint(self, symbol: str) -> str | int | None:
         """Load the last saved checkpoint for a symbol."""
         return self.state.get(symbol) if self.state else None
 

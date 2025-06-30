@@ -21,9 +21,7 @@ from marketpipe.ingestion.infrastructure.rate_limit import (
 try:
     key = os.environ["ALPACA_KEY"]
     secret = os.environ["ALPACA_SECRET"]
-    print(
-        f"📋 Loaded credentials from .env file - Key: {key[:8]}..., Secret: {secret[:8]}..."
-    )
+    print(f"📋 Loaded credentials from .env file - Key: {key[:8]}..., Secret: {secret[:8]}...")
 except KeyError as e:
     print(f"❌ Missing required credential in .env file: {e}")
     print("\nTo run this demo, create a .env file in the project root with:")
@@ -39,10 +37,7 @@ cfg = ClientConfig(
 )
 
 auth = HeaderTokenAuth(key, secret)
-limiter = create_rate_limiter_from_config(
-    rate_limit_per_min=200,
-    provider_name="alpaca"
-)
+limiter = create_rate_limiter_from_config(rate_limit_per_min=200, provider_name="alpaca")
 client = AlpacaClient(config=cfg, auth=auth, rate_limiter=limiter, feed="iex")
 
 start = int((dt.datetime.utcnow() - dt.timedelta(days=1)).timestamp() * 1000)

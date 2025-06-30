@@ -191,29 +191,29 @@ class TestSymbolNormalizer:
         normalization_sql = """
         -- Drop existing symbols_master table if it exists
         DROP TABLE IF EXISTS symbols_master;
-        
+
         -- Validate required columns exist
         CREATE OR REPLACE TEMP TABLE validation_check AS
-        SELECT 
-            CASE WHEN COUNT(*) = 0 THEN 'OK' 
+        SELECT
+            CASE WHEN COUNT(*) = 0 THEN 'OK'
                  WHEN COUNT(*) > 0 AND MIN(provider) IS NOT NULL THEN 'OK'
-                 ELSE 'MISSING_PROVIDER' 
+                 ELSE 'MISSING_PROVIDER'
             END as validation_result
         FROM symbols_stage;
-        
+
         -- Create the master table with deduplication and ID assignment
         CREATE TABLE symbols_master AS
         WITH ranked AS (
             SELECT *,
                 -- Create natural key: prefer FIGI, fall back to ticker|exchange_mic
-                CASE 
+                CASE
                     WHEN figi IS NOT NULL THEN figi
                     ELSE ticker || '|' || COALESCE(exchange_mic, 'UNKNOWN')
                 END as natural_key,
                 -- Rank within each natural key group: latest as_of wins, then provider ASC for ties
                 ROW_NUMBER() OVER (
-                    PARTITION BY 
-                        CASE 
+                    PARTITION BY
+                        CASE
                             WHEN figi IS NOT NULL THEN figi
                             ELSE ticker || '|' || COALESCE(exchange_mic, 'UNKNOWN')
                         END
@@ -225,7 +225,7 @@ class TestSymbolNormalizer:
             SELECT * FROM ranked WHERE rn = 1
         ),
         with_ids AS (
-            SELECT 
+            SELECT
                 ROW_NUMBER() OVER (ORDER BY natural_key) AS id,
                 natural_key,
                 ticker, name, exchange_mic, figi, composite_figi, share_class_figi,
@@ -334,7 +334,7 @@ class TestSymbolNormalizer:
             results = conn.execute(
                 """
                 SELECT ticker, provider, figi, natural_key, as_of
-                FROM symbols_master 
+                FROM symbols_master
                 ORDER BY ticker
             """
             ).fetchall()

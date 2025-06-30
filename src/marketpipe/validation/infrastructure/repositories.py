@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import List, Optional
 
 import pandas as pd
 
@@ -58,7 +57,7 @@ class CsvReportRepository:
 
         return path
 
-    def list_reports(self, job_id: Optional[str] = None) -> List[Path]:
+    def list_reports(self, job_id: str | None = None) -> list[Path]:
         """List all validation report files.
 
         Args:

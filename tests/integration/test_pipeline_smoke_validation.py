@@ -1,7 +1,7 @@
 """
 End-to-End Pipeline Smoke Validation
 
-Comprehensive smoke tests that validate the core MarketPipe pipeline works 
+Comprehensive smoke tests that validate the core MarketPipe pipeline works
 end-to-end across different scenarios and providers.
 
 This module implements Phase 3 of the CLI validation framework:
@@ -19,7 +19,6 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import pytest
@@ -29,13 +28,14 @@ import yaml
 @dataclass
 class PipelineTestScenario:
     """Definition of an end-to-end pipeline test scenario."""
+
     name: str
     description: str
     provider: str
-    symbols: List[str]
+    symbols: list[str]
     start_date: str
     end_date: str
-    expected_files: List[str] = field(default_factory=list)
+    expected_files: list[str] = field(default_factory=list)
     expected_records_min: int = 0
     test_validation: bool = True
     test_aggregation: bool = True
@@ -46,31 +46,32 @@ class PipelineTestScenario:
 @dataclass
 class PipelineTestResult:
     """Result of pipeline smoke test execution."""
+
     scenario: PipelineTestScenario
     ingest_success: bool = False
     validate_success: bool = False
     aggregate_success: bool = False
     total_records: int = 0
-    files_created: List[Path] = field(default_factory=list)
+    files_created: list[Path] = field(default_factory=list)
     execution_time_seconds: float = 0.0
-    error_messages: List[str] = field(default_factory=list)
-    performance_metrics: Dict[str, float] = field(default_factory=dict)
+    error_messages: list[str] = field(default_factory=list)
+    performance_metrics: dict[str, float] = field(default_factory=dict)
 
 
 class PipelineSmokeValidator:
     """Validates end-to-end pipeline functionality."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
-        self.test_results: List[PipelineTestResult] = []
+        self.test_results: list[PipelineTestResult] = []
 
     def run_pipeline_scenario(self, scenario: PipelineTestScenario) -> PipelineTestResult:
         """
         Run a complete pipeline scenario and validate results.
-        
+
         Args:
             scenario: Test scenario to execute
-            
+
         Returns:
             PipelineTestResult with execution details
         """
@@ -109,7 +110,9 @@ class PipelineSmokeValidator:
                 # Analyze results
                 result.files_created = self._discover_created_files(data_dir)
                 result.total_records = self._count_total_records(data_dir)
-                result.performance_metrics = self._calculate_performance_metrics(data_dir, start_time)
+                result.performance_metrics = self._calculate_performance_metrics(
+                    data_dir, start_time
+                )
 
             except Exception as e:
                 result.error_messages.append(f"Pipeline execution error: {e}")
@@ -122,41 +125,35 @@ class PipelineSmokeValidator:
     def _create_test_config(self, scenario: PipelineTestScenario, temp_path: Path) -> Path:
         """Create test configuration file."""
         config_data = {
-            "providers": {
-                scenario.provider: {
-                    "feed_type": "iex",
-                    "batch_size": 100
-                }
-            },
+            "providers": {scenario.provider: {"feed_type": "iex", "batch_size": 100}},
             "ingestion": {
                 "symbols": scenario.symbols,
                 "start_date": scenario.start_date,
                 "end_date": scenario.end_date,
                 "output_dir": str(temp_path / "data"),
-                "workers": 1  # Single worker for deterministic testing
-            }
+                "workers": 1,  # Single worker for deterministic testing
+            },
         }
 
         config_path = temp_path / "test_config.yaml"
-        with open(config_path, 'w') as f:
+        with open(config_path, "w") as f:
             yaml.dump(config_data, f)
 
         return config_path
 
-    def _run_ingest_step(self, scenario: PipelineTestScenario, config_path: Path, data_dir: Path) -> Tuple[bool, List[str]]:
+    def _run_ingest_step(
+        self, scenario: PipelineTestScenario, config_path: Path, data_dir: Path
+    ) -> tuple[bool, list[str]]:
         """Run ingestion step."""
         try:
-            cmd = [
-                "python", "-m", "marketpipe", "ingest-ohlcv",
-                "--config", str(config_path)
-            ]
+            cmd = ["python", "-m", "marketpipe", "ingest-ohlcv", "--config", str(config_path)]
 
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 timeout=scenario.timeout_seconds,
-                cwd=self.base_dir
+                cwd=self.base_dir,
             )
 
             if result.returncode == 0:
@@ -169,36 +166,30 @@ class PipelineSmokeValidator:
         except Exception as e:
             return False, [f"Ingest step error: {e}"]
 
-    def _run_validate_step(self, scenario: PipelineTestScenario, config_path: Path) -> Tuple[bool, List[str]]:
+    def _run_validate_step(
+        self, scenario: PipelineTestScenario, config_path: Path
+    ) -> tuple[bool, list[str]]:
         """Run validation step."""
         try:
             # First get the job ID from recent ingestion
-            list_cmd = [
-                "python", "-m", "marketpipe", "validate-ohlcv", "--list"
-            ]
+            list_cmd = ["python", "-m", "marketpipe", "validate-ohlcv", "--list"]
 
             list_result = subprocess.run(
-                list_cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=self.base_dir
+                list_cmd, capture_output=True, text=True, timeout=30, cwd=self.base_dir
             )
 
             if list_result.returncode != 0:
                 return False, [f"Could not list validation jobs: {list_result.stderr}"]
 
             # Run validation (without specific job ID for latest)
-            validate_cmd = [
-                "python", "-m", "marketpipe", "validate-ohlcv"
-            ]
+            validate_cmd = ["python", "-m", "marketpipe", "validate-ohlcv"]
 
             validate_result = subprocess.run(
                 validate_cmd,
                 capture_output=True,
                 text=True,
                 timeout=scenario.timeout_seconds,
-                cwd=self.base_dir
+                cwd=self.base_dir,
             )
 
             if validate_result.returncode == 0:
@@ -211,21 +202,21 @@ class PipelineSmokeValidator:
         except Exception as e:
             return False, [f"Validation step error: {e}"]
 
-    def _run_aggregate_step(self, scenario: PipelineTestScenario, config_path: Path) -> Tuple[bool, List[str]]:
+    def _run_aggregate_step(
+        self, scenario: PipelineTestScenario, config_path: Path
+    ) -> tuple[bool, list[str]]:
         """Run aggregation step."""
         try:
             # For smoke testing, we'll try to aggregate with a dummy job ID
             # In practice, this would use the actual job ID from ingestion
-            cmd = [
-                "python", "-m", "marketpipe", "aggregate-ohlcv", "test_job_id"
-            ]
+            cmd = ["python", "-m", "marketpipe", "aggregate-ohlcv", "test_job_id"]
 
-            result = subprocess.run(
+            subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 timeout=scenario.timeout_seconds,
-                cwd=self.base_dir
+                cwd=self.base_dir,
             )
 
             # For smoke tests, we accept that this might fail due to missing job ID
@@ -237,7 +228,7 @@ class PipelineSmokeValidator:
         except Exception as e:
             return False, [f"Aggregation step error: {e}"]
 
-    def _discover_created_files(self, data_dir: Path) -> List[Path]:
+    def _discover_created_files(self, data_dir: Path) -> list[Path]:
         """Discover files created during pipeline execution."""
         if not data_dir.exists():
             return []
@@ -263,7 +254,7 @@ class PipelineSmokeValidator:
 
         return total_records
 
-    def _calculate_performance_metrics(self, data_dir: Path, start_time: float) -> Dict[str, float]:
+    def _calculate_performance_metrics(self, data_dir: Path, start_time: float) -> dict[str, float]:
         """Calculate performance metrics."""
         metrics = {}
 
@@ -294,46 +285,52 @@ class PipelineSmokeValidator:
 class PipelineTestScenarioGenerator:
     """Generates comprehensive pipeline test scenarios."""
 
-    def generate_basic_smoke_tests(self) -> List[PipelineTestScenario]:
+    def generate_basic_smoke_tests(self) -> list[PipelineTestScenario]:
         """Generate basic smoke test scenarios."""
         scenarios = []
 
         # Single symbol, short date range
-        scenarios.append(PipelineTestScenario(
-            name="basic_single_symbol",
-            description="Basic test with single symbol and short date range",
-            provider="fake",
-            symbols=["AAPL"],
-            start_date="2023-01-01",
-            end_date="2023-01-02",
-            expected_records_min=1
-        ))
+        scenarios.append(
+            PipelineTestScenario(
+                name="basic_single_symbol",
+                description="Basic test with single symbol and short date range",
+                provider="fake",
+                symbols=["AAPL"],
+                start_date="2023-01-01",
+                end_date="2023-01-02",
+                expected_records_min=1,
+            )
+        )
 
         # Multiple symbols
-        scenarios.append(PipelineTestScenario(
-            name="basic_multiple_symbols",
-            description="Test with multiple symbols",
-            provider="fake",
-            symbols=["AAPL", "MSFT", "GOOGL"],
-            start_date="2023-01-01",
-            end_date="2023-01-03",
-            expected_records_min=3
-        ))
+        scenarios.append(
+            PipelineTestScenario(
+                name="basic_multiple_symbols",
+                description="Test with multiple symbols",
+                provider="fake",
+                symbols=["AAPL", "MSFT", "GOOGL"],
+                start_date="2023-01-01",
+                end_date="2023-01-03",
+                expected_records_min=3,
+            )
+        )
 
         # Longer date range
-        scenarios.append(PipelineTestScenario(
-            name="basic_longer_range",
-            description="Test with longer date range",
-            provider="fake",
-            symbols=["SPY"],
-            start_date="2023-01-01",
-            end_date="2023-01-31",
-            expected_records_min=20
-        ))
+        scenarios.append(
+            PipelineTestScenario(
+                name="basic_longer_range",
+                description="Test with longer date range",
+                provider="fake",
+                symbols=["SPY"],
+                start_date="2023-01-01",
+                end_date="2023-01-31",
+                expected_records_min=20,
+            )
+        )
 
         return scenarios
 
-    def generate_provider_specific_tests(self) -> List[PipelineTestScenario]:
+    def generate_provider_specific_tests(self) -> list[PipelineTestScenario]:
         """Generate provider-specific test scenarios."""
         scenarios = []
 
@@ -341,75 +338,96 @@ class PipelineTestScenarioGenerator:
         providers = ["fake", "alpaca", "iex", "polygon", "finnhub"]
 
         for provider in providers:
-            scenarios.append(PipelineTestScenario(
-                name=f"provider_{provider}",
-                description=f"Test {provider} provider integration",
-                provider=provider,
-                symbols=["AAPL"],
-                start_date="2023-01-01",
-                end_date="2023-01-02",
-                requires_auth=provider != "fake",
-                test_validation=provider == "fake",  # Only validate fake data
-                test_aggregation=provider == "fake"   # Only aggregate fake data
-            ))
+            scenarios.append(
+                PipelineTestScenario(
+                    name=f"provider_{provider}",
+                    description=f"Test {provider} provider integration",
+                    provider=provider,
+                    symbols=["AAPL"],
+                    start_date="2023-01-01",
+                    end_date="2023-01-02",
+                    requires_auth=provider != "fake",
+                    test_validation=provider == "fake",  # Only validate fake data
+                    test_aggregation=provider == "fake",  # Only aggregate fake data
+                )
+            )
 
         return scenarios
 
-    def generate_error_handling_tests(self) -> List[PipelineTestScenario]:
+    def generate_error_handling_tests(self) -> list[PipelineTestScenario]:
         """Generate error handling test scenarios."""
         scenarios = []
 
         # Invalid symbol
-        scenarios.append(PipelineTestScenario(
-            name="error_invalid_symbol",
-            description="Test handling of invalid symbol",
-            provider="fake",
-            symbols=["INVALID_SYMBOL_12345"],
-            start_date="2023-01-01",
-            end_date="2023-01-02",
-            expected_records_min=0
-        ))
+        scenarios.append(
+            PipelineTestScenario(
+                name="error_invalid_symbol",
+                description="Test handling of invalid symbol",
+                provider="fake",
+                symbols=["INVALID_SYMBOL_12345"],
+                start_date="2023-01-01",
+                end_date="2023-01-02",
+                expected_records_min=0,
+            )
+        )
 
         # Future date range
-        scenarios.append(PipelineTestScenario(
-            name="error_future_dates",
-            description="Test handling of future date range",
-            provider="fake",
-            symbols=["AAPL"],
-            start_date="2030-01-01",
-            end_date="2030-01-02",
-            expected_records_min=0
-        ))
+        scenarios.append(
+            PipelineTestScenario(
+                name="error_future_dates",
+                description="Test handling of future date range",
+                provider="fake",
+                symbols=["AAPL"],
+                start_date="2030-01-01",
+                end_date="2030-01-02",
+                expected_records_min=0,
+            )
+        )
 
         return scenarios
 
-    def generate_performance_baseline_tests(self) -> List[PipelineTestScenario]:
+    def generate_performance_baseline_tests(self) -> list[PipelineTestScenario]:
         """Generate performance baseline test scenarios."""
         scenarios = []
 
         # Large symbol set
-        scenarios.append(PipelineTestScenario(
-            name="perf_many_symbols",
-            description="Performance test with many symbols",
-            provider="fake",
-            symbols=["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "NVDA", "NFLX", "CRM", "ORCL"],
-            start_date="2023-01-01",
-            end_date="2023-01-05",
-            expected_records_min=40,
-            timeout_seconds=300
-        ))
+        scenarios.append(
+            PipelineTestScenario(
+                name="perf_many_symbols",
+                description="Performance test with many symbols",
+                provider="fake",
+                symbols=[
+                    "AAPL",
+                    "MSFT",
+                    "GOOGL",
+                    "AMZN",
+                    "TSLA",
+                    "META",
+                    "NVDA",
+                    "NFLX",
+                    "CRM",
+                    "ORCL",
+                ],
+                start_date="2023-01-01",
+                end_date="2023-01-05",
+                expected_records_min=40,
+                timeout_seconds=300,
+            )
+        )
 
         # Large date range
-        scenarios.append(PipelineTestScenario(
-            name="perf_long_range",
-            description="Performance test with long date range",
-            provider="fake",
-            symbols=["SPY"],
-            start_date="2022-01-01",
-            end_date="2022-12-31",
-            expected_records_min=250,
-            timeout_seconds=300
-        ))
+        scenarios.append(
+            PipelineTestScenario(
+                name="perf_long_range",
+                description="Performance test with long date range",
+                provider="fake",
+                symbols=["SPY"],
+                start_date="2022-01-01",
+                end_date="2022-12-31",
+                expected_records_min=250,
+                timeout_seconds=300,
+            )
+        )
 
         return scenarios
 
@@ -437,9 +455,13 @@ class TestPipelineSmokeValidation:
 
             # Check basic success criteria
             if not result.ingest_success:
-                failed_scenarios.append(f"{scenario.name}: Ingestion failed - {result.error_messages}")
+                failed_scenarios.append(
+                    f"{scenario.name}: Ingestion failed - {result.error_messages}"
+                )
             elif result.total_records < scenario.expected_records_min:
-                failed_scenarios.append(f"{scenario.name}: Insufficient records - got {result.total_records}, expected >= {scenario.expected_records_min}")
+                failed_scenarios.append(
+                    f"{scenario.name}: Insufficient records - got {result.total_records}, expected >= {scenario.expected_records_min}"
+                )
 
         if failed_scenarios:
             pytest.fail("Basic smoke tests failed:\n" + "\n".join(failed_scenarios))
@@ -472,12 +494,15 @@ class TestPipelineSmokeValidation:
 
             # For error scenarios, we expect ingestion to either succeed with no data
             # or fail gracefully without crashing
-            assert result.execution_time_seconds < scenario.timeout_seconds, \
-                f"Error scenario {scenario.name} took too long: {result.execution_time_seconds}s"
+            assert (
+                result.execution_time_seconds < scenario.timeout_seconds
+            ), f"Error scenario {scenario.name} took too long: {result.execution_time_seconds}s"
 
             # Should not crash
-            assert len(result.error_messages) == 0 or "crash" not in " ".join(result.error_messages).lower(), \
-                f"Error scenario {scenario.name} crashed: {result.error_messages}"
+            assert (
+                len(result.error_messages) == 0
+                or "crash" not in " ".join(result.error_messages).lower()
+            ), f"Error scenario {scenario.name} crashed: {result.error_messages}"
 
     @pytest.mark.slow
     def test_performance_baseline(self, scenario_generator, pipeline_validator):
@@ -489,7 +514,9 @@ class TestPipelineSmokeValidation:
             result = pipeline_validator.run_pipeline_scenario(scenario)
 
             if not result.ingest_success:
-                performance_failures.append(f"{scenario.name}: Failed to complete - {result.error_messages}")
+                performance_failures.append(
+                    f"{scenario.name}: Failed to complete - {result.error_messages}"
+                )
                 continue
 
             # Check performance thresholds
@@ -497,11 +524,15 @@ class TestPipelineSmokeValidation:
 
             # Should process at least 1 record per second
             if "records_per_second" in metrics and metrics["records_per_second"] < 1.0:
-                performance_failures.append(f"{scenario.name}: Too slow - {metrics['records_per_second']:.2f} records/sec")
+                performance_failures.append(
+                    f"{scenario.name}: Too slow - {metrics['records_per_second']:.2f} records/sec"
+                )
 
             # Should complete within timeout
             if result.execution_time_seconds >= scenario.timeout_seconds:
-                performance_failures.append(f"{scenario.name}: Timed out - {result.execution_time_seconds:.1f}s")
+                performance_failures.append(
+                    f"{scenario.name}: Timed out - {result.execution_time_seconds:.1f}s"
+                )
 
         if performance_failures:
             pytest.fail("Performance baseline tests failed:\n" + "\n".join(performance_failures))
@@ -517,7 +548,7 @@ class TestPipelineSmokeValidation:
             start_date="2023-01-01",
             end_date="2023-01-05",
             test_validation=True,
-            test_aggregation=False
+            test_aggregation=False,
         )
 
         result = pipeline_validator.run_pipeline_scenario(scenario)
@@ -541,7 +572,7 @@ class TestPipelineSmokeValidation:
             start_date="2023-01-01",
             end_date="2023-01-03",
             test_validation=True,
-            test_aggregation=True
+            test_aggregation=True,
         )
 
         result = pipeline_validator.run_pipeline_scenario(scenario)
@@ -552,7 +583,9 @@ class TestPipelineSmokeValidation:
         # Note: Aggregation might fail due to job ID requirements, which is expected
 
         # Should have reasonable performance
-        assert result.execution_time_seconds < 60, f"Pipeline took too long: {result.execution_time_seconds}s"
+        assert (
+            result.execution_time_seconds < 60
+        ), f"Pipeline took too long: {result.execution_time_seconds}s"
 
         # Should produce data
         assert result.total_records > 0, "No records were produced"
@@ -568,7 +601,7 @@ if __name__ == "__main__":
         ("Basic Smoke Tests", generator.generate_basic_smoke_tests()),
         ("Provider Tests", generator.generate_provider_specific_tests()),
         ("Error Handling Tests", generator.generate_error_handling_tests()),
-        ("Performance Tests", generator.generate_performance_baseline_tests())
+        ("Performance Tests", generator.generate_performance_baseline_tests()),
     ]
 
     for suite_name, scenarios in test_suites:
@@ -584,7 +617,9 @@ if __name__ == "__main__":
             result = validator.run_pipeline_scenario(scenario)
 
             status = "✅" if result.ingest_success else "❌"
-            print(f"{status} {scenario.name} - {result.total_records} records in {result.execution_time_seconds:.1f}s")
+            print(
+                f"{status} {scenario.name} - {result.total_records} records in {result.execution_time_seconds:.1f}s"
+            )
 
             if result.error_messages:
                 print(f"   Errors: {result.error_messages}")

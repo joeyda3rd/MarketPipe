@@ -46,9 +46,7 @@ for env_path in env_locations:
                     if "=" in line:
                         key, value = line.split("=", 1)
                         # Show key and first/last few chars of value for security
-                        safe_value = (
-                            f"{value[:4]}...{value[-4:]}" if len(value) > 8 else value
-                        )
+                        safe_value = f"{value[:4]}...{value[-4:]}" if len(value) > 8 else value
                         print(f"   Line {i}: {key}={safe_value}")
                     else:
                         print(f"   Line {i}: {line}")
@@ -68,7 +66,7 @@ if env_file_found:
     print(f"📖 Method 1: Manual parsing of {env_file_found}")
     manual_env = {}
     with open(env_file_found) as f:
-        for line_num, line in enumerate(f, 1):
+        for _line_num, line in enumerate(f, 1):
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 key, value = line.split("=", 1)
@@ -101,9 +99,7 @@ print("\n🔍 Final environment variable check:")
 for key in ["ALPACA_KEY", "ALPACA_SECRET"]:
     value = os.environ.get(key)
     if value:
-        safe_val = (
-            f"{value[:8]}...{value[-6:]}" if len(value) > 14 else f"{value[:8]}..."
-        )
+        safe_val = f"{value[:8]}...{value[-6:]}" if len(value) > 14 else f"{value[:8]}..."
         print(f"   ✅ {key} = {safe_val} (length: {len(value)})")
     else:
         print(f"   ❌ {key} = NOT SET")
@@ -194,13 +190,9 @@ async def test_endpoint(name: str, base_url: str, path: str) -> dict:
 
                 response = await client.get(full_url, headers=headers, params=params)
 
-                print(
-                    f"      📥 Response: {response.status_code} {response.reason_phrase}"
-                )
+                print(f"      📥 Response: {response.status_code} {response.reason_phrase}")
                 print(f"      📏 Content length: {len(response.content)} bytes")
-                print(
-                    f"      📑 Content type: {response.headers.get('content-type', 'unknown')}"
-                )
+                print(f"      📑 Content type: {response.headers.get('content-type', 'unknown')}")
 
                 # Show response headers that might be helpful
                 interesting_headers = [
@@ -231,7 +223,7 @@ async def test_endpoint(name: str, base_url: str, path: str) -> dict:
                             "status": response.status_code,
                             "auth_variant": i,
                         }
-                    except:
+                    except (ValueError, TypeError):
                         print("      ⚠️  200 OK but invalid JSON")
                         return {
                             "success": False,
@@ -281,9 +273,7 @@ async def main():
 
     print(f"✅ Successful endpoints: {len(successful)}")
     for result in successful:
-        print(
-            f"   • {result['endpoint_name']} (auth variant {result.get('auth_variant', '?')})"
-        )
+        print(f"   • {result['endpoint_name']} (auth variant {result.get('auth_variant', '?')})")
 
     print(f"\n❌ Failed endpoints: {len(failed)}")
     for result in failed:
@@ -296,9 +286,7 @@ async def main():
     print("-" * 40)
 
     if successful:
-        print(
-            "🎉 Great! Some endpoints are working. Use these for your MarketPipe configuration:"
-        )
+        print("🎉 Great! Some endpoints are working. Use these for your MarketPipe configuration:")
         for result in successful:
             print(f"\n✅ {result['endpoint_name']}:")
             print(f"   Base URL: {result['base_url']}")

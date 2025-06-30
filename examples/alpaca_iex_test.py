@@ -20,9 +20,7 @@ alpaca_secret = os.environ.get("ALPACA_SECRET")
 if not alpaca_key or not alpaca_secret:
     pytest.skip("ALPACA credentials not set", allow_module_level=True)
 
-print(
-    f"🔑 Testing IEX endpoints with credentials: {alpaca_key[:8]}... / {alpaca_secret[:8]}..."
-)
+print(f"🔑 Testing IEX endpoints with credentials: {alpaca_key[:8]}... / {alpaca_secret[:8]}...")
 
 
 @pytest.mark.asyncio
@@ -151,7 +149,7 @@ async def test_iex_endpoints():
                         else:
                             print(f"   📄 Response: {str(data)[:200]}")
 
-                    except Exception:
+                    except (ValueError, TypeError):
                         print("   ✅ SUCCESS! (Non-JSON response)")
                         print(f"   📄 Content preview: {response.text[:200]}")
 
@@ -167,7 +165,7 @@ async def test_iex_endpoints():
                     try:
                         error_data = response.json()
                         print(f"   ⚠️  422 Parameter Error: {error_data}")
-                    except:
+                    except (ValueError, TypeError):
                         print(f"   ⚠️  422 Parameter Error: {response.text[:200]}")
 
                 else:
@@ -177,9 +175,7 @@ async def test_iex_endpoints():
             except Exception as e:
                 print(f"   ❌ Exception: {e}")
 
-        print(
-            f"\n📊 SUMMARY: {success_count}/{len(iex_endpoints)} endpoints successful"
-        )
+        print(f"\n📊 SUMMARY: {success_count}/{len(iex_endpoints)} endpoints successful")
 
         if success_count > 0:
             print("🎉 Great! Some IEX endpoints are working.")

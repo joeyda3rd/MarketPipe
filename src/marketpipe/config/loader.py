@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Union
 
 import yaml
 
@@ -86,7 +86,7 @@ def load_config(path: PathLike) -> IngestionJobConfig:
         raise ValueError(f"Failed to load configuration from {path}: {e}") from e
 
 
-def _normalize_yaml_keys(data: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_yaml_keys(data: dict[str, Any]) -> dict[str, Any]:
     """Normalize YAML keys from kebab-case to snake_case.
 
     Args:

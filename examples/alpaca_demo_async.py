@@ -56,9 +56,7 @@ async def main() -> None:
     try:
         key = os.environ["ALPACA_KEY"]
         secret = os.environ["ALPACA_SECRET"]
-        print(
-            f"📋 Loaded credentials from .env file - Key: {key[:8]}..., Secret: {secret[:8]}..."
-        )
+        print(f"📋 Loaded credentials from .env file - Key: {key[:8]}..., Secret: {secret[:8]}...")
     except KeyError as e:
         print(f"❌ Missing required credential in .env file: {e}")
         print("\nTo run this demo, create a .env file in the project root with:")
@@ -94,10 +92,7 @@ async def main() -> None:
     )
 
     auth = HeaderTokenAuth(key, secret)
-    limiter = create_rate_limiter_from_config(
-        rate_limit_per_min=200,
-        provider_name="alpaca"
-    )
+    limiter = create_rate_limiter_from_config(rate_limit_per_min=200, provider_name="alpaca")
     client = AlpacaClient(config=cfg, auth=auth, rate_limiter=limiter, feed="iex")
 
     start = int((dt.datetime.utcnow() - dt.timedelta(days=1)).timestamp() * 1000)
@@ -117,9 +112,7 @@ async def main() -> None:
     print("🔐 Authentication headers:")
     for header_name, header_value in auth_headers.items():
         # Show first 8 chars of values for security
-        display_value = (
-            f"{header_value[:8]}..." if len(header_value) > 8 else header_value
-        )
+        display_value = f"{header_value[:8]}..." if len(header_value) > 8 else header_value
         print(f"   {header_name}: {display_value}")
 
     try:

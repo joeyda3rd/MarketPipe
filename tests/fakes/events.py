@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Type
+from typing import Callable
 
 from marketpipe.domain.events import DomainEvent, IEventPublisher
 
@@ -12,9 +12,9 @@ class FakeEventPublisher(IEventPublisher):
     """Fake event publisher that captures events for testing."""
 
     def __init__(self):
-        self._published_events: List[DomainEvent] = []
-        self._handlers: Dict[str, List[Callable]] = {}
-        self._publish_calls: List[DomainEvent] = []
+        self._published_events: list[DomainEvent] = []
+        self._handlers: dict[str, list[Callable]] = {}
+        self._publish_calls: list[DomainEvent] = []
 
     async def publish(self, event: DomainEvent) -> None:
         """Publish a domain event."""
@@ -27,7 +27,7 @@ class FakeEventPublisher(IEventPublisher):
             for handler in self._handlers[event_type]:
                 handler(event)
 
-    async def publish_many(self, events: List[DomainEvent]) -> None:
+    async def publish_many(self, events: list[DomainEvent]) -> None:
         """Publish multiple domain events."""
         for event in events:
             await self.publish(event)
@@ -39,19 +39,19 @@ class FakeEventPublisher(IEventPublisher):
         self._handlers[event_type].append(handler)
 
     # Test helpers
-    def get_published_events(self) -> List[DomainEvent]:
+    def get_published_events(self) -> list[DomainEvent]:
         """Get all published events (for testing)."""
         return self._published_events.copy()
 
-    def get_events_of_type(self, event_type: Type[DomainEvent]) -> List[DomainEvent]:
+    def get_events_of_type(self, event_type: type[DomainEvent]) -> list[DomainEvent]:
         """Get all published events of a specific type (for testing)."""
         return [event for event in self._published_events if isinstance(event, event_type)]
 
-    def get_events_by_type_name(self, event_type_name: str) -> List[DomainEvent]:
+    def get_events_by_type_name(self, event_type_name: str) -> list[DomainEvent]:
         """Get all published events by type name (for testing)."""
         return [event for event in self._published_events if event.event_type == event_type_name]
 
-    def has_event_of_type(self, event_type: Type[DomainEvent]) -> bool:
+    def has_event_of_type(self, event_type: type[DomainEvent]) -> bool:
         """Check if any event of the specified type was published (for testing)."""
         return len(self.get_events_of_type(event_type)) > 0
 
@@ -59,7 +59,7 @@ class FakeEventPublisher(IEventPublisher):
         """Get total number of published events (for testing)."""
         return len(self._published_events)
 
-    def get_event_count_by_type(self, event_type: Type[DomainEvent]) -> int:
+    def get_event_count_by_type(self, event_type: type[DomainEvent]) -> int:
         """Get count of events of a specific type (for testing)."""
         return len(self.get_events_of_type(event_type))
 
@@ -68,7 +68,7 @@ class FakeEventPublisher(IEventPublisher):
         self._published_events.clear()
         self._publish_calls.clear()
 
-    def assert_event_published(self, event_type: Type[DomainEvent]) -> None:
+    def assert_event_published(self, event_type: type[DomainEvent]) -> None:
         """Assert that an event of the specified type was published."""
         if not self.has_event_of_type(event_type):
             published_types = [event.event_type for event in self._published_events]

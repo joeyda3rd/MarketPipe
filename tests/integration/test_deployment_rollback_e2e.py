@@ -12,7 +12,6 @@ import json
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict
 
 import pytest
 
@@ -26,7 +25,7 @@ class DeploymentManager:
         self.active_version = None
         self.deployment_history = []
 
-    def create_deployment_environment(self, version: str, config: Dict) -> Dict:
+    def create_deployment_environment(self, version: str, config: dict) -> dict:
         """Create a new deployment environment."""
 
         deployment_dir = self.base_dir / f"deployment_{version}"
@@ -45,16 +44,20 @@ class DeploymentManager:
         # Create version metadata file
         metadata_file = deployment_dir / "version.json"
         with open(metadata_file, "w") as f:
-            json.dump({
-                "version": version,
-                "deployment_time": deployment["created_at"],
-                "config": config,
-            }, f, indent=2)
+            json.dump(
+                {
+                    "version": version,
+                    "deployment_time": deployment["created_at"],
+                    "config": config,
+                },
+                f,
+                indent=2,
+            )
 
         self.deployments[version] = deployment
         return deployment
 
-    def deploy_version(self, version: str, strategy: str = "rolling") -> Dict:
+    def deploy_version(self, version: str, strategy: str = "rolling") -> dict:
         """Deploy a specific version using the specified strategy."""
 
         if version not in self.deployments:
@@ -100,12 +103,14 @@ class DeploymentManager:
             deployment_result["error"] = str(e)
 
         deployment_result["end_time"] = time.time()
-        deployment_result["duration"] = deployment_result["end_time"] - deployment_result["start_time"]
+        deployment_result["duration"] = (
+            deployment_result["end_time"] - deployment_result["start_time"]
+        )
 
         self.deployment_history.append(deployment_result)
         return deployment_result
 
-    def rollback_to_version(self, target_version: str, strategy: str = "immediate") -> Dict:
+    def rollback_to_version(self, target_version: str, strategy: str = "immediate") -> dict:
         """Rollback to a specific version."""
 
         if target_version not in self.deployments:
@@ -148,7 +153,7 @@ class DeploymentManager:
 
         return rollback_result
 
-    def _run_pre_deployment_checks(self, deployment: Dict) -> Dict:
+    def _run_pre_deployment_checks(self, deployment: dict) -> dict:
         """Run pre-deployment health checks."""
 
         checks = [
@@ -167,7 +172,7 @@ class DeploymentManager:
             "duration": 0.5,  # Simulated duration
         }
 
-    def _deploy_blue_green(self, deployment: Dict) -> Dict:
+    def _deploy_blue_green(self, deployment: dict) -> dict:
         """Execute blue-green deployment."""
 
         # Simulate blue-green deployment steps
@@ -182,11 +187,13 @@ class DeploymentManager:
 
         step_results = []
         for step in steps:
-            step_results.append({
-                "step": step,
-                "success": True,
-                "duration": 0.1,
-            })
+            step_results.append(
+                {
+                    "step": step,
+                    "success": True,
+                    "duration": 0.1,
+                }
+            )
             time.sleep(0.1)  # Simulate step execution time
 
         return {
@@ -196,7 +203,7 @@ class DeploymentManager:
             "total_duration": sum(s["duration"] for s in step_results),
         }
 
-    def _deploy_rolling(self, deployment: Dict) -> Dict:
+    def _deploy_rolling(self, deployment: dict) -> dict:
         """Execute rolling deployment."""
 
         # Simulate rolling deployment across multiple instances
@@ -226,7 +233,7 @@ class DeploymentManager:
             "total_duration": len(instances) * 0.2,
         }
 
-    def _deploy_canary(self, deployment: Dict) -> Dict:
+    def _deploy_canary(self, deployment: dict) -> dict:
         """Execute canary deployment."""
 
         canary_phases = [
@@ -261,13 +268,22 @@ class DeploymentManager:
             "total_duration": sum(p["duration"] for p in phase_results),
         }
 
-    def _run_post_deployment_checks(self, deployment: Dict) -> Dict:
+    def _run_post_deployment_checks(self, deployment: dict) -> dict:
         """Run post-deployment validation."""
 
         checks = [
-            {"name": "service_health", "result": {"success": True, "details": "All services healthy"}},
-            {"name": "integration_tests", "result": {"success": True, "tests_passed": 25, "tests_failed": 0}},
-            {"name": "performance_validation", "result": {"success": True, "response_time_p95": 115}},
+            {
+                "name": "service_health",
+                "result": {"success": True, "details": "All services healthy"},
+            },
+            {
+                "name": "integration_tests",
+                "result": {"success": True, "tests_passed": 25, "tests_failed": 0},
+            },
+            {
+                "name": "performance_validation",
+                "result": {"success": True, "response_time_p95": 115},
+            },
             {"name": "data_consistency", "result": {"success": True, "consistency_checks": 12}},
         ]
 
@@ -280,7 +296,7 @@ class DeploymentManager:
             "duration": 0.8,
         }
 
-    def _route_traffic(self, deployment: Dict, strategy: str) -> Dict:
+    def _route_traffic(self, deployment: dict, strategy: str) -> dict:
         """Route traffic to the new deployment."""
 
         if strategy == "blue_green":
@@ -293,7 +309,11 @@ class DeploymentManager:
             ]
         else:  # rolling
             traffic_steps = [
-                {"action": "instance_by_instance_traffic", "traffic_percentage": 100, "duration": 0.3},
+                {
+                    "action": "instance_by_instance_traffic",
+                    "traffic_percentage": 100,
+                    "duration": 0.3,
+                },
             ]
 
         deployment["traffic_percentage"] = 100
@@ -305,7 +325,7 @@ class DeploymentManager:
             "final_traffic_percentage": 100,
         }
 
-    def _validate_config(self, config: Dict) -> Dict:
+    def _validate_config(self, config: dict) -> dict:
         """Validate deployment configuration."""
         required_fields = ["environment", "version", "resources"]
         missing_fields = [field for field in required_fields if field not in config]
@@ -315,19 +335,22 @@ class DeploymentManager:
             "missing_fields": missing_fields,
         }
 
-    def _check_dependencies(self) -> Dict:
+    def _check_dependencies(self) -> dict:
         """Check system dependencies."""
         return {"success": True, "dependencies_available": ["database", "storage", "cache"]}
 
-    def _check_resource_availability(self) -> Dict:
+    def _check_resource_availability(self) -> dict:
         """Check resource availability."""
-        return {"success": True, "resources": {"cpu": "available", "memory": "available", "disk": "available"}}
+        return {
+            "success": True,
+            "resources": {"cpu": "available", "memory": "available", "disk": "available"},
+        }
 
-    def _run_database_migrations(self, deployment: Dict) -> Dict:
+    def _run_database_migrations(self, deployment: dict) -> dict:
         """Run database migrations."""
         return {"success": True, "migrations_applied": 3}
 
-    def _validate_rollback_target(self, target_version: str) -> Dict:
+    def _validate_rollback_target(self, target_version: str) -> dict:
         """Validate rollback target version."""
         target_deployment = self.deployments[target_version]
 
@@ -338,7 +361,7 @@ class DeploymentManager:
             "target_status": target_deployment["status"],
         }
 
-    def _execute_immediate_rollback(self, target_version: str) -> Dict:
+    def _execute_immediate_rollback(self, target_version: str) -> dict:
         """Execute immediate rollback."""
 
         rollback_steps = [
@@ -358,7 +381,7 @@ class DeploymentManager:
             "total_duration": sum(s["duration"] for s in rollback_steps),
         }
 
-    def _execute_gradual_rollback(self, target_version: str) -> Dict:
+    def _execute_gradual_rollback(self, target_version: str) -> dict:
         """Execute gradual rollback."""
 
         traffic_shifts = [
@@ -378,7 +401,7 @@ class DeploymentManager:
             "total_duration": sum(s["duration"] for s in traffic_shifts),
         }
 
-    def _validate_rollback_success(self, target_version: str) -> Dict:
+    def _validate_rollback_success(self, target_version: str) -> dict:
         """Validate successful rollback."""
 
         validation_checks = [
@@ -394,7 +417,7 @@ class DeploymentManager:
             "active_version": target_version,
         }
 
-    def get_deployment_status(self) -> Dict:
+    def get_deployment_status(self) -> dict:
         """Get current deployment status."""
 
         return {
@@ -413,14 +436,26 @@ class VersionCompatibilityTester:
         self.storage_dir = storage_dir
         self.compatibility_matrix = {}
 
-    def test_backward_compatibility(self, old_version: str, new_version: str) -> Dict:
+    def test_backward_compatibility(self, old_version: str, new_version: str) -> dict:
         """Test backward compatibility between versions."""
 
         compatibility_tests = [
-            {"test": "config_compatibility", "result": self._test_config_compatibility(old_version, new_version)},
-            {"test": "data_format_compatibility", "result": self._test_data_format_compatibility(old_version, new_version)},
-            {"test": "api_compatibility", "result": self._test_api_compatibility(old_version, new_version)},
-            {"test": "database_schema_compatibility", "result": self._test_database_compatibility(old_version, new_version)},
+            {
+                "test": "config_compatibility",
+                "result": self._test_config_compatibility(old_version, new_version),
+            },
+            {
+                "test": "data_format_compatibility",
+                "result": self._test_data_format_compatibility(old_version, new_version),
+            },
+            {
+                "test": "api_compatibility",
+                "result": self._test_api_compatibility(old_version, new_version),
+            },
+            {
+                "test": "database_schema_compatibility",
+                "result": self._test_database_compatibility(old_version, new_version),
+            },
         ]
 
         all_compatible = all(test["result"]["compatible"] for test in compatibility_tests)
@@ -430,19 +465,31 @@ class VersionCompatibilityTester:
             "new_version": new_version,
             "compatible": all_compatible,
             "tests": compatibility_tests,
-            "compatibility_score": sum(1 for test in compatibility_tests if test["result"]["compatible"]) / len(compatibility_tests),
+            "compatibility_score": sum(
+                1 for test in compatibility_tests if test["result"]["compatible"]
+            )
+            / len(compatibility_tests),
         }
 
         self.compatibility_matrix[f"{old_version}->{new_version}"] = compatibility_result
         return compatibility_result
 
-    def test_forward_compatibility(self, current_version: str, future_version: str) -> Dict:
+    def test_forward_compatibility(self, current_version: str, future_version: str) -> dict:
         """Test forward compatibility for future versions."""
 
         forward_tests = [
-            {"test": "feature_flag_compatibility", "result": self._test_feature_flags(current_version, future_version)},
-            {"test": "graceful_degradation", "result": self._test_graceful_degradation(current_version, future_version)},
-            {"test": "migration_path", "result": self._test_migration_path(current_version, future_version)},
+            {
+                "test": "feature_flag_compatibility",
+                "result": self._test_feature_flags(current_version, future_version),
+            },
+            {
+                "test": "graceful_degradation",
+                "result": self._test_graceful_degradation(current_version, future_version),
+            },
+            {
+                "test": "migration_path",
+                "result": self._test_migration_path(current_version, future_version),
+            },
         ]
 
         forward_compatible = all(test["result"]["compatible"] for test in forward_tests)
@@ -454,7 +501,7 @@ class VersionCompatibilityTester:
             "tests": forward_tests,
         }
 
-    def _test_config_compatibility(self, old_version: str, new_version: str) -> Dict:
+    def _test_config_compatibility(self, old_version: str, new_version: str) -> dict:
         """Test configuration compatibility."""
 
         # Simulate config compatibility check
@@ -470,7 +517,7 @@ class VersionCompatibilityTester:
             "added_fields": added_fields,
         }
 
-    def _test_data_format_compatibility(self, old_version: str, new_version: str) -> Dict:
+    def _test_data_format_compatibility(self, old_version: str, new_version: str) -> dict:
         """Test data format compatibility."""
 
         # Simulate data format compatibility
@@ -480,7 +527,7 @@ class VersionCompatibilityTester:
             "migrations_required": [],
         }
 
-    def _test_api_compatibility(self, old_version: str, new_version: str) -> Dict:
+    def _test_api_compatibility(self, old_version: str, new_version: str) -> dict:
         """Test API compatibility."""
 
         api_changes = {
@@ -494,7 +541,7 @@ class VersionCompatibilityTester:
             "changes": api_changes,
         }
 
-    def _test_database_compatibility(self, old_version: str, new_version: str) -> Dict:
+    def _test_database_compatibility(self, old_version: str, new_version: str) -> dict:
         """Test database schema compatibility."""
 
         return {
@@ -507,7 +554,7 @@ class VersionCompatibilityTester:
             },
         }
 
-    def _test_feature_flags(self, current_version: str, future_version: str) -> Dict:
+    def _test_feature_flags(self, current_version: str, future_version: str) -> dict:
         """Test feature flag compatibility."""
 
         return {
@@ -516,7 +563,7 @@ class VersionCompatibilityTester:
             "flags_enabled": 0,  # Disabled by default for compatibility
         }
 
-    def _test_graceful_degradation(self, current_version: str, future_version: str) -> Dict:
+    def _test_graceful_degradation(self, current_version: str, future_version: str) -> dict:
         """Test graceful degradation capabilities."""
 
         return {
@@ -525,7 +572,7 @@ class VersionCompatibilityTester:
             "handles_gracefully": True,
         }
 
-    def _test_migration_path(self, current_version: str, future_version: str) -> Dict:
+    def _test_migration_path(self, current_version: str, future_version: str) -> dict:
         """Test migration path availability."""
 
         return {
@@ -557,19 +604,23 @@ class TestDeploymentRollbackEndToEnd:
                 "resources": {"cpu": "2", "memory": "4Gi", "disk": "100Gi"},
             }
 
-            deployment = deployment_manager.create_deployment_environment(version, config)
+            deployment_manager.create_deployment_environment(version, config)
             print(f"  Created deployment environment for {version}")
 
         # Deploy v1.0.0 first (baseline)
         v1_deployment_result = deployment_manager.deploy_version("v1.0.0", strategy="blue_green")
 
-        assert v1_deployment_result["status"] == "success", f"v1.0.0 deployment failed: {v1_deployment_result.get('error')}"
+        assert (
+            v1_deployment_result["status"] == "success"
+        ), f"v1.0.0 deployment failed: {v1_deployment_result.get('error')}"
         print(f"  ✓ v1.0.0 deployed successfully in {v1_deployment_result['duration']:.1f}s")
 
         # Deploy v1.1.0 (blue-green upgrade)
         v2_deployment_result = deployment_manager.deploy_version("v1.1.0", strategy="blue_green")
 
-        assert v2_deployment_result["status"] == "success", f"v1.1.0 deployment failed: {v2_deployment_result.get('error')}"
+        assert (
+            v2_deployment_result["status"] == "success"
+        ), f"v1.1.0 deployment failed: {v2_deployment_result.get('error')}"
         print(f"  ✓ v1.1.0 deployed successfully in {v2_deployment_result['duration']:.1f}s")
 
         # Verify deployment steps
@@ -579,7 +630,9 @@ class TestDeploymentRollbackEndToEnd:
 
         # Verify active version
         status = deployment_manager.get_deployment_status()
-        assert status["active_version"] == "v1.1.0", f"Active version should be v1.1.0, got {status['active_version']}"
+        assert (
+            status["active_version"] == "v1.1.0"
+        ), f"Active version should be v1.1.0, got {status['active_version']}"
 
         print(f"  ✓ Active version: {status['active_version']}")
         print("✅ Blue-green deployment flow test completed")
@@ -614,7 +667,9 @@ class TestDeploymentRollbackEndToEnd:
         print("  ✓ v2.1.0 rolling deployment completed")
 
         # Verify rolling deployment characteristics
-        rolling_step = next(step for step in v2_result["steps"] if step["step_name"] == "rolling_deployment")
+        rolling_step = next(
+            step for step in v2_result["steps"] if step["step_name"] == "rolling_deployment"
+        )
         assert len(rolling_step["instances"]) == 4, "Should deploy to 4 instances"
 
         # Simulate issue detected - perform rollback
@@ -622,7 +677,9 @@ class TestDeploymentRollbackEndToEnd:
 
         rollback_result = deployment_manager.rollback_to_version("v2.0.0", strategy="immediate")
 
-        assert rollback_result["status"] == "success", f"Rollback failed: {rollback_result.get('error')}"
+        assert (
+            rollback_result["status"] == "success"
+        ), f"Rollback failed: {rollback_result.get('error')}"
         print(f"  ✓ Rollback completed in {rollback_result['duration']:.1f}s")
 
         # Verify rollback success
@@ -659,20 +716,26 @@ class TestDeploymentRollbackEndToEnd:
         print("  ✓ Canary v3.1.0 deployed successfully")
 
         # Verify canary deployment phases
-        canary_step = next(step for step in canary_result["steps"] if step["step_name"] == "canary_deployment")
+        canary_step = next(
+            step for step in canary_result["steps"] if step["step_name"] == "canary_deployment"
+        )
         phases = canary_step["phases"]
 
         # Verify traffic progression
         traffic_progression = [phase["traffic_percentage"] for phase in phases]
         expected_progression = [1, 1, 5, 5, 100]
-        assert traffic_progression == expected_progression, f"Traffic progression incorrect: {traffic_progression}"
+        assert (
+            traffic_progression == expected_progression
+        ), f"Traffic progression incorrect: {traffic_progression}"
 
         # Verify metrics monitoring
         for phase in phases:
             if "metrics" in phase:
                 metrics = phase["metrics"]
                 assert metrics["error_rate"] < 0.01, f"Error rate too high: {metrics['error_rate']}"
-                assert metrics["response_time_p95"] < 200, f"Response time too high: {metrics['response_time_p95']}"
+                assert (
+                    metrics["response_time_p95"] < 200
+                ), f"Response time too high: {metrics['response_time_p95']}"
 
         print("  ✓ Canary metrics validated: error_rate < 1%, p95 < 200ms")
         print("✅ Canary deployment validation test completed")
@@ -694,22 +757,32 @@ class TestDeploymentRollbackEndToEnd:
         compatibility_results = {}
 
         for old_version, new_version in version_pairs:
-            compatibility_result = compatibility_tester.test_backward_compatibility(old_version, new_version)
+            compatibility_result = compatibility_tester.test_backward_compatibility(
+                old_version, new_version
+            )
             compatibility_results[f"{old_version}->{new_version}"] = compatibility_result
 
-            print(f"  {old_version} -> {new_version}: {'✓' if compatibility_result['compatible'] else '✗'} " +
-                  f"(score: {compatibility_result['compatibility_score']:.1%})")
+            print(
+                f"  {old_version} -> {new_version}: {'✓' if compatibility_result['compatible'] else '✗'} "
+                + f"(score: {compatibility_result['compatibility_score']:.1%})"
+            )
 
         # Test forward compatibility
         forward_compatibility = compatibility_tester.test_forward_compatibility("v2.0.0", "v3.0.0")
 
-        print(f"  Forward compatibility v2.0.0 -> v3.0.0: {'✓' if forward_compatibility['forward_compatible'] else '✗'}")
+        print(
+            f"  Forward compatibility v2.0.0 -> v3.0.0: {'✓' if forward_compatibility['forward_compatible'] else '✗'}"
+        )
 
         # Verify compatibility requirements
         for pair, result in compatibility_results.items():
-            assert result["compatibility_score"] >= 0.75, f"Compatibility score too low for {pair}: {result['compatibility_score']:.1%}"
+            assert (
+                result["compatibility_score"] >= 0.75
+            ), f"Compatibility score too low for {pair}: {result['compatibility_score']:.1%}"
 
-        assert forward_compatibility["forward_compatible"], "Forward compatibility should be maintained"
+        assert forward_compatibility[
+            "forward_compatible"
+        ], "Forward compatibility should be maintained"
 
         print("✅ Version compatibility matrix test completed")
 
@@ -766,7 +839,9 @@ class TestDeploymentRollbackEndToEnd:
 
         # Zero-downtime assertions
         assert min_availability >= 0.99, f"Availability dropped below 99%: {min_availability:.1%}"
-        assert avg_availability >= 0.995, f"Average availability below 99.5%: {avg_availability:.1%}"
+        assert (
+            avg_availability >= 0.995
+        ), f"Average availability below 99.5%: {avg_availability:.1%}"
 
         print("✅ Zero-downtime deployment test completed")
 
@@ -787,25 +862,48 @@ def test_comprehensive_deployment_rollback_demo(tmp_path):
 
     # Create multiple versions with different configurations
     versions_config = [
-        {"version": "v1.0.0", "config": {"environment": "production", "resources": {"cpu": "2", "memory": "4Gi"}}},
-        {"version": "v1.1.0", "config": {"environment": "production", "resources": {"cpu": "2", "memory": "4Gi"}}},
-        {"version": "v2.0.0", "config": {"environment": "production", "resources": {"cpu": "4", "memory": "8Gi"}}},
-        {"version": "v2.1.0", "config": {"environment": "production", "resources": {"cpu": "4", "memory": "8Gi"}}},
+        {
+            "version": "v1.0.0",
+            "config": {"environment": "production", "resources": {"cpu": "2", "memory": "4Gi"}},
+        },
+        {
+            "version": "v1.1.0",
+            "config": {"environment": "production", "resources": {"cpu": "2", "memory": "4Gi"}},
+        },
+        {
+            "version": "v2.0.0",
+            "config": {"environment": "production", "resources": {"cpu": "4", "memory": "8Gi"}},
+        },
+        {
+            "version": "v2.1.0",
+            "config": {"environment": "production", "resources": {"cpu": "4", "memory": "8Gi"}},
+        },
     ]
 
     for version_config in versions_config:
         deployment_manager.create_deployment_environment(
-            version_config["version"],
-            version_config["config"]
+            version_config["version"], version_config["config"]
         )
         print(f"  ✓ Created environment for {version_config['version']}")
 
     print("\n🚀 Phase 2: Progressive Deployment Strategies")
 
     deployment_strategies = [
-        {"version": "v1.0.0", "strategy": "blue_green", "description": "Initial production deployment"},
-        {"version": "v1.1.0", "strategy": "canary", "description": "Feature update with canary validation"},
-        {"version": "v2.0.0", "strategy": "rolling", "description": "Major version rolling upgrade"},
+        {
+            "version": "v1.0.0",
+            "strategy": "blue_green",
+            "description": "Initial production deployment",
+        },
+        {
+            "version": "v1.1.0",
+            "strategy": "canary",
+            "description": "Feature update with canary validation",
+        },
+        {
+            "version": "v2.0.0",
+            "strategy": "rolling",
+            "description": "Major version rolling upgrade",
+        },
     ]
 
     deployment_results = {}
@@ -839,8 +937,18 @@ def test_comprehensive_deployment_rollback_demo(tmp_path):
 
     # Test different rollback scenarios
     rollback_scenarios = [
-        {"from": "v2.0.0", "to": "v1.1.0", "strategy": "immediate", "reason": "Critical bug detected"},
-        {"from": "v1.1.0", "to": "v1.0.0", "strategy": "gradual", "reason": "Performance regression"},
+        {
+            "from": "v2.0.0",
+            "to": "v1.1.0",
+            "strategy": "immediate",
+            "reason": "Critical bug detected",
+        },
+        {
+            "from": "v1.1.0",
+            "to": "v1.0.0",
+            "strategy": "gradual",
+            "reason": "Performance regression",
+        },
     ]
 
     rollback_results = {}
@@ -849,7 +957,9 @@ def test_comprehensive_deployment_rollback_demo(tmp_path):
         print(f"  🔙 Rolling back {scenario['from']} -> {scenario['to']} ({scenario['strategy']})")
         print(f"     Reason: {scenario['reason']}")
 
-        rollback_result = deployment_manager.rollback_to_version(scenario["to"], scenario["strategy"])
+        rollback_result = deployment_manager.rollback_to_version(
+            scenario["to"], scenario["strategy"]
+        )
         rollback_results[f"{scenario['from']}->{scenario['to']}"] = rollback_result
 
         if rollback_result["status"] == "success":
@@ -860,21 +970,27 @@ def test_comprehensive_deployment_rollback_demo(tmp_path):
     print("\n📊 Phase 5: Deployment Health Assessment")
 
     # Analyze overall deployment health
-    successful_deployments = sum(1 for result in deployment_results.values() if result["status"] == "success")
-    successful_rollbacks = sum(1 for result in rollback_results.values() if result["status"] == "success")
+    successful_deployments = sum(
+        1 for result in deployment_results.values() if result["status"] == "success"
+    )
+    successful_rollbacks = sum(
+        1 for result in rollback_results.values() if result["status"] == "success"
+    )
 
     avg_deployment_time = sum(
-        result["duration"] for result in deployment_results.values()
+        result["duration"]
+        for result in deployment_results.values()
         if result["status"] == "success"
     ) / max(1, successful_deployments)
 
     avg_rollback_time = sum(
-        result["duration"] for result in rollback_results.values()
-        if result["status"] == "success"
+        result["duration"] for result in rollback_results.values() if result["status"] == "success"
     ) / max(1, successful_rollbacks)
 
     compatibility_scores = [comp["compatibility_score"] for comp in compatibility_matrix.values()]
-    avg_compatibility = sum(compatibility_scores) / len(compatibility_scores) if compatibility_scores else 0
+    avg_compatibility = (
+        sum(compatibility_scores) / len(compatibility_scores) if compatibility_scores else 0
+    )
 
     print("📈 DEPLOYMENT HEALTH METRICS:")
     print(f"  Successful Deployments: {successful_deployments}/{len(deployment_results)}")
@@ -893,7 +1009,7 @@ def test_comprehensive_deployment_rollback_demo(tmp_path):
     # Analyze deployment strategy effectiveness
     strategy_performance = {}
 
-    for version, result in deployment_results.items():
+    for _version, result in deployment_results.items():
         if result["status"] == "success":
             strategy = result["strategy"]
             if strategy not in strategy_performance:
@@ -926,7 +1042,9 @@ def test_comprehensive_deployment_rollback_demo(tmp_path):
         print(f"  {status} {check_name.replace('_', ' ').title()}")
 
     # Overall deployment readiness assertion
-    assert passed_checks >= total_checks * 0.8, f"Deployment system health insufficient: {passed_checks}/{total_checks}"
+    assert (
+        passed_checks >= total_checks * 0.8
+    ), f"Deployment system health insufficient: {passed_checks}/{total_checks}"
     assert successful_deployments >= len(deployment_results) * 0.8, "Too many deployment failures"
     assert successful_rollbacks >= len(rollback_results) * 0.8, "Rollback capability insufficient"
 

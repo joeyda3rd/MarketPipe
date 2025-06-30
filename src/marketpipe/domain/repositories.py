@@ -13,7 +13,7 @@ from collections.abc import AsyncIterator
 from datetime import date
 
 # Import concrete implementations (only in type checking to keep interfaces clean)
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from .aggregates import DailySummary, SymbolBarsAggregate, UniverseAggregate
 from .entities import OHLCVBar
@@ -33,7 +33,7 @@ class ISymbolBarsRepository(ABC):
     @abstractmethod
     async def get_by_symbol_and_date(
         self, symbol: Symbol, trading_date: date
-    ) -> Optional[SymbolBarsAggregate]:
+    ) -> SymbolBarsAggregate | None:
         """Load aggregate for symbol and trading date.
 
         Args:
@@ -58,7 +58,7 @@ class ISymbolBarsRepository(ABC):
         ...
 
     @abstractmethod
-    async def find_symbols_with_data(self, start_date: date, end_date: date) -> List[Symbol]:
+    async def find_symbols_with_data(self, start_date: date, end_date: date) -> list[Symbol]:
         """Find symbols that have data in the specified date range.
 
         Args:
@@ -72,8 +72,8 @@ class ISymbolBarsRepository(ABC):
 
     @abstractmethod
     async def get_completion_status(
-        self, symbols: List[Symbol], trading_dates: List[date]
-    ) -> Dict[str, Dict[str, bool]]:
+        self, symbols: list[Symbol], trading_dates: list[date]
+    ) -> dict[str, dict[str, bool]]:
         """Get completion status for symbol/date combinations.
 
         Args:
@@ -124,7 +124,7 @@ class IOHLCVRepository(ABC):
 
     @abstractmethod
     async def get_bars_for_symbols(
-        self, symbols: List[Symbol], time_range: TimeRange
+        self, symbols: list[Symbol], time_range: TimeRange
     ) -> AsyncIterator[OHLCVBar]:
         """Stream bars for multiple symbols in time range.
 
@@ -138,7 +138,7 @@ class IOHLCVRepository(ABC):
         ...
 
     @abstractmethod
-    async def save_bars(self, bars: List[OHLCVBar]) -> None:
+    async def save_bars(self, bars: list[OHLCVBar]) -> None:
         """Batch save multiple bars.
 
         Args:
@@ -164,7 +164,7 @@ class IOHLCVRepository(ABC):
         ...
 
     @abstractmethod
-    async def count_bars(self, symbol: Symbol, time_range: Optional[TimeRange] = None) -> int:
+    async def count_bars(self, symbol: Symbol, time_range: TimeRange | None = None) -> int:
         """Count bars for symbol in optional time range.
 
         Args:
@@ -177,7 +177,7 @@ class IOHLCVRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_latest_timestamp(self, symbol: Symbol) -> Optional[Timestamp]:
+    async def get_latest_timestamp(self, symbol: Symbol) -> Timestamp | None:
         """Get the latest timestamp for a symbol.
 
         Args:
@@ -189,7 +189,7 @@ class IOHLCVRepository(ABC):
         ...
 
     @abstractmethod
-    async def delete_bars(self, symbol: Symbol, time_range: Optional[TimeRange] = None) -> int:
+    async def delete_bars(self, symbol: Symbol, time_range: TimeRange | None = None) -> int:
         """Delete bars for symbol in optional time range.
 
         Args:
@@ -209,7 +209,7 @@ class IUniverseRepository(ABC):
     """
 
     @abstractmethod
-    async def get_by_id(self, universe_id: str) -> Optional[UniverseAggregate]:
+    async def get_by_id(self, universe_id: str) -> UniverseAggregate | None:
         """Load universe by ID.
 
         Args:
@@ -239,7 +239,7 @@ class IUniverseRepository(ABC):
         ...
 
     @abstractmethod
-    async def list_universes(self) -> List[str]:
+    async def list_universes(self) -> list[str]:
         """List all universe IDs.
 
         Returns:
@@ -255,7 +255,7 @@ class IDailySummaryRepository(ABC):
     """
 
     @abstractmethod
-    async def get_summary(self, symbol: Symbol, trading_date: date) -> Optional[DailySummary]:
+    async def get_summary(self, symbol: Symbol, trading_date: date) -> DailySummary | None:
         """Get daily summary for symbol and date.
 
         Args:
@@ -270,7 +270,7 @@ class IDailySummaryRepository(ABC):
     @abstractmethod
     async def get_summaries(
         self, symbol: Symbol, start_date: date, end_date: date
-    ) -> List[DailySummary]:
+    ) -> list[DailySummary]:
         """Get daily summaries for symbol in date range.
 
         Args:
@@ -293,7 +293,7 @@ class IDailySummaryRepository(ABC):
         ...
 
     @abstractmethod
-    async def save_summaries(self, summaries: List[DailySummary]) -> None:
+    async def save_summaries(self, summaries: list[DailySummary]) -> None:
         """Batch save daily summaries.
 
         Args:
@@ -322,7 +322,7 @@ class ICheckpointRepository(ABC):
     """
 
     @abstractmethod
-    async def save_checkpoint(self, symbol: Symbol, checkpoint_data: Dict[str, Any]) -> None:
+    async def save_checkpoint(self, symbol: Symbol, checkpoint_data: dict[str, Any]) -> None:
         """Save ingestion checkpoint for symbol.
 
         Args:
@@ -332,7 +332,7 @@ class ICheckpointRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_checkpoint(self, symbol: Symbol) -> Optional[Dict[str, Any]]:
+    async def get_checkpoint(self, symbol: Symbol) -> dict[str, Any] | None:
         """Get ingestion checkpoint for symbol.
 
         Args:
@@ -356,7 +356,7 @@ class ICheckpointRepository(ABC):
         ...
 
     @abstractmethod
-    async def list_checkpoints(self) -> List[Symbol]:
+    async def list_checkpoints(self) -> list[Symbol]:
         """List all symbols with checkpoints.
 
         Returns:
@@ -372,7 +372,7 @@ class IMarketDataProviderRepository(ABC):
     """
 
     @abstractmethod
-    async def get_provider_config(self, provider_id: str) -> Optional[Dict[str, Any]]:
+    async def get_provider_config(self, provider_id: str) -> dict[str, Any] | None:
         """Get configuration for market data provider.
 
         Args:
@@ -384,7 +384,7 @@ class IMarketDataProviderRepository(ABC):
         ...
 
     @abstractmethod
-    async def save_provider_config(self, provider_id: str, config: Dict[str, Any]) -> None:
+    async def save_provider_config(self, provider_id: str, config: dict[str, Any]) -> None:
         """Save configuration for market data provider.
 
         Args:
@@ -394,7 +394,7 @@ class IMarketDataProviderRepository(ABC):
         ...
 
     @abstractmethod
-    async def list_providers(self) -> List[str]:
+    async def list_providers(self) -> list[str]:
         """List all configured provider IDs.
 
         Returns:

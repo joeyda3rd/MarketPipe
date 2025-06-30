@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -37,7 +37,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
         self,
         api_token: str,
         is_sandbox: bool = False,
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         timeout: float = 30.0,
     ):
         self._api_token = api_token
@@ -53,11 +53,11 @@ class IEXMarketDataAdapter(IMarketDataProvider):
                 else "https://cloud.iexapis.com/stable"
             )
 
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
         logger.info(f"Initialized IEX adapter (sandbox={is_sandbox})")
 
     @classmethod
-    def from_config(cls, config: Dict[str, Any]) -> IEXMarketDataAdapter:
+    def from_config(cls, config: dict[str, Any]) -> IEXMarketDataAdapter:
         """
         Create adapter from configuration dictionary.
 
@@ -92,7 +92,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """
         Fetch OHLCV bars from IEX Cloud.
 
@@ -154,7 +154,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
         except Exception as e:
             raise MarketDataUnavailableError(f"Failed to fetch IEX data: {e}") from e
 
-    def _translate_iex_bar_to_domain(self, iex_bar: Dict[str, Any], symbol: Symbol) -> OHLCVBar:
+    def _translate_iex_bar_to_domain(self, iex_bar: dict[str, Any], symbol: Symbol) -> OHLCVBar:
         """
         Translate IEX bar format to domain OHLCV bar.
 
@@ -209,7 +209,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
         """Check if timestamp is within the specified time range."""
         return time_range.start.value <= timestamp.value <= time_range.end.value
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """
         Get list of symbols supported by IEX Cloud.
 

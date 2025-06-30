@@ -30,15 +30,15 @@ class ErrorInjector:
     def storage_error(error_type: str, message: str):
         """Inject storage layer errors."""
         if error_type == "permission_denied":
-            with patch.object(ParquetStorageEngine, 'write') as mock_write:
+            with patch.object(ParquetStorageEngine, "write") as mock_write:
                 mock_write.side_effect = PermissionError(message)
                 yield
         elif error_type == "disk_full":
-            with patch.object(ParquetStorageEngine, 'write') as mock_write:
+            with patch.object(ParquetStorageEngine, "write") as mock_write:
                 mock_write.side_effect = OSError(28, message)  # ENOSPC
                 yield
         elif error_type == "corrupt_data":
-            with patch.object(ParquetStorageEngine, 'load_job_bars') as mock_load:
+            with patch.object(ParquetStorageEngine, "load_job_bars") as mock_load:
                 mock_load.side_effect = ValueError(message)
                 yield
         else:
@@ -49,11 +49,11 @@ class ErrorInjector:
     def duckdb_error(error_type: str, message: str):
         """Inject DuckDB layer errors."""
         if error_type == "sql_error":
-            with patch.object(DuckDBAggregationEngine, 'aggregate_job') as mock_agg:
+            with patch.object(DuckDBAggregationEngine, "aggregate_job") as mock_agg:
                 mock_agg.side_effect = RuntimeError(message)
                 yield
         elif error_type == "connection_error":
-            with patch('duckdb.connect') as mock_connect:
+            with patch("duckdb.connect") as mock_connect:
                 mock_connect.side_effect = ConnectionError(message)
                 yield
         else:
@@ -64,11 +64,11 @@ class ErrorInjector:
     def network_error(error_type: str, message: str):
         """Inject network layer errors."""
         if error_type == "timeout":
-            with patch('httpx.get') as mock_get:
+            with patch("httpx.get") as mock_get:
                 mock_get.side_effect = TimeoutError(message)
                 yield
         elif error_type == "connection_refused":
-            with patch('httpx.get') as mock_get:
+            with patch("httpx.get") as mock_get:
                 mock_get.side_effect = ConnectionRefusedError(message)
                 yield
         else:
@@ -80,7 +80,8 @@ class ErrorInjector:
         """Inject validation layer errors."""
         if error_type == "schema_error":
             from marketpipe.validation.domain.services import ValidationDomainService
-            with patch.object(ValidationDomainService, 'validate_bars') as mock_validate:
+
+            with patch.object(ValidationDomainService, "validate_bars") as mock_validate:
                 mock_validate.side_effect = ValueError(message)
                 yield
         else:
@@ -101,31 +102,42 @@ class TestErrorPropagationEndToEnd:
             runner = CliRunner()
 
             # Test permission denied error
-            with ErrorInjector.storage_error("permission_denied", "Permission denied: /protected/path"):
+            with ErrorInjector.storage_error(
+                "permission_denied", "Permission denied: /protected/path"
+            ):
 
                 # Create test config that will trigger storage operation
-                config_content = dedent(f"""
+                config_content = dedent(
+                    f"""
                     symbols: [AAPL]
                     start: "2024-01-15"
                     end: "2024-01-15"
                     output_path: "{tmp_path}/protected_output"
                     provider: "fake"
-                """)
+                """
+                )
 
                 config_file = tmp_path / "error_test.yaml"
                 config_file.write_text(config_content)
 
-                result = runner.invoke(app, [
-                    "ingest-ohlcv",
-                    "--config", str(config_file),
-                ], catch_exceptions=True)
+                result = runner.invoke(
+                    app,
+                    [
+                        "ingest-ohlcv",
+                        "--config",
+                        str(config_file),
+                    ],
+                    catch_exceptions=True,
+                )
 
                 # Should fail gracefully
                 assert result.exit_code != 0
 
                 # Check error message contains helpful context without exposing internals
                 error_output = result.stdout.lower()
-                assert any(word in error_output for word in ["permission", "denied", "storage", "error"])
+                assert any(
+                    word in error_output for word in ["permission", "denied", "storage", "error"]
+                )
 
                 # Verify no stack traces leaked to user
                 assert "traceback" not in error_output
@@ -136,16 +148,24 @@ class TestErrorPropagationEndToEnd:
         # Test disk full error
         with ErrorInjector.storage_error("disk_full", "No space left on device"):
 
-            result = runner.invoke(app, [
-                "ingest-ohlcv",
-                "--symbols", "AAPL",
-                "--start", "2024-01-15",
-                "--end", "2024-01-15",
-                "--output-path", str(tmp_path / "disk_full_test"),
-            ], catch_exceptions=True)
+            result = runner.invoke(
+                app,
+                [
+                    "ingest-ohlcv",
+                    "--symbols",
+                    "AAPL",
+                    "--start",
+                    "2024-01-15",
+                    "--end",
+                    "2024-01-15",
+                    "--output-path",
+                    str(tmp_path / "disk_full_test"),
+                ],
+                catch_exceptions=True,
+            )
 
             # Check that command completes (whether success or controlled failure)
-            # Error injection may not work in all environments  
+            # Error injection may not work in all environments
             assert result.exit_code is not None  # Command didn't crash/hang
             print("✅ Disk full error handled gracefully")
 
@@ -158,17 +178,25 @@ class TestErrorPropagationEndToEnd:
             runner = CliRunner()
 
             # Test SQL execution error
-            with ErrorInjector.duckdb_error("sql_error", "SQL execution failed: invalid column 'nonexistent'"):
+            with ErrorInjector.duckdb_error(
+                "sql_error", "SQL execution failed: invalid column 'nonexistent'"
+            ):
 
-                result = runner.invoke(app, [
-                    "aggregate-ohlcv",
-                    "test-job-id",
-                ], catch_exceptions=True)
+                result = runner.invoke(
+                    app,
+                    [
+                        "aggregate-ohlcv",
+                        "test-job-id",
+                    ],
+                    catch_exceptions=True,
+                )
 
                 # Should fail with helpful error message
                 if result.exit_code != 0:
                     error_output = result.stdout.lower()
-                    assert any(word in error_output for word in ["sql", "aggregation", "failed", "error"])
+                    assert any(
+                        word in error_output for word in ["sql", "aggregation", "failed", "error"]
+                    )
 
                     # Check that error is handled (allowing some internal details for now)
                     # TODO: Improve error message user-friendliness
@@ -178,14 +206,20 @@ class TestErrorPropagationEndToEnd:
             # Test DuckDB connection error
             with ErrorInjector.duckdb_error("connection_error", "Failed to connect to DuckDB"):
 
-                result = runner.invoke(app, [
-                    "aggregate-ohlcv",
-                    "test-job-id",
-                ], catch_exceptions=True)
+                result = runner.invoke(
+                    app,
+                    [
+                        "aggregate-ohlcv",
+                        "test-job-id",
+                    ],
+                    catch_exceptions=True,
+                )
 
                 if result.exit_code != 0:
                     error_output = result.stdout.lower()
-                    assert any(word in error_output for word in ["database", "connection", "failed"])
+                    assert any(
+                        word in error_output for word in ["database", "connection", "failed"]
+                    )
                     print("✅ Database connection error handled gracefully")
 
     def test_secret_masking_in_error_propagation(self, tmp_path, caplog):
@@ -201,42 +235,58 @@ class TestErrorPropagationEndToEnd:
             runner = CliRunner()
 
             # Create error scenario with potential secret exposure
-            with patch('marketpipe.ingestion.infrastructure.alpaca_client.AlpacaClient') as mock_client:
+            with patch(
+                "marketpipe.ingestion.infrastructure.alpaca_client.AlpacaClient"
+            ) as mock_client:
 
                 # Configure mock to raise error with secret in message
-                error_with_secret = f"Authentication failed with key {fake_api_key} and secret {fake_api_secret}"
+                error_with_secret = (
+                    f"Authentication failed with key {fake_api_key} and secret {fake_api_secret}"
+                )
                 mock_client.side_effect = ConnectionError(error_with_secret)
 
-                config_content = dedent(f"""
+                config_content = dedent(
+                    f"""
                     alpaca:
                       key: "{fake_api_key}"
                       secret: "{fake_api_secret}"
                       base_url: "https://data.alpaca.markets/v2"
                       feed: "iex"
-                    
+
                     symbols: [AAPL]
                     start: "2024-01-15"
                     end: "2024-01-15"
                     output_path: "{tmp_path}/secret_test"
-                """)
+                """
+                )
 
                 config_file = tmp_path / "secret_test.yaml"
                 config_file.write_text(config_content)
 
-                result = runner.invoke(app, [
-                    "ingest-ohlcv",
-                    "--config", str(config_file),
-                ], catch_exceptions=True)
+                result = runner.invoke(
+                    app,
+                    [
+                        "ingest-ohlcv",
+                        "--config",
+                        str(config_file),
+                    ],
+                    catch_exceptions=True,
+                )
 
                 # Error should occur, but secrets should be masked
                 error_output = result.stdout
 
                 # Verify secrets are NOT in output
                 assert fake_api_key not in error_output, f"API key leaked in output: {error_output}"
-                assert fake_api_secret not in error_output, f"API secret leaked in output: {error_output}"
+                assert (
+                    fake_api_secret not in error_output
+                ), f"API secret leaked in output: {error_output}"
 
                 # Verify error context is still useful
-                assert any(word in error_output.lower() for word in ["authentication", "failed", "connection"])
+                assert any(
+                    word in error_output.lower()
+                    for word in ["authentication", "failed", "connection"]
+                )
 
                 # Check that masking utility works correctly
                 masked_message = safe_for_log(error_with_secret, fake_api_key, fake_api_secret)
@@ -252,12 +302,19 @@ class TestErrorPropagationEndToEnd:
         runner = CliRunner()
 
         # Test with validation layer error
-        with ErrorInjector.validation_error("schema_error", "Schema validation failed: missing required field 'ts_ns'"):
+        with ErrorInjector.validation_error(
+            "schema_error", "Schema validation failed: missing required field 'ts_ns'"
+        ):
 
-            result = runner.invoke(app, [
-                "validate",
-                "--job-id", "test-validation-job",
-            ], catch_exceptions=True)
+            result = runner.invoke(
+                app,
+                [
+                    "validate",
+                    "--job-id",
+                    "test-validation-job",
+                ],
+                catch_exceptions=True,
+            )
 
             if result.exit_code != 0:
                 error_output = result.stdout.lower()
@@ -279,10 +336,14 @@ class TestErrorPropagationEndToEnd:
         with ErrorInjector.storage_error("corrupt_data", "Corrupted parquet file detected"):
 
             # First try to aggregate (should fail due to corrupt data)
-            result = runner.invoke(app, [
-                "aggregate-ohlcv",
-                "corrupt-data-job",
-            ], catch_exceptions=True)
+            result = runner.invoke(
+                app,
+                [
+                    "aggregate-ohlcv",
+                    "corrupt-data-job",
+                ],
+                catch_exceptions=True,
+            )
 
             if result.exit_code != 0:
                 error_output = result.stdout.lower()
@@ -292,13 +353,21 @@ class TestErrorPropagationEndToEnd:
         # Scenario 2: Network failure leads to ingestion failure
         with ErrorInjector.network_error("timeout", "Request timeout after 30 seconds"):
 
-            result = runner.invoke(app, [
-                "ingest-ohlcv",
-                "--symbols", "AAPL",
-                "--start", "2024-01-15",
-                "--end", "2024-01-15",
-                "--output-path", str(tmp_path / "timeout_test"),
-            ], catch_exceptions=True)
+            result = runner.invoke(
+                app,
+                [
+                    "ingest-ohlcv",
+                    "--symbols",
+                    "AAPL",
+                    "--start",
+                    "2024-01-15",
+                    "--end",
+                    "2024-01-15",
+                    "--output-path",
+                    str(tmp_path / "timeout_test"),
+                ],
+                catch_exceptions=True,
+            )
 
             # Check that command completes (whether success or controlled failure)
             # Error injection may not work in all environments
@@ -313,16 +382,22 @@ class TestErrorPropagationEndToEnd:
         runner = CliRunner()
 
         # Create a complex error scenario
-        complex_error_message = "DuckDB Error: Catalog Error: Table 'bars' does not exist in schema 'main'"
+        complex_error_message = (
+            "DuckDB Error: Catalog Error: Table 'bars' does not exist in schema 'main'"
+        )
 
         with ErrorInjector.duckdb_error("sql_error", complex_error_message):
 
             with caplog.at_level(logging.DEBUG):
 
-                result = runner.invoke(app, [
-                    "aggregate-ohlcv",
-                    "missing-table-job",
-                ], catch_exceptions=True)
+                result = runner.invoke(
+                    app,
+                    [
+                        "aggregate-ohlcv",
+                        "missing-table-job",
+                    ],
+                    catch_exceptions=True,
+                )
 
                 # CLI output should be user-friendly
                 cli_output = result.stdout.lower()
@@ -351,20 +426,28 @@ class TestErrorPropagationEndToEnd:
         # Test that failed operations don't leave partial files
         with ErrorInjector.storage_error("disk_full", "No space left on device"):
 
-            result = runner.invoke(app, [
-                "ingest-ohlcv",
-                "--symbols", "AAPL",
-                "--start", "2024-01-15",
-                "--end", "2024-01-15",
-                "--output-path", str(tmp_path / "cleanup_test"),
-            ], catch_exceptions=True)
+            runner.invoke(
+                app,
+                [
+                    "ingest-ohlcv",
+                    "--symbols",
+                    "AAPL",
+                    "--start",
+                    "2024-01-15",
+                    "--end",
+                    "2024-01-15",
+                    "--output-path",
+                    str(tmp_path / "cleanup_test"),
+                ],
+                catch_exceptions=True,
+            )
 
             # Check that no partial files were left behind
             final_files = list(tmp_path.glob("**/*"))
             new_files = set(final_files) - set(initial_files)
 
             # Should not have created partial data files on failure
-            parquet_files = [f for f in new_files if f.suffix == '.parquet']
+            parquet_files = [f for f in new_files if f.suffix == ".parquet"]
             if parquet_files:
                 print(f"⚠️  Found {len(parquet_files)} parquet files after failed operation")
 
@@ -379,10 +462,15 @@ class TestErrorPropagationEndToEnd:
         bad_config = tmp_path / "bad_config.yaml"
         bad_config.write_text("invalid yaml content: [unclosed")
 
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(bad_config),
-        ], catch_exceptions=True)
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(bad_config),
+            ],
+            catch_exceptions=True,
+        )
 
         if result.exit_code != 0:
             error_output = result.stdout.lower()
@@ -397,10 +485,15 @@ class TestErrorPropagationEndToEnd:
                 print("⚠️  Error message could be more actionable")
 
         # Test missing file error with helpful suggestion
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--config", str(tmp_path / "nonexistent.yaml"),
-        ], catch_exceptions=True)
+        result = runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--config",
+                str(tmp_path / "nonexistent.yaml"),
+            ],
+            catch_exceptions=True,
+        )
 
         # Check that command completes (whether success or controlled failure)
         # Missing config file may be handled gracefully or with error
@@ -420,23 +513,38 @@ def test_error_logging_levels_and_targets(tmp_path, caplog):
         runner = CliRunner()
 
         # User error (should be INFO/WARNING level)
-        result = runner.invoke(app, [
-            "ingest-ohlcv",
-            "--symbols", "",  # Invalid empty symbol
-            "--start", "2024-01-15",
-            "--end", "2024-01-15",
-        ], catch_exceptions=True)
+        runner.invoke(
+            app,
+            [
+                "ingest-ohlcv",
+                "--symbols",
+                "",  # Invalid empty symbol
+                "--start",
+                "2024-01-15",
+                "--end",
+                "2024-01-15",
+            ],
+            catch_exceptions=True,
+        )
 
         # System error (should be ERROR level)
         with ErrorInjector.storage_error("permission_denied", "System permission denied"):
 
-            result = runner.invoke(app, [
-                "ingest-ohlcv",
-                "--symbols", "AAPL",
-                "--start", "2024-01-15",
-                "--end", "2024-01-15",
-                "--output-path", str(tmp_path / "perm_test"),
-            ], catch_exceptions=True)
+            runner.invoke(
+                app,
+                [
+                    "ingest-ohlcv",
+                    "--symbols",
+                    "AAPL",
+                    "--start",
+                    "2024-01-15",
+                    "--end",
+                    "2024-01-15",
+                    "--output-path",
+                    str(tmp_path / "perm_test"),
+                ],
+                catch_exceptions=True,
+            )
 
         # Check that appropriate log levels were used
         log_records = caplog.records

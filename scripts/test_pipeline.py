@@ -20,11 +20,7 @@ def run_command(cmd, description):
     try:
         start_time = time.time()
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            cwd=Path(__file__).parent.parent
+            cmd, capture_output=True, text=True, timeout=60, cwd=Path(__file__).parent.parent
         )
         execution_time = time.time() - start_time
 
@@ -48,15 +44,15 @@ def run_command(cmd, description):
         print(f"❌ {description} failed with exception: {e}")
         return False
 
+
 def main():
     """Run a simple pipeline test."""
     print("🧪 MarketPipe Simple Pipeline Test")
-    print("="*50)
+    print("=" * 50)
 
     # Test 1: Check MarketPipe CLI
     success1 = run_command(
-        ["python", "-m", "marketpipe", "--help"],
-        "Testing MarketPipe CLI access"
+        ["python", "-m", "marketpipe", "--help"], "Testing MarketPipe CLI access"
     )
 
     if not success1:
@@ -64,37 +60,44 @@ def main():
         return False
 
     # Test 2: List providers
-    success2 = run_command(
-        ["python", "-m", "marketpipe", "providers"],
-        "Testing provider listing"
-    )
+    success2 = run_command(["python", "-m", "marketpipe", "providers"], "Testing provider listing")
 
     # Test 3: Run migrations
-    success3 = run_command(
-        ["python", "-m", "marketpipe", "migrate"],
-        "Testing database migrations"
-    )
+    success3 = run_command(["python", "-m", "marketpipe", "migrate"], "Testing database migrations")
 
     # Test 4: Try a simple ingestion with fake provider and recent date
     today = date.today()
     yesterday = today - timedelta(days=1)
     test_date = yesterday.strftime("%Y-%m-%d")
 
-    success4 = run_command([
-        "python", "-m", "marketpipe", "ingest-ohlcv",
-        "--provider", "fake",
-        "--symbols", "MSFT",
-        "--start", test_date,
-        "--end", test_date,
-        "--output", "./test_simple_output",
-        "--workers", "1",
-        "--batch-size", "100"
-    ], f"Testing ingestion with fake provider for {test_date}")
+    success4 = run_command(
+        [
+            "python",
+            "-m",
+            "marketpipe",
+            "ingest-ohlcv",
+            "--provider",
+            "fake",
+            "--symbols",
+            "MSFT",
+            "--start",
+            test_date,
+            "--end",
+            test_date,
+            "--output",
+            "./test_simple_output",
+            "--workers",
+            "1",
+            "--batch-size",
+            "100",
+        ],
+        f"Testing ingestion with fake provider for {test_date}",
+    )
 
     # Summary
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("📋 Test Summary")
-    print("="*50)
+    print("=" * 50)
 
     tests = [
         ("CLI Access", success1),
@@ -118,6 +121,7 @@ def main():
         print("⚠️  Some tests failed. Check the errors above.")
 
     return passed == total
+
 
 if __name__ == "__main__":
     success = main()

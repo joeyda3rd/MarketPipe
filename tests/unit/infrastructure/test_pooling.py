@@ -183,7 +183,7 @@ def test_pool_growth_under_load(tmp_path):
 
     # Start multiple threads that hold connections
     threads = []
-    for i in range(3):
+    for _i in range(3):
         thread = threading.Thread(target=hold_connection, args=(0.1,))  # Reduced for CI
         threads.append(thread)
         thread.start()
@@ -216,8 +216,8 @@ def test_pool_stats(tmp_path):
     assert len(stats) == 0
 
     # Create connections to different databases
-    with connection(db1) as c1:
-        with connection(db2) as c2:
+    with connection(db1):
+        with connection(db2):
             pass  # Connections in use, pools should be empty
 
     # Check stats after connections returned to pools
@@ -259,9 +259,9 @@ def test_close_all_pools(tmp_path):
     db2 = tmp_path / "db2.db"
 
     # Create some connections
-    with connection(db1) as c1:
+    with connection(db1):
         pass
-    with connection(db2) as c2:
+    with connection(db2):
         pass
 
     # Should have pools
@@ -304,7 +304,7 @@ def test_init_conn_configuration(tmp_path):
         # If autocommit is enabled, table should be created immediately
         cursor = conn.execute(
             """
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name='test'
         """
         )

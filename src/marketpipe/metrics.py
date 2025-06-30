@@ -6,12 +6,17 @@ import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
 
 from prometheus_client import Counter, Gauge, Histogram, Summary
 
 from marketpipe.infrastructure.sqlite_async_mixin import SqliteAsyncMixin
 from marketpipe.migrations import apply_pending
+
+# Rate limiter metrics (imported from rate_limit module)
+from marketpipe.ingestion.infrastructure.rate_limit import RATE_LIMITER_WAITS
+
+# Event loop lag monitoring (imported from metrics_server module)
+from marketpipe.metrics_server import EVENT_LOOP_LAG
 
 # Core metrics with full label set: source, provider, feed
 REQUESTS = Counter("mp_requests_total", "API requests", ["source", "provider", "feed"])
@@ -34,12 +39,6 @@ AGG_ROWS = Counter("mp_aggregation_rows_total", "Rows aggregated", ["frame", "sy
 
 # Summary metrics for tracking operational data
 PROCESSING_TIME = Summary("mp_processing_time_seconds", "Processing time", ["operation"])
-
-# Rate limiter metrics (imported from rate_limit module)
-from marketpipe.ingestion.infrastructure.rate_limit import RATE_LIMITER_WAITS
-
-# Event loop lag monitoring (imported from metrics_server module)
-from marketpipe.metrics_server import EVENT_LOOP_LAG
 
 # Symbol pipeline metrics
 SYMBOLS_ROWS = Counter(
@@ -131,7 +130,7 @@ class TrendPoint:
 class SqliteMetricsRepository(SqliteAsyncMixin):
     """SQLite-based repository for storing and querying metric history."""
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: str | None = None):
         # Check environment variable first, then use provided path, then default
         if db_path is None:
             db_path = os.environ.get("METRICS_DB_PATH", "data/db/core.db")
@@ -156,18 +155,18 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
             await db.commit()
 
     async def get_metrics_history(
-        self, metric: str, *, since: Optional[datetime] = None
-    ) -> List[MetricPoint]:
+        self, metric: str, *, since: datetime | None = None
+    ) -> list[MetricPoint]:
         """Get metric history, optionally filtered by time."""
         async with self._conn() as db:
             if since:
                 since_ts = int(since.timestamp())
                 cursor = await db.execute(
                     """
-                    SELECT ts, name, value, 
-                           COALESCE(provider, 'unknown') as provider, 
-                           COALESCE(feed, 'unknown') as feed 
-                    FROM metrics 
+                    SELECT ts, name, value,
+                           COALESCE(provider, 'unknown') as provider,
+                           COALESCE(feed, 'unknown') as feed
+                    FROM metrics
                     WHERE name = ? AND ts >= ?
                     ORDER BY ts
                 """,
@@ -176,10 +175,10 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
             else:
                 cursor = await db.execute(
                     """
-                    SELECT ts, name, value, 
-                           COALESCE(provider, 'unknown') as provider, 
-                           COALESCE(feed, 'unknown') as feed 
-                    FROM metrics 
+                    SELECT ts, name, value,
+                           COALESCE(provider, 'unknown') as provider,
+                           COALESCE(feed, 'unknown') as feed
+                    FROM metrics
                     WHERE name = ?
                     ORDER BY ts
                 """,
@@ -205,7 +204,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
         async with self._conn() as db:
             cursor = await db.execute(
                 """
-                SELECT AVG(value) FROM metrics 
+                SELECT AVG(value) FROM metrics
                 WHERE name = ? AND ts >= ?
             """,
                 (metric, since),
@@ -215,7 +214,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
             result = row[0] if row else None
             return result if result is not None else 0.0
 
-    async def get_performance_trends(self, metric: str, *, buckets: int = 24) -> List[TrendPoint]:
+    async def get_performance_trends(self, metric: str, *, buckets: int = 24) -> list[TrendPoint]:
         """Get performance trends over time divided into buckets."""
         now = datetime.now()
         bucket_size_minutes = (24 * 60) // buckets  # Distribute 24 hours across buckets
@@ -228,7 +227,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
 
                 cursor = await db.execute(
                     """
-                    SELECT AVG(value), COUNT(*) FROM metrics 
+                    SELECT AVG(value), COUNT(*) FROM metrics
                     WHERE name = ? AND ts >= ? AND ts < ?
                 """,
                     (metric, bucket_start_ts, bucket_end_ts),
@@ -247,7 +246,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
 
         return trends
 
-    async def list_metric_names(self) -> List[str]:
+    async def list_metric_names(self) -> list[str]:
         """List all available metric names."""
         async with self._conn() as db:
             cursor = await db.execute("SELECT DISTINCT name FROM metrics ORDER BY name")
@@ -256,7 +255,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
 
 
 # Global repository instance for record_metric function
-_metrics_repo: Optional[SqliteMetricsRepository] = None
+_metrics_repo: SqliteMetricsRepository | None = None
 
 
 def get_metrics_repository() -> SqliteMetricsRepository:
@@ -324,7 +323,7 @@ def record_metric(
         # Try to determine if we're in an async context
         loop = asyncio.get_running_loop()
         # We're in an async context, schedule the task
-        task = loop.create_task(repo.record(name, value, provider, feed))
+        loop.create_task(repo.record(name, value, provider, feed))
         # Don't wait for completion to avoid blocking
     except RuntimeError:
         # No running event loop, run it synchronously

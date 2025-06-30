@@ -440,7 +440,7 @@ class TestProviderFeedLabelsFixed:
             client._request({"symbol": "AAPL"})
 
             # Verify metrics have provider/feed labels
-            request_samples = [s for s in REQUESTS.collect()[0].samples]
+            request_samples = list(REQUESTS.collect()[0].samples)
             # Look for metrics with the exact combination we expect from this test
             alpaca_requests = [
                 s

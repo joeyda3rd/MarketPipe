@@ -210,7 +210,7 @@ def test_duckdb_aggregation_engine_error_handling():
             # Should raise the exception
             try:
                 engine.aggregate_job("error_job", [])
-                assert False, "Should have raised exception"
+                raise AssertionError("Should have raised exception")
             except Exception as e:
                 assert "Storage error" in str(e)
 

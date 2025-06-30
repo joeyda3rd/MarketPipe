@@ -10,7 +10,6 @@ from __future__ import annotations
 import datetime as dt
 import tempfile
 from pathlib import Path
-from typing import List
 
 import duckdb
 import pytest
@@ -52,13 +51,13 @@ class TestSymbolPipelineIdempotence:
                     currency VARCHAR,
                     status VARCHAR,
                     company_name VARCHAR,
-                    
+
                     -- SCD Type 2 fields
                     effective_from DATE,
                     effective_to DATE,
                     is_current BOOLEAN,
                     version INTEGER,
-                    
+
                     -- Temporal tracking
                     as_of DATE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -114,14 +113,14 @@ class TestSymbolPipelineIdempotence:
             # Verify SCD versioning integrity
             version_check = conn.execute(
                 """
-                SELECT ticker, COUNT(*) as versions, 
+                SELECT ticker, COUNT(*) as versions,
                        COUNT(CASE WHEN is_current THEN 1 END) as current_versions
-                FROM symbol_scd 
+                FROM symbol_scd
                 GROUP BY ticker
             """
             ).fetchall()
 
-            for ticker, versions, current_versions in version_check:
+            for ticker, _versions, current_versions in version_check:
                 assert (
                     current_versions == 1
                 ), f"Ticker {ticker} should have exactly 1 current version, got {current_versions}"
@@ -130,10 +129,10 @@ class TestSymbolPipelineIdempotence:
             date_integrity = conn.execute(
                 """
                 SELECT COUNT(*) FROM symbol_scd s1
-                WHERE is_current = false 
+                WHERE is_current = false
                 AND NOT EXISTS (
-                    SELECT 1 FROM symbol_scd s2 
-                    WHERE s2.ticker = s1.ticker 
+                    SELECT 1 FROM symbol_scd s2
+                    WHERE s2.ticker = s1.ticker
                     AND s2.effective_from = s1.effective_to
                 )
             """
@@ -170,7 +169,7 @@ class TestSymbolPipelineIdempotence:
     def _insert_with_scd_logic(
         self,
         conn: duckdb.DuckDBPyConnection,
-        records: List[SymbolRecord],
+        records: list[SymbolRecord],
         run_number: int,
     ) -> int:
         """Insert records using SCD Type 2 logic.
@@ -184,7 +183,7 @@ class TestSymbolPipelineIdempotence:
             # Check if record already exists with same business key and attributes
             existing = conn.execute(
                 """
-                SELECT id, version, is_current FROM symbol_scd 
+                SELECT id, version, is_current FROM symbol_scd
                 WHERE ticker = ? AND exchange_mic = ? AND is_current = true
             """,
                 [record.ticker, record.exchange_mic],
@@ -194,8 +193,8 @@ class TestSymbolPipelineIdempotence:
                 # Check if any tracked attributes have changed
                 current_data = conn.execute(
                     """
-                    SELECT asset_class, currency, status, company_name 
-                    FROM symbol_scd 
+                    SELECT asset_class, currency, status, company_name
+                    FROM symbol_scd
                     WHERE ticker = ? AND exchange_mic = ? AND is_current = true
                 """,
                     [record.ticker, record.exchange_mic],
@@ -212,7 +211,7 @@ class TestSymbolPipelineIdempotence:
                     # Close existing record
                     conn.execute(
                         """
-                        UPDATE symbol_scd 
+                        UPDATE symbol_scd
                         SET effective_to = ?, is_current = false, updated_at = CURRENT_TIMESTAMP
                         WHERE ticker = ? AND exchange_mic = ? AND is_current = true
                     """,
@@ -261,8 +260,8 @@ class TestSymbolPipelineIdempotence:
         )
 
     async def _create_modified_records(
-        self, original_records: List[SymbolRecord]
-    ) -> List[SymbolRecord]:
+        self, original_records: list[SymbolRecord]
+    ) -> list[SymbolRecord]:
         """Create modified versions of records to test SCD versioning."""
         modified = []
 

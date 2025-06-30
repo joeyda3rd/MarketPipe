@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional
 
 from marketpipe.domain.value_objects import Symbol
 
@@ -22,24 +21,24 @@ class IIngestionJobRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
+    async def get_by_id(self, job_id: IngestionJobId) -> IngestionJob | None:
         """Retrieve an ingestion job by its ID."""
         pass
 
     @abstractmethod
-    async def get_by_state(self, state: ProcessingState) -> List[IngestionJob]:
+    async def get_by_state(self, state: ProcessingState) -> list[IngestionJob]:
         """Get all jobs in a specific state."""
         pass
 
     @abstractmethod
-    async def get_active_jobs(self) -> List[IngestionJob]:
+    async def get_active_jobs(self) -> list[IngestionJob]:
         """Get all jobs that are currently active (pending or in progress)."""
         pass
 
     @abstractmethod
     async def get_jobs_by_date_range(
         self, start_date: datetime, end_date: datetime
-    ) -> List[IngestionJob]:
+    ) -> list[IngestionJob]:
         """Get jobs created within a date range."""
         pass
 
@@ -49,7 +48,7 @@ class IIngestionJobRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_job_history(self, limit: int = 100) -> List[IngestionJob]:
+    async def get_job_history(self, limit: int = 100) -> list[IngestionJob]:
         """Get recent job history, ordered by creation date."""
         pass
 
@@ -72,12 +71,12 @@ class IIngestionCheckpointRepository(ABC):
     @abstractmethod
     async def get_checkpoint(
         self, job_id: IngestionJobId, symbol: Symbol
-    ) -> Optional[IngestionCheckpoint]:
+    ) -> IngestionCheckpoint | None:
         """Get the latest checkpoint for a job and symbol."""
         pass
 
     @abstractmethod
-    async def get_all_checkpoints(self, job_id: IngestionJobId) -> List[IngestionCheckpoint]:
+    async def get_all_checkpoints(self, job_id: IngestionJobId) -> list[IngestionCheckpoint]:
         """Get all checkpoints for a specific job."""
         pass
 
@@ -87,7 +86,7 @@ class IIngestionCheckpointRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_global_checkpoint(self, symbol: Symbol) -> Optional[IngestionCheckpoint]:
+    async def get_global_checkpoint(self, symbol: Symbol) -> IngestionCheckpoint | None:
         """Get the most recent checkpoint for a symbol across all jobs."""
         pass
 
@@ -106,26 +105,26 @@ class IIngestionMetricsRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_metrics(self, job_id: IngestionJobId) -> Optional[ProcessingMetrics]:
+    async def get_metrics(self, job_id: IngestionJobId) -> ProcessingMetrics | None:
         """Get metrics for a specific job."""
         pass
 
     @abstractmethod
     async def get_metrics_history(
         self, start_date: datetime, end_date: datetime
-    ) -> List[tuple[IngestionJobId, ProcessingMetrics]]:
+    ) -> list[tuple[IngestionJobId, ProcessingMetrics]]:
         """Get metrics for jobs within a date range."""
         pass
 
     @abstractmethod
     async def get_average_metrics(
         self, start_date: datetime, end_date: datetime
-    ) -> Optional[ProcessingMetrics]:
+    ) -> ProcessingMetrics | None:
         """Calculate average metrics across jobs in a date range."""
         pass
 
     @abstractmethod
-    async def get_performance_trends(self, days: int = 30) -> List[tuple[datetime, float]]:
+    async def get_performance_trends(self, days: int = 30) -> list[tuple[datetime, float]]:
         """Get daily average processing performance (bars per second) over time."""
         pass
 

@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import aiosqlite
 from prometheus_client import Counter, Histogram
@@ -36,7 +35,7 @@ REPO_LATENCY = Histogram(
 class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
     """SQLite implementation of ingestion job repository."""
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         self._db_path = db_path or Path("ingestion_jobs.db")
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
@@ -67,7 +66,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             async with self._conn() as db:
                 await db.execute(
                     """
-                    INSERT OR REPLACE INTO ingestion_jobs 
+                    INSERT OR REPLACE INTO ingestion_jobs
                     (symbol, day, state, payload, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """,
@@ -85,7 +84,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to save job {job.job_id}: {e}") from e
 
-    async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
+    async def get_by_id(self, job_id: IngestionJobId) -> IngestionJob | None:
         """Retrieve an ingestion job by its ID."""
         try:
             async with self._conn() as db:
@@ -104,7 +103,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get job {job_id}: {e}") from e
 
-    async def get_by_state(self, state: ProcessingState) -> List[IngestionJob]:
+    async def get_by_state(self, state: ProcessingState) -> list[IngestionJob]:
         """Get all jobs in a specific state."""
         with REPO_LATENCY.labels("get_by_state", "sqlite").time():
             REPO_QUERIES.labels("get_by_state", "sqlite").inc()
@@ -123,7 +122,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get jobs by state {state}: {e}") from e
 
-    async def get_active_jobs(self) -> List[IngestionJob]:
+    async def get_active_jobs(self) -> list[IngestionJob]:
         """Get all jobs that are currently active."""
         active_states = [
             self._domain_state_to_db_state(ProcessingState.PENDING),
@@ -147,15 +146,15 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 
     async def get_jobs_by_date_range(
         self, start_date: datetime, end_date: datetime
-    ) -> List[IngestionJob]:
+    ) -> list[IngestionJob]:
         """Get jobs created within a date range."""
         try:
             async with self._conn() as db:
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
                     """
-                    SELECT * FROM ingestion_jobs 
-                    WHERE created_at BETWEEN ? AND ? 
+                    SELECT * FROM ingestion_jobs
+                    WHERE created_at BETWEEN ? AND ?
                     ORDER BY created_at DESC
                 """,
                     (start_date, end_date),
@@ -181,7 +180,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to delete job {job_id}: {e}") from e
 
-    async def get_job_history(self, limit: int = 100) -> List[IngestionJob]:
+    async def get_job_history(self, limit: int = 100) -> list[IngestionJob]:
         """Get recent job history."""
         try:
             async with self._conn() as db:
@@ -197,7 +196,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get job history: {e}") from e
 
-    async def count_jobs_by_state(self) -> Dict[ProcessingState, int]:
+    async def count_jobs_by_state(self) -> dict[ProcessingState, int]:
         """Count jobs grouped by their processing state."""
         try:
             async with self._conn() as db:
@@ -217,7 +216,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to count jobs by state: {e}") from e
 
-    async def fetch_and_lock(self, limit: int = 1) -> List[IngestionJob]:
+    async def fetch_and_lock(self, limit: int = 1) -> list[IngestionJob]:
         """Fetch and lock pending jobs for processing (SQLite version)."""
         try:
             async with self._conn() as db:
@@ -228,9 +227,9 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 
                 cursor = await db.execute(
                     """
-                    SELECT * FROM ingestion_jobs 
-                    WHERE state = ? 
-                    ORDER BY created_at 
+                    SELECT * FROM ingestion_jobs
+                    WHERE state = ?
+                    ORDER BY created_at
                     LIMIT ?
                     """,
                     (self._domain_state_to_db_state(ProcessingState.PENDING), limit),
@@ -375,7 +374,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         job._completed_at = (
             datetime.fromisoformat(payload["completed_at"]) if payload.get("completed_at") else None
         )
-        job._processed_symbols = set(Symbol(s) for s in payload.get("processed_symbols", []))
+        job._processed_symbols = {Symbol(s) for s in payload.get("processed_symbols", [])}
         job._error_message = payload.get("error_message")
 
         return job
@@ -447,7 +446,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         job._created_at = created_at
         job._started_at = started_at
         job._completed_at = completed_at
-        job._processed_symbols = set(Symbol(s) for s in job_dict["processed_symbols"])
+        job._processed_symbols = {Symbol(s) for s in job_dict["processed_symbols"]}
         job._error_message = job_dict["error_message"]
 
         # Handle state transitions that might require calling internal methods
@@ -520,7 +519,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepository):
     """SQLite implementation of checkpoint repository."""
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         self._db_path = db_path or Path("ingestion_checkpoints.db")
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
@@ -546,7 +545,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
 
             conn.execute(
                 """
-                CREATE INDEX IF NOT EXISTS idx_checkpoints_symbol 
+                CREATE INDEX IF NOT EXISTS idx_checkpoints_symbol
                 ON ingestion_checkpoints(symbol)
             """
             )
@@ -559,7 +558,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
             async with self._conn() as db:
                 await db.execute(
                     """
-                    INSERT OR REPLACE INTO ingestion_checkpoints 
+                    INSERT OR REPLACE INTO ingestion_checkpoints
                     (job_id, symbol, last_processed_timestamp, records_processed, updated_at)
                     VALUES (?, ?, ?, ?, ?)
                 """,
@@ -578,7 +577,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
 
     async def get_checkpoint(
         self, job_id: IngestionJobId, symbol: Symbol
-    ) -> Optional[IngestionCheckpoint]:
+    ) -> IngestionCheckpoint | None:
         """Get the latest checkpoint for a job and symbol."""
         try:
             async with self._conn() as db:
@@ -586,7 +585,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
                 cursor = await db.execute(
                     """
                     SELECT last_processed_timestamp, records_processed, updated_at
-                    FROM ingestion_checkpoints 
+                    FROM ingestion_checkpoints
                     WHERE job_id = ? AND symbol = ?
                 """,
                     (str(job_id), symbol.value),
@@ -606,7 +605,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get checkpoint: {e}") from e
 
-    async def get_all_checkpoints(self, job_id: IngestionJobId) -> List[IngestionCheckpoint]:
+    async def get_all_checkpoints(self, job_id: IngestionJobId) -> list[IngestionCheckpoint]:
         """Get all checkpoints for a specific job."""
         try:
             async with self._conn() as db:
@@ -614,7 +613,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
                 cursor = await db.execute(
                     """
                     SELECT symbol, last_processed_timestamp, records_processed, updated_at
-                    FROM ingestion_checkpoints 
+                    FROM ingestion_checkpoints
                     WHERE job_id = ?
                 """,
                     (str(job_id),),
@@ -653,7 +652,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
                 f"Failed to delete checkpoints for job {job_id}: {e}"
             ) from e
 
-    async def get_global_checkpoint(self, symbol: Symbol) -> Optional[IngestionCheckpoint]:
+    async def get_global_checkpoint(self, symbol: Symbol) -> IngestionCheckpoint | None:
         """Get the most recent checkpoint for a symbol across all jobs."""
         try:
             async with self._conn() as db:
@@ -661,7 +660,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
                 cursor = await db.execute(
                     """
                     SELECT symbol, last_processed_timestamp, records_processed, updated_at
-                    FROM ingestion_checkpoints 
+                    FROM ingestion_checkpoints
                     WHERE symbol = ?
                     ORDER BY updated_at DESC
                     LIMIT 1
@@ -703,7 +702,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
 class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
     """SQLite implementation of metrics repository."""
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         self._db_path = db_path or Path("ingestion_metrics.db")
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
@@ -737,9 +736,9 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
             async with self._conn() as db:
                 await db.execute(
                     """
-                    INSERT OR REPLACE INTO ingestion_metrics 
-                    (job_id, start_timestamp, end_timestamp, total_records, 
-                     processed_records, failed_records, processing_time_seconds, 
+                    INSERT OR REPLACE INTO ingestion_metrics
+                    (job_id, start_timestamp, end_timestamp, total_records,
+                     processed_records, failed_records, processing_time_seconds,
                      throughput_records_per_second, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
@@ -760,17 +759,17 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to save metrics: {e}") from e
 
-    async def get_metrics(self, job_id: IngestionJobId) -> Optional[ProcessingMetrics]:
+    async def get_metrics(self, job_id: IngestionJobId) -> ProcessingMetrics | None:
         """Get processing metrics for a specific job."""
         try:
             async with self._conn() as db:
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
                     """
-                    SELECT start_timestamp, end_timestamp, total_records, 
-                           processed_records, failed_records, processing_time_seconds, 
+                    SELECT start_timestamp, end_timestamp, total_records,
+                           processed_records, failed_records, processing_time_seconds,
                            throughput_records_per_second
-                    FROM ingestion_metrics 
+                    FROM ingestion_metrics
                     WHERE job_id = ?
                 """,
                     (str(job_id),),
@@ -795,17 +794,17 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
 
     async def get_metrics_history(
         self, start_date: datetime, end_date: datetime
-    ) -> List[tuple[IngestionJobId, ProcessingMetrics]]:
+    ) -> list[tuple[IngestionJobId, ProcessingMetrics]]:
         """Get metrics history within a date range."""
         try:
             async with self._conn() as db:
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
                     """
-                    SELECT job_id, start_timestamp, end_timestamp, total_records, 
-                           processed_records, failed_records, processing_time_seconds, 
+                    SELECT job_id, start_timestamp, end_timestamp, total_records,
+                           processed_records, failed_records, processing_time_seconds,
                            throughput_records_per_second
-                    FROM ingestion_metrics 
+                    FROM ingestion_metrics
                     WHERE created_at BETWEEN ? AND ?
                     ORDER BY created_at DESC
                 """,
@@ -835,13 +834,13 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
 
     async def get_average_metrics(
         self, start_date: datetime, end_date: datetime
-    ) -> Optional[ProcessingMetrics]:
+    ) -> ProcessingMetrics | None:
         """Get average processing metrics over a date range."""
         try:
             async with self._conn() as db:
                 cursor = await db.execute(
                     """
-                    SELECT 
+                    SELECT
                         AVG(start_timestamp) as avg_start_timestamp,
                         AVG(end_timestamp) as avg_end_timestamp,
                         AVG(total_records) as avg_total_records,
@@ -849,7 +848,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                         AVG(failed_records) as avg_failed_records,
                         AVG(processing_time_seconds) as avg_processing_time_seconds,
                         AVG(throughput_records_per_second) as avg_throughput_records_per_second
-                    FROM ingestion_metrics 
+                    FROM ingestion_metrics
                     WHERE created_at BETWEEN ? AND ?
                 """,
                     (start_date, end_date),
@@ -872,7 +871,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to get average metrics: {e}") from e
 
-    async def get_performance_trends(self, days: int = 30) -> List[tuple[datetime, float]]:
+    async def get_performance_trends(self, days: int = 30) -> list[tuple[datetime, float]]:
         """Get performance trends over time."""
         try:
             start_date = datetime.now() - timedelta(days=days)
@@ -882,7 +881,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                 cursor = await db.execute(
                     """
                     SELECT DATE(created_at) as day, AVG(throughput_records_per_second) as avg_throughput
-                    FROM ingestion_metrics 
+                    FROM ingestion_metrics
                     WHERE created_at >= ?
                     GROUP BY DATE(created_at)
                     ORDER BY day

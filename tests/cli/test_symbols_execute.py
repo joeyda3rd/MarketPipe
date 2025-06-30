@@ -125,9 +125,7 @@ class TestSymbolsExecuteIntegration:
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
     @patch("marketpipe.cli.symbols.run_symbol_pipeline")
-    def test_rerun_same_snapshot_adds_zero_rows(
-        self, mock_run_pipeline, mock_list_providers
-    ):
+    def test_rerun_same_snapshot_adds_zero_rows(self, mock_run_pipeline, mock_list_providers):
         """Test that rerunning the same snapshot is idempotent."""
         # Setup mocks
         mock_list_providers.return_value = ["dummy"]

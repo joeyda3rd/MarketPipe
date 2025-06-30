@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import List, Tuple
 
 import duckdb
 import pandas as pd
@@ -28,7 +27,7 @@ class DuckDBAggregationEngine:
         self._agg_storage = ParquetStorageEngine(agg_root)
         self.log = logging.getLogger(self.__class__.__name__)
 
-    def aggregate_job(self, job_id: str, frame_sql_pairs: List[Tuple[FrameSpec, str]]) -> None:
+    def aggregate_job(self, job_id: str, frame_sql_pairs: list[tuple[FrameSpec, str]]) -> None:
         """Aggregate 1-minute bars for a job to multiple timeframes.
 
         Args:

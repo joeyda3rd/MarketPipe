@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import logging as _logging
+import sys
+from pathlib import Path
+
 """User-level site customisation for local MarketPipe source checkouts.
 
 This module is imported automatically by CPython *after* `sitecustomize`, if it
@@ -7,10 +11,6 @@ exists on the import path.  We use it to add the project's ``src`` directory to
 ``sys.path`` so that the package can be executed directly from the source tree
 (e.g. ``python -m marketpipe.cli --help``) without an explicit installation.
 """
-
-import logging as _logging
-import sys
-from pathlib import Path
 
 _project_root = Path(__file__).resolve().parent
 _src_path = _project_root / "src"

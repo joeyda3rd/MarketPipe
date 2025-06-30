@@ -37,7 +37,7 @@ Usage:
 from __future__ import annotations
 
 import datetime as _dt
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -84,7 +84,7 @@ class PolygonSymbolProvider(SymbolProviderBase):
         as_of: Snapshot date (optional, defaults to today)
     """
 
-    async def _fetch_raw(self) -> List[Dict[str, Any]]:
+    async def _fetch_raw(self) -> list[dict[str, Any]]:
         """Fetch raw symbol data from Polygon API with pagination.
 
         Makes multiple API calls as needed to retrieve all available symbols.
@@ -111,11 +111,11 @@ class PolygonSymbolProvider(SymbolProviderBase):
         }
 
         url = "https://api.polygon.io/v3/reference/tickers"
-        all_records: List[Dict[str, Any]] = []
+        all_records: list[dict[str, Any]] = []
 
         async with httpx.AsyncClient(timeout=30) as client:
-            next_url: Optional[str] = url
-            current_params: Optional[Dict[str, Any]] = base_params.copy()
+            next_url: str | None = url
+            current_params: dict[str, Any] | None = base_params.copy()
 
             while next_url:
                 # Make API request
@@ -137,7 +137,7 @@ class PolygonSymbolProvider(SymbolProviderBase):
 
         return all_records
 
-    def _map_to_records(self, payload: List[Dict[str, Any]]) -> List[SymbolRecord]:
+    def _map_to_records(self, payload: list[dict[str, Any]]) -> list[SymbolRecord]:
         """Convert Polygon API records to SymbolRecord objects.
 
         Transforms provider-specific field formats to canonical schema:
@@ -153,7 +153,7 @@ class PolygonSymbolProvider(SymbolProviderBase):
         Returns:
             List of validated SymbolRecord objects
         """
-        records: List[SymbolRecord] = []
+        records: list[SymbolRecord] = []
 
         for row in payload:
             # Map exchange code to MIC, fallback to truncated uppercase

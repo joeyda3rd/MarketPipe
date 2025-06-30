@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import pytest
 import yaml
@@ -27,10 +27,11 @@ import yaml
 @dataclass
 class DeprecationTestCase:
     """Test case for deprecated command validation."""
-    deprecated_command: List[str]
-    replacement_command: List[str]
-    options: Dict[str, Any] = field(default_factory=dict)
-    expected_warning_patterns: List[str] = field(default_factory=list)
+
+    deprecated_command: list[str]
+    replacement_command: list[str]
+    options: dict[str, Any] = field(default_factory=dict)
+    expected_warning_patterns: list[str] = field(default_factory=list)
     should_still_work: bool = True
     test_description: str = ""
 
@@ -38,6 +39,7 @@ class DeprecationTestCase:
 @dataclass
 class CompatibilityTestResult:
     """Result of backward compatibility testing."""
+
     test_case: DeprecationTestCase
     command_executed: bool = False
     warning_shown: bool = False
@@ -46,22 +48,24 @@ class CompatibilityTestResult:
     output: str = ""
     error_output: str = ""
     exit_code: int = -1
-    issues: List[str] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
 
 
 class BackwardCompatibilityValidator:
     """Validates backward compatibility of CLI commands."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
 
-    def validate_deprecated_command(self, test_case: DeprecationTestCase) -> CompatibilityTestResult:
+    def validate_deprecated_command(
+        self, test_case: DeprecationTestCase
+    ) -> CompatibilityTestResult:
         """
         Validate that a deprecated command works with appropriate warnings.
-        
+
         Args:
             test_case: Deprecation test case to validate
-            
+
         Returns:
             CompatibilityTestResult with validation details
         """
@@ -84,11 +88,7 @@ class BackwardCompatibilityValidator:
 
                 # Execute command in temp directory to avoid DB conflicts
                 process_result = subprocess.run(
-                    cmd_args,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=temp_dir
+                    cmd_args, capture_output=True, text=True, timeout=30, cwd=temp_dir
                 )
 
                 result.command_executed = True
@@ -106,11 +106,18 @@ class BackwardCompatibilityValidator:
                 combined_output = (process_result.stdout + process_result.stderr).lower()
 
                 warning_indicators = [
-                    "deprecated", "warning", "use instead", "please use",
-                    "will be removed", "legacy", "obsolete"
+                    "deprecated",
+                    "warning",
+                    "use instead",
+                    "please use",
+                    "will be removed",
+                    "legacy",
+                    "obsolete",
                 ]
 
-                result.warning_shown = any(indicator in combined_output for indicator in warning_indicators)
+                result.warning_shown = any(
+                    indicator in combined_output for indicator in warning_indicators
+                )
 
                 # Check for replacement suggestions
                 replacement_cmd = " ".join(test_case.replacement_command)
@@ -137,11 +144,12 @@ class BackwardCompatibilityValidator:
             result.issues.append(f"Execution error: {e}")
             return result
 
-    def compare_command_outputs(self, deprecated_cmd: List[str], new_cmd: List[str],
-                              options: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def compare_command_outputs(
+        self, deprecated_cmd: list[str], new_cmd: list[str], options: dict[str, Any]
+    ) -> tuple[bool, list[str]]:
         """
         Compare outputs between deprecated and new commands to ensure compatibility.
-        
+
         Returns:
             (outputs_equivalent, differences)
         """
@@ -149,7 +157,7 @@ class BackwardCompatibilityValidator:
 
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = Path(temp_dir)
+                Path(temp_dir)
 
                 # Run deprecated command
                 deprecated_args = ["python", "-m", "marketpipe"] + deprecated_cmd
@@ -160,11 +168,7 @@ class BackwardCompatibilityValidator:
                         deprecated_args.extend([option, str(value)])
 
                 deprecated_result = subprocess.run(
-                    deprecated_args,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=self.base_dir
+                    deprecated_args, capture_output=True, text=True, timeout=30, cwd=self.base_dir
                 )
 
                 # Run new command
@@ -176,16 +180,14 @@ class BackwardCompatibilityValidator:
                         new_args.extend([option, str(value)])
 
                 new_result = subprocess.run(
-                    new_args,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=self.base_dir
+                    new_args, capture_output=True, text=True, timeout=30, cwd=self.base_dir
                 )
 
                 # Compare exit codes
                 if deprecated_result.returncode != new_result.returncode:
-                    differences.append(f"Exit codes differ: {deprecated_result.returncode} vs {new_result.returncode}")
+                    differences.append(
+                        f"Exit codes differ: {deprecated_result.returncode} vs {new_result.returncode}"
+                    )
 
                 # Compare core functionality (ignoring deprecation warnings)
                 deprecated_clean = self._clean_output_for_comparison(deprecated_result.stdout)
@@ -201,7 +203,7 @@ class BackwardCompatibilityValidator:
 
     def _clean_output_for_comparison(self, output: str) -> str:
         """Clean output for comparison by removing timestamps, warnings, etc."""
-        lines = output.split('\n')
+        lines = output.split("\n")
         cleaned_lines = []
 
         for line in lines:
@@ -216,22 +218,22 @@ class BackwardCompatibilityValidator:
                 continue
 
             # Remove ANSI color codes
-            line = re.sub(r'\033\[[0-9;]*m', '', line)
+            line = re.sub(r"\033\[[0-9;]*m", "", line)
 
             # Normalize description differences (remove parenthetical notes)
-            line = re.sub(r'\s*\([^)]*convenience command[^)]*\)', '', line)
+            line = re.sub(r"\s*\([^)]*convenience command[^)]*\)", "", line)
 
             # Skip empty lines
             if line.strip():
                 cleaned_lines.append(line.strip())
 
-        return '\n'.join(cleaned_lines)
+        return "\n".join(cleaned_lines)
 
 
 class DeprecationTestGenerator:
     """Generates test cases for deprecated command validation."""
 
-    def generate_deprecated_command_tests(self) -> List[DeprecationTestCase]:
+    def generate_deprecated_command_tests(self) -> list[DeprecationTestCase]:
         """Generate test cases for all known deprecated commands."""
         test_cases = []
 
@@ -240,51 +242,55 @@ class DeprecationTestGenerator:
             {
                 "deprecated": ["ingest"],
                 "replacement": ["ingest-ohlcv"],
-                "description": "Legacy ingest command"
+                "description": "Legacy ingest command",
             },
             {
                 "deprecated": ["validate"],
                 "replacement": ["validate-ohlcv"],
-                "description": "Legacy validate command"
+                "description": "Legacy validate command",
             },
             {
                 "deprecated": ["aggregate"],
                 "replacement": ["aggregate-ohlcv"],
-                "description": "Legacy aggregate command"
-            }
+                "description": "Legacy aggregate command",
+            },
         ]
 
         # Test with help option
         for cmd_info in deprecated_commands:
-            test_cases.append(DeprecationTestCase(
-                deprecated_command=cmd_info["deprecated"],
-                replacement_command=cmd_info["replacement"],
-                options={"--help": True},
-                expected_warning_patterns=["deprecated", cmd_info["replacement"][0]],
-                test_description=f"{cmd_info['description']} --help"
-            ))
+            test_cases.append(
+                DeprecationTestCase(
+                    deprecated_command=cmd_info["deprecated"],
+                    replacement_command=cmd_info["replacement"],
+                    options={"--help": True},
+                    expected_warning_patterns=["deprecated", cmd_info["replacement"][0]],
+                    test_description=f"{cmd_info['description']} --help",
+                )
+            )
 
         # Test with actual options (using fake provider for safety)
         for cmd_info in deprecated_commands:
             if cmd_info["deprecated"][0] in ["ingest"]:  # Only test ingest with real options
-                test_cases.append(DeprecationTestCase(
-                    deprecated_command=cmd_info["deprecated"],
-                    replacement_command=cmd_info["replacement"],
-                    options={
-                        "--provider": "fake",
-                        "--symbols": "AAPL",
-                        "--start": "2024-12-01",
-                        "--end": "2024-12-02",
-                        "--output": "/tmp/test_deprecated"
-                    },
-                    expected_warning_patterns=["deprecated", cmd_info["replacement"][0]],
-                    should_still_work=False,  # Focus on warnings, not full functionality
-                    test_description=f"{cmd_info['description']} with options"
-                ))
+                test_cases.append(
+                    DeprecationTestCase(
+                        deprecated_command=cmd_info["deprecated"],
+                        replacement_command=cmd_info["replacement"],
+                        options={
+                            "--provider": "fake",
+                            "--symbols": "AAPL",
+                            "--start": "2024-12-01",
+                            "--end": "2024-12-02",
+                            "--output": "/tmp/test_deprecated",
+                        },
+                        expected_warning_patterns=["deprecated", cmd_info["replacement"][0]],
+                        should_still_work=False,  # Focus on warnings, not full functionality
+                        test_description=f"{cmd_info['description']} with options",
+                    )
+                )
 
         return test_cases
 
-    def generate_alias_consistency_tests(self) -> List[DeprecationTestCase]:
+    def generate_alias_consistency_tests(self) -> list[DeprecationTestCase]:
         """Generate tests for command alias consistency."""
         test_cases = []
 
@@ -292,17 +298,19 @@ class DeprecationTestGenerator:
         equivalent_commands = [
             (["ingest-ohlcv"], ["ohlcv", "ingest"]),
             (["validate-ohlcv"], ["ohlcv", "validate"]),
-            (["aggregate-ohlcv"], ["ohlcv", "aggregate"])
+            (["aggregate-ohlcv"], ["ohlcv", "aggregate"]),
         ]
 
         for primary_cmd, alias_cmd in equivalent_commands:
-            test_cases.append(DeprecationTestCase(
-                deprecated_command=alias_cmd,  # Test alias as "deprecated"
-                replacement_command=primary_cmd,
-                options={"--help": True},
-                expected_warning_patterns=[],  # Aliases shouldn't warn
-                test_description=f"Alias consistency: {' '.join(alias_cmd)} vs {' '.join(primary_cmd)}"
-            ))
+            test_cases.append(
+                DeprecationTestCase(
+                    deprecated_command=alias_cmd,  # Test alias as "deprecated"
+                    replacement_command=primary_cmd,
+                    options={"--help": True},
+                    expected_warning_patterns=[],  # Aliases shouldn't warn
+                    test_description=f"Alias consistency: {' '.join(alias_cmd)} vs {' '.join(primary_cmd)}",
+                )
+            )
 
         return test_cases
 
@@ -310,10 +318,10 @@ class DeprecationTestGenerator:
 class ConfigurationCompatibilityValidator:
     """Validates configuration file backward compatibility."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
 
-    def validate_config_schema_compatibility(self) -> List[str]:
+    def validate_config_schema_compatibility(self) -> list[str]:
         """Validate that old configuration schemas still work."""
         compatibility_issues = []
 
@@ -321,7 +329,7 @@ class ConfigurationCompatibilityValidator:
         legacy_configs = [
             self._generate_v1_config(),
             self._generate_minimal_config(),
-            self._generate_mixed_format_config()
+            self._generate_mixed_format_config(),
         ]
 
         for config_name, config_data in legacy_configs:
@@ -330,7 +338,7 @@ class ConfigurationCompatibilityValidator:
 
         return compatibility_issues
 
-    def _generate_v1_config(self) -> Tuple[str, Dict[str, Any]]:
+    def _generate_v1_config(self) -> tuple[str, dict[str, Any]]:
         """Generate a version 1 style configuration."""
         config = {
             "provider": "fake",  # Old style single provider
@@ -339,40 +347,34 @@ class ConfigurationCompatibilityValidator:
             "end_date": "2023-01-31",
             "output_dir": "data/parquet",
             "batch_size": 1000,
-            "workers": 4
+            "workers": 4,
         }
         return "v1_config", config
 
-    def _generate_minimal_config(self) -> Tuple[str, Dict[str, Any]]:
+    def _generate_minimal_config(self) -> tuple[str, dict[str, Any]]:
         """Generate a minimal configuration."""
         config = {
-            "ingestion": {
-                "symbols": ["AAPL"],
-                "start_date": "2023-01-01",
-                "end_date": "2023-01-01"
-            }
+            "ingestion": {"symbols": ["AAPL"], "start_date": "2023-01-01", "end_date": "2023-01-01"}
         }
         return "minimal_config", config
 
-    def _generate_mixed_format_config(self) -> Tuple[str, Dict[str, Any]]:
+    def _generate_mixed_format_config(self) -> tuple[str, dict[str, Any]]:
         """Generate a mixed format configuration."""
         config = {
-            "providers": {
-                "fake": {
-                    "feed_type": "iex"
-                }
-            },
+            "providers": {"fake": {"feed_type": "iex"}},
             "provider": "fake",  # Mix old and new style
             "ingestion": {
                 "symbols": ["AAPL"],
                 "start_date": "2023-01-01",
                 "end_date": "2023-01-01",
-                "output_dir": "data/test"
-            }
+                "output_dir": "data/test",
+            },
         }
         return "mixed_format_config", config
 
-    def _test_config_compatibility(self, config_name: str, config_data: Dict[str, Any]) -> List[str]:
+    def _test_config_compatibility(
+        self, config_name: str, config_data: dict[str, Any]
+    ) -> list[str]:
         """Test compatibility of a specific configuration."""
         issues = []
 
@@ -382,22 +384,22 @@ class ConfigurationCompatibilityValidator:
                 config_file = temp_path / f"{config_name}.yaml"
 
                 # Write config file
-                with open(config_file, 'w') as f:
+                with open(config_file, "w") as f:
                     yaml.dump(config_data, f)
 
                 # Test with current ingest command
                 cmd = [
-                    "python", "-m", "marketpipe", "ingest-ohlcv",
-                    "--config", str(config_file),
-                    "--help"  # Just test that config is parsed
+                    "python",
+                    "-m",
+                    "marketpipe",
+                    "ingest-ohlcv",
+                    "--config",
+                    str(config_file),
+                    "--help",  # Just test that config is parsed
                 ]
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=self.base_dir
+                    cmd, capture_output=True, text=True, timeout=30, cwd=self.base_dir
                 )
 
                 if result.returncode != 0:
@@ -433,7 +435,9 @@ class TestCLIBackwardCompatibility:
         """Configuration compatibility validator fixture."""
         return ConfigurationCompatibilityValidator()
 
-    def test_deprecated_commands_show_warnings(self, deprecation_generator, compatibility_validator):
+    def test_deprecated_commands_show_warnings(
+        self, deprecation_generator, compatibility_validator
+    ):
         """Test that deprecated commands show appropriate warnings."""
         test_cases = deprecation_generator.generate_deprecated_command_tests()
         validation_failures = []
@@ -442,10 +446,14 @@ class TestCLIBackwardCompatibility:
             result = compatibility_validator.validate_deprecated_command(test_case)
 
             if result.issues:
-                validation_failures.extend([f"{test_case.test_description}: {issue}" for issue in result.issues])
+                validation_failures.extend(
+                    [f"{test_case.test_description}: {issue}" for issue in result.issues]
+                )
 
         if validation_failures:
-            pytest.fail("Deprecated command validation failures:\n" + "\n".join(validation_failures))
+            pytest.fail(
+                "Deprecated command validation failures:\n" + "\n".join(validation_failures)
+            )
 
     def test_deprecated_commands_still_work(self, deprecation_generator, compatibility_validator):
         """Test that deprecated commands still provide functionality."""
@@ -457,10 +465,14 @@ class TestCLIBackwardCompatibility:
                 result = compatibility_validator.validate_deprecated_command(test_case)
 
                 if not result.functionality_works:
-                    functionality_failures.append(f"{test_case.test_description}: Does not work - exit code {result.exit_code}")
+                    functionality_failures.append(
+                        f"{test_case.test_description}: Does not work - exit code {result.exit_code}"
+                    )
 
         if functionality_failures:
-            pytest.fail("Deprecated command functionality failures:\n" + "\n".join(functionality_failures))
+            pytest.fail(
+                "Deprecated command functionality failures:\n" + "\n".join(functionality_failures)
+            )
 
     def test_command_alias_consistency(self, deprecation_generator, compatibility_validator):
         """Test that command aliases provide consistent behavior."""
@@ -476,13 +488,13 @@ class TestCLIBackwardCompatibility:
 
             # Test output equivalence
             equivalent, differences = compatibility_validator.compare_command_outputs(
-                test_case.deprecated_command,
-                test_case.replacement_command,
-                test_case.options
+                test_case.deprecated_command, test_case.replacement_command, test_case.options
             )
 
             if not equivalent:
-                consistency_failures.append(f"{test_case.test_description}: Output differs - {differences}")
+                consistency_failures.append(
+                    f"{test_case.test_description}: Output differs - {differences}"
+                )
 
         if consistency_failures:
             pytest.fail("Command alias consistency failures:\n" + "\n".join(consistency_failures))
@@ -499,10 +511,7 @@ class TestCLIBackwardCompatibility:
         error_consistency_failures = []
 
         # Test invalid option handling
-        command_pairs = [
-            (["ingest"], ["ingest-ohlcv"]),
-            (["validate"], ["validate-ohlcv"])
-        ]
+        command_pairs = [(["ingest"], ["ingest-ohlcv"]), (["validate"], ["validate-ohlcv"])]
 
         for deprecated_cmd, new_cmd in command_pairs:
             try:
@@ -515,14 +524,18 @@ class TestCLIBackwardCompatibility:
 
                 # For error cases, we expect both to fail similarly
                 if not equivalent and "Exit codes differ" not in str(differences):
-                    error_consistency_failures.append(f"{deprecated_cmd} vs {new_cmd}: Error handling differs")
+                    error_consistency_failures.append(
+                        f"{deprecated_cmd} vs {new_cmd}: Error handling differs"
+                    )
 
             except Exception:
                 # This is expected for invalid options
                 pass
 
         if error_consistency_failures:
-            pytest.fail("Error message consistency failures:\n" + "\n".join(error_consistency_failures))
+            pytest.fail(
+                "Error message consistency failures:\n" + "\n".join(error_consistency_failures)
+            )
 
     def test_migration_guidance(self, deprecation_generator, compatibility_validator):
         """Test that deprecated commands provide clear migration guidance."""
@@ -534,7 +547,9 @@ class TestCLIBackwardCompatibility:
 
             # Should suggest replacement command
             if not result.replacement_suggested and test_case.replacement_command:
-                migration_failures.append(f"{test_case.test_description}: No replacement command suggested")
+                migration_failures.append(
+                    f"{test_case.test_description}: No replacement command suggested"
+                )
 
             # Should provide clear guidance
             combined_output = (result.output + result.error_output).lower()
@@ -542,7 +557,9 @@ class TestCLIBackwardCompatibility:
 
             has_guidance = any(keyword in combined_output for keyword in guidance_keywords)
             if not has_guidance:
-                migration_failures.append(f"{test_case.test_description}: No clear migration guidance")
+                migration_failures.append(
+                    f"{test_case.test_description}: No clear migration guidance"
+                )
 
         if migration_failures:
             pytest.fail("Migration guidance failures:\n" + "\n".join(migration_failures))

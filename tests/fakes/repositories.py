@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.ingestion.domain.entities import (
@@ -27,30 +26,30 @@ class FakeIngestionJobRepository(IIngestionJobRepository):
     """In-memory fake repository for ingestion jobs."""
 
     def __init__(self):
-        self._jobs: Dict[IngestionJobId, IngestionJob] = {}
-        self._save_calls: List[IngestionJobId] = []
+        self._jobs: dict[IngestionJobId, IngestionJob] = {}
+        self._save_calls: list[IngestionJobId] = []
 
     async def save(self, job: IngestionJob) -> None:
         """Save an ingestion job."""
         self._jobs[job.job_id] = job
         self._save_calls.append(job.job_id)
 
-    async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
+    async def get_by_id(self, job_id: IngestionJobId) -> IngestionJob | None:
         """Retrieve an ingestion job by its ID."""
         return self._jobs.get(job_id)
 
-    async def get_by_state(self, state: ProcessingState) -> List[IngestionJob]:
+    async def get_by_state(self, state: ProcessingState) -> list[IngestionJob]:
         """Get all jobs in a specific state."""
         return [job for job in self._jobs.values() if job.state == state]
 
-    async def get_active_jobs(self) -> List[IngestionJob]:
+    async def get_active_jobs(self) -> list[IngestionJob]:
         """Get all jobs that are currently active."""
         active_states = {ProcessingState.PENDING, ProcessingState.IN_PROGRESS}
         return [job for job in self._jobs.values() if job.state in active_states]
 
     async def get_jobs_by_date_range(
         self, start_date: datetime, end_date: datetime
-    ) -> List[IngestionJob]:
+    ) -> list[IngestionJob]:
         """Get jobs created within a date range."""
         return [job for job in self._jobs.values() if start_date <= job.created_at <= end_date]
 
@@ -61,13 +60,13 @@ class FakeIngestionJobRepository(IIngestionJobRepository):
             return True
         return False
 
-    async def get_job_history(self, limit: int = 100) -> List[IngestionJob]:
+    async def get_job_history(self, limit: int = 100) -> list[IngestionJob]:
         """Get recent job history."""
         jobs = list(self._jobs.values())
         jobs.sort(key=lambda job: job.created_at, reverse=True)
         return jobs[:limit]
 
-    async def count_jobs_by_state(self) -> Dict[ProcessingState, int]:
+    async def count_jobs_by_state(self) -> dict[ProcessingState, int]:
         """Count jobs grouped by their processing state."""
         counts = {}
         for state in ProcessingState:
@@ -75,11 +74,11 @@ class FakeIngestionJobRepository(IIngestionJobRepository):
         return counts
 
     # Test helpers
-    def get_saved_jobs(self) -> List[IngestionJob]:
+    def get_saved_jobs(self) -> list[IngestionJob]:
         """Get all saved jobs (for testing)."""
         return list(self._jobs.values())
 
-    def get_save_calls(self) -> List[IngestionJobId]:
+    def get_save_calls(self) -> list[IngestionJobId]:
         """Get list of job IDs that were saved (for testing)."""
         return self._save_calls.copy()
 
@@ -93,8 +92,8 @@ class FakeIngestionCheckpointRepository(IIngestionCheckpointRepository):
     """In-memory fake repository for ingestion checkpoints."""
 
     def __init__(self):
-        self._checkpoints: Dict[tuple[IngestionJobId, Symbol], IngestionCheckpoint] = {}
-        self._save_calls: List[tuple[IngestionJobId, IngestionCheckpoint]] = []
+        self._checkpoints: dict[tuple[IngestionJobId, Symbol], IngestionCheckpoint] = {}
+        self._save_calls: list[tuple[IngestionJobId, IngestionCheckpoint]] = []
 
     async def save_checkpoint(
         self, job_id: IngestionJobId, checkpoint: IngestionCheckpoint
@@ -106,12 +105,12 @@ class FakeIngestionCheckpointRepository(IIngestionCheckpointRepository):
 
     async def get_checkpoint(
         self, job_id: IngestionJobId, symbol: Symbol
-    ) -> Optional[IngestionCheckpoint]:
+    ) -> IngestionCheckpoint | None:
         """Get the latest checkpoint for a job and symbol."""
         key = (job_id, symbol)
         return self._checkpoints.get(key)
 
-    async def get_all_checkpoints(self, job_id: IngestionJobId) -> List[IngestionCheckpoint]:
+    async def get_all_checkpoints(self, job_id: IngestionJobId) -> list[IngestionCheckpoint]:
         """Get all checkpoints for a specific job."""
         return [
             checkpoint for (jid, symbol), checkpoint in self._checkpoints.items() if jid == job_id
@@ -123,7 +122,7 @@ class FakeIngestionCheckpointRepository(IIngestionCheckpointRepository):
         for key in keys_to_delete:
             del self._checkpoints[key]
 
-    async def get_global_checkpoint(self, symbol: Symbol) -> Optional[IngestionCheckpoint]:
+    async def get_global_checkpoint(self, symbol: Symbol) -> IngestionCheckpoint | None:
         """Get the most recent checkpoint for a symbol across all jobs."""
         symbol_checkpoints = [
             checkpoint for (job_id, sym), checkpoint in self._checkpoints.items() if sym == symbol
@@ -146,11 +145,11 @@ class FakeIngestionCheckpointRepository(IIngestionCheckpointRepository):
         return len(keys_to_delete)
 
     # Test helpers
-    def get_saved_checkpoints(self) -> List[IngestionCheckpoint]:
+    def get_saved_checkpoints(self) -> list[IngestionCheckpoint]:
         """Get all saved checkpoints (for testing)."""
         return list(self._checkpoints.values())
 
-    def get_save_calls(self) -> List[tuple[IngestionJobId, IngestionCheckpoint]]:
+    def get_save_calls(self) -> list[tuple[IngestionJobId, IngestionCheckpoint]]:
         """Get list of checkpoints that were saved (for testing)."""
         return self._save_calls.copy()
 
@@ -164,28 +163,28 @@ class FakeIngestionMetricsRepository(IIngestionMetricsRepository):
     """In-memory fake repository for ingestion metrics."""
 
     def __init__(self):
-        self._metrics: Dict[IngestionJobId, ProcessingMetrics] = {}
-        self._save_calls: List[tuple[IngestionJobId, ProcessingMetrics]] = []
+        self._metrics: dict[IngestionJobId, ProcessingMetrics] = {}
+        self._save_calls: list[tuple[IngestionJobId, ProcessingMetrics]] = []
 
     async def save_metrics(self, job_id: IngestionJobId, metrics: ProcessingMetrics) -> None:
         """Save processing metrics for a job."""
         self._metrics[job_id] = metrics
         self._save_calls.append((job_id, metrics))
 
-    async def get_metrics(self, job_id: IngestionJobId) -> Optional[ProcessingMetrics]:
+    async def get_metrics(self, job_id: IngestionJobId) -> ProcessingMetrics | None:
         """Get metrics for a specific job."""
         return self._metrics.get(job_id)
 
     async def get_metrics_history(
         self, start_date: datetime, end_date: datetime
-    ) -> List[tuple[IngestionJobId, ProcessingMetrics]]:
+    ) -> list[tuple[IngestionJobId, ProcessingMetrics]]:
         """Get metrics for jobs within a date range."""
         # Simplified implementation for testing
         return list(self._metrics.items())
 
     async def get_average_metrics(
         self, start_date: datetime, end_date: datetime
-    ) -> Optional[ProcessingMetrics]:
+    ) -> ProcessingMetrics | None:
         """Calculate average metrics across jobs in a date range."""
         if not self._metrics:
             return None
@@ -207,7 +206,7 @@ class FakeIngestionMetricsRepository(IIngestionMetricsRepository):
             average_processing_time_per_symbol=avg_time_per_symbol,
         )
 
-    async def get_performance_trends(self, days: int = 30) -> List[tuple[datetime, float]]:
+    async def get_performance_trends(self, days: int = 30) -> list[tuple[datetime, float]]:
         """Get daily average processing performance over time."""
         # Simplified implementation for testing
         if not self._metrics:
@@ -221,11 +220,11 @@ class FakeIngestionMetricsRepository(IIngestionMetricsRepository):
         return [(datetime.now(), avg_performance)]
 
     # Test helpers
-    def get_saved_metrics(self) -> Dict[IngestionJobId, ProcessingMetrics]:
+    def get_saved_metrics(self) -> dict[IngestionJobId, ProcessingMetrics]:
         """Get all saved metrics (for testing)."""
         return self._metrics.copy()
 
-    def get_save_calls(self) -> List[tuple[IngestionJobId, ProcessingMetrics]]:
+    def get_save_calls(self) -> list[tuple[IngestionJobId, ProcessingMetrics]]:
         """Get list of metrics that were saved (for testing)."""
         return self._save_calls.copy()
 

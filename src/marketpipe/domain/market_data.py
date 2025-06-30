@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional
 
 from .entities import OHLCVBar
 from .value_objects import Symbol, TimeRange
@@ -25,9 +24,9 @@ class ProviderMetadata:
     provider_name: str
     supports_real_time: bool
     supports_historical: bool
-    rate_limit_per_minute: Optional[int]
+    rate_limit_per_minute: int | None
     minimum_time_resolution: str  # e.g. "1m"
-    maximum_history_days: Optional[int]
+    maximum_history_days: int | None
 
 
 # ---------- domain port ----------
@@ -40,7 +39,7 @@ class IMarketDataProvider(ABC):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """
         Fetch OHLCV bars for a symbol within a time range.
 
@@ -59,7 +58,7 @@ class IMarketDataProvider(ABC):
         ...
 
     @abstractmethod
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """
         Get list of symbols supported by this provider.
 

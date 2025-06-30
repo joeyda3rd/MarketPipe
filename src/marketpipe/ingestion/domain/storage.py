@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from marketpipe.domain.entities import OHLCVBar
 
@@ -14,7 +13,7 @@ class IDataStorage(ABC):
 
     @abstractmethod
     async def store_bars(
-        self, bars: List[OHLCVBar], config: IngestionConfiguration
+        self, bars: list[OHLCVBar], config: IngestionConfiguration
     ) -> IngestionPartition:
         """Persist bars and return information about the created partition."""
         pass

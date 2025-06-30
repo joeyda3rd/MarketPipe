@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import datetime as dt
 import os
-from typing import Dict, List
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
 
 def write_parquet(
-    rows: List[Dict],
+    rows: list[dict],
     output_root: str,
     overwrite: bool = False,
     compression: str = "snappy",

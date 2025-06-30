@@ -40,6 +40,7 @@ def setup_environment():
     if env_file.exists():
         try:
             from dotenv import load_dotenv
+
             load_dotenv(env_file)
             print(f"✅ Loaded environment from: {env_file}")
         except ImportError:
@@ -53,21 +54,23 @@ def setup_environment():
     os.chdir(project_root)
     print(f"✅ Changed to project directory: {project_root}")
 
+
 def load_env_manually(env_file):
     """Manually load .env file if python-dotenv is not available."""
     try:
         with open(env_file) as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
                     key = key.strip()
                     value = value.strip().strip('"').strip("'")
-                    if value and not value.startswith('your_'):  # Skip template values
+                    if value and not value.startswith("your_"):  # Skip template values
                         os.environ[key] = value
         print("✅ Loaded .env file manually")
     except Exception as e:
         print(f"⚠️ Error loading .env file: {e}")
+
 
 def check_credentials():
     """Check if Alpaca credentials are available."""
@@ -83,9 +86,18 @@ def check_credentials():
         return False
 
     print("✅ Alpaca credentials found")
-    print(f"   ALPACA_KEY: {alpaca_key[:8]}..." if len(alpaca_key) > 8 else "   ALPACA_KEY: (too short)")
-    print(f"   ALPACA_SECRET: {alpaca_secret[:8]}..." if len(alpaca_secret) > 8 else "   ALPACA_SECRET: (too short)")
+    print(
+        f"   ALPACA_KEY: {alpaca_key[:8]}..."
+        if len(alpaca_key) > 8
+        else "   ALPACA_KEY: (too short)"
+    )
+    print(
+        f"   ALPACA_SECRET: {alpaca_secret[:8]}..."
+        if len(alpaca_secret) > 8
+        else "   ALPACA_SECRET: (too short)"
+    )
     return True
+
 
 def run_command(cmd, description, timeout=300):
     """Run a command with proper error handling."""
@@ -100,7 +112,7 @@ def run_command(cmd, description, timeout=300):
             text=True,
             timeout=timeout,
             cwd=Path.cwd(),
-            env=os.environ.copy()  # Use updated environment
+            env=os.environ.copy(),  # Use updated environment
         )
         execution_time = time.time() - start_time
 
@@ -108,18 +120,18 @@ def run_command(cmd, description, timeout=300):
             print(f"✅ {description} completed in {execution_time:.1f}s")
             if result.stdout.strip():
                 print("   Output:")
-                for line in result.stdout.strip().split('\n'):
+                for line in result.stdout.strip().split("\n"):
                     print(f"     {line}")
             return True
         else:
             print(f"❌ {description} failed (exit code {result.returncode})")
             if result.stderr.strip():
                 print("   Error:")
-                for line in result.stderr.strip().split('\n')[:10]:  # Limit error output
+                for line in result.stderr.strip().split("\n")[:10]:  # Limit error output
                     print(f"     {line}")
             if result.stdout.strip():
                 print("   Output:")
-                for line in result.stdout.strip().split('\n')[:10]:  # Limit output
+                for line in result.stdout.strip().split("\n")[:10]:  # Limit output
                     print(f"     {line}")
             return False
 
@@ -130,32 +142,44 @@ def run_command(cmd, description, timeout=300):
         print(f"❌ {description} failed with exception: {e}")
         return False
 
+
 def test_simple_ingestion():
     """Test with a simple ingestion to verify the system works."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🧪 TESTING WITH FAKE PROVIDER")
-    print("="*60)
+    print("=" * 60)
 
     # Use a recent date that should be valid
     test_date = (date.today() - timedelta(days=30)).strftime("%Y-%m-%d")
 
     cmd = [
-        sys.executable, "-m", "marketpipe", "ingest-ohlcv",
-        "--provider", "fake",
-        "--symbols", "AAPL",
-        "--start", test_date,
-        "--end", test_date,
-        "--output", "./test_output",
-        "--workers", "1",
-        "--batch-size", "100"
+        sys.executable,
+        "-m",
+        "marketpipe",
+        "ingest-ohlcv",
+        "--provider",
+        "fake",
+        "--symbols",
+        "AAPL",
+        "--start",
+        test_date,
+        "--end",
+        test_date,
+        "--output",
+        "./test_output",
+        "--workers",
+        "1",
+        "--batch-size",
+        "100",
     ]
 
     return run_command(cmd, "Test ingestion with fake provider", timeout=60)
 
+
 def main():
     """Main function."""
     print("🚀 MarketPipe Pipeline Runner (Fixed)")
-    print("="*60)
+    print("=" * 60)
 
     # Setup environment
     print("\n📦 Setting up environment...")
@@ -166,9 +190,9 @@ def main():
     credentials_ok = check_credentials()
 
     if not credentials_ok:
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("❌ CREDENTIAL SETUP REQUIRED")
-        print("="*60)
+        print("=" * 60)
         print("To get Alpaca credentials:")
         print("1. Go to https://alpaca.markets/")
         print("2. Sign up for a free account")
@@ -194,17 +218,17 @@ def main():
     # Check command line arguments
     execute = "--execute" in sys.argv
     if not execute:
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("🔍 DRY RUN MODE")
-        print("="*60)
+        print("=" * 60)
         print("Add --execute to run the full pipeline")
         print("Example: python scripts/run_pipeline_fixed.py --execute")
         return
 
     # Run the original pipeline script with fixed environment
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🚀 RUNNING FULL PIPELINE")
-    print("="*60)
+    print("=" * 60)
 
     cmd = [sys.executable, "scripts/run_full_pipeline.py", "--execute"]
     success = run_command(cmd, "Full pipeline execution", timeout=1800)  # 30 minutes
@@ -213,6 +237,7 @@ def main():
         print("\n🎉 Pipeline completed successfully!")
     else:
         print("\n❌ Pipeline failed. Check the logs above for details.")
+
 
 if __name__ == "__main__":
     main()

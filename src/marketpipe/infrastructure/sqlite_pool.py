@@ -12,13 +12,12 @@ import threading
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
 # Global state for connection pools
 _lock = threading.Lock()
-_pools: Dict[str, List[sqlite3.Connection]] = {}
+_pools: dict[str, list[sqlite3.Connection]] = {}
 
 __all__ = ["connection", "get_pool", "close_all_pools", "get_pool_stats"]
 
@@ -44,7 +43,7 @@ def _init_conn(path: Path) -> sqlite3.Connection:
     return conn
 
 
-def get_pool(path: Path) -> List[sqlite3.Connection]:
+def get_pool(path: Path) -> list[sqlite3.Connection]:
     """Get or create connection pool for database path."""
     path_str = str(path)
 
@@ -113,7 +112,7 @@ def close_all_pools() -> None:
         logger.info("Closed all connection pools")
 
 
-def get_pool_stats() -> Dict[str, int]:
+def get_pool_stats() -> dict[str, int]:
     """Get statistics about current connection pools."""
     with _lock:
         return {path: len(pool) for path, pool in _pools.items()}

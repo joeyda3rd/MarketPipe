@@ -23,7 +23,7 @@ async def demo_metrics_server():
     # Start metrics server on port 8000
     print("\n1. Starting metrics server on http://localhost:8000/metrics...")
     try:
-        metrics_server = await start_async_server(port=8000, host="localhost")
+        await start_async_server(port=8000, host="localhost")
         print("   ✅ Metrics server started successfully")
     except RuntimeError as e:
         print(f"   ❌ Error: {e}")

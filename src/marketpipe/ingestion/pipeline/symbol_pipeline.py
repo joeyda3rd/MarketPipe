@@ -108,7 +108,7 @@ def diff_snapshot(conn: duckdb.DuckDBPyConnection) -> tuple[int, int]:
             # This prevents duplicate inserts in the simple case
             conn.execute(
                 """
-                INSERT INTO diff_unchanged  
+                INSERT INTO diff_unchanged
                 SELECT * FROM symbols_snapshot
             """
             )

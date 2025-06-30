@@ -81,7 +81,7 @@ def run_scd_update(
             db.execute(
                 """
                 CREATE OR REPLACE TABLE diff_insert_with_ids AS
-                SELECT 
+                SELECT
                     ROW_NUMBER() OVER (ORDER BY natural_key) + $1 AS id,
                     *
                 FROM diff_insert
@@ -112,10 +112,10 @@ def run_scd_update(
                 existing_data = db.execute(
                     """
                     SELECT *,
-                           CASE 
-                               WHEN id IN (SELECT id FROM diff_update) AND valid_to IS NULL 
-                               THEN $1::DATE 
-                               ELSE valid_to 
+                           CASE
+                               WHEN id IN (SELECT id FROM diff_update) AND valid_to IS NULL
+                               THEN $1::DATE
+                               ELSE valid_to
                            END as updated_valid_to
                     FROM symbols_master
                 """,
@@ -227,8 +227,8 @@ def run_scd_update(
         if insert_count > 0 or update_count > 0:
             # Get new rows with consistent column ordering
             column_select = """
-                id, natural_key, symbol, company_name, exchange, asset_type, status, 
-                market_cap, sector, industry, country, currency, 
+                id, natural_key, symbol, company_name, exchange, asset_type, status,
+                market_cap, sector, industry, country, currency,
                 $1 AS valid_from, NULL::DATE AS valid_to, CURRENT_TIMESTAMP AS created_at, as_of
             """
 

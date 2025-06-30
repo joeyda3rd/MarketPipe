@@ -61,13 +61,13 @@ def main() -> None:
 Examples:
   # Run update with default output directory
   python run_scd_update.py /tmp/symbols.db
-  
+
   # Run update with custom output directory
   python run_scd_update.py /tmp/symbols.db --out /data/warehouse/symbols_master
-  
+
   # Dry run to see what would be changed
   python run_scd_update.py /tmp/symbols.db --dry-run
-  
+
   # Verbose logging
   python run_scd_update.py /tmp/symbols.db --verbose
         """,

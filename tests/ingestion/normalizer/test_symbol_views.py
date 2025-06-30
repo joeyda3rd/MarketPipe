@@ -307,9 +307,9 @@ class TestSymbolViews:
 
         try:
             refresh(":memory:", connection=conn)
-            assert False, "Should have raised an exception"
+            raise AssertionError("Should have raised an exception")
         except FileNotFoundError:
-            assert False, "SQL file should exist"
+            raise AssertionError("SQL file should exist")
         except RuntimeError as e:
             assert "symbols_master table not found" in str(
                 e

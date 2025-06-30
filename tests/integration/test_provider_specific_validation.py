@@ -19,7 +19,6 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import pytest
 
@@ -27,19 +26,21 @@ import pytest
 @dataclass
 class ProviderTestConfig:
     """Configuration for provider-specific testing."""
+
     name: str
     auth_required: bool
-    supported_feed_types: List[str]
-    rate_limit_per_minute: Optional[int]
+    supported_feed_types: list[str]
+    rate_limit_per_minute: int | None
     supports_batch: bool
-    max_batch_size: Optional[int]
-    auth_env_vars: List[str] = field(default_factory=list)
-    special_features: List[str] = field(default_factory=list)
+    max_batch_size: int | None
+    auth_env_vars: list[str] = field(default_factory=list)
+    special_features: list[str] = field(default_factory=list)
 
 
 @dataclass
 class ProviderTestResult:
     """Result of provider-specific testing."""
+
     provider: str
     connection_test: bool = False
     auth_test: bool = False
@@ -48,18 +49,18 @@ class ProviderTestResult:
     error_handling_test: bool = False
     batch_size_test: bool = False
     feed_type_test: bool = False
-    performance_metrics: Dict[str, float] = field(default_factory=dict)
-    error_messages: List[str] = field(default_factory=list)
+    performance_metrics: dict[str, float] = field(default_factory=dict)
+    error_messages: list[str] = field(default_factory=list)
 
 
 class ProviderValidator:
     """Validates individual market data providers."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
         self.provider_configs = self._get_provider_configs()
 
-    def _get_provider_configs(self) -> Dict[str, ProviderTestConfig]:
+    def _get_provider_configs(self) -> dict[str, ProviderTestConfig]:
         """Get configuration for all supported providers."""
         return {
             "fake": ProviderTestConfig(
@@ -69,7 +70,7 @@ class ProviderValidator:
                 rate_limit_per_minute=None,
                 supports_batch=True,
                 max_batch_size=10000,
-                special_features=["deterministic_data", "no_rate_limits"]
+                special_features=["deterministic_data", "no_rate_limits"],
             ),
             "alpaca": ProviderTestConfig(
                 name="alpaca",
@@ -79,7 +80,7 @@ class ProviderValidator:
                 supports_batch=True,
                 max_batch_size=1000,
                 auth_env_vars=["ALPACA_KEY", "ALPACA_SECRET"],
-                special_features=["real_time", "paper_trading"]
+                special_features=["real_time", "paper_trading"],
             ),
             "iex": ProviderTestConfig(
                 name="iex",
@@ -89,7 +90,7 @@ class ProviderValidator:
                 supports_batch=True,
                 max_batch_size=100,
                 auth_env_vars=["IEX_TOKEN"],
-                special_features=["cloud_api"]
+                special_features=["cloud_api"],
             ),
             "polygon": ProviderTestConfig(
                 name="polygon",
@@ -99,7 +100,7 @@ class ProviderValidator:
                 supports_batch=True,
                 max_batch_size=50000,
                 auth_env_vars=["POLYGON_API_KEY"],
-                special_features=["high_throughput", "crypto", "forex"]
+                special_features=["high_throughput", "crypto", "forex"],
             ),
             "finnhub": ProviderTestConfig(
                 name="finnhub",
@@ -109,18 +110,18 @@ class ProviderValidator:
                 supports_batch=False,
                 max_batch_size=None,
                 auth_env_vars=["FINNHUB_API_KEY"],
-                special_features=["news", "earnings", "sentiment"]
-            )
+                special_features=["news", "earnings", "sentiment"],
+            ),
         }
 
     def validate_provider(self, provider_name: str, test_auth: bool = False) -> ProviderTestResult:
         """
         Comprehensive validation of a specific provider.
-        
+
         Args:
             provider_name: Name of provider to validate
             test_auth: Whether to test authentication (requires credentials)
-            
+
         Returns:
             ProviderTestResult with validation details
         """
@@ -169,17 +170,17 @@ class ProviderValidator:
         """Test basic provider connection/availability."""
         try:
             cmd = [
-                "python", "-m", "marketpipe", "ingest-ohlcv",
-                "--provider", config.name,
-                "--help"
+                "python",
+                "-m",
+                "marketpipe",
+                "ingest-ohlcv",
+                "--provider",
+                config.name,
+                "--help",
             ]
 
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=self.base_dir
+                cmd, capture_output=True, text=True, timeout=30, cwd=self.base_dir
             )
 
             return result.returncode == 0
@@ -199,20 +200,24 @@ class ProviderValidator:
                 temp_path = Path(temp_dir)
 
                 cmd = [
-                    "python", "-m", "marketpipe", "ingest-ohlcv",
-                    "--provider", config.name,
-                    "--symbols", "AAPL",
-                    "--start", "2023-01-01",
-                    "--end", "2023-01-01",
-                    "--output", str(temp_path / "data")
+                    "python",
+                    "-m",
+                    "marketpipe",
+                    "ingest-ohlcv",
+                    "--provider",
+                    config.name,
+                    "--symbols",
+                    "AAPL",
+                    "--start",
+                    "2023-01-01",
+                    "--end",
+                    "2023-01-01",
+                    "--output",
+                    str(temp_path / "data"),
                 ]
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=60,
-                    cwd=self.base_dir
+                    cmd, capture_output=True, text=True, timeout=60, cwd=self.base_dir
                 )
 
                 # Success or expected auth error (not crash)
@@ -232,20 +237,24 @@ class ProviderValidator:
                 data_dir = temp_path / "data"
 
                 cmd = [
-                    "python", "-m", "marketpipe", "ingest-ohlcv",
-                    "--provider", config.name,
-                    "--symbols", "AAPL",
-                    "--start", "2023-01-01",
-                    "--end", "2023-01-01",
-                    "--output", str(data_dir)
+                    "python",
+                    "-m",
+                    "marketpipe",
+                    "ingest-ohlcv",
+                    "--provider",
+                    config.name,
+                    "--symbols",
+                    "AAPL",
+                    "--start",
+                    "2023-01-01",
+                    "--end",
+                    "2023-01-01",
+                    "--output",
+                    str(data_dir),
                 ]
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=60,
-                    cwd=self.base_dir
+                    cmd, capture_output=True, text=True, timeout=60, cwd=self.base_dir
                 )
 
                 if result.returncode == 0:
@@ -271,20 +280,24 @@ class ProviderValidator:
         try:
             # Test with invalid symbol
             cmd = [
-                "python", "-m", "marketpipe", "ingest-ohlcv",
-                "--provider", config.name,
-                "--symbols", "INVALID_SYMBOL_12345",
-                "--start", "2023-01-01",
-                "--end", "2023-01-01",
-                "--output", "/tmp/test_error"
+                "python",
+                "-m",
+                "marketpipe",
+                "ingest-ohlcv",
+                "--provider",
+                config.name,
+                "--symbols",
+                "INVALID_SYMBOL_12345",
+                "--start",
+                "2023-01-01",
+                "--end",
+                "2023-01-01",
+                "--output",
+                "/tmp/test_error",
             ]
 
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=self.base_dir
+                cmd, capture_output=True, text=True, timeout=30, cwd=self.base_dir
             )
 
             # Should either succeed (fake provider) or fail gracefully
@@ -302,21 +315,26 @@ class ProviderValidator:
             # Test with small batch size
             with tempfile.TemporaryDirectory() as temp_dir:
                 cmd = [
-                    "python", "-m", "marketpipe", "ingest-ohlcv",
-                    "--provider", config.name,
-                    "--symbols", "AAPL",
-                    "--start", "2023-01-01",
-                    "--end", "2023-01-01",
-                    "--batch-size", "10",
-                    "--output", str(Path(temp_dir) / "data")
+                    "python",
+                    "-m",
+                    "marketpipe",
+                    "ingest-ohlcv",
+                    "--provider",
+                    config.name,
+                    "--symbols",
+                    "AAPL",
+                    "--start",
+                    "2023-01-01",
+                    "--end",
+                    "2023-01-01",
+                    "--batch-size",
+                    "10",
+                    "--output",
+                    str(Path(temp_dir) / "data"),
                 ]
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=self.base_dir
+                    cmd, capture_output=True, text=True, timeout=30, cwd=self.base_dir
                 )
 
                 # Should handle small batch sizes
@@ -332,18 +350,19 @@ class ProviderValidator:
         for feed_type in config.supported_feed_types:
             try:
                 cmd = [
-                    "python", "-m", "marketpipe", "ingest-ohlcv",
-                    "--provider", config.name,
-                    "--feed-type", feed_type,
-                    "--help"
+                    "python",
+                    "-m",
+                    "marketpipe",
+                    "ingest-ohlcv",
+                    "--provider",
+                    config.name,
+                    "--feed-type",
+                    feed_type,
+                    "--help",
                 ]
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=self.base_dir
+                    cmd, capture_output=True, text=True, timeout=30, cwd=self.base_dir
                 )
 
                 if result.returncode == 0:
@@ -355,7 +374,7 @@ class ProviderValidator:
         # Should support at least one feed type
         return success_count > 0
 
-    def _measure_provider_performance(self, config: ProviderTestConfig) -> Dict[str, float]:
+    def _measure_provider_performance(self, config: ProviderTestConfig) -> dict[str, float]:
         """Measure provider performance metrics."""
         metrics = {}
 
@@ -369,20 +388,24 @@ class ProviderValidator:
                 start_time = time.time()
 
                 cmd = [
-                    "python", "-m", "marketpipe", "ingest-ohlcv",
-                    "--provider", config.name,
-                    "--symbols", "AAPL,MSFT,GOOGL",
-                    "--start", "2023-01-01",
-                    "--end", "2023-01-03",
-                    "--output", str(temp_path / "data")
+                    "python",
+                    "-m",
+                    "marketpipe",
+                    "ingest-ohlcv",
+                    "--provider",
+                    config.name,
+                    "--symbols",
+                    "AAPL,MSFT,GOOGL",
+                    "--start",
+                    "2023-01-01",
+                    "--end",
+                    "2023-01-03",
+                    "--output",
+                    str(temp_path / "data"),
                 ]
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=60,
-                    cwd=self.base_dir
+                    cmd, capture_output=True, text=True, timeout=60, cwd=self.base_dir
                 )
 
                 execution_time = time.time() - start_time
@@ -454,17 +477,17 @@ class TestProviderSpecificValidation:
         for provider in providers:
             try:
                 cmd = [
-                    "python", "-m", "marketpipe", "ingest-ohlcv",
-                    "--provider", provider,
-                    "--help"
+                    "python",
+                    "-m",
+                    "marketpipe",
+                    "ingest-ohlcv",
+                    "--provider",
+                    provider,
+                    "--help",
                 ]
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=provider_validator.base_dir
+                    cmd, capture_output=True, text=True, timeout=30, cwd=provider_validator.base_dir
                 )
 
                 if result.returncode == 0:
@@ -472,7 +495,9 @@ class TestProviderSpecificValidation:
 
                     # Should contain standard help elements
                     required_elements = ["usage:", "options:", "--symbols", "--start", "--end"]
-                    missing_elements = [elem for elem in required_elements if elem not in help_output]
+                    missing_elements = [
+                        elem for elem in required_elements if elem not in help_output
+                    ]
 
                     if missing_elements:
                         inconsistent_help.append(f"{provider}: Missing {missing_elements}")
@@ -492,7 +517,7 @@ class TestProviderSpecificValidation:
             "alpaca": ["iex", "sip"],
             "iex": ["iex"],
             "polygon": ["sip"],
-            "finnhub": ["finnhub"]
+            "finnhub": ["finnhub"],
         }
 
         feed_type_failures = []
@@ -501,10 +526,15 @@ class TestProviderSpecificValidation:
             for feed_type in feed_types:
                 try:
                     cmd = [
-                        "python", "-m", "marketpipe", "ingest-ohlcv",
-                        "--provider", provider,
-                        "--feed-type", feed_type,
-                        "--help"
+                        "python",
+                        "-m",
+                        "marketpipe",
+                        "ingest-ohlcv",
+                        "--provider",
+                        provider,
+                        "--feed-type",
+                        feed_type,
+                        "--help",
                     ]
 
                     result = subprocess.run(
@@ -512,7 +542,7 @@ class TestProviderSpecificValidation:
                         capture_output=True,
                         text=True,
                         timeout=30,
-                        cwd=provider_validator.base_dir
+                        cwd=provider_validator.base_dir,
                     )
 
                     if result.returncode != 0:
@@ -553,20 +583,24 @@ class TestProviderSpecificValidation:
             try:
                 # Test with invalid date format
                 cmd = [
-                    "python", "-m", "marketpipe", "ingest-ohlcv",
-                    "--provider", provider,
-                    "--symbols", "AAPL",
-                    "--start", "invalid-date",
-                    "--end", "2023-01-01",
-                    "--output", "/tmp/test"
+                    "python",
+                    "-m",
+                    "marketpipe",
+                    "ingest-ohlcv",
+                    "--provider",
+                    provider,
+                    "--symbols",
+                    "AAPL",
+                    "--start",
+                    "invalid-date",
+                    "--end",
+                    "2023-01-01",
+                    "--output",
+                    "/tmp/test",
                 ]
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=provider_validator.base_dir
+                    cmd, capture_output=True, text=True, timeout=30, cwd=provider_validator.base_dir
                 )
 
                 if result.returncode != 0:
@@ -574,7 +608,9 @@ class TestProviderSpecificValidation:
 
                     # Should contain helpful error message
                     if "date" not in error_output and "invalid" not in error_output:
-                        error_message_failures.append(f"{provider}: Unhelpful error message for invalid date")
+                        error_message_failures.append(
+                            f"{provider}: Unhelpful error message for invalid date"
+                        )
                 else:
                     error_message_failures.append(f"{provider}: Should reject invalid date format")
 
@@ -592,8 +628,9 @@ class TestProviderSpecificValidation:
 
         # Fake provider should complete quickly
         if "execution_time_seconds" in metrics:
-            assert metrics["execution_time_seconds"] < 30, \
-                f"Fake provider too slow: {metrics['execution_time_seconds']}s"
+            assert (
+                metrics["execution_time_seconds"] < 30
+            ), f"Fake provider too slow: {metrics['execution_time_seconds']}s"
 
         # Should create files
         if "files_created" in metrics:
@@ -601,8 +638,9 @@ class TestProviderSpecificValidation:
 
         # Should have reasonable throughput
         if "files_per_second" in metrics:
-            assert metrics["files_per_second"] > 0.1, \
-                f"Fake provider throughput too low: {metrics['files_per_second']} files/sec"
+            assert (
+                metrics["files_per_second"] > 0.1
+            ), f"Fake provider throughput too low: {metrics['files_per_second']} files/sec"
 
 
 if __name__ == "__main__":
@@ -627,7 +665,7 @@ if __name__ == "__main__":
             ("Rate Limiting", result.rate_limit_test),
             ("Error Handling", result.error_handling_test),
             ("Batch Size", result.batch_size_test),
-            ("Feed Types", result.feed_type_test)
+            ("Feed Types", result.feed_type_test),
         ]
 
         for test_name, test_result in tests:

@@ -13,7 +13,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable
 
 import pytest
 
@@ -21,11 +21,12 @@ import pytest
 @dataclass
 class E2ETestResult:
     """Individual test result data."""
+
     name: str
     status: str  # "PASS", "FAIL", "SKIP", "ERROR"
     duration_seconds: float
-    error_message: Optional[str] = None
-    metadata: Dict[str, Any] = None
+    error_message: str | None = None
+    metadata: dict[str, Any] = None
 
     def __post_init__(self):
         if self.metadata is None:
@@ -35,6 +36,7 @@ class E2ETestResult:
 @dataclass
 class E2ETestSuiteResult:
     """Test suite execution results."""
+
     suite_name: str
     start_time: datetime
     end_time: datetime
@@ -44,8 +46,8 @@ class E2ETestSuiteResult:
     skipped: int
     errors: int
     duration_seconds: float
-    test_results: List[E2ETestResult]
-    system_info: Dict[str, Any]
+    test_results: list[E2ETestResult]
+    system_info: dict[str, Any]
 
     @property
     def success_rate(self) -> float:
@@ -55,7 +57,9 @@ class E2ETestSuiteResult:
     @property
     def failure_rate(self) -> float:
         """Calculate failure rate as percentage."""
-        return ((self.failed + self.errors) / self.total_tests * 100) if self.total_tests > 0 else 0.0
+        return (
+            ((self.failed + self.errors) / self.total_tests * 100) if self.total_tests > 0 else 0.0
+        )
 
 
 class E2ETestOrchestrator:
@@ -64,14 +68,14 @@ class E2ETestOrchestrator:
     def __init__(self, output_dir: Path):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.results: List[E2ETestSuiteResult] = []
+        self.results: list[E2ETestSuiteResult] = []
 
     def run_test_suite(
         self,
         suite_name: str,
-        test_functions: List[Callable],
-        setup_func: Optional[Callable] = None,
-        teardown_func: Optional[Callable] = None
+        test_functions: list[Callable],
+        setup_func: Callable | None = None,
+        teardown_func: Callable | None = None,
     ) -> E2ETestSuiteResult:
         """Run a complete test suite with setup/teardown."""
 
@@ -109,12 +113,14 @@ class E2ETestOrchestrator:
         else:
             # Mark all tests as errors due to setup failure
             for test_func in test_functions:
-                test_results.append(E2ETestResult(
-                    name=test_func.__name__,
-                    status="ERROR",
-                    duration_seconds=0.0,
-                    error_message=f"Setup failed: {setup_error}"
-                ))
+                test_results.append(
+                    E2ETestResult(
+                        name=test_func.__name__,
+                        status="ERROR",
+                        duration_seconds=0.0,
+                        error_message=f"Setup failed: {setup_error}",
+                    )
+                )
                 errors += 1
 
         # Teardown
@@ -143,12 +149,14 @@ class E2ETestOrchestrator:
             errors=errors,
             duration_seconds=duration,
             test_results=test_results,
-            system_info=system_info
+            system_info=system_info,
         )
 
         self.results.append(suite_result)
 
-        print(f"📊 Suite {suite_name} completed: {passed}P/{failed}F/{skipped}S/{errors}E in {duration:.1f}s")
+        print(
+            f"📊 Suite {suite_name} completed: {passed}P/{failed}F/{skipped}S/{errors}E in {duration:.1f}s"
+        )
         return suite_result
 
     def _run_single_test(self, test_func: Callable) -> E2ETestResult:
@@ -164,9 +172,9 @@ class E2ETestOrchestrator:
             result = test_func()
 
             # Check if test was skipped
-            if hasattr(result, '_skipped') or result == "SKIP":
+            if hasattr(result, "_skipped") or result == "SKIP":
                 status = "SKIP"
-                error_message = getattr(result, '_skip_reason', None)
+                error_message = getattr(result, "_skip_reason", None)
             else:
                 status = "PASS"
                 error_message = None
@@ -186,7 +194,7 @@ class E2ETestOrchestrator:
 
         # Collect test metadata
         metadata = {
-            "test_module": test_func.__module__ if hasattr(test_func, '__module__') else "unknown",
+            "test_module": test_func.__module__ if hasattr(test_func, "__module__") else "unknown",
             "docstring": test_func.__doc__ or "",
         }
 
@@ -195,21 +203,16 @@ class E2ETestOrchestrator:
             status=status,
             duration_seconds=duration,
             error_message=error_message,
-            metadata=metadata
+            metadata=metadata,
         )
 
-        status_emoji = {
-            "PASS": "✅",
-            "FAIL": "❌",
-            "SKIP": "⏭️",
-            "ERROR": "💥"
-        }
+        status_emoji = {"PASS": "✅", "FAIL": "❌", "SKIP": "⏭️", "ERROR": "💥"}
 
         print(f"    {status_emoji.get(status, '❓')} {test_name}: {status} ({duration:.2f}s)")
 
         return result
 
-    def _collect_system_info(self) -> Dict[str, Any]:
+    def _collect_system_info(self) -> dict[str, Any]:
         """Collect system information for reporting."""
 
         import platform
@@ -217,6 +220,7 @@ class E2ETestOrchestrator:
 
         try:
             import psutil
+
             memory_info = {
                 "total_gb": psutil.virtual_memory().total / (1024**3),
                 "available_gb": psutil.virtual_memory().available / (1024**3),
@@ -233,7 +237,7 @@ class E2ETestOrchestrator:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-    def generate_reports(self) -> Dict[str, Path]:
+    def generate_reports(self) -> dict[str, Path]:
         """Generate comprehensive test reports."""
 
         report_files = {}
@@ -241,27 +245,27 @@ class E2ETestOrchestrator:
         # Generate JSON report
         json_report = self._generate_json_report()
         json_path = self.output_dir / "e2e_test_report.json"
-        with open(json_path, 'w') as f:
+        with open(json_path, "w") as f:
             json.dump(json_report, f, indent=2, default=str)
         report_files["json"] = json_path
 
         # Generate HTML report
         html_report = self._generate_html_report()
         html_path = self.output_dir / "e2e_test_report.html"
-        with open(html_path, 'w') as f:
+        with open(html_path, "w") as f:
             f.write(html_report)
         report_files["html"] = html_path
 
         # Generate summary report
         summary_report = self._generate_summary_report()
         summary_path = self.output_dir / "e2e_test_summary.txt"
-        with open(summary_path, 'w') as f:
+        with open(summary_path, "w") as f:
             f.write(summary_report)
         report_files["summary"] = summary_path
 
         return report_files
 
-    def _generate_json_report(self) -> Dict[str, Any]:
+    def _generate_json_report(self) -> dict[str, Any]:
         """Generate JSON format test report."""
 
         total_tests = sum(r.total_tests for r in self.results)
@@ -320,7 +324,7 @@ class E2ETestOrchestrator:
 </head>
 <body>
     <h1>🧪 MarketPipe End-to-End Test Report</h1>
-    
+
     <div class="summary">
         <h2>📊 Test Summary</h2>
         <div class="metrics">
@@ -356,7 +360,7 @@ class E2ETestOrchestrator:
             </div>
         </div>
     </div>
-    
+
     <h2>📋 Test Suites</h2>
 """
 
@@ -364,14 +368,16 @@ class E2ETestOrchestrator:
             html += f"""
     <div class="suite">
         <div class="suite-header">
-            🧪 {suite.suite_name} 
+            🧪 {suite.suite_name}
             ({suite.passed}P/{suite.failed}F/{suite.skipped}S/{suite.errors}E - {suite.duration_seconds:.1f}s)
         </div>
 """
 
             for test in suite.test_results:
                 status_class = test.status.lower()
-                status_emoji = {"pass": "✅", "fail": "❌", "skip": "⏭️", "error": "💥"}.get(status_class, "❓")
+                status_emoji = {"pass": "✅", "fail": "❌", "skip": "⏭️", "error": "💥"}.get(
+                    status_class, "❓"
+                )
 
                 html += f"""
         <div class="test-result {status_class}">
@@ -465,7 +471,7 @@ Report generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
 
 
 # Example test suite orchestration functions
-def create_comprehensive_e2e_suite(tmp_path) -> List[Callable]:
+def create_comprehensive_e2e_suite(tmp_path) -> list[Callable]:
     """Create comprehensive E2E test suite."""
 
     # Import test functions from other modules
@@ -510,15 +516,17 @@ def create_comprehensive_e2e_suite(tmp_path) -> List[Callable]:
         # Simulate skipped test if PostgreSQL not available
         pytest.skip("PostgreSQL not available in test environment")
 
-    test_functions.extend([
-        test_real_aggregation_pipeline,
-        test_error_propagation,
-        test_performance_benchmarks,
-        test_boundary_conditions,
-        test_multi_provider_integration,
-        test_data_quality_validation,
-        test_postgres_integration,
-    ])
+    test_functions.extend(
+        [
+            test_real_aggregation_pipeline,
+            test_error_propagation,
+            test_performance_benchmarks,
+            test_boundary_conditions,
+            test_multi_provider_integration,
+            test_data_quality_validation,
+            test_postgres_integration,
+        ]
+    )
 
     return test_functions
 
@@ -555,7 +563,9 @@ class TestE2EOrchestration:
         assert result.skipped == 1
         assert result.errors == 0
 
-        print(f"✓ Basic orchestration test: {result.passed}P/{result.failed}F/{result.skipped}S/{result.errors}E")
+        print(
+            f"✓ Basic orchestration test: {result.passed}P/{result.failed}F/{result.skipped}S/{result.errors}E"
+        )
 
         # Generate reports
         report_files = orchestrator.generate_reports()
@@ -593,7 +603,7 @@ class TestE2EOrchestration:
             "comprehensive_e2e",
             test_functions,
             setup_func=setup_comprehensive_tests,
-            teardown_func=teardown_comprehensive_tests
+            teardown_func=teardown_comprehensive_tests,
         )
 
         print("📊 Comprehensive E2E Results:")
@@ -631,11 +641,11 @@ class TestE2EOrchestration:
             return "PASS"
 
         def test_medium_operation():
-            time.sleep(0.1)   # 100ms
+            time.sleep(0.1)  # 100ms
             return "PASS"
 
         def test_slow_operation():
-            time.sleep(0.5)   # 500ms
+            time.sleep(0.5)  # 500ms
             return "PASS"
 
         performance_tests = [test_fast_operation, test_medium_operation, test_slow_operation]
@@ -650,7 +660,9 @@ class TestE2EOrchestration:
         fast_test = next(t for t in result.test_results if t.name == "test_fast_operation")
         slow_test = next(t for t in result.test_results if t.name == "test_slow_operation")
 
-        assert fast_test.duration_seconds < slow_test.duration_seconds, "Should differentiate test speeds"
+        assert (
+            fast_test.duration_seconds < slow_test.duration_seconds
+        ), "Should differentiate test speeds"
 
         print("⏱️  Performance Timing Results:")
         for test in result.test_results:
@@ -673,18 +685,21 @@ def test_full_e2e_orchestration_demo(tmp_path):
     test_suites = {
         "core_pipeline": [
             lambda: time.sleep(0.1) or "PASS",  # Simulate aggregation test
-            lambda: time.sleep(0.05) or "PASS", # Simulate storage test
-            lambda: time.sleep(0.08) or "PASS", # Simulate validation test
+            lambda: time.sleep(0.05) or "PASS",  # Simulate storage test
+            lambda: time.sleep(0.08) or "PASS",  # Simulate validation test
         ],
         "integration_tests": [
             lambda: time.sleep(0.2) or "PASS",  # Simulate multi-provider test
             lambda: pytest.skip("External service unavailable"),  # Simulate skip
-            lambda: time.sleep(0.15) or "PASS", # Simulate boundary test
+            lambda: time.sleep(0.15) or "PASS",  # Simulate boundary test
         ],
         "performance_tests": [
             lambda: time.sleep(0.3) or "PASS",  # Simulate load test
-            lambda: time.sleep(0.1) or (_ for _ in ()).throw(AssertionError("Performance threshold exceeded")),  # Simulate failure
-            lambda: time.sleep(0.05) or "PASS", # Simulate memory test
+            lambda: time.sleep(0.1)
+            or (_ for _ in ()).throw(
+                AssertionError("Performance threshold exceeded")
+            ),  # Simulate failure
+            lambda: time.sleep(0.05) or "PASS",  # Simulate memory test
         ],
     }
 

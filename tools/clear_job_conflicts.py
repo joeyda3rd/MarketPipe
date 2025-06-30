@@ -35,6 +35,7 @@ def clear_job_conflicts():
     finally:
         conn.close()
 
+
 if __name__ == "__main__":
     print("🧹 Clearing job scheduling conflicts...")
     clear_job_conflicts()

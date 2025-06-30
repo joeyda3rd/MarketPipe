@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import datetime
 import types
-from typing import Any, Dict
+from typing import Any
 
 import httpx
 import pytest
@@ -103,7 +103,7 @@ class TestPolygonProviderSinglePage:
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-            async def get(self, url: str, params: Dict[str, Any] = None):
+            async def get(self, url: str, params: dict[str, Any] = None):
                 # Verify expected URL and parameters
                 assert url == "https://api.polygon.io/v3/reference/tickers"
                 assert params["market"] == "stocks"
@@ -164,7 +164,7 @@ class TestPolygonProviderSinglePage:
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-            async def get(self, url: str, params: Dict[str, Any] = None):
+            async def get(self, url: str, params: dict[str, Any] = None):
                 return types.SimpleNamespace(
                     status_code=200, json=lambda: mock_response_data, raise_for_status=lambda: None
                 )
@@ -228,7 +228,7 @@ class TestPolygonProviderPagination:
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-            async def get(self, url: str, params: Dict[str, Any] = None):
+            async def get(self, url: str, params: dict[str, Any] = None):
                 nonlocal call_count
                 call_count += 1
 
@@ -295,7 +295,7 @@ class TestPolygonProviderPagination:
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-            async def get(self, url: str, params: Dict[str, Any] = None):
+            async def get(self, url: str, params: dict[str, Any] = None):
                 nonlocal call_count
                 call_count += 1
                 return types.SimpleNamespace(
@@ -360,7 +360,7 @@ class TestPolygonProviderMapping:
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-            async def get(self, url: str, params: Dict[str, Any] = None):
+            async def get(self, url: str, params: dict[str, Any] = None):
                 return types.SimpleNamespace(
                     status_code=200, json=lambda: mock_response_data, raise_for_status=lambda: None
                 )
@@ -420,7 +420,7 @@ class TestPolygonProviderMapping:
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-            async def get(self, url: str, params: Dict[str, Any] = None):
+            async def get(self, url: str, params: dict[str, Any] = None):
                 return types.SimpleNamespace(
                     status_code=200, json=lambda: mock_response_data, raise_for_status=lambda: None
                 )
@@ -464,7 +464,7 @@ class TestPolygonProviderMapping:
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-            async def get(self, url: str, params: Dict[str, Any] = None):
+            async def get(self, url: str, params: dict[str, Any] = None):
                 return types.SimpleNamespace(
                     status_code=200, json=lambda: mock_response_data, raise_for_status=lambda: None
                 )
@@ -510,7 +510,7 @@ class TestPolygonProviderErrorHandling:
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-            async def get(self, url: str, params: Dict[str, Any] = None):
+            async def get(self, url: str, params: dict[str, Any] = None):
                 def raise_for_status():
                     raise httpx.HTTPStatusError(
                         "429 Too Many Requests",
@@ -549,7 +549,7 @@ class TestPolygonProviderErrorHandling:
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-            async def get(self, url: str, params: Dict[str, Any] = None):
+            async def get(self, url: str, params: dict[str, Any] = None):
                 def bad_json():
                     raise ValueError("Invalid JSON")
 
@@ -579,7 +579,7 @@ class TestPolygonProviderErrorHandling:
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-            async def get(self, url: str, params: Dict[str, Any] = None):
+            async def get(self, url: str, params: dict[str, Any] = None):
                 return types.SimpleNamespace(
                     status_code=200, json=lambda: {"results": []}, raise_for_status=lambda: None
                 )

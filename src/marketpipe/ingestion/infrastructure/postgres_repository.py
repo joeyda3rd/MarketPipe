@@ -7,7 +7,7 @@ import asyncio
 import json
 import logging
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import asyncpg
 
@@ -45,7 +45,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
             max_size: Maximum pool connections
         """
         self._dsn = dsn
-        self._pool: Optional[asyncpg.Pool] = None
+        self._pool: asyncpg.Pool | None = None
         self._min_size = min_size
         self._max_size = max_size
         self._pool_lock = asyncio.Lock()  # Prevent race conditions on pool creation
@@ -87,7 +87,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                         INSERT INTO ingestion_jobs (symbol, day, state, payload, updated_at)
                         VALUES ($1, $2, $3, $4, $5)
                         ON CONFLICT (symbol, day)
-                        DO UPDATE SET 
+                        DO UPDATE SET
                             state = EXCLUDED.state,
                             payload = EXCLUDED.payload,
                             updated_at = EXCLUDED.updated_at
@@ -105,7 +105,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 logger.error(f"Failed to save job {job.job_id}: {e}")
                 raise IngestionRepositoryError(f"Failed to save job: {e}") from e
 
-    async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
+    async def get_by_id(self, job_id: IngestionJobId) -> IngestionJob | None:
         """Retrieve an ingestion job by its ID."""
         with REPO_LATENCY.labels("get_by_id", "postgres").time():
             REPO_QUERIES.labels("get_by_id", "postgres").inc()
@@ -128,7 +128,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 logger.error(f"Failed to get job by ID {job_id}: {e}")
                 raise IngestionRepositoryError(f"Failed to get job by ID: {e}") from e
 
-    async def get_by_state(self, state: ProcessingState) -> List[IngestionJob]:
+    async def get_by_state(self, state: ProcessingState) -> list[IngestionJob]:
         """Get all jobs in a specific state."""
         with REPO_LATENCY.labels("get_by_state", "postgres").time():
             REPO_QUERIES.labels("get_by_state", "postgres").inc()
@@ -148,7 +148,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 logger.error(f"Failed to get jobs by state {state}: {e}")
                 raise IngestionRepositoryError(f"Failed to get jobs by state: {e}") from e
 
-    async def get_active_jobs(self) -> List[IngestionJob]:
+    async def get_active_jobs(self) -> list[IngestionJob]:
         """Get all jobs that are currently active (pending or in progress)."""
         with REPO_LATENCY.labels("get_active_jobs", "postgres").time():
             REPO_QUERIES.labels("get_active_jobs", "postgres").inc()
@@ -159,8 +159,8 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 async with pool.acquire() as conn:
                     rows = await conn.fetch(
                         """
-                        SELECT payload FROM ingestion_jobs 
-                        WHERE state IN ('PENDING', 'IN_PROGRESS') 
+                        SELECT payload FROM ingestion_jobs
+                        WHERE state IN ('PENDING', 'IN_PROGRESS')
                         ORDER BY updated_at ASC
                         """
                     )
@@ -173,7 +173,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
 
     async def get_jobs_by_date_range(
         self, start_date: datetime, end_date: datetime
-    ) -> List[IngestionJob]:
+    ) -> list[IngestionJob]:
         """Get jobs created within a date range."""
         with REPO_LATENCY.labels("get_jobs_by_date_range", "postgres").time():
             REPO_QUERIES.labels("get_jobs_by_date_range", "postgres").inc()
@@ -184,8 +184,8 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 async with pool.acquire() as conn:
                     rows = await conn.fetch(
                         """
-                        SELECT payload FROM ingestion_jobs 
-                        WHERE created_at BETWEEN $1 AND $2 
+                        SELECT payload FROM ingestion_jobs
+                        WHERE created_at BETWEEN $1 AND $2
                         ORDER BY created_at DESC
                         """,
                         start_date,
@@ -219,7 +219,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 logger.error(f"Failed to delete job {job_id}: {e}")
                 raise IngestionRepositoryError(f"Failed to delete job: {e}") from e
 
-    async def get_job_history(self, limit: int = 100) -> List[IngestionJob]:
+    async def get_job_history(self, limit: int = 100) -> list[IngestionJob]:
         """Get recent job history, ordered by creation date."""
         with REPO_LATENCY.labels("get_job_history", "postgres").time():
             REPO_QUERIES.labels("get_job_history", "postgres").inc()
@@ -239,7 +239,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 logger.error(f"Failed to get job history: {e}")
                 raise IngestionRepositoryError(f"Failed to get job history: {e}") from e
 
-    async def count_jobs_by_state(self) -> Dict[ProcessingState, int]:
+    async def count_jobs_by_state(self) -> dict[ProcessingState, int]:
         """Count jobs grouped by their processing state."""
         with REPO_LATENCY.labels("count_jobs_by_state", "postgres").time():
             REPO_QUERIES.labels("count_jobs_by_state", "postgres").inc()
@@ -268,7 +268,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 logger.error(f"Failed to count jobs by state: {e}")
                 raise IngestionRepositoryError(f"Failed to count jobs by state: {e}") from e
 
-    async def fetch_and_lock(self, state: ProcessingState, limit: int) -> List[IngestionJob]:
+    async def fetch_and_lock(self, state: ProcessingState, limit: int) -> list[IngestionJob]:
         """
         Fetch jobs in specified state and lock them for processing.
         Uses PostgreSQL SELECT FOR UPDATE SKIP LOCKED for high concurrency.
@@ -284,10 +284,10 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                         # Select and lock jobs
                         rows = await conn.fetch(
                             """
-                            SELECT id, payload FROM ingestion_jobs 
-                            WHERE state = $1 
-                            ORDER BY updated_at ASC 
-                            LIMIT $2 
+                            SELECT id, payload FROM ingestion_jobs
+                            WHERE state = $1
+                            ORDER BY updated_at ASC
+                            LIMIT $2
                             FOR UPDATE SKIP LOCKED
                             """,
                             state.value,
@@ -301,8 +301,8 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                         job_ids = [row["id"] for row in rows]
                         await conn.execute(
                             """
-                            UPDATE ingestion_jobs 
-                            SET state = $1, updated_at = $2 
+                            UPDATE ingestion_jobs
+                            SET state = $1, updated_at = $2
                             WHERE id = ANY($3::int[])
                             """,
                             ProcessingState.IN_PROGRESS.value,
@@ -379,7 +379,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
             await self._pool.close()
             logger.info("PostgreSQL connection pool closed")
 
-    def _serialize_job_to_dict(self, job: IngestionJob) -> Dict[str, Any]:
+    def _serialize_job_to_dict(self, job: IngestionJob) -> dict[str, Any]:
         """
         Serialize IngestionJob to dictionary for JSONB storage.
 
@@ -414,7 +414,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
             ],
         }
 
-    def _serialize_partition(self, partition: IngestionPartition) -> Dict[str, Any]:
+    def _serialize_partition(self, partition: IngestionPartition) -> dict[str, Any]:
         """Serialize IngestionPartition to dictionary."""
         return {
             "symbol": str(partition.symbol),
@@ -482,7 +482,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
         job._completed_at = completed_at
         job._failed_at = failed_at
         job._error_message = job_dict.get("error_message")
-        job._processed_symbols = set(Symbol(s) for s in job_dict.get("processed_symbols", []))
+        job._processed_symbols = {Symbol(s) for s in job_dict.get("processed_symbols", [])}
         job._total_bars_processed = job_dict.get("total_bars_processed", 0)
 
         # Restore completed partitions
@@ -491,7 +491,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
 
         return job
 
-    def _deserialize_partition(self, partition_data: Dict[str, Any]) -> IngestionPartition:
+    def _deserialize_partition(self, partition_data: dict[str, Any]) -> IngestionPartition:
         """Deserialize IngestionPartition from dictionary."""
         from pathlib import Path
 

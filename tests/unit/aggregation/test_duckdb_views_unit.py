@@ -302,7 +302,6 @@ def test_set_agg_root_with_string():
 def test_module_constants():
     """Test module constants and defaults."""
     # Reset AGG_ROOT to default value in case other tests modified it
-    original_root = duckdb_views.AGG_ROOT
     duckdb_views.AGG_ROOT = Path("data/agg")
 
     try:

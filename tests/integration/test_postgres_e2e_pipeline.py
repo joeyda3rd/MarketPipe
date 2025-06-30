@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """PostgreSQL end-to-end pipeline integration tests.
 
-This test validates the complete MarketPipe pipeline using PostgreSQL as the 
-primary database backend instead of SQLite, testing production-like database 
+This test validates the complete MarketPipe pipeline using PostgreSQL as the
+primary database backend instead of SQLite, testing production-like database
 configurations and PostgreSQL-specific features.
 """
 
@@ -12,7 +12,6 @@ import asyncio
 import os
 from datetime import date, datetime, timedelta, timezone
 from textwrap import dedent
-from typing import Dict, List
 
 import pandas as pd
 import pytest
@@ -66,10 +65,7 @@ def postgres_available() -> bool:
 
 def requires_postgres(func):
     """Decorator to skip tests if PostgreSQL is not available."""
-    return pytest.mark.skipif(
-        not postgres_available(),
-        reason=POSTGRES_REQUIRED_MSG
-    )(func)
+    return pytest.mark.skipif(not postgres_available(), reason=POSTGRES_REQUIRED_MSG)(func)
 
 
 class PostgreSQLTestFixture:
@@ -88,7 +84,8 @@ class PostgreSQLTestFixture:
         # Create test schema
         async with self.pool.acquire() as conn:
             # Create ingestion jobs table
-            await conn.execute("""
+            await conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS ingestion_jobs (
                     id TEXT PRIMARY KEY,
                     symbols JSONB NOT NULL,
@@ -104,10 +101,12 @@ class PostgreSQLTestFixture:
                     completed_partitions JSONB DEFAULT '[]'::jsonb,
                     processing_stats JSONB DEFAULT '{}'::jsonb
                 )
-            """)
+            """
+            )
 
             # Create ingestion checkpoints table
-            await conn.execute("""
+            await conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS ingestion_checkpoints (
                     job_id TEXT NOT NULL,
                     symbol TEXT NOT NULL,
@@ -117,10 +116,12 @@ class PostgreSQLTestFixture:
                     PRIMARY KEY (job_id, symbol),
                     FOREIGN KEY (job_id) REFERENCES ingestion_jobs(id) ON DELETE CASCADE
                 )
-            """)
+            """
+            )
 
             # Create metrics table
-            await conn.execute("""
+            await conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS ingestion_metrics (
                     id SERIAL PRIMARY KEY,
                     job_id TEXT NOT NULL,
@@ -130,23 +131,30 @@ class PostgreSQLTestFixture:
                     timestamp TIMESTAMP DEFAULT NOW(),
                     FOREIGN KEY (job_id) REFERENCES ingestion_jobs(id) ON DELETE CASCADE
                 )
-            """)
+            """
+            )
 
             # Create indexes for performance
-            await conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_state 
+            await conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_state
                 ON ingestion_jobs(state)
-            """)
+            """
+            )
 
-            await conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_ingestion_checkpoints_job_symbol 
+            await conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_ingestion_checkpoints_job_symbol
                 ON ingestion_checkpoints(job_id, symbol)
-            """)
+            """
+            )
 
-            await conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_ingestion_metrics_job_timestamp 
+            await conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_ingestion_metrics_job_timestamp
                 ON ingestion_metrics(job_id, timestamp)
-            """)
+            """
+            )
 
     async def cleanup(self):
         """Clean up test data and close connections."""
@@ -160,9 +168,10 @@ class PostgreSQLTestFixture:
             await self.pool.close()
 
 
-def generate_postgres_test_data(symbols: List[str], trading_day: date) -> Dict[str, pd.DataFrame]:
+def generate_postgres_test_data(symbols: list[str], trading_day: date) -> dict[str, pd.DataFrame]:
     """Generate test data for PostgreSQL testing."""
     import random
+
     random.seed(42)  # Reproducible test data
 
     symbol_data = {}
@@ -172,7 +181,9 @@ def generate_postgres_test_data(symbols: List[str], trading_day: date) -> Dict[s
         base_price = 100.0 + random.uniform(-50, 100)
 
         # Generate 100 bars for testing (smaller dataset for faster tests)
-        market_open = datetime.combine(trading_day, datetime.min.time()) + timedelta(hours=13, minutes=30)
+        market_open = datetime.combine(trading_day, datetime.min.time()) + timedelta(
+            hours=13, minutes=30
+        )
         market_open = market_open.replace(tzinfo=timezone.utc)
 
         current_price = base_price
@@ -180,7 +191,7 @@ def generate_postgres_test_data(symbols: List[str], trading_day: date) -> Dict[s
         for minute in range(100):
             # Simple price movement
             price_change = random.gauss(0, 0.001)
-            current_price *= (1 + price_change)
+            current_price *= 1 + price_change
 
             open_price = current_price
             close_price = current_price * (1 + random.gauss(0, 0.0005))
@@ -192,17 +203,19 @@ def generate_postgres_test_data(symbols: List[str], trading_day: date) -> Dict[s
             timestamp = market_open + timedelta(minutes=minute)
             timestamp_ns = int(timestamp.timestamp() * 1_000_000_000)
 
-            bars.append({
-                "ts_ns": timestamp_ns,
-                "symbol": symbol,
-                "open": round(open_price, 2),
-                "high": round(high_price, 2),
-                "low": round(low_price, 2),
-                "close": round(close_price, 2),
-                "volume": volume,
-                "trade_count": random.randint(20, 100),
-                "vwap": round((high_price + low_price + close_price) / 3, 2),
-            })
+            bars.append(
+                {
+                    "ts_ns": timestamp_ns,
+                    "symbol": symbol,
+                    "open": round(open_price, 2),
+                    "high": round(high_price, 2),
+                    "low": round(low_price, 2),
+                    "close": round(close_price, 2),
+                    "volume": volume,
+                    "trade_count": random.randint(20, 100),
+                    "vwap": round((high_price + low_price + close_price) / 3, 2),
+                }
+            )
 
             current_price = close_price
 
@@ -240,7 +253,7 @@ class TestPostgreSQLEndToEndPipeline:
 
             time_range = TimeRange(
                 start=Timestamp(datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc)),
-                end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc))
+                end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)),
             )
 
             config = IngestionConfiguration(
@@ -249,14 +262,14 @@ class TestPostgreSQLEndToEndPipeline:
                 max_workers=2,
                 batch_size=1000,
                 rate_limit_per_minute=200,
-                feed_type="iex"
+                feed_type="iex",
             )
 
             batch_config = BatchConfiguration(
                 symbols_per_batch=10,
                 retry_attempts=3,
                 retry_delay_seconds=1.0,
-                timeout_seconds=30.0
+                timeout_seconds=30.0,
             )
 
             # Create job using PostgreSQL repository
@@ -268,7 +281,7 @@ class TestPostgreSQLEndToEndPipeline:
                 time_range=time_range,
                 configuration=config,
                 batch_config=batch_config,
-                state=ProcessingState.PENDING
+                state=ProcessingState.PENDING,
             )
 
             # Save job to PostgreSQL
@@ -336,7 +349,7 @@ class TestPostgreSQLEndToEndPipeline:
                 symbol=symbol,
                 last_processed_timestamp=1705325400000000000,  # Example timestamp
                 records_processed=500,
-                updated_at=datetime.now(timezone.utc)
+                updated_at=datetime.now(timezone.utc),
             )
 
             await checkpoint_repo.save_checkpoint(job_id, checkpoint)
@@ -386,14 +399,14 @@ class TestPostgreSQLEndToEndPipeline:
                 job_id=str(job_id),
                 metric_name="bars_processed",
                 value=1500,
-                labels={"symbol": "AAPL", "provider": "alpaca"}
+                labels={"symbol": "AAPL", "provider": "alpaca"},
             )
 
             await metrics_repo.record_metric(
                 job_id=str(job_id),
                 metric_name="processing_time_ms",
                 value=2500,
-                labels={"symbol": "AAPL", "stage": "validation"}
+                labels={"symbol": "AAPL", "stage": "validation"},
             )
 
             print("✅ Metrics recorded")
@@ -443,7 +456,7 @@ class TestPostgreSQLEndToEndPipeline:
                     symbol=symbol,
                     trading_day=trading_day,
                     job_id=job_id,
-                    overwrite=True
+                    overwrite=True,
                 )
                 total_bars += len(df)
 
@@ -463,8 +476,16 @@ class TestPostgreSQLEndToEndPipeline:
                 id=IngestionJobId(job_id),
                 symbols=[Symbol(s) for s in symbols],
                 time_range=TimeRange(
-                    start=Timestamp(datetime.combine(trading_day, datetime.min.time()).replace(tzinfo=timezone.utc)),
-                    end=Timestamp(datetime.combine(trading_day, datetime.max.time()).replace(tzinfo=timezone.utc))
+                    start=Timestamp(
+                        datetime.combine(trading_day, datetime.min.time()).replace(
+                            tzinfo=timezone.utc
+                        )
+                    ),
+                    end=Timestamp(
+                        datetime.combine(trading_day, datetime.max.time()).replace(
+                            tzinfo=timezone.utc
+                        )
+                    ),
                 ),
                 configuration=IngestionConfiguration(
                     output_path=tmp_path / "data",
@@ -472,15 +493,15 @@ class TestPostgreSQLEndToEndPipeline:
                     max_workers=2,
                     batch_size=1000,
                     rate_limit_per_minute=200,
-                    feed_type="iex"
+                    feed_type="iex",
                 ),
                 batch_config=BatchConfiguration(
                     symbols_per_batch=10,
                     retry_attempts=3,
                     retry_delay_seconds=1.0,
-                    timeout_seconds=30.0
+                    timeout_seconds=30.0,
                 ),
-                state=ProcessingState.PENDING
+                state=ProcessingState.PENDING,
             )
 
             await job_repo.save(job)
@@ -496,10 +517,11 @@ class TestPostgreSQLEndToEndPipeline:
             for symbol in symbols:
                 partition = IngestionPartition(
                     symbol=Symbol(symbol),
-                    file_path=raw_dir / f"frame=1m/symbol={symbol}/date={trading_day}/{job_id}.parquet",
+                    file_path=raw_dir
+                    / f"frame=1m/symbol={symbol}/date={trading_day}/{job_id}.parquet",
                     record_count=len(symbol_data[symbol]),
                     size_bytes=1024,  # Simplified
-                    trading_date=trading_day
+                    trading_date=trading_day,
                 )
                 job.add_completed_partition(partition)
 
@@ -545,7 +567,7 @@ class TestPostgreSQLEndToEndPipeline:
                     symbols=[Symbol(f"SYM{i:03d}")],
                     time_range=TimeRange(
                         start=Timestamp(datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc)),
-                        end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc))
+                        end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)),
                     ),
                     configuration=IngestionConfiguration(
                         output_path=tmp_path / "data",
@@ -553,15 +575,15 @@ class TestPostgreSQLEndToEndPipeline:
                         max_workers=1,
                         batch_size=1000,
                         rate_limit_per_minute=200,
-                        feed_type="iex"
+                        feed_type="iex",
                     ),
                     batch_config=BatchConfiguration(
                         symbols_per_batch=10,
                         retry_attempts=3,
                         retry_delay_seconds=1.0,
-                        timeout_seconds=30.0
+                        timeout_seconds=30.0,
                     ),
-                    state=ProcessingState.PENDING
+                    state=ProcessingState.PENDING,
                 )
                 jobs.append(job)
 
@@ -634,7 +656,7 @@ async def test_postgres_performance_characteristics(tmp_path):
                 symbols=[Symbol(f"PERF{i:03d}")],
                 time_range=TimeRange(
                     start=Timestamp(datetime(2024, 1, 15, 13, 30, tzinfo=timezone.utc)),
-                    end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc))
+                    end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)),
                 ),
                 configuration=IngestionConfiguration(
                     output_path=tmp_path / "data",
@@ -642,15 +664,15 @@ async def test_postgres_performance_characteristics(tmp_path):
                     max_workers=1,
                     batch_size=1000,
                     rate_limit_per_minute=200,
-                    feed_type="iex"
+                    feed_type="iex",
                 ),
                 batch_config=BatchConfiguration(
                     symbols_per_batch=10,
                     retry_attempts=3,
                     retry_delay_seconds=1.0,
-                    timeout_seconds=30.0
+                    timeout_seconds=30.0,
                 ),
-                state=ProcessingState.PENDING
+                state=ProcessingState.PENDING,
             )
             jobs.append(job)
 
@@ -670,7 +692,9 @@ async def test_postgres_performance_characteristics(tmp_path):
 
         # Performance assertions
         assert duration < 30, f"PostgreSQL batch insert too slow: {duration:.1f}s"
-        assert batch_size / duration > 5, f"PostgreSQL throughput too low: {batch_size / duration:.1f} jobs/sec"
+        assert (
+            batch_size / duration > 5
+        ), f"PostgreSQL throughput too low: {batch_size / duration:.1f} jobs/sec"
 
         print("✅ PostgreSQL performance characteristics validated")
 
@@ -687,26 +711,28 @@ def test_postgres_integration_with_cli(tmp_path):
     dsn = os.getenv("POSTGRES_TEST_DSN", POSTGRES_TEST_DSN)
 
     # Create test config with PostgreSQL DSN
-    config_content = dedent(f"""
+    config_content = dedent(
+        f"""
         # PostgreSQL Integration Test Config
         database:
           type: "postgresql"
           dsn: "{dsn}"
           pool_size: 5
-        
+
         symbols:
           - AAPL
           - GOOGL
-        
+
         start: "2024-01-15"
         end: "2024-01-15"
         output_path: "{tmp_path}/postgres_output"
         provider: "fake"
-        
+
         ingestion:
           max_workers: 2
           batch_size: 1000
-    """)
+    """
+    )
 
     config_file = tmp_path / "postgres_config.yaml"
     config_file.write_text(config_content)
@@ -720,11 +746,16 @@ def test_postgres_integration_with_cli(tmp_path):
 
     # Note: This would require full PostgreSQL CLI integration
     # For now, test that config parsing works
-    result = runner.invoke(app, [
-        "ingest",
-        "--config", str(config_file),
-        "--dry-run",  # Don't actually execute
-    ], catch_exceptions=True)
+    result = runner.invoke(
+        app,
+        [
+            "ingest",
+            "--config",
+            str(config_file),
+            "--dry-run",  # Don't actually execute
+        ],
+        catch_exceptions=True,
+    )
 
     # Should at least parse the config without errors
     if result.exit_code == 0:
