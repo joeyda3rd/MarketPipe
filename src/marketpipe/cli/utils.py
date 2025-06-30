@@ -57,13 +57,13 @@ def metrics(
                 print(
                     f"📊 Starting legacy metrics server on http://localhost:{port}/metrics"
                 )
-                print(f"📋 Human-friendly dashboard will be available at http://localhost:{port+1}")
+                print(
+                    f"📋 Human-friendly dashboard will be available at http://localhost:{port+1}"
+                )
                 print("Press Ctrl+C to stop the server")
                 metrics_server_run(port=port, legacy=True)
             else:
-                print(
-                    f"📊 Starting metrics server on http://localhost:{port}/metrics"
-                )
+                print(f"📊 Starting metrics server on http://localhost:{port}/metrics")
                 print(f"📋 Human-friendly dashboard: http://localhost:{port+1}")
                 print("Press Ctrl+C to stop both servers")
 
@@ -72,15 +72,20 @@ def metrics(
                     try:
                         # Start the Prometheus metrics server
                         await start_async_server(port=port, host="localhost")
-                        
+
                         # Start the human-friendly dashboard on port+1
-                        from marketpipe.cli.metrics_dashboard import serve_metrics_dashboard
+                        from marketpipe.cli.metrics_dashboard import (
+                            serve_metrics_dashboard,
+                        )
+
                         dashboard_task = asyncio.create_task(
                             serve_metrics_dashboard(
-                                metrics_port=port, dashboard_port=port+1, host="localhost"
+                                metrics_port=port,
+                                dashboard_port=port + 1,
+                                host="localhost",
                             )
                         )
-                        
+
                         try:
                             while True:
                                 await asyncio.sleep(1)
