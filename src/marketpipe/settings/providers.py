@@ -10,7 +10,6 @@ type validation and documentation for required credentials.
 
 from __future__ import annotations
 
-import os
 from typing import Optional
 
 from pydantic import Field
@@ -453,12 +452,32 @@ def list_provider_settings() -> dict[str, list[str]]:
     for provider_key, settings_class in PROVIDER_SETTINGS.items():
         # Extract field information to get env var names
         env_vars = []
-        for field_name, field_info in settings_class.__fields__.items():
-            if hasattr(field_info, 'field_info') and hasattr(field_info.field_info, 'extra'):
-                env_name = field_info.field_info.extra.get('env')
-                if env_name:
-                    env_vars.append(env_name)
-        result[provider_key] = env_vars
+        
+        # Use model_fields for Pydantic v2, fall back to __fields__ for v1
+        if hasattr(settings_class, 'model_fields'):
+            fields = settings_class.model_fields
+        else:
+            fields = getattr(settings_class, '__fields__', {})
+            
+        for field_info in fields.values():
+            env_name = None
+            
+            # Check for alias (pydantic-settings style)
+            if hasattr(field_info, 'alias') and field_info.alias:
+                env_name = field_info.alias
+            
+            # Pydantic v2 style - check json_schema_extra
+            elif hasattr(field_info, 'json_schema_extra') and field_info.json_schema_extra:
+                env_name = field_info.json_schema_extra.get('env') or field_info.json_schema_extra.get('alias')
+            
+            # Pydantic v1 style fallback
+            elif hasattr(field_info, 'field_info'):
+                env_name = getattr(field_info.field_info, 'env', None)
+            
+            if env_name:
+                env_vars.append(env_name)
+                
+        result[provider_key] = sorted(env_vars)
     
     return result
 

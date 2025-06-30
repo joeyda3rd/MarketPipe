@@ -476,12 +476,25 @@ python -m marketpipe jobs kill <job-id>
 
 ## Environment Variables
 
+MarketPipe uses environment variables for configuration and API credentials. Copy the template and add your credentials:
+
+```bash
+cp .env.example .env
+# Edit .env with your API keys and configuration
+```
+
+### Essential Variables
 ```bash
 export ALPACA_KEY="your_alpaca_api_key"
 export ALPACA_SECRET="your_alpaca_secret_key"
 export IEX_TOKEN="your_iex_cloud_token"
 export DATABASE_URL="postgresql://user:pass@localhost:5432/marketpipe"  # Optional: Use PostgreSQL instead of SQLite
 ```
+
+### Complete Documentation
+For a complete list of all environment variables, defaults, and detailed explanations:
+- **[Environment Variables Reference](ENVIRONMENT_VARIABLES.md)** - Complete documentation with examples
+- **[Quick Reference Table](ENV_VARIABLES_QUICK_REFERENCE.md)** - Quick lookup for all variables
 
 ## Quick Testing Sequence
 
