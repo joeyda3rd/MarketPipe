@@ -64,13 +64,11 @@ def prune_parquet(
         _parse_age(older_than)
     except typer.BadParameter as e:
         from marketpipe.cli.validators import cli_error
-
         cli_error("age format invalid")
 
     if help_flag:
         typer.echo(prune_parquet.__doc__ or "")
         raise typer.Exit()
-
     bootstrap()
 
     # Initialize variables outside try block for exception handler access

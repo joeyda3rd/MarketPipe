@@ -28,14 +28,16 @@ from marketpipe.ingestion.domain.value_objects import (
     IngestionConfiguration,
 )
 from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
-from tests.fakes.adapters import FakeMarketDataAdapter, create_test_ohlcv_bars
-from tests.fakes.events import FakeEventPublisher
-from tests.fakes.repositories import (
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from fakes.adapters import FakeMarketDataAdapter, create_test_ohlcv_bars
+from fakes.events import FakeEventPublisher
+from fakes.repositories import (
     FakeIngestionCheckpointRepository,
     FakeIngestionJobRepository,
     FakeIngestionMetricsRepository,
 )
-from tests.fakes.validators import FakeDataValidator
+from fakes.validators import FakeDataValidator
 
 
 def create_test_configuration(output_path: Path) -> IngestionConfiguration:

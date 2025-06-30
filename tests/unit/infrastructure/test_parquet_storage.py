@@ -9,7 +9,10 @@ import pyarrow.parquet as pq
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.ingestion.domain.value_objects import IngestionConfiguration
 from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage
-from tests.fakes.adapters import create_test_ohlcv_bars
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from fakes.adapters import create_test_ohlcv_bars
 
 
 def test_store_bars_writes_parquet_and_returns_partition(tmp_path):

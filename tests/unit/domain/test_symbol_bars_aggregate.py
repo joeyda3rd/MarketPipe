@@ -9,14 +9,14 @@ from unittest.mock import patch
 
 import pytest
 
-from src.marketpipe.domain.aggregates import DailySummary, SymbolBarsAggregate
-from src.marketpipe.domain.entities import EntityId, OHLCVBar
-from src.marketpipe.domain.events import (
+from marketpipe.domain.aggregates import DailySummary, SymbolBarsAggregate
+from marketpipe.domain.entities import EntityId, OHLCVBar
+from marketpipe.domain.events import (
     BarCollectionCompleted,
     BarCollectionStarted,
     MarketDataReceived,
 )
-from src.marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
+from marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
 
 
 @pytest.fixture

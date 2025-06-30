@@ -86,17 +86,26 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         if symbol.value not in self._supported_symbols:
             raise InvalidSymbolError(f"Symbol {symbol.value} not supported by fake provider")
 
+        # Calculate expected number of bars for the time range
+        start_time = time_range.start.value
+        end_time = time_range.end.value
+        time_diff = end_time - start_time
+        expected_bars = int(time_diff.total_seconds() / 60)  # 1 bar per minute
+        
+        # Use a more generous max_bars limit to ensure we cover the full range
+        # Allow up to 10,000 bars or the expected number, whichever is higher
+        effective_max_bars = max(max_bars, expected_bars, 10000)
+
         # Generate bars for the time range
         bars = []
-        current_time = time_range.start.value
-        end_time = time_range.end.value
-
+        current_time = start_time
+        
         # Use symbol name to seed price variation
         symbol_seed = hash(symbol.value) % 1000
         current_price = self._base_price + (symbol_seed / 10)
 
         bar_count = 0
-        while current_time < end_time and bar_count < max_bars:
+        while current_time < end_time and bar_count < effective_max_bars:
             # Generate OHLCV for this minute
             bar = self._generate_bar(symbol, current_time, current_price)
             bars.append(bar)

@@ -230,3 +230,7 @@ temp/
 !.env.example
 # Temporary pipeline configuration files
 config/pipeline_config_*.yaml
+tests/integration/test_output/frame=1m/symbol=AAPL/date=2024-01-01/AAPL_2024-01-01.parquet
+tests/integration/test_output/frame=1m/symbol=AAPL/date=2024-01-01/AAPL_2024-01-01.parquet.lock
+tests/integration/test_output/frame=1m/symbol=AAPL/date=2024-01-02/AAPL_2024-01-02.parquet
+tests/integration/test_output/frame=1m/symbol=AAPL/date=2024-01-02/AAPL_2024-01-02.parquet.lock

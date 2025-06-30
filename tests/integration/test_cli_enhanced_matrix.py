@@ -22,7 +22,6 @@ from typing import Any, Dict, List, Optional, Tuple
 import pytest
 import yaml
 
-
 @dataclass
 class EdgeCaseTest:
     """Definition for an edge case test scenario."""
@@ -38,7 +37,6 @@ class EdgeCaseTest:
     timeout_seconds: int = 30
     category: str = "general"
 
-
 @dataclass
 class EdgeCaseResult:
     """Result of an edge case test execution."""
@@ -50,7 +48,6 @@ class EdgeCaseResult:
     execution_time_ms: float = 0.0
     error_messages: List[str] = field(default_factory=list)
     patterns_matched: List[str] = field(default_factory=list)
-
 
 class EnhancedCLITester:
     """Enhanced CLI testing with edge cases and error scenarios."""
@@ -481,7 +478,6 @@ class EnhancedCLITester:
         
         return "\n".join(report)
 
-
 class TestEnhancedCLIMatrix:
     """Enhanced CLI matrix test suite."""
 
@@ -595,7 +591,6 @@ class TestEnhancedCLIMatrix:
                 f"Valid option combinations failed:\n" +
                 "\n".join(f"  - {combo}" for combo in failed_combinations)
             )
-
 
 if __name__ == "__main__":
     # Can be run directly for quick validation

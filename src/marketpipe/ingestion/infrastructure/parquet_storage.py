@@ -33,54 +33,8 @@ class ParquetDataStorageAdapter(IDataStorage):
         if not bars:
             raise ValueError("Cannot store empty list of bars")
 
-        # Convert OHLCVBar entities to DataFrame format expected by engine
-        rows = []
-        for bar in bars:
-            rows.append(
-                {
-                    "ts_ns": bar.timestamp_ns,
-                    "symbol": bar.symbol.value,
-                    "open": bar.open_price.to_float(),
-                    "high": bar.high_price.to_float(),
-                    "low": bar.low_price.to_float(),
-                    "close": bar.close_price.to_float(),
-                    "volume": bar.volume.value,
-                    "trade_count": bar.trade_count,
-                    "vwap": bar.vwap.to_float() if bar.vwap else None,
-                }
-            )
-
-        df = pd.DataFrame(rows)
-
-        # Use first bar for partition information
-        first_bar = bars[0]
-        symbol = first_bar.symbol.value
-        trading_date = first_bar.timestamp.trading_date()
-
-        # Generate a job ID for this storage operation
-        job_id = f"store_{symbol}_{trading_date.isoformat()}_{datetime.now().strftime('%H%M%S')}"
-
-        # Use the engine to write the data
-        file_path = self._engine.write(
-            df=df,
-            frame="1m",  # Assume 1-minute bars
-            symbol=symbol,
-            trading_day=trading_date,
-            job_id=job_id,
-            overwrite=True,
-        )
-
-        # Create and return partition info
-        file_size = file_path.stat().st_size
-        partition = IngestionPartition(
-            symbol=first_bar.symbol,
-            file_path=file_path,
-            record_count=len(bars),
-            file_size_bytes=file_size,
-            created_at=datetime.now(timezone.utc),
-        )
-
-        return partition
+        # Use the engine's store_bars method which properly handles multi-day data
+        return await self._engine.store_bars(bars, config)
 
 
 # Use the adapter as ParquetDataStorage for backward compatibility
