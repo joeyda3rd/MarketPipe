@@ -57,7 +57,7 @@ def metrics(
                 print(
                     f"📊 Starting legacy metrics server on http://localhost:{port}/metrics"
                 )
-                print("📋 Human-friendly dashboard will be available at http://localhost:{port+1}")
+                print(f"📋 Human-friendly dashboard will be available at http://localhost:{port+1}")
                 print("Press Ctrl+C to stop the server")
                 metrics_server_run(port=port, legacy=True)
             else:
