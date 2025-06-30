@@ -12,21 +12,20 @@ from typing import List, Optional
 import typer
 
 from marketpipe.ingestion.infrastructure.provider_registry import list_providers
-from marketpipe.metrics_server import (
-    run as metrics_server_run,
-)
-from marketpipe.metrics_server import (
-    start_async_server,
-    stop_async_server,
-)
+from marketpipe.metrics_server import run as metrics_server_run
+from marketpipe.metrics_server import start_async_server, stop_async_server
 
 
 def metrics(
-    port: int = typer.Option(None, "--port", "-p", help="Port to run Prometheus metrics server"),
+    port: int = typer.Option(
+        None, "--port", "-p", help="Port to run Prometheus metrics server"
+    ),
     legacy_metrics: bool = typer.Option(
         False, "--legacy-metrics", help="Use legacy blocking metrics server"
     ),
-    metric: str = typer.Option(None, "--metric", "-m", help="Show specific metric history"),
+    metric: str = typer.Option(
+        None, "--metric", "-m", help="Show specific metric history"
+    ),
     since: str = typer.Option(
         None, "--since", help="Show metrics since timestamp (e.g., '2024-01-01 10:00')"
     ),
@@ -55,23 +54,32 @@ def metrics(
         # If port is specified, start metrics server
         if port is not None:
             if legacy_metrics:
-                print(f"📊 Starting legacy metrics server on http://localhost:{port}/metrics")
+                print(
+                    f"📊 Starting legacy metrics server on http://localhost:{port}/metrics"
+                )
                 print("Press Ctrl+C to stop the server")
                 metrics_server_run(port=port, legacy=True)
             else:
-                print(f"📊 Starting async metrics server on http://localhost:{port}/metrics")
+                print(
+                    f"📊 Starting async metrics server on http://localhost:{port}/metrics"
+                )
                 print("Press Ctrl+C to stop the server")
 
                 # Run async server
                 async def run_async_server():
-                    server = await start_async_server(port=port)
                     try:
-                        while True:
-                            await asyncio.sleep(1)
-                    except KeyboardInterrupt:
-                        print("\n📊 Shutting down async metrics server...")
-                    finally:
-                        await stop_async_server()
+                        await start_async_server(port=port, host="localhost")
+                        try:
+                            while True:
+                                await asyncio.sleep(1)
+                        except KeyboardInterrupt:
+                            print("\n📊 Shutting down async metrics server...")
+                        finally:
+                            await stop_async_server()
+                    except RuntimeError as e:
+                        print(f"❌ Failed to start metrics server: {e}")
+                        print(f"   Try using a different port: --port {port + 1}")
+                        return
 
                 try:
                     asyncio.run(run_async_server())
@@ -80,7 +88,9 @@ def metrics(
             return
 
         # Setup metrics repository
-        metrics_repo = SqliteMetricsRepository(os.getenv("METRICS_DB_PATH", "data/metrics.db"))
+        metrics_repo = SqliteMetricsRepository(
+            os.getenv("METRICS_DB_PATH", "data/metrics.db")
+        )
 
         # Parse since timestamp if provided
         since_ts = None
@@ -148,12 +158,16 @@ def metrics(
 
                 for metric_name in sorted(metrics_list)[:10]:
                     averages = asyncio.run(
-                        metrics_repo.get_average_metrics(metric_name, window_seconds, since_ts)
+                        metrics_repo.get_average_metrics(
+                            metric_name, window_seconds, since_ts
+                        )
                     )
                     if averages:
                         latest_avg = averages[-1]
                         timestamp_str = latest_avg.timestamp.strftime("%Y-%m-%d %H:%M")
-                        print(f"{metric_name:30s}: {latest_avg.value:>8.1f} ({timestamp_str})")
+                        print(
+                            f"{metric_name:30s}: {latest_avg.value:>8.1f} ({timestamp_str})"
+                        )
 
                 if len(metrics_list) > 10:
                     print(f"... and {len(metrics_list) - 10} more metrics")
@@ -162,7 +176,9 @@ def metrics(
 
         if metric:
             # Show history for specific metric
-            points = asyncio.run(metrics_repo.get_metrics_history(metric, since=since_ts))
+            points = asyncio.run(
+                metrics_repo.get_metrics_history(metric, since=since_ts)
+            )
             if not points:
                 print(f"📊 No data found for metric: {metric}")
                 print("💡 Check metric name with --list")
@@ -199,8 +215,12 @@ def metrics(
         metrics_list = asyncio.run(metrics_repo.list_metric_names())
         if not metrics_list:
             print("📊 No metrics found in database")
-            print("💡 Try: marketpipe metrics --port 8000  # Start async metrics server")
-            print("💡 Or:  marketpipe metrics --port 8000 --legacy-metrics  # Start legacy server")
+            print(
+                "💡 Try: marketpipe metrics --port 8000  # Start async metrics server"
+            )
+            print(
+                "💡 Or:  marketpipe metrics --port 8000 --legacy-metrics  # Start legacy server"
+            )
             return
 
         print("📊 Recent Metrics Summary")
@@ -208,7 +228,9 @@ def metrics(
 
         # Show latest value for each metric
         for metric_name in sorted(metrics_list)[:10]:  # Top 10 metrics
-            points = asyncio.run(metrics_repo.get_metrics_history(metric_name, since=since_ts))
+            points = asyncio.run(
+                metrics_repo.get_metrics_history(metric_name, since=since_ts)
+            )
             if points:
                 latest = points[0]
                 timestamp_str = latest.timestamp.strftime("%Y-%m-%d %H:%M")
@@ -250,7 +272,7 @@ def providers():
 def migrate(
     path: Path = typer.Option(
         Path("data/db/core.db"), "--path", "-p", help="Database path to migrate"
-    )
+    ),
 ):
     """Apply any pending SQLite migrations."""
     try:
