@@ -183,7 +183,7 @@ def update(
     import os
 
     if db_path is None:
-        db_path = Path(os.getenv("MP_DB", "warehouse.duckdb"))
+        db_path = Path(os.getenv("MP_DB", "data/db/warehouse.duckdb"))
     if data_dir is None:
         data_dir = Path(os.getenv("MP_DATA_DIR", "./data"))
 
