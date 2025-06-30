@@ -6,7 +6,6 @@ import logging
 import os
 import time
 from contextlib import asynccontextmanager
-from typing import Optional
 from wsgiref.simple_server import make_server
 
 from prometheus_client import (
@@ -43,8 +42,8 @@ class AsyncMetricsServer:
         self.port = port
         self.host = host
         self.max_connections = max_connections
-        self.server: Optional[asyncio.Server] = None
-        self._lag_monitor_task: Optional[asyncio.Task] = None
+        self.server: asyncio.Server | None = None
+        self._lag_monitor_task: asyncio.Task | None = None
         self._registry = CollectorRegistry()
 
         # Setup multiprocess collector if available
@@ -215,16 +214,16 @@ class AsyncMetricsServer:
         while True:
             try:
                 # Schedule a callback and measure how long it takes to execute
-                future = asyncio.Future()
+                future: asyncio.Future[float] = asyncio.Future()
                 expected_time = time.monotonic()
 
-                def callback():
+                def callback(expected: float, fut: asyncio.Future[float]) -> None:
                     actual_time = time.monotonic()
-                    schedule_lag = actual_time - expected_time
+                    schedule_lag = actual_time - expected
                     EVENT_LOOP_LAG.set(schedule_lag)
-                    future.set_result(schedule_lag)
+                    fut.set_result(schedule_lag)
 
-                asyncio.get_event_loop().call_soon(callback)
+                asyncio.get_event_loop().call_soon(callback, expected_time, future)
                 await future
 
                 # Wait 1 second before next measurement
@@ -247,13 +246,16 @@ class AsyncMetricsServer:
 
 
 # Global server instance for CLI integration
-_async_server_instance: Optional[AsyncMetricsServer] = None
+_async_server_instance: AsyncMetricsServer | None = None
 
 
 async def start_async_server(
     port: int = 8000, host: str = "localhost"
 ) -> AsyncMetricsServer:
     """Start the global async metrics server."""
+    import errno
+    import socket
+
     global _async_server_instance
 
     if _async_server_instance is not None:
@@ -261,23 +263,22 @@ async def start_async_server(
             f"Async metrics server is already running on port {_async_server_instance.port}"
         )
 
-    # Check if port is available
-    import socket
+    # Use METRICS_PORT env var if available (fix: apply env var BEFORE port check)
+    port = int(os.getenv("METRICS_PORT", port))
 
+    # Check if port is available
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.bind((host, port))
         sock.close()
     except OSError as e:
-        if e.errno == 98:  # Address already in use
+        # Fix: Use platform-independent errno constant instead of hardcoded 98
+        if e.errno == errno.EADDRINUSE:
             raise RuntimeError(
                 f"Port {port} is already in use. Another metrics server may be running."
-            )
+            ) from e
         else:
-            raise RuntimeError(f"Cannot bind to {host}:{port} - {e}")
-
-    # Use METRICS_PORT env var if available
-    port = int(os.getenv("METRICS_PORT", port))
+            raise RuntimeError(f"Cannot bind to {host}:{port} - {e}") from e
 
     _async_server_instance = AsyncMetricsServer(port=port, host=host)
     await _async_server_instance.start()
@@ -345,7 +346,7 @@ def run(port: int = 8000, legacy: bool = False) -> None:
     else:
         # New async mode - run in asyncio context
         async def run_async():
-            server = await start_async_server(port=port)
+            await start_async_server(port=port)
             try:
                 # Keep server running until interrupted
                 while True:
