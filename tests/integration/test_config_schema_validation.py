@@ -101,8 +101,9 @@ class ConfigurationValidator:
                     elif not isinstance(value, bool):
                         cmd_args.extend([option, str(value)])
 
-                # Add help to avoid actual execution
-                if "--help" not in cmd_args:
+                # Add help to avoid actual execution, but only for valid configs
+                # For invalid configs, we need validation to run to get proper error messages
+                if test_case.expected_success and "--help" not in cmd_args:
                     cmd_args.append("--help")
 
                 # Execute command
@@ -119,8 +120,9 @@ class ConfigurationValidator:
                     result.config_parsed = process_result.returncode == 0
                     result.command_succeeded = process_result.returncode == 0
                 else:
-                    result.config_parsed = process_result.returncode != 0
-                    result.command_succeeded = process_result.returncode != 0
+                    # For expected failures, we expect config to be parsed but command to fail
+                    result.config_parsed = True  # Config parsing happens even for invalid configs
+                    result.command_succeeded = process_result.returncode == 0  # Should be False for failures
 
                     # Check for expected error patterns
                     combined_output = (process_result.stdout + process_result.stderr).lower()
@@ -287,9 +289,9 @@ class ConfigTestGenerator:
             ConfigTestCase(
                 name="missing_symbols",
                 description="Configuration missing symbols",
-                config_data={"ingestion": {"start_date": "2023-01-01", "end_date": "2023-01-01"}},
+                config_data={"config_version": "1", "start": "2024-01-01", "end": "2024-01-01"},
                 expected_success=False,
-                expected_error_patterns=["symbol", "required"],
+                expected_error_patterns=["symbols", "required"],
             )
         )
 
@@ -299,14 +301,13 @@ class ConfigTestGenerator:
                 name="invalid_date",
                 description="Configuration with invalid date format",
                 config_data={
-                    "ingestion": {
-                        "symbols": ["AAPL"],
-                        "start_date": "invalid-date",
-                        "end_date": "2023-01-01",
-                    }
+                    "config_version": "1",
+                    "symbols": ["AAPL"],
+                    "start": "invalid-date",
+                    "end": "2024-01-01",
                 },
                 expected_success=False,
-                expected_error_patterns=["date", "invalid", "format"],
+                expected_error_patterns=["valid date", "invalid"],
             )
         )
 
@@ -316,14 +317,13 @@ class ConfigTestGenerator:
                 name="invalid_date_range",
                 description="Configuration with end date before start date",
                 config_data={
-                    "ingestion": {
-                        "symbols": ["AAPL"],
-                        "start_date": "2023-01-31",
-                        "end_date": "2023-01-01",
-                    }
+                    "config_version": "1",
+                    "symbols": ["AAPL"],
+                    "start": "2024-01-31",
+                    "end": "2024-01-01",
                 },
                 expected_success=False,
-                expected_error_patterns=["date", "range", "start", "end"],
+                expected_error_patterns=["start date must be before end date"],
             )
         )
 
@@ -333,15 +333,14 @@ class ConfigTestGenerator:
                 name="invalid_provider",
                 description="Configuration with unknown provider",
                 config_data={
-                    "providers": {"unknown_provider": {"feed_type": "iex"}},
-                    "ingestion": {
-                        "symbols": ["AAPL"],
-                        "start_date": "2023-01-01",
-                        "end_date": "2023-01-01",
-                    },
+                    "config_version": "1",
+                    "symbols": ["AAPL"],
+                    "start": "2024-01-01",
+                    "end": "2024-01-01",
+                    "provider": "unknown_provider",
                 },
                 expected_success=False,
-                expected_error_patterns=["provider", "unknown", "invalid"],
+                expected_error_patterns=["Unknown provider"],
             )
         )
 
@@ -351,16 +350,15 @@ class ConfigTestGenerator:
                 name="invalid_numeric",
                 description="Configuration with invalid numeric values",
                 config_data={
-                    "ingestion": {
-                        "symbols": ["AAPL"],
-                        "start_date": "2023-01-01",
-                        "end_date": "2023-01-01",
-                        "workers": -1,
-                        "batch_size": 0,
-                    }
+                    "config_version": "1",
+                    "symbols": ["AAPL"],
+                    "start": "2024-01-01",
+                    "end": "2024-01-01",
+                    "workers": -1,
+                    "batch_size": 0,
                 },
                 expected_success=False,
-                expected_error_patterns=["worker", "batch", "invalid", "positive"],
+                expected_error_patterns=["greater than or equal to 1"],
             )
         )
 
@@ -529,7 +527,8 @@ class TestConfigSchemaValidation:
         for test_case in test_cases:
             result = config_validator.validate_config_case(test_case)
 
-            if result.config_parsed or result.command_succeeded:
+            # For invalid configs, we only care that the command failed
+            if result.command_succeeded:
                 validation_failures.append(
                     f"{test_case.name}: Should have been rejected but was accepted"
                 )

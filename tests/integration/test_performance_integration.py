@@ -567,7 +567,7 @@ class TestPerformanceIntegration:
         monitor.start()
 
         # Create large dataset (simulate very active trading day)
-        symbols = ["LARGE_VOL"]
+        symbols = ["FAKE1"]
         trading_days = [date(2024, 1, 15)]
         bars_per_day = 2000  # Very active day with extended hours
 

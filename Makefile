@@ -31,29 +31,29 @@ help:
 
 # Primary test command - fast, smart defaults
 test:
-	@pytest -x --ff --tb=short
+	@python -m pytest -x --ff --tb=short
 
 # Complete test suite
 test-all:
-	@pytest --tb=short
+	@python -m pytest --tb=short
 
 # Unit tests only
 test-unit:
-	@pytest tests/ -m "unit" --tb=short
+	@python -m pytest tests/ -m "unit" --tb=short
 
 # Integration tests only  
 test-integration:
-	@pytest tests/ -m "integration" --tb=short
+	@python -m pytest tests/ -m "integration" --tb=short
 
 # Show test timing information
 test-timing:
-	@pytest --durations=10 --tb=no -q
+	@python -m pytest --durations=10 --tb=no -q
 
 # Run tests with coverage report
 test-coverage:
 	@if python3 -c "import pytest_cov" 2>/dev/null; then \
 		echo "📊 Running tests with coverage..."; \
-		pytest --cov=src/marketpipe --cov-report=html --cov-report=term-missing; \
+		python -m pytest --cov=src/marketpipe --cov-report=html --cov-report=term-missing; \
 		echo "📈 Coverage report: htmlcov/index.html"; \
 	else \
 		echo "⚠️  pytest-cov not found - install with: pip install pytest-cov"; \
@@ -67,7 +67,7 @@ test-watch:
 # Simulate CI environment locally
 test-ci:
 	@echo "🤖 Simulating CI environment..."
-	@pytest --tb=short --strict-markers --cov=src/marketpipe --cov-fail-under=80
+	@python -m pytest --tb=short --strict-markers --cov=src/marketpipe --cov-fail-under=80
 
 # Format code
 fmt:

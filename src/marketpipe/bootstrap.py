@@ -63,6 +63,10 @@ def apply_pending_alembic(db_path: Path) -> None:
     # Set up Alembic configuration using the resolved path
     alembic_cfg = Config(str(alembic_ini))
 
+    # Set absolute path for alembic script location to avoid working directory issues
+    alembic_scripts_dir = project_root / "alembic"
+    alembic_cfg.set_main_option("script_location", str(alembic_scripts_dir))
+
     # Convert path to SQLite URL format (always use 3 slashes for SQLite)
     database_url = f"sqlite:///{db_path.absolute()}"
 

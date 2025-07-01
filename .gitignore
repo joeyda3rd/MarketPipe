@@ -225,6 +225,10 @@ core.db
 # Temporary files
 tmp/
 temp/
+test_data/
+test_output/
+
+
 
 # Environment files
 *.env
