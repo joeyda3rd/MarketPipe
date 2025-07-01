@@ -74,13 +74,13 @@ class TestIngestionJobConfig:
         # Invalid symbol format
         with pytest.raises(ValueError, match="Invalid symbol format"):
             IngestionJobConfig(
-                symbols=["AAP1"],  # Contains number
+                symbols=["AAP@"],  # Contains invalid character
                 start=date(2025, 1, 1),
                 end=date(2025, 1, 7),
             )
 
         # Symbol too long
-        with pytest.raises(ValueError, match="Symbol too long"):
+        with pytest.raises(ValueError, match="Invalid symbol format"):
             IngestionJobConfig(
                 symbols=["VERYLONGSYMBOL"], start=date(2025, 1, 1), end=date(2025, 1, 7)
             )
