@@ -677,7 +677,7 @@ class TestEnhancedCLIMatrix:
             EdgeCaseTest(
                 command_path=["prune", "parquet"],
                 test_name="prune_with_dry_run",
-                options={"--dry-run": True},
+                options={"--dry-run": True, "--root": "/nonexistent/parquet/path"},
                 positional_args=["30d"],
                 expected_exit_code=1,
                 expected_error_patterns=["directory", "does not exist"],
