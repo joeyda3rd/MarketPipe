@@ -231,10 +231,12 @@ class TestConfigurationExecutionFlow:
 
         # Should fail gracefully with helpful error message
         assert result.exit_code != 0
+        # Check both stdout and stderr for error messages
+        combined_output = (result.stdout + result.stderr).lower()
         assert (
-            "config" in result.stdout.lower()
-            or "yaml" in result.stdout.lower()
-            or "parse" in result.stdout.lower()
+            "config" in combined_output
+            or "yaml" in combined_output
+            or "parse" in combined_output
         )
         print("✅ Invalid YAML handled gracefully")
 

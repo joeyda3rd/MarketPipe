@@ -11,7 +11,6 @@ from typing import Any
 
 import httpx
 
-from marketpipe.metrics import ERRORS, LATENCY, REQUESTS
 from marketpipe.security.mask import safe_for_log
 
 from .base_api_client import BaseApiClient
@@ -64,6 +63,9 @@ class AlpacaClient(BaseApiClient):
 
     # ---------- sync request ----------
     def _request(self, params: Mapping[str, str]) -> dict[str, Any]:
+        # Local import to avoid circular dependency
+        from marketpipe.metrics import ERRORS, LATENCY, REQUESTS
+        
         if self.rate_limiter:
             self.rate_limiter.acquire()
 
@@ -143,6 +145,9 @@ class AlpacaClient(BaseApiClient):
 
     # ---------- async request ----------
     async def _async_request(self, params: Mapping[str, str]) -> dict[str, Any]:
+        # Local import to avoid circular dependency
+        from marketpipe.metrics import ERRORS, LATENCY, REQUESTS
+        
         if self.rate_limiter:
             await self.rate_limiter.async_acquire()
 

@@ -268,7 +268,7 @@ class ComplianceValidator:
         retention_issues = []
 
         current_time = time.time()
-        self.compliance_rules["data_retention"]["min_days"] * 24 * 3600
+        min_retention_seconds = self.compliance_rules["data_retention"]["min_days"] * 24 * 3600
         max_retention_seconds = self.compliance_rules["data_retention"]["max_days"] * 24 * 3600
 
         for file_path in files:
@@ -360,6 +360,74 @@ class ComplianceValidator:
                 "compliance_violation",
                 {"rule": "access_logging", "violations": len(incomplete_logs)},
                 severity="warning",
+            )
+
+        return compliance_result
+
+    def validate_data_lineage(self, data_items: list[dict]) -> dict:
+        """Validate data lineage compliance."""
+        
+        required_fields = self.compliance_rules["data_lineage"]["tracking_fields"]
+        lineage_issues = []
+
+        for item in data_items:
+            missing_fields = [field for field in required_fields if field not in item]
+            if missing_fields:
+                lineage_issues.append(
+                    {
+                        "item_id": item.get("id", "unknown"),
+                        "missing_fields": missing_fields,
+                        "issue": "incomplete_lineage",
+                    }
+                )
+
+        compliance_result = {
+            "compliant": len(lineage_issues) == 0,
+            "items_checked": len(data_items),
+            "lineage_violations": len(lineage_issues),
+            "issues": lineage_issues,
+        }
+
+        if not compliance_result["compliant"]:
+            self.audit_logger.log_event(
+                "compliance_violation",
+                {"rule": "data_lineage", "violations": len(lineage_issues)},
+                severity="warning",
+            )
+
+        return compliance_result
+
+    def validate_pii_protection(self, data_items: list[dict]) -> dict:
+        """Validate PII protection compliance."""
+        
+        pii_violations = []
+        pii_fields = ["email", "ssn", "phone", "address", "credit_card"]
+
+        for item in data_items:
+            for field_name, field_value in item.items():
+                if field_name.lower() in pii_fields:
+                    # Check if PII is properly masked
+                    if isinstance(field_value, str) and not ("*" in field_value or "X" in field_value):
+                        pii_violations.append(
+                            {
+                                "item_id": item.get("id", "unknown"),
+                                "field": field_name,
+                                "issue": "unmasked_pii",
+                            }
+                        )
+
+        compliance_result = {
+            "compliant": len(pii_violations) == 0,
+            "items_checked": len(data_items),
+            "pii_violations": len(pii_violations),
+            "issues": pii_violations,
+        }
+
+        if not compliance_result["compliant"]:
+            self.audit_logger.log_event(
+                "compliance_violation",
+                {"rule": "pii_protection", "violations": len(pii_violations)},
+                severity="error",
             )
 
         return compliance_result
@@ -798,6 +866,46 @@ class TestSecurityComplianceEndToEnd:
         validation_results["access_logging"] = access_result
         print(f"  Access logging: {'✓' if access_result['compliant'] else '✗'}")
 
+        # 4. Data lineage compliance
+        data_lineage_items = [
+            {
+                "id": "data_001",
+                "source": "alpaca_api",
+                "timestamp": "2024-01-15T10:00:00Z",
+                "processing_chain": ["ingestion", "validation", "storage"],
+            },
+            {
+                "id": "data_002",
+                "source": "iex_feed",
+                "timestamp": "2024-01-15T10:01:00Z",
+                "processing_chain": ["ingestion", "validation", "storage"],
+            },
+        ]
+
+        lineage_result = validator.validate_data_lineage(data_lineage_items)
+        validation_results["data_lineage"] = lineage_result
+        print(f"  Data lineage: {'✓' if lineage_result['compliant'] else '✗'}")
+
+        # 5. PII protection compliance
+        pii_items = [
+            {
+                "id": "user_001",
+                "username": "trader123",
+                "email": "****@****com",  # Properly masked
+                "account_id": "12345",
+            },
+            {
+                "id": "user_002",
+                "username": "analyst456",
+                "phone": "XXX-XXX-XXXX",  # Properly masked
+                "department": "research",
+            },
+        ]
+
+        pii_result = validator.validate_pii_protection(pii_items)
+        validation_results["pii_protection"] = pii_result
+        print(f"  PII protection: {'✓' if pii_result['compliant'] else '✗'}")
+
         # Generate comprehensive compliance report
         compliance_report = validator.generate_compliance_report(validation_results)
 
@@ -1002,6 +1110,46 @@ def test_security_compliance_integration_demo(tmp_path):
     audit_events = audit_logger.events
     access_compliance = validator.validate_access_logging(audit_events)
     compliance_checks["access_logging"] = access_compliance
+
+    # Validate data lineage
+    data_lineage_items = [
+        {
+            "id": "data_001",
+            "source": "alpaca_api",
+            "timestamp": "2024-01-15T10:00:00Z",
+            "processing_chain": ["ingestion", "validation", "storage"],
+        },
+        {
+            "id": "data_002",
+            "source": "iex_feed",
+            "timestamp": "2024-01-15T10:01:00Z",
+            "processing_chain": ["ingestion", "validation", "storage"],
+        },
+    ]
+
+    lineage_result = validator.validate_data_lineage(data_lineage_items)
+    compliance_checks["data_lineage"] = lineage_result
+    print(f"  Data lineage: {'✓' if lineage_result['compliant'] else '✗'}")
+
+    # Validate PII protection
+    pii_items = [
+        {
+            "id": "user_001",
+            "username": "trader123",
+            "email": "****@****com",  # Properly masked
+            "account_id": "12345",
+        },
+        {
+            "id": "user_002",
+            "username": "analyst456",
+            "phone": "XXX-XXX-XXXX",  # Properly masked
+            "department": "research",
+        },
+    ]
+
+    pii_result = validator.validate_pii_protection(pii_items)
+    compliance_checks["pii_protection"] = pii_result
+    print(f"  PII protection: {'✓' if pii_result['compliant'] else '✗'}")
 
     # Generate compliance report
     compliance_report = validator.generate_compliance_report(compliance_checks)

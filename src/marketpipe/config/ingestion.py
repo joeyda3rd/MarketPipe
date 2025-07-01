@@ -60,11 +60,10 @@ class IngestionJobConfig(BaseModel):
                 raise ValueError(f"Symbol must be string, got {type(symbol)}")
 
             symbol = symbol.strip().upper()
-            if not symbol.isalpha():
-                raise ValueError(f"Invalid symbol format: {symbol}")
-
-            if len(symbol) > 10:
-                raise ValueError(f"Symbol too long: {symbol}")
+            # Use same validation as Symbol value object: alphanumeric + dots, 1-10 chars
+            import re
+            if not re.match(r"^[A-Z0-9\.]{1,10}$", symbol):
+                raise ValueError(f"Invalid symbol format: {symbol}. Must be 1-10 characters (A-Z, 0-9, or '.')")
 
             normalized.append(symbol)
 

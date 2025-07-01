@@ -120,6 +120,12 @@ MarketPipe is a time-series ETL framework with a modular, threaded architecture:
 - `metrics_server.py`: Async Prometheus server with dashboard
 - `loader.py`: DuckDB/Parquet data loading interface
 
+## API Reference available for fast accurate ledger
+ - run workbook/tools/generate_api_reference.py before reviewing to update
+ - provides every definition name, its parameters, and its location in 2 JSON files 
+ - dev/reference/api_reference.json for codebase references
+ - dev/reference/test_api_reference.json for test references
+
 ### Data Storage
 - Partitioned Parquet files with Hive-style partitioning: `data/frame=1m/symbol=AAPL/date=2024-01-01/`
 - Schema validation via JSON Schema in `schema/schema_v1.json`

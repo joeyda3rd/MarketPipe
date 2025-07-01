@@ -618,7 +618,7 @@ def ingest_ohlcv(
         "--batch-size",
         help="Bars per request (overrides config)",
     ),
-    output_path: Path = typer.Option(
+    output_path: str = typer.Option(
         None,
         "--output",
         help="Output directory (overrides config)",
@@ -688,6 +688,11 @@ Options:
     validate_workers(workers)
     validate_batch_size(batch_size)
     validate_output_dir(output_path)
+    
+    # Convert output_path to Path after validation
+    if output_path is not None:
+        output_path = Path(output_path)
+    
     validate_config_file(str(config) if config else None)
 
     # Date and symbol validation
@@ -731,7 +736,7 @@ def ingest_ohlcv_convenience(
         "--batch-size",
         help="Bars per request (overrides config)",
     ),
-    output_path: Path = typer.Option(
+    output_path: str = typer.Option(
         None,
         "--output",
         help="Output directory (overrides config)",
@@ -792,6 +797,11 @@ Options:
     validate_workers(workers)
     validate_batch_size(batch_size)
     validate_output_dir(output_path)
+    
+    # Convert output_path to Path after validation
+    if output_path is not None:
+        output_path = Path(output_path)
+    
     validate_config_file(str(config) if config else None)
     validate_date_range(start, end)
     validate_symbols(symbols)

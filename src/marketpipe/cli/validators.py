@@ -89,9 +89,17 @@ def validate_symbols(symbols_csv: str | None) -> list[str]:
     return raw
 
 
-def validate_output_dir(output: Path | None) -> None:
+def validate_output_dir(output: Path | str | None) -> None:
     if output is None:
         return
+
+    # Check for empty path string
+    if output == "":
+        cli_error("output path cannot be empty", code=2)
+    
+    # Convert to Path for further validation
+    if isinstance(output, str):
+        output = Path(output)
 
     # If the output path exists, validate it's a directory
     if output.exists():
