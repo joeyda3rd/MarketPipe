@@ -10,6 +10,7 @@ type validation and documentation for required credentials.
 
 from __future__ import annotations
 
+import os
 from typing import Optional
 
 from pydantic import Field
@@ -455,27 +456,26 @@ def list_provider_settings() -> dict[str, list[str]]:
         
         # Use model_fields for Pydantic v2, fall back to __fields__ for v1
         if hasattr(settings_class, 'model_fields'):
+            # Pydantic v2
             fields = settings_class.model_fields
+            for field_name, field_info in fields.items():
+                # In Pydantic v2, alias is directly accessible from FieldInfo
+                if hasattr(field_info, 'alias') and field_info.alias:
+                    env_vars.append(field_info.alias)
         else:
+            # Pydantic v1
             fields = getattr(settings_class, '__fields__', {})
-            
-        for field_info in fields.values():
-            env_name = None
-            
-            # Check for alias (pydantic-settings style)
-            if hasattr(field_info, 'alias') and field_info.alias:
-                env_name = field_info.alias
-            
-            # Pydantic v2 style - check json_schema_extra
-            elif hasattr(field_info, 'json_schema_extra') and field_info.json_schema_extra:
-                env_name = field_info.json_schema_extra.get('env') or field_info.json_schema_extra.get('alias')
-            
-            # Pydantic v1 style fallback
-            elif hasattr(field_info, 'field_info'):
-                env_name = getattr(field_info.field_info, 'env', None)
-            
-            if env_name:
-                env_vars.append(env_name)
+            for field_name, field_info in fields.items():
+                # In Pydantic v1, check for alias in field_info
+                if hasattr(field_info, 'alias') and field_info.alias:
+                    env_vars.append(field_info.alias)
+                # Also check field_info.field_info.extra for legacy compatibility
+                elif hasattr(field_info, 'field_info') and hasattr(field_info.field_info, 'extra'):
+                    extra = field_info.field_info.extra
+                    if 'env' in extra:
+                        env_vars.append(extra['env'])
+                    elif 'alias' in extra:
+                        env_vars.append(extra['alias'])
                 
         result[provider_key] = sorted(env_vars)
     
