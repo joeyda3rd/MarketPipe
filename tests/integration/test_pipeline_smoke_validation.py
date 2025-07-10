@@ -164,6 +164,12 @@ class PipelineSmokeValidator:
             # Skip alembic INFO logs which are operational, not errors
             if 'INFO  [alembic.runtime.migration]' in line:
                 continue
+            # Skip alpha warning - this is informational, not an error
+            if 'MarketPipe is in alpha development' in line:
+                continue
+            # Skip the __import__ line that follows alpha warnings
+            if '__import__(pkg_name)' in line:
+                continue
             # Skip other operational messages
             if line.strip() == '':
                 continue
