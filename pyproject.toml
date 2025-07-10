@@ -4,12 +4,37 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "marketpipe"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 description = "Modern, Python-native ETL framework for financial market data workflows with Domain-Driven Design"
 readme = "README.md"
 license = {text = "Apache-2.0"}
-authors = [{name = "MarketPipe"}]
+authors = [{name = "MarketPipe Team", email = "maintainers@marketpipe.dev"}]
+maintainers = [{name = "MarketPipe Team", email = "maintainers@marketpipe.dev"}]
 requires-python = ">=3.9"
+keywords = [
+    "etl", "finance", "market-data", "trading", "data-pipeline", 
+    "financial-data", "ohlcv", "time-series", "alpaca", "domain-driven-design"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Typing :: Typed",
+    "Environment :: Console",
+    "Framework :: AsyncIO",
+]
+
 dependencies = [
     # CLI framework
     "typer>=0.9.0",
@@ -43,6 +68,14 @@ dependencies = [
     # Utilities
     "fasteners>=0.18.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/your-org/marketpipe"
+Repository = "https://github.com/your-org/marketpipe"
+Issues = "https://github.com/your-org/marketpipe/issues"
+Discussions = "https://github.com/your-org/marketpipe/discussions"
+Changelog = "https://github.com/your-org/marketpipe/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/your-org/marketpipe#documentation"
 
 [project.optional-dependencies]
 # Core testing dependencies - required for basic test suite
@@ -110,6 +143,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["*.sql"]
+"marketpipe" = ["py.typed"]
 
 # Coverage configuration moved to .coveragerc to support parallel mode
 
@@ -173,3 +207,37 @@ strict_equality = true
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
+
+# Import linter configuration for architecture validation
+[tool.importlinter]
+root_package = "marketpipe"
+include_external_packages = true
+
+[tool.importlinter.contracts.domain_forbidden_infrastructure]
+name = "Domain layer must not import infrastructure"
+type = "forbidden"
+source_modules = [
+    "marketpipe.domain"
+]
+forbidden_modules = [
+    "marketpipe.infrastructure",
+    "prometheus_client",
+    "httpx",
+    "sqlite3",
+    "requests",
+    "duckdb",
+    "pandas",
+    "pyarrow",
+]
+
+[tool.importlinter.contracts.domain_forbidden_application]
+name = "Domain layer must not import application layer"
+type = "forbidden"
+source_modules = [
+    "marketpipe.domain"
+]
+forbidden_modules = [
+    "marketpipe.ingestion.application",
+    "marketpipe.validation.application",
+    "marketpipe.aggregation.application",
+]

@@ -486,10 +486,11 @@ class CLIOptionTestGenerator:
         test_cases = []
 
         # Valid paths - use unique date ranges to avoid conflicts
+        # Note: All paths will be executed within temporary directories to avoid artifacts
         valid_paths = [
             ("data/test", "2024-01-25", "2024-01-26"),
             ("/tmp/marketpipe_test", "2024-01-27", "2024-01-28"),
-            ("./relative_path", "2024-01-29", "2024-01-30")
+            ("test_relative_path", "2024-01-29", "2024-01-30")
         ]
 
         for path, start_date, end_date in valid_paths:

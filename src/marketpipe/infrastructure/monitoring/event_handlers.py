@@ -23,7 +23,7 @@ from marketpipe.domain.events import (
 from marketpipe.domain.events import (
     ValidationFailed as DomainValidationFailed,
 )
-from marketpipe.events import (
+from marketpipe.domain.events import (
     IngestionJobCompleted,
     ValidationFailed,
 )

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Legacy base client tests - maintaining backward compatibility."""
+"""Base API client tests."""
 
 import pytest
 
@@ -15,8 +15,8 @@ class DummyMarketDataAuth(AuthStrategy):
         pass
 
 
-def test_legacy_abstract_base_client_enforces_complete_implementation():
-    """Test that legacy abstract base client enforces complete implementation."""
+def test_abstract_base_client_enforces_complete_implementation():
+    """Test that abstract base client enforces complete implementation."""
 
     class IncompleteMarketDataClient(BaseApiClient):
         def build_request_params(self, symbol: str, start_ts: int, end_ts: int, cursor=None):
@@ -35,13 +35,13 @@ def test_legacy_abstract_base_client_enforces_complete_implementation():
         )
 
 
-def test_legacy_client_config_validates_required_parameters():
-    """Test that legacy client config validates required parameters."""
+def test_client_config_validates_required_parameters():
+    """Test that client config validates required parameters."""
     with pytest.raises(Exception):
         ClientConfig(api_key=123, base_url=None)  # type: ignore
 
 
-def test_legacy_base_client_supports_symbol_data_pagination():
+def test_base_client_supports_symbol_data_pagination():
     pages = [{"cursor": "a"}, {"cursor": "b"}, {"cursor": None}]
 
     class PagingClient(BaseApiClient):

@@ -45,7 +45,8 @@ import warnings
 
 # Main CLI app
 app = typer.Typer(
-    add_completion=False, help="MarketPipe ETL commands for financial data processing"
+    add_completion=False, 
+    help="MarketPipe ETL commands for financial data processing\n\n⚠️  ALPHA SOFTWARE: Expect breaking changes and stability issues. Not recommended for production use."
 )
 
 # OHLCV sub-app for pipeline commands

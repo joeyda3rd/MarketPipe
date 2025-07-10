@@ -66,7 +66,7 @@ class TestConfigurationExecutionFlow:
         print("✓ Set environment variable overrides")
 
         # Test CLI config loading with precedence testing
-        runner = CliRunner()
+        runner = CliRunner(mix_stderr=False)
 
         # Test with config file only (no CLI overrides)
         print("🔄 Testing config file loading...")
@@ -219,7 +219,7 @@ class TestConfigurationExecutionFlow:
         invalid_yaml = tmp_path / "invalid.yaml"
         invalid_yaml.write_text("invalid: yaml: content: [")
 
-        runner = CliRunner()
+        runner = CliRunner(mix_stderr=False)
         result = runner.invoke(
             app,
             [

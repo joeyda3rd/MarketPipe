@@ -417,6 +417,12 @@ def _ingest_impl(
     from marketpipe.bootstrap import bootstrap
 
     bootstrap()
+    
+    # Alpha software warning
+    print("⚠️  ALPHA SOFTWARE WARNING: MarketPipe is in alpha development.")
+    print("   Expect breaking changes and potential stability issues.")
+    print("   Not recommended for production use without thorough testing.")
+    print()
 
     # Use the clean async execution context for the entire process
     with CleanAsyncExecution():
