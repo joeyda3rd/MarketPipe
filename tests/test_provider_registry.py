@@ -139,7 +139,8 @@ class TestProviderRegistry:
         mock_ep.name = "auto_provider"
         mock_ep.load.return_value = MockProvider
 
-        mock_entry_points.return_value = {"marketpipe.providers": [mock_ep]}
+        # entry_points(group="marketpipe.providers") returns an iterable
+        mock_entry_points.return_value = [mock_ep]
 
         # Clear registry to trigger auto-registration
         clear_registry()
@@ -158,7 +159,8 @@ class TestProviderRegistry:
         mock_ep.name = "failing_provider"
         mock_ep.load.side_effect = ImportError("Failed to import")
 
-        mock_entry_points.return_value = {"marketpipe.providers": [mock_ep]}
+        # entry_points(group="marketpipe.providers") returns an iterable
+        mock_entry_points.return_value = [mock_ep]
 
         # Clear registry to trigger auto-registration
         clear_registry()

@@ -134,6 +134,9 @@ class CLIOptionValidator:
                 return result
             finally:
                 os.chdir(original_cwd)
+                
+                # Clean up any test artifacts that might have been created in the root directory
+                self._cleanup_test_artifacts()
 
     def _filter_operational_logs(self, stderr: str) -> str:
         """Filter out normal operational logs from stderr, keeping only actual errors."""
@@ -185,6 +188,29 @@ class CLIOptionValidator:
                 return True
         
         return False
+
+    def _cleanup_test_artifacts(self) -> None:
+        """Clean up test artifacts that might be left in the root directory."""
+        artifacts_to_clean = [
+            self.base_dir / "test_relative_path",
+            self.base_dir / "temp_test_path", 
+            self.base_dir / "test_data",
+            self.base_dir / "test_output",
+            self.base_dir / "ingestion_jobs.db",
+            self.base_dir / "metrics.db",
+            self.base_dir / "core.db",
+        ]
+        
+        for artifact in artifacts_to_clean:
+            if artifact.exists():
+                try:
+                    if artifact.is_dir():
+                        import shutil
+                        shutil.rmtree(artifact)
+                    else:
+                        artifact.unlink()
+                except (PermissionError, OSError):
+                    pass  # Continue if we can't remove the file
 
     def _setup_test_environment(self, test_case: OptionTestCase, temp_path: Path) -> dict[str, str]:
         """Setup test environment with config files and environment variables."""
@@ -490,7 +516,7 @@ class CLIOptionTestGenerator:
         valid_paths = [
             ("data/test", "2024-01-25", "2024-01-26"),
             ("/tmp/marketpipe_test", "2024-01-27", "2024-01-28"),
-            ("test_relative_path", "2024-01-29", "2024-01-30")
+            ("./temp_test_path", "2024-01-29", "2024-01-30")  # Use temp path that gets cleaned up
         ]
 
         for path, start_date, end_date in valid_paths:
@@ -575,6 +601,18 @@ class CLIOptionTestGenerator:
 
 class TestCLIOptionValidation:
     """Test suite for comprehensive CLI option validation."""
+
+    @pytest.fixture(autouse=True)
+    def cleanup_test_artifacts(self):
+        """Automatically clean up test artifacts before and after each test."""
+        # Clean up before test
+        validator = CLIOptionValidator()
+        validator._cleanup_test_artifacts()
+        
+        yield
+        
+        # Clean up after test
+        validator._cleanup_test_artifacts()
 
     @pytest.fixture
     def option_generator(self):

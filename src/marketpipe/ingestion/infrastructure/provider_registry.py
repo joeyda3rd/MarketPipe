@@ -34,8 +34,7 @@ def _auto_register() -> None:
 
     try:
         # Load providers from entry points (Python 3.9+ compatible)
-        eps = entry_points()
-        marketpipe_providers = eps.get("marketpipe.providers", [])
+        marketpipe_providers = entry_points(group="marketpipe.providers")
 
         for ep in marketpipe_providers:
             try:

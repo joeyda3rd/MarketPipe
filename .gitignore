@@ -228,8 +228,11 @@ tmp/
 temp/
 test_data/
 test_output/
+test_relative_path/
 
-
+# Parquet files and lock files (test artifacts)
+*.parquet
+*.parquet.lock
 
 # Environment files
 *.env

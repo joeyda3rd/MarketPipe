@@ -125,7 +125,7 @@ class TestParquetPruning:
 
     def test_prune_parquet_nonexistent_directory(self):
         """Test pruning with nonexistent directory."""
-        runner = CliRunner(mix_stderr=False)
+        runner = CliRunner()
 
         with patch("marketpipe.cli.prune.bootstrap"):
             result = runner.invoke(prune_app, ["parquet", "1y", "--root", "/nonexistent/path"])
@@ -216,7 +216,7 @@ class TestSQLitePruning:
 
     def test_prune_sqlite_error_handling(self, mock_repo):
         """Test error handling in SQLite pruning."""
-        runner = CliRunner(mix_stderr=False)
+        runner = CliRunner()
         mock_repo.delete_old_jobs.side_effect = Exception("Database error")
 
         with patch("marketpipe.cli.prune.bootstrap"):

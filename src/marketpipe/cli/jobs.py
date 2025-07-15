@@ -6,6 +6,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import os
 
 import typer
 
@@ -15,6 +16,12 @@ jobs_app = typer.Typer(name="jobs", help="Ingestion job management commands", ad
 
 def _get_db_path() -> str | None:
     """Get the path to the ingestion jobs database."""
+    # Check environment variables first (for test isolation)
+    env_db_path = os.getenv("MARKETPIPE_INGESTION_DB_PATH")
+    if env_db_path and Path(env_db_path).exists():
+        return env_db_path
+    
+    # Check standard locations
     possible_paths = ["data/ingestion_jobs.db", "ingestion_jobs.db", "data/db/core.db"]
 
     for path in possible_paths:

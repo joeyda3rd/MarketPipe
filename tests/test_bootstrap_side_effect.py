@@ -195,7 +195,12 @@ class TestCliCommandBootstrap:
 
                 # Mock the services to avoid complex setup
                 mock_build_services.return_value = (MagicMock(), MagicMock())
-                mock_async_run.side_effect = Exception("Expected test error")
+
+                def raise_with_close(coro):
+                    coro.close()
+                    raise Exception("Expected test error")
+
+                mock_async_run.side_effect = raise_with_close
 
                 # Provide minimum required parameters so command reaches _ingest_impl
                 result = runner.invoke(
