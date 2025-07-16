@@ -213,6 +213,43 @@ disallow_untyped_defs = false
 root_package = "marketpipe"
 include_external_packages = true
 
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+    "--maxfail=3",
+    "--disable-warnings",
+    "-ra"
+]
+markers = [
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (slower, external dependencies)",
+    "slow: Tests that take longer than 5 seconds",
+    "flaky: Tests that are known to be flaky",
+    "auth_required: Tests that require authentication credentials",
+    "boundary: Boundary condition tests",
+    "security: Security-related tests",
+    "production_simulation: Production simulation tests",
+    "sqlite_only: Tests that only run on SQLite",
+    "postgres: PostgreSQL-specific tests",
+    "chaos_engineering: Chaos engineering tests",
+    "distributed: Distributed systems tests",
+    "data_quality: Data quality validation tests",
+    "deployment: Deployment and rollback tests",
+    "monitoring: Monitoring and alerting tests",
+    "multi_provider: Multi-provider integration tests",
+    "orchestration: Orchestration and reporting tests"
+]
+asyncio_mode = "auto"
+timeout = 30
+
 [tool.importlinter.contracts.domain_forbidden_infrastructure]
 name = "Domain layer must not import infrastructure"
 type = "forbidden"
