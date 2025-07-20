@@ -87,13 +87,13 @@ python scripts/pipeline_validator.py --mode full --config-file my_test_config.ya
 
 ### Critical Mode (`--mode critical`) - **Default**
 - **Purpose**: Essential functionality for production readiness
-- **Duration**: 3-5 minutes  
+- **Duration**: 3-5 minutes
 - **Tests**: All critical commands that must work for basic operation
 - **Use Case**: CI/CD pipelines, pre-deployment validation
 
 **Test Categories**:
 - Help commands (5 tests)
-- Health checks (3 tests) 
+- Health checks (3 tests)
 - Provider management (3 tests)
 - Symbol operations (4 tests)
 - Data validation (2 tests)
@@ -210,7 +210,7 @@ Tests data validation pipeline:
 
 ### Data Ingestion (`ingestion`)
 Tests data ingestion pipeline (full mode only):
-- `marketpipe ingest-ohlcv --dry-run` - Ingestion dry run  
+- `marketpipe ingest-ohlcv --dry-run` - Ingestion dry run
 - `marketpipe ohlcv ingest --dry-run` - Alternative command
 
 **Expected Results**: Should PASS in dry-run mode
@@ -322,20 +322,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-          
+
       - name: Install dependencies
         run: |
           pip install -e .
-          
+
       - name: Run pipeline validation
         run: |
           python scripts/pipeline_validator.py --mode critical --verbose --report-format html
-          
+
       - name: Upload validation report
         uses: actions/upload-artifact@v3
         if: always()
@@ -349,14 +349,14 @@ jobs:
 ```groovy
 pipeline {
     agent any
-    
+
     stages {
         stage('Setup') {
             steps {
                 sh 'pip install -e .'
             }
         }
-        
+
         stage('Validate Pipeline') {
             steps {
                 sh 'python scripts/pipeline_validator.py --mode critical --report-format html'
@@ -402,7 +402,7 @@ def get_test_categories(self) -> Dict[str, List[str]]:
 ```
 
 2. **Add category logic**:
-```python  
+```python
 def _get_command_category(self, command: str) -> str:
     if "custom-command" in command:
         return "custom"
@@ -419,7 +419,7 @@ config_version: "1"
 
 alpaca:
   key: "test_key"
-  secret: "test_secret" 
+  secret: "test_secret"
   base_url: "https://data.alpaca.markets/v2"
   rate_limit_per_min: 200
   feed: "iex"
@@ -432,7 +432,7 @@ symbols:
 start: "2024-01-02"
 end: "2024-01-03"
 output_path: "./test_data"
-compression: "snappy"  
+compression: "snappy"
 workers: 1
 
 metrics:
@@ -529,9 +529,9 @@ print(f"marketpipe_validation_duration_seconds {report['total_duration']}")
 The MarketPipe Pipeline Validator is a comprehensive tool for ensuring system reliability and functionality. Regular use of the validator helps:
 
 - **Catch issues early** in the development process
-- **Ensure system health** in production environments  
+- **Ensure system health** in production environments
 - **Validate changes** before deployment
 - **Monitor system degradation** over time
 - **Provide documentation** of system capabilities
 
-For questions or issues with the validator, check the generated reports for detailed error information and recommendations. 
+For questions or issues with the validator, check the generated reports for detailed error information and recommendations.

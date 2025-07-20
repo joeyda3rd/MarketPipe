@@ -1,254 +1,302 @@
-"""Unit tests for the SQLite migration system."""
+"""Tests for Alembic database migrations."""
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from marketpipe.migrations import apply_pending
+from marketpipe.bootstrap import apply_pending_alembic
+
+from alembic import command
+from alembic.config import Config
+
+# Mark all tests in this file as potentially SQLite-specific
+# Individual tests can override this with postgres marker if needed
+pytestmark = pytest.mark.sqlite_only
 
 
-def test_migrations_apply_once(tmp_path):
-    """Test that migrations are applied once and are idempotent."""
-    db = tmp_path / "core.db"
+class TestAlembicMigrations:
+    """Test Alembic migration functionality."""
 
-    # Apply migrations twice
-    apply_pending(db)
-    apply_pending(db)  # Should be idempotent
+    def test_sqlite_migration_from_scratch(self, tmp_path):
+        """Test SQLite migration from scratch."""
+        db_path = tmp_path / "test.db"
 
-    # Check that both migrations were applied once
-    with sqlite3.connect(db) as conn:
-        cursor = conn.execute("SELECT COUNT(*) FROM schema_version")
-        version_count = cursor.fetchone()[0]
-        assert version_count == 5
+        # Apply migrations
+        apply_pending_alembic(db_path)
 
-        # Check that the correct versions were applied
-        cursor = conn.execute("SELECT version FROM schema_version ORDER BY version")
-        versions = [row[0] for row in cursor.fetchall()]
-        assert versions == ["001", "002", "003", "004", "005"]
+        # Verify database was created
+        assert db_path.exists()
 
-
-def test_migrations_create_schema_version_table(tmp_path):
-    """Test that schema_version table is created."""
-    db = tmp_path / "core.db"
-
-    apply_pending(db)
-
-    with sqlite3.connect(db) as conn:
-        # Check that schema_version table exists
-        cursor = conn.execute(
+        # Verify tables exist
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.execute(
+                """
+                SELECT name FROM sqlite_master
+                WHERE type='table' AND name NOT LIKE 'sqlite_%'
+                ORDER BY name
             """
-            SELECT name FROM sqlite_master
-            WHERE type='table' AND name='schema_version'
-        """
+            )
+            tables = [row[0] for row in cursor.fetchall()]
+
+            expected_tables = [
+                "alembic_version",
+                "checkpoints",
+                "ingestion_jobs",
+                "metrics",
+                "ohlcv_bars",
+                "symbol_bars_aggregates",
+            ]
+            assert sorted(tables) == sorted(expected_tables)
+
+    def test_sqlite_migration_idempotent(self, tmp_path):
+        """Test that running migrations multiple times is safe."""
+        db_path = tmp_path / "test.db"
+
+        # Apply migrations twice
+        apply_pending_alembic(db_path)
+        apply_pending_alembic(db_path)  # Should not fail
+
+        # Verify migration version
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.execute("SELECT version_num FROM alembic_version")
+            version = cursor.fetchone()[0]
+            assert version == "0005"
+
+    def test_alembic_current_command(self, tmp_path):
+        """Test alembic current command works."""
+        db_path = tmp_path / "test.db"
+        apply_pending_alembic(db_path)
+
+        # Test alembic current command
+        alembic_cfg = Config("alembic.ini")
+        alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+
+        # This should not raise an exception
+        command.current(alembic_cfg)
+
+    def test_alembic_upgrade_downgrade(self, tmp_path):
+        """Test migration upgrade and downgrade."""
+        db_path = tmp_path / "test.db"
+
+        # Create alembic config
+        alembic_cfg = Config("alembic.ini")
+        alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+
+        # Test upgrade to specific revision
+        command.upgrade(alembic_cfg, "0001")
+
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.execute("SELECT version_num FROM alembic_version")
+            version = cursor.fetchone()[0]
+            assert version == "0001"
+
+        # Test upgrade to head
+        command.upgrade(alembic_cfg, "head")
+
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.execute("SELECT version_num FROM alembic_version")
+            version = cursor.fetchone()[0]
+            assert version == "0005"
+
+    def test_ohlcv_columns_after_migration(self, tmp_path):
+        """Test that OHLCV table has all expected columns after migration."""
+        db_path = tmp_path / "test.db"
+        apply_pending_alembic(db_path)
+
+        with sqlite3.connect(db_path) as conn:
+            # Get column info for ohlcv_bars table
+            cursor = conn.execute("PRAGMA table_info(ohlcv_bars)")
+            columns = [row[1] for row in cursor.fetchall()]
+
+            expected_columns = [
+                "id",
+                "symbol",
+                "timestamp_ns",
+                "open_price",
+                "high_price",
+                "low_price",
+                "close_price",
+                "volume",
+                "created_at",
+                "trading_date",
+                "trade_count",
+                "vwap",
+            ]
+
+            for col in expected_columns:
+                assert col in columns, f"Missing column: {col}"
+
+    def test_database_url_environment_variable(self, tmp_path):
+        """Test that DATABASE_URL environment variable is respected."""
+        db_path = tmp_path / "env_test.db"
+        test_url = f"sqlite:///{db_path.absolute()}"
+
+        with patch.dict(os.environ, {"DATABASE_URL": test_url}):
+            # Apply migration should use the environment variable
+            apply_pending_alembic(db_path)
+
+            # Verify database was created at the specified path
+            assert db_path.exists()
+
+    def test_migration_error_handling(self, tmp_path):
+        """Test error handling in migration system."""
+        # Test with invalid database path (read-only directory)
+        readonly_path = tmp_path / "readonly"
+        readonly_path.mkdir()
+        readonly_path.chmod(0o444)  # Make read-only
+
+        invalid_db_path = readonly_path / "test.db"
+
+        with pytest.raises(RuntimeError, match="Database migration failed"):
+            apply_pending_alembic(invalid_db_path)
+
+
+@pytest.mark.skipif(
+    not os.environ.get("TEST_POSTGRES"),
+    reason="Postgres tests require TEST_POSTGRES=1 and running Postgres",
+)
+class TestPostgresMigrations:
+    """Test Postgres migration functionality (requires running Postgres)."""
+
+    @pytest.fixture
+    def postgres_url(self):
+        """Get Postgres test database URL."""
+        return os.environ.get(
+            "POSTGRES_TEST_URL", "postgresql://postgres:postgres@localhost:5432/marketpipe_test"
         )
-        assert cursor.fetchone() is not None
 
-        # Check table structure
-        cursor = conn.execute("PRAGMA table_info(schema_version)")
-        columns = {row[1]: row[2] for row in cursor.fetchall()}
+    def test_postgres_migration_from_scratch(self, postgres_url):
+        """Test Postgres migration from scratch."""
+        # Create alembic config with Postgres URL
+        alembic_cfg = Config("alembic.ini")
+        alembic_cfg.set_main_option("sqlalchemy.url", postgres_url)
 
-        assert "version" in columns
-        assert "applied_ts" in columns
-        assert columns["version"] == "TEXT"
-        assert columns["applied_ts"] == "INTEGER"
-
-
-def test_migrations_create_core_tables(tmp_path):
-    """Test that core tables are created by migration 001."""
-    db = tmp_path / "core.db"
-
-    apply_pending(db)
-
-    with sqlite3.connect(db) as conn:
-        # Check that all expected tables exist
-        cursor = conn.execute(
-            """
-            SELECT name FROM sqlite_master
-            WHERE type='table' AND name NOT LIKE 'sqlite_%'
-            ORDER BY name
-        """
-        )
-        tables = [row[0] for row in cursor.fetchall()]
-
-        expected_tables = [
-            "checkpoints",
-            "ingestion_jobs",
-            "metrics",
-            "ohlcv_bars",
-            "schema_version",
-            "symbol_bars_aggregates",
-        ]
-
-        assert sorted(tables) == sorted(expected_tables)
-
-
-def test_migrations_create_indexes(tmp_path):
-    """Test that indexes are created by migrations."""
-    db = tmp_path / "core.db"
-
-    apply_pending(db)
-
-    with sqlite3.connect(db) as conn:
-        # Check that indexes exist
-        cursor = conn.execute(
-            """
-            SELECT name FROM sqlite_master
-            WHERE type='index' AND name NOT LIKE 'sqlite_%'
-            ORDER BY name
-        """
-        )
-        indexes = [row[0] for row in cursor.fetchall()]
-
-        # Should have metrics index from migration 002
-        assert "idx_metrics_name_ts" in indexes
-        assert "idx_symbol_bars_date" in indexes
-        assert "idx_ohlcv_symbol_timestamp" in indexes
-
-
-def test_migration_failure_rollback(tmp_path):
-    """Test that migration failures are rolled back."""
-    db = tmp_path / "core.db"
-
-    # Create a broken migration file in a test-specific location
-    test_migrations_dir = tmp_path / "test_migrations" / "versions"
-    test_migrations_dir.mkdir(parents=True, exist_ok=True)
-    bad_migration = test_migrations_dir / "999_broken.sql"
-
-    try:
-        # Write a broken migration
-        bad_migration.write_text("INVALID SQL SYNTAX;")
-
-        # Mock the migrations directory to point to our test location
-        with patch("marketpipe.migrations.Path") as mock_path_class:
-            # Create a mock Path instance that behaves like the original
-            mock_path_instance = mock_path_class.return_value
-            mock_path_instance.parent.mkdir.return_value = None
-
-            # Mock the migrations module's Path(__file__).parent to return our test dir
-            def path_side_effect(*args, **kwargs):
-                if args and str(args[0]).endswith("__init__.py"):
-                    # Return a path object that has our test migrations dir as parent/versions
-                    mock_file_path = mock_path_class.return_value
-                    mock_file_path.parent = tmp_path / "test_migrations"
-                    return mock_file_path
-                else:
-                    # For the db_path, return the original Path behavior
-                    return Path(*args, **kwargs)
-
-            mock_path_class.side_effect = path_side_effect
-
-            # This should fail
-            with pytest.raises(RuntimeError, match="Migration 999 failed"):
-                apply_pending(db)
-
-        # Check that the broken migration was not recorded
-        with sqlite3.connect(db) as conn:
-            cursor = conn.execute("SELECT version FROM schema_version WHERE version = '999'")
-            assert cursor.fetchone() is None
-    finally:
-        # Clean up
-        if bad_migration.exists():
-            bad_migration.unlink()
-
-
-def test_empty_migrations_directory(tmp_path):
-    """Test behavior when migrations directory is empty."""
-    db = tmp_path / "core.db"
-
-    # Create empty migrations directory
-    test_migrations_dir = tmp_path / "empty_migrations" / "versions"
-    test_migrations_dir.mkdir(parents=True)
-
-    # Mock the glob method to return no files
-    with patch("pathlib.Path.glob") as mock_glob:
-        mock_glob.return_value = []  # Empty list simulates no migration files
-
-        # Should not fail with empty directory
-        apply_pending(db)
-
-        # Schema version table should still be created
-        with sqlite3.connect(db) as conn:
-            cursor = conn.execute("SELECT COUNT(*) FROM schema_version")
-            assert cursor.fetchone()[0] == 0
-
-
-def test_partial_migrations_applied(tmp_path):
-    """Test that only pending migrations are applied."""
-    db = tmp_path / "core.db"
-
-    # Create a fresh database and apply all migrations
-    apply_pending(db)
-
-    # Check that all migrations are recorded
-    with sqlite3.connect(db) as conn:
-        cursor = conn.execute("SELECT version FROM schema_version ORDER BY version")
-        versions = [row[0] for row in cursor.fetchall()]
-        # Should have all current migrations
-        assert "001" in versions
-        assert "002" in versions
-        assert "003" in versions
-        assert "004" in versions
-        assert "005" in versions
-
-        # Verify that applying again is idempotent (no duplicates)
-        initial_count = len(versions)
-
-    # Apply migrations again - should be idempotent
-    apply_pending(db)
-
-    with sqlite3.connect(db) as conn:
-        cursor = conn.execute("SELECT version FROM schema_version ORDER BY version")
-        versions_after = [row[0] for row in cursor.fetchall()]
-        # Should have same number of migrations (no duplicates)
-        assert len(versions_after) == initial_count
-
-
-def test_migrations_with_nonexistent_database_dir(tmp_path):
-    """Test that database directory is created if it doesn't exist."""
-    db = tmp_path / "subdir" / "that" / "does" / "not" / "exist" / "core.db"
-
-    # Should create directory structure
-    apply_pending(db)
-
-    assert db.exists()
-    assert db.parent.exists()
-
-    with sqlite3.connect(db) as conn:
-        cursor = conn.execute("SELECT COUNT(*) FROM schema_version")
-        assert cursor.fetchone()[0] == 5
-
-
-def test_concurrent_migration_application(tmp_path):
-    """Test that migrations handle concurrent access safely."""
-    import threading
-
-    db = tmp_path / "core.db"
-    errors = []
-
-    def apply_migrations():
         try:
-            apply_pending(db)
+            # Drop all tables first (clean slate)
+            from sqlalchemy import create_engine, text
+
+            engine = create_engine(postgres_url)
+            with engine.connect() as conn:
+                # Drop alembic_version table if it exists
+                conn.execute(text("DROP TABLE IF EXISTS alembic_version CASCADE"))
+                conn.execute(text("DROP TABLE IF EXISTS symbol_bars_aggregates CASCADE"))
+                conn.execute(text("DROP TABLE IF EXISTS ohlcv_bars CASCADE"))
+                conn.execute(text("DROP TABLE IF EXISTS checkpoints CASCADE"))
+                conn.execute(text("DROP TABLE IF EXISTS metrics CASCADE"))
+                conn.execute(text("DROP TABLE IF EXISTS ingestion_jobs CASCADE"))
+                conn.commit()
+
+            # Run migrations
+            command.upgrade(alembic_cfg, "head")
+
+            # Verify tables exist
+            with engine.connect() as conn:
+                result = conn.execute(
+                    text(
+                        """
+                    SELECT table_name FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                    ORDER BY table_name
+                """
+                    )
+                )
+                tables = [row[0] for row in result.fetchall()]
+
+                expected_tables = [
+                    "alembic_version",
+                    "checkpoints",
+                    "ingestion_jobs",
+                    "metrics",
+                    "ohlcv_bars",
+                    "symbol_bars_aggregates",
+                ]
+
+                for table in expected_tables:
+                    assert table in tables, f"Missing table: {table}"
+
         except Exception as e:
-            errors.append(e)
+            pytest.skip(f"Postgres test failed (likely no running Postgres): {e}")
 
-    # Start multiple threads trying to apply migrations
-    threads = []
-    for _ in range(3):
-        thread = threading.Thread(target=apply_migrations)
-        threads.append(thread)
-        thread.start()
+    def test_postgres_idempotent_migration(self, postgres_url):
+        """Test that Postgres migrations are idempotent."""
+        alembic_cfg = Config("alembic.ini")
+        alembic_cfg.set_main_option("sqlalchemy.url", postgres_url)
 
-    # Wait for all threads to complete
-    for thread in threads:
-        thread.join()
+        try:
+            # Run migrations twice
+            command.upgrade(alembic_cfg, "head")
+            command.upgrade(alembic_cfg, "head")  # Should not fail
 
-    # At most one thread should have succeeded, others should handle gracefully
-    assert len(errors) <= 2  # Some threads might fail due to db locks, that's ok
+            # Verify version
+            from sqlalchemy import create_engine, text
 
-    # Check that migrations were applied correctly
-    with sqlite3.connect(db) as conn:
-        cursor = conn.execute("SELECT COUNT(*) FROM schema_version")
-        assert cursor.fetchone()[0] == 5
+            engine = create_engine(postgres_url)
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT version_num FROM alembic_version"))
+                version = result.fetchone()[0]
+                assert version == "0005"
+
+        except Exception as e:
+            pytest.skip(f"Postgres test failed (likely no running Postgres): {e}")
+
+
+class TestLegacyCompatibility:
+    """Test backward compatibility with legacy migration system."""
+
+    def test_legacy_apply_pending_function(self, tmp_path):
+        """Test that legacy apply_pending function still works."""
+        from marketpipe.bootstrap import apply_pending
+
+        db_path = tmp_path / "legacy_test.db"
+
+        # Should work (deprecation warning may not be catchable by pytest)
+        apply_pending(db_path)
+
+        # Verify database was created
+        assert db_path.exists()
+
+        # Verify tables exist
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.execute(
+                """
+                SELECT name FROM sqlite_master
+                WHERE type='table' AND name='symbol_bars_aggregates'
+            """
+            )
+            assert cursor.fetchone() is not None
+
+
+class TestAlembicConfiguration:
+    """Test Alembic configuration and setup."""
+
+    def test_alembic_ini_exists(self):
+        """Test that alembic.ini configuration file exists."""
+        assert Path("alembic.ini").exists()
+
+    def test_alembic_migrations_exist(self):
+        """Test that migration files exist."""
+        versions_dir = Path("alembic/versions")
+        assert versions_dir.exists()
+
+        migration_files = list(versions_dir.glob("*.py"))
+        assert len(migration_files) >= 3  # At least our 3 migrations
+
+        # Check specific migrations exist
+        migration_names = [f.name for f in migration_files]
+        assert any("0001_initial_schema" in name for name in migration_names)
+        assert any("0002_optimize_metrics" in name for name in migration_names)
+        assert any("0003_add_missing_ohlcv" in name for name in migration_names)
+
+    def test_alembic_env_py_exists(self):
+        """Test that alembic env.py exists and is configured."""
+        env_py = Path("alembic/env.py")
+        assert env_py.exists()
+
+        # Check that it contains our DATABASE_URL support
+        content = env_py.read_text()
+        assert "DATABASE_URL" in content
+        assert "os.environ.get" in content

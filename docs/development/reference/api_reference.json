@@ -1,0 +1,6836 @@
+{
+  "src/marketpipe/cli_old.py": [
+    {
+      "type": "function",
+      "name": "__getattr__",
+      "signature": "(name)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/metrics_server.py": [
+    {
+      "type": "class",
+      "name": "AsyncMetricsServer",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, port, host, max_connections)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "start",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "stop",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_handle_client",
+      "signature": "(self, reader, writer)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_send_response",
+      "signature": "(self, writer, status_code, status_text, body, content_type)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_monitor_event_loop_lag",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "callback",
+      "signature": "(expected, fut)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "run_context",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "start_async_server",
+      "signature": "(port, host)",
+      "returns": "AsyncMetricsServer"
+    },
+    {
+      "type": "function",
+      "name": "stop_async_server",
+      "signature": "()",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "metrics_app",
+      "signature": "(environ, start_response)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "run",
+      "signature": "(port, legacy)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "run_async",
+      "signature": "()",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/bootstrap.py": [
+    {
+      "type": "function",
+      "name": "apply_pending_alembic",
+      "signature": "(db_path)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "apply_pending",
+      "signature": "(db_path)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "bootstrap",
+      "signature": "()",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "is_bootstrapped",
+      "signature": "()",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "reset_bootstrap_state",
+      "signature": "()",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_event_bus",
+      "signature": "()",
+      "returns": "IEventBus"
+    }
+  ],
+  "src/marketpipe/metrics_event_handlers.py": [
+    {
+      "type": "function",
+      "name": "setup_metrics_event_handlers_deprecated",
+      "signature": "()",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/loader.py": [
+    {
+      "type": "function",
+      "name": "load_ohlcv",
+      "signature": "(symbols, start, end, timeframe)",
+      "returns": "pd.DataFrame | pl.DataFrame"
+    },
+    {
+      "type": "function",
+      "name": "_load_symbol_data",
+      "signature": "(con, root, symbol, timeframe, start_ns, end_ns, is_multi_symbol)",
+      "returns": "pd.DataFrame"
+    },
+    {
+      "type": "function",
+      "name": "_to_ns",
+      "signature": "(ts_like)",
+      "returns": "int"
+    }
+  ],
+  "src/marketpipe/metrics.py": [
+    {
+      "type": "class",
+      "name": "MetricPoint",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "TrendPoint",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "SqliteMetricsRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, db_path)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "record",
+      "signature": "(self, name, value, provider, feed)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_metrics_history",
+      "signature": "(self, metric)",
+      "returns": "list[MetricPoint]"
+    },
+    {
+      "type": "function",
+      "name": "get_average_metrics",
+      "signature": "(self, metric)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "get_performance_trends",
+      "signature": "(self, metric)",
+      "returns": "list[TrendPoint]"
+    },
+    {
+      "type": "function",
+      "name": "list_metric_names",
+      "signature": "(self)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "get_metrics_repository",
+      "signature": "()",
+      "returns": "SqliteMetricsRepository"
+    },
+    {
+      "type": "function",
+      "name": "record_metric",
+      "signature": "(name, value)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/settings/providers.py": [
+    {
+      "type": "class",
+      "name": "AlpacaSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "IEXSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "api_token",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "FinnhubSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "PolygonSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "BinanceSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "TiingoSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "TwelveDataSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "FredSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "AlphaVantageSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "MarketStackSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "EODHDSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "IntrinioSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "TradierSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "QuandlSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "RefinitivSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "ExegySettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "CMEDataMineSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "KrakenSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "CoinbaseSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "YFinanceSettings",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "get_provider_settings",
+      "signature": "(provider_key)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "list_provider_settings",
+      "signature": "()",
+      "returns": "dict[str, list[str]]"
+    }
+  ],
+  "src/marketpipe/config/ingestion.py": [
+    {
+      "type": "class",
+      "name": "IngestionJobConfig",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Config",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "validate_symbols",
+      "signature": "(cls, v)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "validate_provider",
+      "signature": "(cls, v)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "validate_feed_type",
+      "signature": "(cls, v)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "validate_date_range",
+      "signature": "(self)",
+      "returns": "IngestionJobConfig"
+    },
+    {
+      "type": "function",
+      "name": "from_yaml",
+      "signature": "(cls, path)",
+      "returns": "IngestionJobConfig"
+    },
+    {
+      "type": "function",
+      "name": "to_dict",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "merge_overrides",
+      "signature": "(self, **overrides)",
+      "returns": "IngestionJobConfig"
+    }
+  ],
+  "src/marketpipe/config/loader.py": [
+    {
+      "type": "class",
+      "name": "ConfigVersionError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "load_config",
+      "signature": "(path)",
+      "returns": "IngestionJobConfig"
+    },
+    {
+      "type": "function",
+      "name": "_normalize_yaml_keys",
+      "signature": "(data)",
+      "returns": "dict[str, Any]"
+    }
+  ],
+  "src/marketpipe/aggregation/application/services.py": [
+    {
+      "type": "class",
+      "name": "AggregationRunnerService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, engine, domain)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_extract_provider_feed_info",
+      "signature": "(self, event)",
+      "returns": "tuple[str, str]"
+    },
+    {
+      "type": "function",
+      "name": "handle_ingestion_completed",
+      "signature": "(self, event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "run_manual_aggregation",
+      "signature": "(self, job_id)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "build_default",
+      "signature": "(cls)",
+      "returns": "AggregationRunnerService"
+    },
+    {
+      "type": "function",
+      "name": "register",
+      "signature": "(cls)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/aggregation/infrastructure/duckdb_engine.py": [
+    {
+      "type": "class",
+      "name": "DuckDBAggregationEngine",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, raw_root, agg_root)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "aggregate_job",
+      "signature": "(self, job_id, frame_sql_pairs)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_write_aggregated_data",
+      "signature": "(self, df, symbol, spec, job_id)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_aggregated_data",
+      "signature": "(self, symbol, frame, start_ts, end_ts)",
+      "returns": "pd.DataFrame"
+    }
+  ],
+  "src/marketpipe/aggregation/infrastructure/duckdb_views.py": [
+    {
+      "type": "function",
+      "name": "_get_connection",
+      "signature": "()",
+      "returns": "duckdb.DuckDBPyConnection"
+    },
+    {
+      "type": "function",
+      "name": "_attach_partition",
+      "signature": "(frame)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "ensure_views",
+      "signature": "()",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "refresh_views",
+      "signature": "()",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "query",
+      "signature": "(sql)",
+      "returns": "pd.DataFrame"
+    },
+    {
+      "type": "function",
+      "name": "get_available_data",
+      "signature": "()",
+      "returns": "pd.DataFrame"
+    },
+    {
+      "type": "function",
+      "name": "validate_views",
+      "signature": "()",
+      "returns": "dict[str, bool]"
+    },
+    {
+      "type": "function",
+      "name": "set_agg_root",
+      "signature": "(path)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/aggregation/domain/value_objects.py": [
+    {
+      "type": "class",
+      "name": "FrameSpec",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/aggregation/domain/events.py": [
+    {
+      "type": "class",
+      "name": "AggregationCompleted",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, job_id, frames_processed)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "event_id",
+      "signature": "(self)",
+      "returns": "UUID"
+    },
+    {
+      "type": "function",
+      "name": "occurred_at",
+      "signature": "(self)",
+      "returns": "datetime"
+    },
+    {
+      "type": "function",
+      "name": "version",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "AggregationFailed",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, job_id, error_message)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "event_id",
+      "signature": "(self)",
+      "returns": "UUID"
+    },
+    {
+      "type": "function",
+      "name": "occurred_at",
+      "signature": "(self)",
+      "returns": "datetime"
+    },
+    {
+      "type": "function",
+      "name": "version",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    }
+  ],
+  "src/marketpipe/aggregation/domain/services.py": [
+    {
+      "type": "class",
+      "name": "AggregationDomainService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "duckdb_sql",
+      "signature": "(frame, src_table)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/security/mask.py": [
+    {
+      "type": "function",
+      "name": "mask",
+      "signature": "(value, show)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "safe_for_log",
+      "signature": "(msg, *secrets)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/providers/__init__.py": [
+    {
+      "type": "class",
+      "name": "ProviderFeature",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "ProviderFeatureMatrix",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "get_features",
+      "signature": "(cls, provider)",
+      "returns": "ProviderFeature | None"
+    },
+    {
+      "type": "function",
+      "name": "suggest_alternatives",
+      "signature": "(cls, failed_provider, requested_start_date, requested_end_date, exclude_providers)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "get_suggestion_message",
+      "signature": "(cls, failed_provider, returned_start, returned_end, requested_start, requested_end)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/ingestion/writer.py": [
+    {
+      "type": "function",
+      "name": "write_parquet",
+      "signature": "(rows, output_root, overwrite, compression)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/ingestion/symbol_providers/base.py": [
+    {
+      "type": "class",
+      "name": "SymbolProviderBase",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, **provider_cfg)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "fetch_symbols",
+      "signature": "(self)",
+      "returns": "list[SymbolRecord]"
+    },
+    {
+      "type": "function",
+      "name": "_fetch_raw",
+      "signature": "(self)",
+      "returns": "Any"
+    },
+    {
+      "type": "function",
+      "name": "_map_to_records",
+      "signature": "(self, payload)",
+      "returns": "list[SymbolRecord]"
+    },
+    {
+      "type": "function",
+      "name": "fetch_symbols_sync",
+      "signature": "(self)",
+      "returns": "list[SymbolRecord]"
+    }
+  ],
+  "src/marketpipe/ingestion/symbol_providers/nasdaq_dl.py": [
+    {
+      "type": "class",
+      "name": "NasdaqDailyListProvider",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, **provider_cfg)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_fetch_raw",
+      "signature": "(self)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "_map_to_records",
+      "signature": "(self, rows)",
+      "returns": "list[SymbolRecord]"
+    },
+    {
+      "type": "function",
+      "name": "_determine_effective_date",
+      "signature": "(self, rows)",
+      "returns": "_dt.date"
+    },
+    {
+      "type": "function",
+      "name": "_parse_row",
+      "signature": "(self, row, header, as_of, include_etfs, skip_test_issues)",
+      "returns": "SymbolRecord | None"
+    }
+  ],
+  "src/marketpipe/ingestion/symbol_providers/dummy.py": [
+    {
+      "type": "class",
+      "name": "DummyProvider",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_fetch_raw",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_map_to_records",
+      "signature": "(self, payload)",
+      "returns": "list[SymbolRecord]"
+    }
+  ],
+  "src/marketpipe/ingestion/symbol_providers/polygon.py": [
+    {
+      "type": "class",
+      "name": "PolygonSymbolProvider",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_fetch_raw",
+      "signature": "(self)",
+      "returns": "list[dict[str, Any]]"
+    },
+    {
+      "type": "function",
+      "name": "_map_to_records",
+      "signature": "(self, payload)",
+      "returns": "list[SymbolRecord]"
+    }
+  ],
+  "src/marketpipe/ingestion/symbol_providers/__init__.py": [
+    {
+      "type": "function",
+      "name": "register",
+      "signature": "(name)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "decorator",
+      "signature": "(cls)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "get",
+      "signature": "(name, **kwargs)",
+      "returns": "SymbolProviderBase"
+    },
+    {
+      "type": "function",
+      "name": "list_providers",
+      "signature": "()",
+      "returns": "list[str]"
+    }
+  ],
+  "src/marketpipe/ingestion/application/queries.py": [
+    {
+      "type": "class",
+      "name": "GetJobStatusQuery",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "GetJobHistoryQuery",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "GetActiveJobsQuery",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "GetJobMetricsQuery",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "GetJobProgressQuery",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "SearchJobsQuery",
+      "signature": "()",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/ingestion/application/commands.py": [
+    {
+      "type": "class",
+      "name": "CreateIngestionJobCommand",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "StartJobCommand",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "CancelJobCommand",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "CompleteJobCommand",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "FailJobCommand",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "RestartJobCommand",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "UpdateJobConfigurationCommand",
+      "signature": "()",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/ingestion/application/services.py": [
+    {
+      "type": "class",
+      "name": "IngestionJobService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, job_repository, checkpoint_repository, metrics_repository, domain_service, progress_tracker, event_publisher)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "create_job",
+      "signature": "(self, command)",
+      "returns": "IngestionJobId"
+    },
+    {
+      "type": "function",
+      "name": "start_job",
+      "signature": "(self, command)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "cancel_job",
+      "signature": "(self, command)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "complete_job",
+      "signature": "(self, command)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "fail_job",
+      "signature": "(self, command)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "restart_job",
+      "signature": "(self, command)",
+      "returns": "IngestionJobId"
+    },
+    {
+      "type": "function",
+      "name": "get_job_status",
+      "signature": "(self, query)",
+      "returns": "dict[str, Any] | None"
+    },
+    {
+      "type": "function",
+      "name": "get_job_history",
+      "signature": "(self, query)",
+      "returns": "list[dict[str, Any]]"
+    },
+    {
+      "type": "function",
+      "name": "get_active_jobs",
+      "signature": "(self, query)",
+      "returns": "list[dict[str, Any]]"
+    },
+    {
+      "type": "function",
+      "name": "get_job_metrics",
+      "signature": "(self, query)",
+      "returns": "dict[str, Any] | None"
+    },
+    {
+      "type": "class",
+      "name": "IngestionCoordinatorService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, job_service, job_repository, checkpoint_repository, metrics_repository, market_data_provider, data_validator, data_storage, event_publisher)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "execute_job",
+      "signature": "(self, job_id)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "_process_symbol",
+      "signature": "(self, job, symbol)",
+      "returns": "tuple[int, IngestionPartition]"
+    }
+  ],
+  "src/marketpipe/ingestion/normalizer/refresh_views.py": [
+    {
+      "type": "function",
+      "name": "refresh",
+      "signature": "(db_path, connection)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_validate_and_refresh",
+      "signature": "(conn, sql_script)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/ingestion/normalizer/run_scd_update.py": [
+    {
+      "type": "function",
+      "name": "setup_logging",
+      "signature": "(verbose)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "validate_inputs",
+      "signature": "(db_path, data_dir)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "main",
+      "signature": "()",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "cli",
+      "signature": "()",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/ingestion/normalizer/scd_writer.py": [
+    {
+      "type": "function",
+      "name": "run_scd_update",
+      "signature": "(db, data_dir, dry_run)",
+      "returns": "dict[str, int]"
+    },
+    {
+      "type": "function",
+      "name": "_add_partition_columns",
+      "signature": "(table)",
+      "returns": "pa.Table"
+    },
+    {
+      "type": "function",
+      "name": "_count_new_files",
+      "signature": "(data_dir)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "attach_symbols_master",
+      "signature": "(db, data_dir)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_create_empty_symbols_master_table",
+      "signature": "(db)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/ingestion/normalizer/run_symbol_normalizer.py": [
+    {
+      "type": "function",
+      "name": "normalize_stage",
+      "signature": "(db_path, connection, output_table)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/ingestion/services/gap_detector.py": [
+    {
+      "type": "class",
+      "name": "GapDetectorService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, parquet_root, timeframe)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "find_missing_days",
+      "signature": "(self, symbol, start, end)",
+      "returns": "list[dt.date]"
+    },
+    {
+      "type": "function",
+      "name": "find_missing_days_async",
+      "signature": "(self, symbol, start, end)",
+      "returns": "list[dt.date]"
+    },
+    {
+      "type": "function",
+      "name": "_existing_days",
+      "signature": "(self, symbol, start, end)",
+      "returns": "set[dt.date]"
+    }
+  ],
+  "src/marketpipe/ingestion/connectors/alpaca_client.py": [
+    {
+      "type": "class",
+      "name": "AlpacaClient",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "endpoint_path",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "build_request_params",
+      "signature": "(self, symbol, start_ts, end_ts, cursor)",
+      "returns": "Mapping[str, str]"
+    },
+    {
+      "type": "function",
+      "name": "next_cursor",
+      "signature": "(self, raw_json)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "_request",
+      "signature": "(self, params)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "_async_request",
+      "signature": "(self, params)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "parse_response",
+      "signature": "(self, raw_json)",
+      "returns": "list[dict[str, Any]]"
+    },
+    {
+      "type": "function",
+      "name": "should_retry",
+      "signature": "(self, status, body)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "_backoff",
+      "signature": "(attempt)",
+      "returns": "float"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/rate_limit.py": [
+    {
+      "type": "class",
+      "name": "RateLimiter",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, capacity, refill_rate)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "set_provider_name",
+      "signature": "(self, provider_name)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "acquire",
+      "signature": "(self, tokens)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "acquire_async",
+      "signature": "(self, tokens)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "notify_retry_after",
+      "signature": "(self, seconds)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "notify_retry_after_async",
+      "signature": "(self, seconds)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "async_acquire",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_refill_tokens",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_available_tokens",
+      "signature": "(self)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "get_capacity",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "get_refill_rate",
+      "signature": "(self)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "reset",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "create_rate_limiter_from_config",
+      "signature": "(rate_limit_per_min, burst_size, provider_name)",
+      "returns": "RateLimiter | None"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/models.py": [
+    {
+      "type": "class",
+      "name": "ClientConfig",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "OHLCVRow",
+      "signature": "()",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/parquet_storage.py": [
+    {
+      "type": "class",
+      "name": "ParquetDataStorageAdapter",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, root, compression)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "store_bars",
+      "signature": "(self, bars, config)",
+      "returns": "IngestionPartition"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/verification.py": [
+    {
+      "type": "class",
+      "name": "VerificationResult",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "VerificationSummary",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "IngestionVerificationService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, tolerance_days)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "verify_ingestion",
+      "signature": "(self, symbols, requested_start, requested_end, provider, output_path)",
+      "returns": "VerificationSummary"
+    },
+    {
+      "type": "function",
+      "name": "_verify_symbol_data",
+      "signature": "(self, symbol, requested_start, requested_end, provider, output_path)",
+      "returns": "VerificationResult"
+    },
+    {
+      "type": "function",
+      "name": "_query_symbol_bounds",
+      "signature": "(self, symbol, output_path)",
+      "returns": "tuple[date | None, date | None, int]"
+    },
+    {
+      "type": "function",
+      "name": "_check_date_boundaries",
+      "signature": "(self, requested_start, requested_end, actual_start, actual_end)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "print_verification_summary",
+      "signature": "(self, summary)",
+      "returns": "None"
+    },
+    {
+      "type": "class",
+      "name": "VerificationError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, message, summary)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/polygon_adapter.py": [
+    {
+      "type": "class",
+      "name": "PolygonMarketDataAdapter",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, api_key, base_url, rate_limit_per_minute, timeout, max_retries, logger)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars_for_symbol",
+      "signature": "(self, symbol, time_range, max_bars)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "get_supported_symbols",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "is_available",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_provider_metadata",
+      "signature": "(self)",
+      "returns": "ProviderMetadata"
+    },
+    {
+      "type": "function",
+      "name": "_apply_rate_limit",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_make_request",
+      "signature": "(self, url, params)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "_parse_timeframe",
+      "signature": "(self, timeframe)",
+      "returns": "tuple[int, str]"
+    },
+    {
+      "type": "function",
+      "name": "_parse_polygon_response",
+      "signature": "(self, response_data, symbol)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/simple_job_adapter.py": [
+    {
+      "type": "class",
+      "name": "SimpleJobRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "upsert",
+      "signature": "(self, symbol, day, status)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "claim_pending",
+      "signature": "(self, limit)",
+      "returns": "list[tuple[str, str]]"
+    },
+    {
+      "type": "function",
+      "name": "mark_done",
+      "signature": "(self, symbol, day, status)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_status",
+      "signature": "(self, symbol, day)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "list_jobs",
+      "signature": "(self, status)",
+      "returns": "list[tuple[str, str, str]]"
+    },
+    {
+      "type": "function",
+      "name": "close",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_find_job_by_symbol_day",
+      "signature": "(self, symbol, day)",
+      "returns": "IngestionJob | None"
+    },
+    {
+      "type": "function",
+      "name": "_create_minimal_job",
+      "signature": "(self, symbol, day, state)",
+      "returns": "IngestionJob"
+    },
+    {
+      "type": "function",
+      "name": "_update_job_state",
+      "signature": "(self, job, new_state)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_extract_day_from_job",
+      "signature": "(self, job)",
+      "returns": "date"
+    },
+    {
+      "type": "function",
+      "name": "_extract_day_string",
+      "signature": "(self, job)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/provider_loader.py": [
+    {
+      "type": "function",
+      "name": "build_provider",
+      "signature": "(config)",
+      "returns": "IMarketDataProvider"
+    },
+    {
+      "type": "function",
+      "name": "get_available_providers",
+      "signature": "()",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "validate_provider_config",
+      "signature": "(config)",
+      "returns": "bool"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/repository_factory.py": [
+    {
+      "type": "function",
+      "name": "create_ingestion_job_repository",
+      "signature": "()",
+      "returns": "IIngestionJobRepository"
+    },
+    {
+      "type": "function",
+      "name": "create_ingestion_job_repository_with_url",
+      "signature": "(database_url)",
+      "returns": "IIngestionJobRepository"
+    },
+    {
+      "type": "function",
+      "name": "_mask_credentials",
+      "signature": "(url)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/provider_registry.py": [
+    {
+      "type": "function",
+      "name": "_auto_register",
+      "signature": "()",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "register",
+      "signature": "(name, cls)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get",
+      "signature": "(name)",
+      "returns": "type[IMarketDataProvider]"
+    },
+    {
+      "type": "function",
+      "name": "list_providers",
+      "signature": "()",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "is_registered",
+      "signature": "(name)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "clear_registry",
+      "signature": "()",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "provider",
+      "signature": "(name)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "decorator",
+      "signature": "(cls)",
+      "returns": "type[IMarketDataProvider]"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/iex_adapter.py": [
+    {
+      "type": "class",
+      "name": "IEXMarketDataAdapter",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, api_token, is_sandbox, base_url, timeout)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "from_config",
+      "signature": "(cls, config)",
+      "returns": "IEXMarketDataAdapter"
+    },
+    {
+      "type": "function",
+      "name": "_get_client",
+      "signature": "(self)",
+      "returns": "httpx.AsyncClient"
+    },
+    {
+      "type": "function",
+      "name": "_close_client",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars_for_symbol",
+      "signature": "(self, symbol, time_range, max_bars)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "_translate_iex_bar_to_domain",
+      "signature": "(self, iex_bar, symbol)",
+      "returns": "OHLCVBar"
+    },
+    {
+      "type": "function",
+      "name": "_is_within_time_range",
+      "signature": "(self, timestamp, time_range)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_supported_symbols",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "is_available",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_provider_metadata",
+      "signature": "(self)",
+      "returns": "ProviderMetadata"
+    },
+    {
+      "type": "function",
+      "name": "__aenter__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__aexit__",
+      "signature": "(self, exc_type, exc_val, exc_tb)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "create_iex_adapter",
+      "signature": "(api_token, is_sandbox)",
+      "returns": "IEXMarketDataAdapter"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/postgres_repository.py": [
+    {
+      "type": "class",
+      "name": "PostgresIngestionJobRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, dsn, min_size, max_size)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_get_pool",
+      "signature": "(self)",
+      "returns": "asyncpg.Pool"
+    },
+    {
+      "type": "function",
+      "name": "save",
+      "signature": "(self, job)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_by_id",
+      "signature": "(self, job_id)",
+      "returns": "IngestionJob | None"
+    },
+    {
+      "type": "function",
+      "name": "get_by_state",
+      "signature": "(self, state)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "get_active_jobs",
+      "signature": "(self)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "get_jobs_by_date_range",
+      "signature": "(self, start_date, end_date)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "delete",
+      "signature": "(self, job_id)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_job_history",
+      "signature": "(self, limit)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "count_jobs_by_state",
+      "signature": "(self)",
+      "returns": "dict[ProcessingState, int]"
+    },
+    {
+      "type": "function",
+      "name": "fetch_and_lock",
+      "signature": "(self, state, limit)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "count_old_jobs",
+      "signature": "(self, cutoff_date)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "delete_old_jobs",
+      "signature": "(self, cutoff_date)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "close",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_serialize_job_to_dict",
+      "signature": "(self, job)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "_serialize_partition",
+      "signature": "(self, partition)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "_deserialize_job_from_payload",
+      "signature": "(self, payload)",
+      "returns": "IngestionJob"
+    },
+    {
+      "type": "function",
+      "name": "_deserialize_partition",
+      "signature": "(self, partition_data)",
+      "returns": "IngestionPartition"
+    },
+    {
+      "type": "function",
+      "name": "_extract_day_from_job",
+      "signature": "(self, job)",
+      "returns": "date"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/base_api_client.py": [
+    {
+      "type": "class",
+      "name": "BaseApiClient",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, config, auth, rate_limiter, metrics_collector, state_backend, logger)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "build_request_params",
+      "signature": "(self, symbol, start_ts, end_ts, cursor)",
+      "returns": "Mapping[str, str]"
+    },
+    {
+      "type": "function",
+      "name": "endpoint_path",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "paginate",
+      "signature": "(self, symbol, start_ts, end_ts, **kwargs)",
+      "returns": "Iterable[dict[str, Any]]"
+    },
+    {
+      "type": "function",
+      "name": "next_cursor",
+      "signature": "(self, raw_json)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "_request",
+      "signature": "(self, params)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "_async_request",
+      "signature": "(self, params)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "fetch_batch",
+      "signature": "(self, symbol, start_ts, end_ts)",
+      "returns": "list[dict[str, Any]]"
+    },
+    {
+      "type": "function",
+      "name": "async_fetch_batch",
+      "signature": "(self, symbol, start_ts, end_ts)",
+      "returns": "list[dict[str, Any]]"
+    },
+    {
+      "type": "function",
+      "name": "async_paginate",
+      "signature": "(self, symbol, start_ts, end_ts, **kwargs)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "parse_response",
+      "signature": "(self, raw_json)",
+      "returns": "list[dict[str, Any]]"
+    },
+    {
+      "type": "function",
+      "name": "should_retry",
+      "signature": "(self, status_code, json_body)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "save_checkpoint",
+      "signature": "(self, symbol, checkpoint)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "load_checkpoint",
+      "signature": "(self, symbol)",
+      "returns": "str | int | None"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/adapters.py": [
+    {
+      "type": "class",
+      "name": "AlpacaMarketDataAdapter",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, api_key, api_secret, base_url, feed_type, rate_limit_per_min)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "from_config",
+      "signature": "(cls, config)",
+      "returns": "AlpacaMarketDataAdapter"
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars_for_symbol",
+      "signature": "(self, symbol, time_range, max_bars)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "get_supported_symbols",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "is_available",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "test_connection",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_provider_metadata",
+      "signature": "(self)",
+      "returns": "ProviderMetadata"
+    },
+    {
+      "type": "function",
+      "name": "get_provider_info",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "_translate_alpaca_bar_to_domain",
+      "signature": "(self, alpaca_bar, symbol)",
+      "returns": "OHLCVBar"
+    },
+    {
+      "type": "function",
+      "name": "_safe_decimal",
+      "signature": "(self, value)",
+      "returns": "Decimal"
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars",
+      "signature": "(self, symbol, start_timestamp, end_timestamp, batch_size)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "class",
+      "name": "IEXMarketDataAdapter",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, api_token, is_sandbox)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars_for_symbol",
+      "signature": "(self, symbol, time_range, max_bars)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "get_supported_symbols",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "is_available",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_provider_metadata",
+      "signature": "(self)",
+      "returns": "ProviderMetadata"
+    },
+    {
+      "type": "function",
+      "name": "get_provider_info",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars",
+      "signature": "(self, symbol, start_timestamp, end_timestamp, batch_size)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "class",
+      "name": "MarketDataProviderError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "DataTranslationError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "MarketDataProviderFactory",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "create_alpaca_adapter",
+      "signature": "(api_key, api_secret, base_url, feed_type, rate_limit_per_min)",
+      "returns": "AlpacaMarketDataAdapter"
+    },
+    {
+      "type": "function",
+      "name": "create_iex_adapter",
+      "signature": "(api_token, is_sandbox)",
+      "returns": "IEXMarketDataAdapter"
+    },
+    {
+      "type": "function",
+      "name": "create_from_config",
+      "signature": "(config)",
+      "returns": "IMarketDataProvider"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/alpaca_client.py": [
+    {
+      "type": "class",
+      "name": "AlpacaClient",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, *args, **kwargs)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "endpoint_path",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "build_request_params",
+      "signature": "(self, symbol, start_ts, end_ts, cursor)",
+      "returns": "Mapping[str, str]"
+    },
+    {
+      "type": "function",
+      "name": "next_cursor",
+      "signature": "(self, raw_json)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "_request",
+      "signature": "(self, params)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "_async_request",
+      "signature": "(self, params)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "parse_response",
+      "signature": "(self, raw_json)",
+      "returns": "list[dict[str, Any]]"
+    },
+    {
+      "type": "function",
+      "name": "should_retry",
+      "signature": "(self, status, body)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "_backoff",
+      "signature": "(attempt)",
+      "returns": "float"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/auth.py": [
+    {
+      "type": "class",
+      "name": "AuthStrategy",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "apply",
+      "signature": "(self, headers, params)",
+      "returns": "None"
+    },
+    {
+      "type": "class",
+      "name": "TokenAuth",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, token)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "apply",
+      "signature": "(self, headers, params)",
+      "returns": "None"
+    },
+    {
+      "type": "class",
+      "name": "HeaderTokenAuth",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, key_id, secret_key)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "apply",
+      "signature": "(self, headers, params)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/fake_adapter.py": [
+    {
+      "type": "class",
+      "name": "FakeMarketDataAdapter",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, base_price, volatility, fail_probability, supported_symbols)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "from_config",
+      "signature": "(cls, config)",
+      "returns": "FakeMarketDataAdapter"
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars_for_symbol",
+      "signature": "(self, symbol, time_range, max_bars)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "_generate_bar",
+      "signature": "(self, symbol, timestamp, base_price)",
+      "returns": "OHLCVBar"
+    },
+    {
+      "type": "function",
+      "name": "get_supported_symbols",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "is_available",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_provider_metadata",
+      "signature": "(self)",
+      "returns": "ProviderMetadata"
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars",
+      "signature": "(self, symbol, start_timestamp, end_timestamp, batch_size)",
+      "returns": "list[OHLCVBar]"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/finnhub_adapter.py": [
+    {
+      "type": "class",
+      "name": "FinnhubMarketDataAdapter",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, api_key, base_url, rate_limit_per_minute, timeout, max_retries, logger)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars_for_symbol",
+      "signature": "(self, symbol, time_range, max_bars)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "get_supported_symbols",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "is_available",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_provider_metadata",
+      "signature": "(self)",
+      "returns": "ProviderMetadata"
+    },
+    {
+      "type": "function",
+      "name": "_apply_rate_limit",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_make_request",
+      "signature": "(self, url, params)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "_parse_timeframe",
+      "signature": "(self, timeframe)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_parse_finnhub_response",
+      "signature": "(self, response_data, symbol, timeframe)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/clients.py": [
+    {
+      "type": "class",
+      "name": "AlpacaApiClientWrapper",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, config, auth, rate_limiter, feed)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars_raw",
+      "signature": "(self, symbol, start_ms, end_ms)",
+      "returns": "list[dict[str, Any]]"
+    },
+    {
+      "type": "function",
+      "name": "test_connection",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_configuration_info",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "InfrastructureError",
+      "signature": "()",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/ingestion/infrastructure/repositories.py": [
+    {
+      "type": "class",
+      "name": "SqliteIngestionJobRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, db_path)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_init_database",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_domain_state_to_db_state",
+      "signature": "(self, state)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_db_state_to_domain_state",
+      "signature": "(self, db_state)",
+      "returns": "ProcessingState"
+    },
+    {
+      "type": "function",
+      "name": "save",
+      "signature": "(self, job)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_by_id",
+      "signature": "(self, job_id)",
+      "returns": "IngestionJob | None"
+    },
+    {
+      "type": "function",
+      "name": "get_by_state",
+      "signature": "(self, state)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "get_active_jobs",
+      "signature": "(self)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "get_jobs_by_date_range",
+      "signature": "(self, start_date, end_date)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "delete",
+      "signature": "(self, job_id)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_job_history",
+      "signature": "(self, limit)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "count_jobs_by_state",
+      "signature": "(self)",
+      "returns": "dict[ProcessingState, int]"
+    },
+    {
+      "type": "function",
+      "name": "fetch_and_lock",
+      "signature": "(self, limit)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "count_old_jobs",
+      "signature": "(self, cutoff_date)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "delete_old_jobs",
+      "signature": "(self, cutoff_date)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "_serialize_job_to_json",
+      "signature": "(self, job)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_deserialize_job_from_row",
+      "signature": "(self, row)",
+      "returns": "IngestionJob"
+    },
+    {
+      "type": "function",
+      "name": "_serialize_job",
+      "signature": "(self, job)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_deserialize_job",
+      "signature": "(self, job_data)",
+      "returns": "IngestionJob"
+    },
+    {
+      "type": "function",
+      "name": "close_connections",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "__del__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "SqliteCheckpointRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, db_path)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_init_database",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "save_checkpoint",
+      "signature": "(self, job_id, checkpoint)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_checkpoint",
+      "signature": "(self, job_id, symbol)",
+      "returns": "IngestionCheckpoint | None"
+    },
+    {
+      "type": "function",
+      "name": "get_all_checkpoints",
+      "signature": "(self, job_id)",
+      "returns": "list[IngestionCheckpoint]"
+    },
+    {
+      "type": "function",
+      "name": "delete_checkpoints",
+      "signature": "(self, job_id)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_global_checkpoint",
+      "signature": "(self, symbol)",
+      "returns": "IngestionCheckpoint | None"
+    },
+    {
+      "type": "function",
+      "name": "cleanup_old_checkpoints",
+      "signature": "(self, older_than)",
+      "returns": "int"
+    },
+    {
+      "type": "class",
+      "name": "SqliteMetricsRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, db_path)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_init_database",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "save_metrics",
+      "signature": "(self, job_id, metrics)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_metrics",
+      "signature": "(self, job_id)",
+      "returns": "ProcessingMetrics | None"
+    },
+    {
+      "type": "function",
+      "name": "get_metrics_history",
+      "signature": "(self, start_date, end_date)",
+      "returns": "list[tuple[IngestionJobId, ProcessingMetrics]]"
+    },
+    {
+      "type": "function",
+      "name": "get_average_metrics",
+      "signature": "(self, start_date, end_date)",
+      "returns": "ProcessingMetrics | None"
+    },
+    {
+      "type": "function",
+      "name": "get_performance_trends",
+      "signature": "(self, days)",
+      "returns": "list[tuple[datetime, float]]"
+    }
+  ],
+  "src/marketpipe/ingestion/pipeline/symbol_pipeline.py": [
+    {
+      "type": "function",
+      "name": "_fetch_one",
+      "signature": "(name, snapshot_as_of)",
+      "returns": "list"
+    },
+    {
+      "type": "function",
+      "name": "fetch_providers",
+      "signature": "(names, snapshot_as_of)",
+      "returns": "list"
+    },
+    {
+      "type": "function",
+      "name": "records_to_stage",
+      "signature": "(conn, records)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "diff_snapshot",
+      "signature": "(conn)",
+      "returns": "tuple[int, int]"
+    },
+    {
+      "type": "function",
+      "name": "_update_null_ratio_metrics",
+      "signature": "(con)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "run_symbol_pipeline",
+      "signature": "()",
+      "returns": "tuple[int, int]"
+    }
+  ],
+  "src/marketpipe/ingestion/domain/storage.py": [
+    {
+      "type": "class",
+      "name": "IDataStorage",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "store_bars",
+      "signature": "(self, bars, config)",
+      "returns": "IngestionPartition"
+    }
+  ],
+  "src/marketpipe/ingestion/domain/value_objects.py": [
+    {
+      "type": "class",
+      "name": "IngestionConfiguration",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "from_dict",
+      "signature": "(cls, config_dict)",
+      "returns": "IngestionConfiguration"
+    },
+    {
+      "type": "function",
+      "name": "to_dict",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "BatchConfiguration",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "default",
+      "signature": "(cls)",
+      "returns": "BatchConfiguration"
+    },
+    {
+      "type": "class",
+      "name": "IngestionPartition",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "is_empty",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "average_record_size",
+      "signature": "(self)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "get_storage_info",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "ProcessingMetrics",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "success_rate",
+      "signature": "(self)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "bars_per_second",
+      "signature": "(self)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "to_dict",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "IngestionCheckpoint",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "initial_checkpoint",
+      "signature": "(cls, symbol)",
+      "returns": "IngestionCheckpoint"
+    },
+    {
+      "type": "function",
+      "name": "advance",
+      "signature": "(self, timestamp, records_count)",
+      "returns": "IngestionCheckpoint"
+    },
+    {
+      "type": "function",
+      "name": "is_ahead_of",
+      "signature": "(self, other)",
+      "returns": "bool"
+    }
+  ],
+  "src/marketpipe/ingestion/domain/events.py": [
+    {
+      "type": "class",
+      "name": "IngestionJobStarted",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict"
+    },
+    {
+      "type": "class",
+      "name": "IngestionJobCompleted",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict"
+    },
+    {
+      "type": "class",
+      "name": "IngestionJobFailed",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict"
+    },
+    {
+      "type": "class",
+      "name": "IngestionJobCancelled",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict"
+    },
+    {
+      "type": "class",
+      "name": "IngestionBatchProcessed",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict"
+    },
+    {
+      "type": "class",
+      "name": "IngestionCheckpointSaved",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict"
+    },
+    {
+      "type": "class",
+      "name": "IngestionRateLimited",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict"
+    }
+  ],
+  "src/marketpipe/ingestion/domain/entities.py": [
+    {
+      "type": "class",
+      "name": "ProcessingState",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "IngestionJobId",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, value_or_symbol, day)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "generate",
+      "signature": "(cls)",
+      "returns": "IngestionJobId"
+    },
+    {
+      "type": "function",
+      "name": "from_string",
+      "signature": "(cls, id_str)",
+      "returns": "IngestionJobId"
+    },
+    {
+      "type": "function",
+      "name": "value",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_decompose",
+      "signature": "(self)",
+      "returns": "tuple[str | None, str | None]"
+    },
+    {
+      "type": "function",
+      "name": "symbol",
+      "signature": "(self)",
+      "returns": "Symbol | None"
+    },
+    {
+      "type": "function",
+      "name": "day",
+      "signature": "(self)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "__repr__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "class",
+      "name": "IngestionJob",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, job_id, configuration, symbols, time_range)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "job_id",
+      "signature": "(self)",
+      "returns": "IngestionJobId"
+    },
+    {
+      "type": "function",
+      "name": "configuration",
+      "signature": "(self)",
+      "returns": "IngestionConfiguration"
+    },
+    {
+      "type": "function",
+      "name": "symbols",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "time_range",
+      "signature": "(self)",
+      "returns": "TimeRange"
+    },
+    {
+      "type": "function",
+      "name": "state",
+      "signature": "(self)",
+      "returns": "ProcessingState"
+    },
+    {
+      "type": "function",
+      "name": "created_at",
+      "signature": "(self)",
+      "returns": "datetime"
+    },
+    {
+      "type": "function",
+      "name": "started_at",
+      "signature": "(self)",
+      "returns": "datetime | None"
+    },
+    {
+      "type": "function",
+      "name": "completed_at",
+      "signature": "(self)",
+      "returns": "datetime | None"
+    },
+    {
+      "type": "function",
+      "name": "failed_at",
+      "signature": "(self)",
+      "returns": "datetime | None"
+    },
+    {
+      "type": "function",
+      "name": "error_message",
+      "signature": "(self)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "processed_symbols",
+      "signature": "(self)",
+      "returns": "set[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "completed_partitions",
+      "signature": "(self)",
+      "returns": "list[IngestionPartition]"
+    },
+    {
+      "type": "function",
+      "name": "total_bars_processed",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "progress_percentage",
+      "signature": "(self)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "is_complete",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "can_start",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "can_complete",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "can_fail",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "can_cancel",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "start",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "complete",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "fail",
+      "signature": "(self, error_message)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "cancel",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "mark_symbol_processed",
+      "signature": "(self, symbol, bars_count, partition)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "estimate_remaining_time",
+      "signature": "(self, average_processing_time_per_symbol)",
+      "returns": "float | None"
+    },
+    {
+      "type": "function",
+      "name": "get_processing_summary",
+      "signature": "(self)",
+      "returns": "dict"
+    },
+    {
+      "type": "function",
+      "name": "domain_events",
+      "signature": "(self)",
+      "returns": "list[DomainEvent]"
+    },
+    {
+      "type": "function",
+      "name": "clear_domain_events",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_uncommitted_events",
+      "signature": "(self)",
+      "returns": "list[DomainEvent]"
+    },
+    {
+      "type": "function",
+      "name": "mark_events_committed",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_add_domain_event",
+      "signature": "(self, event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_validate_symbols",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_validate_time_range",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "__repr__",
+      "signature": "(self)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/ingestion/domain/repositories.py": [
+    {
+      "type": "class",
+      "name": "IIngestionJobRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "save",
+      "signature": "(self, job)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_by_id",
+      "signature": "(self, job_id)",
+      "returns": "IngestionJob | None"
+    },
+    {
+      "type": "function",
+      "name": "get_by_state",
+      "signature": "(self, state)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "get_active_jobs",
+      "signature": "(self)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "get_jobs_by_date_range",
+      "signature": "(self, start_date, end_date)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "delete",
+      "signature": "(self, job_id)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_job_history",
+      "signature": "(self, limit)",
+      "returns": "list[IngestionJob]"
+    },
+    {
+      "type": "function",
+      "name": "count_jobs_by_state",
+      "signature": "(self)",
+      "returns": "dict[ProcessingState, int]"
+    },
+    {
+      "type": "class",
+      "name": "IIngestionCheckpointRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "save_checkpoint",
+      "signature": "(self, job_id, checkpoint)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_checkpoint",
+      "signature": "(self, job_id, symbol)",
+      "returns": "IngestionCheckpoint | None"
+    },
+    {
+      "type": "function",
+      "name": "get_all_checkpoints",
+      "signature": "(self, job_id)",
+      "returns": "list[IngestionCheckpoint]"
+    },
+    {
+      "type": "function",
+      "name": "delete_checkpoints",
+      "signature": "(self, job_id)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_global_checkpoint",
+      "signature": "(self, symbol)",
+      "returns": "IngestionCheckpoint | None"
+    },
+    {
+      "type": "function",
+      "name": "cleanup_old_checkpoints",
+      "signature": "(self, older_than)",
+      "returns": "int"
+    },
+    {
+      "type": "class",
+      "name": "IIngestionMetricsRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "save_metrics",
+      "signature": "(self, job_id, metrics)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_metrics",
+      "signature": "(self, job_id)",
+      "returns": "ProcessingMetrics | None"
+    },
+    {
+      "type": "function",
+      "name": "get_metrics_history",
+      "signature": "(self, start_date, end_date)",
+      "returns": "list[tuple[IngestionJobId, ProcessingMetrics]]"
+    },
+    {
+      "type": "function",
+      "name": "get_average_metrics",
+      "signature": "(self, start_date, end_date)",
+      "returns": "ProcessingMetrics | None"
+    },
+    {
+      "type": "function",
+      "name": "get_performance_trends",
+      "signature": "(self, days)",
+      "returns": "list[tuple[datetime, float]]"
+    },
+    {
+      "type": "class",
+      "name": "IngestionRepositoryError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "IngestionJobNotFoundError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, job_id)",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "IngestionCheckpointError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "IngestionConcurrencyError",
+      "signature": "()",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/ingestion/domain/services.py": [
+    {
+      "type": "class",
+      "name": "JobCreationRequest",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "IngestionDomainService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "create_ingestion_job",
+      "signature": "(self, request)",
+      "returns": "IngestionJob"
+    },
+    {
+      "type": "function",
+      "name": "can_restart_job",
+      "signature": "(self, job)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "calculate_optimal_batch_size",
+      "signature": "(self, symbols, available_workers, rate_limit_per_minute)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "estimate_job_duration",
+      "signature": "(self, job, historical_metrics)",
+      "returns": "float | None"
+    },
+    {
+      "type": "function",
+      "name": "validate_job_schedule",
+      "signature": "(self, proposed_job, active_jobs)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "determine_retry_strategy",
+      "signature": "(self, job, failure_reason)",
+      "returns": "tuple[bool, str | None]"
+    },
+    {
+      "type": "function",
+      "name": "_validate_symbols",
+      "signature": "(self, symbols)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_validate_time_range",
+      "signature": "(self, time_range)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_validate_configuration",
+      "signature": "(self, config)",
+      "returns": "None"
+    },
+    {
+      "type": "class",
+      "name": "IngestionProgressTracker",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "calculate_job_progress",
+      "signature": "(self, job)",
+      "returns": "dict"
+    },
+    {
+      "type": "function",
+      "name": "calculate_throughput_metrics",
+      "signature": "(self, job)",
+      "returns": "dict | None"
+    }
+  ],
+  "src/marketpipe/infrastructure/sqlite_async_mixin.py": [
+    {
+      "type": "function",
+      "name": "_get_event_loop_lock",
+      "signature": "()",
+      "returns": "asyncio.Lock"
+    },
+    {
+      "type": "class",
+      "name": "SqliteAsyncMixin",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_conn",
+      "signature": "(self)",
+      "returns": "AsyncContextManager[aiosqlite.Connection]"
+    }
+  ],
+  "src/marketpipe/infrastructure/sqlite_pool.py": [
+    {
+      "type": "function",
+      "name": "_init_conn",
+      "signature": "(path)",
+      "returns": "sqlite3.Connection"
+    },
+    {
+      "type": "function",
+      "name": "get_pool",
+      "signature": "(path)",
+      "returns": "list[sqlite3.Connection]"
+    },
+    {
+      "type": "function",
+      "name": "connection",
+      "signature": "(path)",
+      "returns": "Generator[sqlite3.Connection, None, None]"
+    },
+    {
+      "type": "function",
+      "name": "close_all_pools",
+      "signature": "()",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_pool_stats",
+      "signature": "()",
+      "returns": "dict[str, int]"
+    }
+  ],
+  "src/marketpipe/infrastructure/monitoring/domain_event_handlers.py": [
+    {
+      "type": "function",
+      "name": "log_bar_collection_started",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "log_bar_collection_completed",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "log_validation_failed",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "log_ingestion_job_started",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "log_ingestion_job_completed",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "log_market_data_received",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "log_data_stored",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "log_rate_limit_exceeded",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "log_symbol_activated",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "log_symbol_deactivated",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "register_logging_handlers",
+      "signature": "()",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/infrastructure/monitoring/event_handlers.py": [
+    {
+      "type": "function",
+      "name": "_extract_provider_feed_from_event",
+      "signature": "(event)",
+      "returns": "tuple[str, str]"
+    },
+    {
+      "type": "function",
+      "name": "_handle_ingestion_completed",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_handle_validation_completed",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_handle_validation_failed",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_handle_aggregation_completed",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_handle_aggregation_failed",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_track_domain_ingestion_metrics",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_track_domain_validation_metrics",
+      "signature": "(event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "register",
+      "signature": "()",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/infrastructure/storage/parquet_engine.py": [
+    {
+      "type": "class",
+      "name": "ParquetStorageEngine",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, root, compression)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "write",
+      "signature": "(self, df)",
+      "returns": "Path"
+    },
+    {
+      "type": "function",
+      "name": "append_to_job",
+      "signature": "(self, df)",
+      "returns": "Path"
+    },
+    {
+      "type": "function",
+      "name": "store_bars",
+      "signature": "(self, bars, configuration)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "load_partition",
+      "signature": "(self, frame, symbol, trading_day)",
+      "returns": "pd.DataFrame"
+    },
+    {
+      "type": "function",
+      "name": "load_job_bars",
+      "signature": "(self, job_id)",
+      "returns": "dict[str, pd.DataFrame]"
+    },
+    {
+      "type": "function",
+      "name": "load_symbol_data",
+      "signature": "(self, symbol, frame, start_date, end_date)",
+      "returns": "pd.DataFrame"
+    },
+    {
+      "type": "function",
+      "name": "delete_job",
+      "signature": "(self, job_id)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "list_jobs",
+      "signature": "(self, frame, symbol)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "get_storage_stats",
+      "signature": "(self)",
+      "returns": "dict[str, any]"
+    },
+    {
+      "type": "function",
+      "name": "validate_integrity",
+      "signature": "(self)",
+      "returns": "dict[str, any]"
+    }
+  ],
+  "src/marketpipe/infrastructure/messaging/in_memory_bus.py": [
+    {
+      "type": "class",
+      "name": "InMemoryEventBus",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "subscribe",
+      "signature": "(self, etype, fn)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "publish",
+      "signature": "(self, event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "clear_subscriptions",
+      "signature": "(cls)",
+      "returns": "None"
+    },
+    {
+      "type": "class",
+      "name": "EventBus",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "subscribe",
+      "signature": "(cls, etype, fn)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "publish",
+      "signature": "(cls, event)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/infrastructure/events/publishers.py": [
+    {
+      "type": "class",
+      "name": "InMemoryEventPublisher",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "publish",
+      "signature": "(self, event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "publish_many",
+      "signature": "(self, events)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "register_handler",
+      "signature": "(self, event_type, handler)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_published_events",
+      "signature": "(self)",
+      "returns": "list[DomainEvent]"
+    },
+    {
+      "type": "function",
+      "name": "clear_events",
+      "signature": "(self)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/infrastructure/repositories/sqlite_domain.py": [
+    {
+      "type": "class",
+      "name": "SqliteSymbolBarsRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, db_path)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "get_by_symbol_and_date",
+      "signature": "(self, symbol, trading_date)",
+      "returns": "SymbolBarsAggregate | None"
+    },
+    {
+      "type": "function",
+      "name": "save",
+      "signature": "(self, aggregate)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "find_symbols_with_data",
+      "signature": "(self, start_date, end_date)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "get_completion_status",
+      "signature": "(self, symbols, trading_dates)",
+      "returns": "dict[str, dict[str, bool]]"
+    },
+    {
+      "type": "function",
+      "name": "delete",
+      "signature": "(self, symbol, trading_date)",
+      "returns": "bool"
+    },
+    {
+      "type": "class",
+      "name": "SqliteOHLCVRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, db_path)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "get_bars_for_symbol",
+      "signature": "(self, symbol, time_range)",
+      "returns": "AsyncIterator[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "get_bars_for_symbols",
+      "signature": "(self, symbols, time_range)",
+      "returns": "AsyncIterator[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "_row_to_ohlcv_bar",
+      "signature": "(self, row)",
+      "returns": "OHLCVBar"
+    },
+    {
+      "type": "function",
+      "name": "save_bars",
+      "signature": "(self, bars)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "exists",
+      "signature": "(self, symbol, timestamp)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "count_bars",
+      "signature": "(self, symbol, time_range)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "get_latest_timestamp",
+      "signature": "(self, symbol)",
+      "returns": "Timestamp | None"
+    },
+    {
+      "type": "function",
+      "name": "delete_bars",
+      "signature": "(self, symbol, time_range)",
+      "returns": "int"
+    },
+    {
+      "type": "class",
+      "name": "SqliteCheckpointRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, db_path)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "save_checkpoint",
+      "signature": "(self, symbol, checkpoint_data)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_checkpoint",
+      "signature": "(self, symbol)",
+      "returns": "dict[str, Any] | None"
+    },
+    {
+      "type": "function",
+      "name": "delete_checkpoint",
+      "signature": "(self, symbol)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "list_checkpoints",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "_add_entityid_from_string",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "from_string",
+      "signature": "(cls, id_str)",
+      "returns": "EntityId"
+    }
+  ],
+  "src/marketpipe/domain/value_objects.py": [
+    {
+      "type": "class",
+      "name": "Symbol",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "from_string",
+      "signature": "(cls, symbol_str)",
+      "returns": "Symbol"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "class",
+      "name": "Price",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "from_float",
+      "signature": "(cls, value)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "from_string",
+      "signature": "(cls, value)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "zero",
+      "signature": "(cls)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "__add__",
+      "signature": "(self, other)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "__sub__",
+      "signature": "(self, other)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "__mul__",
+      "signature": "(self, other)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "__truediv__",
+      "signature": "(self, other)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "__lt__",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "__le__",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "__gt__",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "__ge__",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "to_float",
+      "signature": "(self)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "__repr__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "class",
+      "name": "Timestamp",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "now",
+      "signature": "(cls)",
+      "returns": "Timestamp"
+    },
+    {
+      "type": "function",
+      "name": "from_iso",
+      "signature": "(cls, iso_string)",
+      "returns": "Timestamp"
+    },
+    {
+      "type": "function",
+      "name": "from_unix_timestamp",
+      "signature": "(cls, unix_timestamp)",
+      "returns": "Timestamp"
+    },
+    {
+      "type": "function",
+      "name": "from_nanoseconds",
+      "signature": "(cls, nanoseconds)",
+      "returns": "Timestamp"
+    },
+    {
+      "type": "function",
+      "name": "trading_date",
+      "signature": "(self)",
+      "returns": "date"
+    },
+    {
+      "type": "function",
+      "name": "to_nanoseconds",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "to_unix_timestamp",
+      "signature": "(self)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "is_market_hours",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "is_same_minute",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "round_to_minute",
+      "signature": "(self)",
+      "returns": "Timestamp"
+    },
+    {
+      "type": "function",
+      "name": "__lt__",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "__le__",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "__gt__",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "__ge__",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "__eq__",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "__hash__",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "__repr__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "class",
+      "name": "Volume",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "zero",
+      "signature": "(cls)",
+      "returns": "Volume"
+    },
+    {
+      "type": "function",
+      "name": "__add__",
+      "signature": "(self, other)",
+      "returns": "Volume"
+    },
+    {
+      "type": "function",
+      "name": "__sub__",
+      "signature": "(self, other)",
+      "returns": "Volume"
+    },
+    {
+      "type": "function",
+      "name": "__mul__",
+      "signature": "(self, factor)",
+      "returns": "Volume"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "__repr__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "class",
+      "name": "TimeRange",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "from_dates",
+      "signature": "(cls, start_date, end_date)",
+      "returns": "TimeRange"
+    },
+    {
+      "type": "function",
+      "name": "single_day",
+      "signature": "(cls, trading_date)",
+      "returns": "TimeRange"
+    },
+    {
+      "type": "function",
+      "name": "duration_seconds",
+      "signature": "(self)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "contains",
+      "signature": "(self, timestamp)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "overlaps",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "__repr__",
+      "signature": "(self)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/domain/market_data.py": [
+    {
+      "type": "class",
+      "name": "MarketDataUnavailableError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "InvalidSymbolError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "ProviderMetadata",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "IMarketDataProvider",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "fetch_bars_for_symbol",
+      "signature": "(self, symbol, time_range, max_bars)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "get_supported_symbols",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "is_available",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_provider_metadata",
+      "signature": "(self)",
+      "returns": "ProviderMetadata"
+    }
+  ],
+  "src/marketpipe/domain/events.py": [
+    {
+      "type": "class",
+      "name": "IEventBus",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "subscribe",
+      "signature": "(self, etype, fn)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "publish",
+      "signature": "(self, event)",
+      "returns": "None"
+    },
+    {
+      "type": "class",
+      "name": "DomainEvent",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "event_id",
+      "signature": "(self)",
+      "returns": "UUID"
+    },
+    {
+      "type": "function",
+      "name": "occurred_at",
+      "signature": "(self)",
+      "returns": "datetime"
+    },
+    {
+      "type": "function",
+      "name": "version",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "__repr__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "class",
+      "name": "BarCollectionStarted",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "BarCollectionCompleted",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "ValidationFailed",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "IngestionJobStarted",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "IngestionJobCompleted",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "MarketDataReceived",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "DataStored",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "RateLimitExceeded",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "SymbolActivated",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "SymbolDeactivated",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "BackfillJobCompleted",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "BackfillJobFailed",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "DataPruned",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__post_init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "class",
+      "name": "IEventPublisher",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "publish",
+      "signature": "(self, event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "publish_many",
+      "signature": "(self, events)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/domain/entities.py": [
+    {
+      "type": "class",
+      "name": "EntityId",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "generate",
+      "signature": "(cls)",
+      "returns": "EntityId"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "class",
+      "name": "Entity",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, id)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "id",
+      "signature": "(self)",
+      "returns": "EntityId"
+    },
+    {
+      "type": "function",
+      "name": "version",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "_increment_version",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "__eq__",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "__hash__",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "class",
+      "name": "OHLCVBar",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, id, symbol, timestamp, open_price, high_price, low_price, close_price, volume, trade_count, vwap)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_validate_ohlc_consistency",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "symbol",
+      "signature": "(self)",
+      "returns": "Symbol"
+    },
+    {
+      "type": "function",
+      "name": "timestamp",
+      "signature": "(self)",
+      "returns": "Timestamp"
+    },
+    {
+      "type": "function",
+      "name": "timestamp_ns",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "open_price",
+      "signature": "(self)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "high_price",
+      "signature": "(self)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "low_price",
+      "signature": "(self)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "close_price",
+      "signature": "(self)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "volume",
+      "signature": "(self)",
+      "returns": "Volume"
+    },
+    {
+      "type": "function",
+      "name": "trade_count",
+      "signature": "(self)",
+      "returns": "int | None"
+    },
+    {
+      "type": "function",
+      "name": "vwap",
+      "signature": "(self)",
+      "returns": "Price | None"
+    },
+    {
+      "type": "function",
+      "name": "calculate_price_range",
+      "signature": "(self)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "calculate_price_change",
+      "signature": "(self)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "calculate_price_change_percentage",
+      "signature": "(self)",
+      "returns": "float"
+    },
+    {
+      "type": "function",
+      "name": "is_same_trading_day",
+      "signature": "(self, other)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "is_during_market_hours",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "update_trade_count",
+      "signature": "(self, trade_count)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "update_vwap",
+      "signature": "(self, vwap)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "__repr__",
+      "signature": "(self)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/domain/repositories.py": [
+    {
+      "type": "class",
+      "name": "ISymbolBarsRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "get_by_symbol_and_date",
+      "signature": "(self, symbol, trading_date)",
+      "returns": "SymbolBarsAggregate | None"
+    },
+    {
+      "type": "function",
+      "name": "save",
+      "signature": "(self, aggregate)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "find_symbols_with_data",
+      "signature": "(self, start_date, end_date)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "get_completion_status",
+      "signature": "(self, symbols, trading_dates)",
+      "returns": "dict[str, dict[str, bool]]"
+    },
+    {
+      "type": "function",
+      "name": "delete",
+      "signature": "(self, symbol, trading_date)",
+      "returns": "bool"
+    },
+    {
+      "type": "class",
+      "name": "IOHLCVRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "get_bars_for_symbol",
+      "signature": "(self, symbol, time_range)",
+      "returns": "AsyncIterator[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "get_bars_for_symbols",
+      "signature": "(self, symbols, time_range)",
+      "returns": "AsyncIterator[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "save_bars",
+      "signature": "(self, bars)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "exists",
+      "signature": "(self, symbol, timestamp)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "count_bars",
+      "signature": "(self, symbol, time_range)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "get_latest_timestamp",
+      "signature": "(self, symbol)",
+      "returns": "Timestamp | None"
+    },
+    {
+      "type": "function",
+      "name": "delete_bars",
+      "signature": "(self, symbol, time_range)",
+      "returns": "int"
+    },
+    {
+      "type": "class",
+      "name": "IUniverseRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "get_by_id",
+      "signature": "(self, universe_id)",
+      "returns": "UniverseAggregate | None"
+    },
+    {
+      "type": "function",
+      "name": "save",
+      "signature": "(self, universe)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_default_universe",
+      "signature": "(self)",
+      "returns": "UniverseAggregate"
+    },
+    {
+      "type": "function",
+      "name": "list_universes",
+      "signature": "(self)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "class",
+      "name": "IDailySummaryRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "get_summary",
+      "signature": "(self, symbol, trading_date)",
+      "returns": "DailySummary | None"
+    },
+    {
+      "type": "function",
+      "name": "get_summaries",
+      "signature": "(self, symbol, start_date, end_date)",
+      "returns": "list[DailySummary]"
+    },
+    {
+      "type": "function",
+      "name": "save_summary",
+      "signature": "(self, summary)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "save_summaries",
+      "signature": "(self, summaries)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "delete_summary",
+      "signature": "(self, symbol, trading_date)",
+      "returns": "bool"
+    },
+    {
+      "type": "class",
+      "name": "ICheckpointRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "save_checkpoint",
+      "signature": "(self, symbol, checkpoint_data)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_checkpoint",
+      "signature": "(self, symbol)",
+      "returns": "dict[str, Any] | None"
+    },
+    {
+      "type": "function",
+      "name": "delete_checkpoint",
+      "signature": "(self, symbol)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "list_checkpoints",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "class",
+      "name": "IMarketDataProviderRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "get_provider_config",
+      "signature": "(self, provider_id)",
+      "returns": "dict[str, Any] | None"
+    },
+    {
+      "type": "function",
+      "name": "save_provider_config",
+      "signature": "(self, provider_id, config)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "list_providers",
+      "signature": "(self)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "is_provider_available",
+      "signature": "(self, provider_id)",
+      "returns": "bool"
+    },
+    {
+      "type": "class",
+      "name": "RepositoryError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "ConcurrencyError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "DuplicateKeyError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "ValidationError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "NotFoundError",
+      "signature": "()",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/domain/symbol.py": [
+    {
+      "type": "class",
+      "name": "AssetClass",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "Status",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "SymbolRecord",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "validate_ticker",
+      "signature": "(cls, v)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "validate_figi",
+      "signature": "(cls, v)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "validate_cusip",
+      "signature": "(cls, v)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "validate_isin",
+      "signature": "(cls, v)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "validate_cik",
+      "signature": "(cls, v)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "validate_exchange_mic",
+      "signature": "(cls, v)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "validate_currency",
+      "signature": "(cls, v)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "validate_country",
+      "signature": "(cls, v)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "validate_text_field",
+      "signature": "(cls, v)",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "validate_shares_outstanding",
+      "signature": "(cls, v)",
+      "returns": "int | None"
+    },
+    {
+      "type": "function",
+      "name": "validate_free_float",
+      "signature": "(cls, v)",
+      "returns": "int | None"
+    },
+    {
+      "type": "function",
+      "name": "validate_date_order",
+      "signature": "(self)",
+      "returns": "SymbolRecord"
+    },
+    {
+      "type": "function",
+      "name": "validate_free_float_constraint",
+      "signature": "(self)",
+      "returns": "SymbolRecord"
+    },
+    {
+      "type": "function",
+      "name": "from_provider",
+      "signature": "(cls, payload)",
+      "returns": "SymbolRecord"
+    },
+    {
+      "type": "function",
+      "name": "to_parquet_row",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "from_parquet_row",
+      "signature": "(cls, data)",
+      "returns": "SymbolRecord"
+    },
+    {
+      "type": "function",
+      "name": "safe_create",
+      "signature": "(record_kwargs)",
+      "returns": "SymbolRecord | None"
+    }
+  ],
+  "src/marketpipe/domain/aggregates.py": [
+    {
+      "type": "class",
+      "name": "SymbolBarsAggregate",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, symbol, trading_date)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "symbol",
+      "signature": "(self)",
+      "returns": "Symbol"
+    },
+    {
+      "type": "function",
+      "name": "trading_date",
+      "signature": "(self)",
+      "returns": "date"
+    },
+    {
+      "type": "function",
+      "name": "bar_count",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "is_complete",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "version",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "start_collection",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "add_bar",
+      "signature": "(self, bar)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_bar",
+      "signature": "(self, timestamp)",
+      "returns": "OHLCVBar | None"
+    },
+    {
+      "type": "function",
+      "name": "get_all_bars",
+      "signature": "(self)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "get_bars_in_range",
+      "signature": "(self, time_range)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "has_gaps",
+      "signature": "(self)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "complete_collection",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "close_day",
+      "signature": "(self)",
+      "returns": "DailySummary"
+    },
+    {
+      "type": "function",
+      "name": "calculate_daily_summary",
+      "signature": "(self)",
+      "returns": "DailySummary"
+    },
+    {
+      "type": "function",
+      "name": "get_uncommitted_events",
+      "signature": "(self)",
+      "returns": "list[DomainEvent]"
+    },
+    {
+      "type": "function",
+      "name": "mark_events_committed",
+      "signature": "(self)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "__str__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "__repr__",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "class",
+      "name": "UniverseAggregate",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, universe_id)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "universe_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "symbol_count",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "active_symbol_count",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "add_symbol",
+      "signature": "(self, symbol)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "remove_symbol",
+      "signature": "(self, symbol)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "activate_symbol",
+      "signature": "(self, symbol)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "deactivate_symbol",
+      "signature": "(self, symbol)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "get_active_symbols",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "get_all_symbols",
+      "signature": "(self)",
+      "returns": "list[Symbol]"
+    },
+    {
+      "type": "function",
+      "name": "is_symbol_active",
+      "signature": "(self, symbol)",
+      "returns": "bool"
+    },
+    {
+      "type": "class",
+      "name": "DailySummary",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "calculate_price_change",
+      "signature": "(self)",
+      "returns": "Price"
+    },
+    {
+      "type": "function",
+      "name": "calculate_price_change_percentage",
+      "signature": "(self)",
+      "returns": "float"
+    }
+  ],
+  "src/marketpipe/domain/services.py": [
+    {
+      "type": "class",
+      "name": "DomainService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "OHLCVCalculationService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "vwap",
+      "signature": "(self, bars)",
+      "returns": "Decimal"
+    },
+    {
+      "type": "function",
+      "name": "daily_summary",
+      "signature": "(self, bars)",
+      "returns": "DailySummary"
+    },
+    {
+      "type": "function",
+      "name": "resample",
+      "signature": "(self, bars, frame_seconds)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "_resample_bar_group",
+      "signature": "(self, bars, period_start)",
+      "returns": "OHLCVBar"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_bars_to_timeframe",
+      "signature": "(self, bars, timeframe_minutes)",
+      "returns": "list[OHLCVBar]"
+    },
+    {
+      "type": "function",
+      "name": "calculate_sma",
+      "signature": "(self, bars, period, price_type)",
+      "returns": "list[float]"
+    },
+    {
+      "type": "function",
+      "name": "calculate_volatility",
+      "signature": "(self, bars, period)",
+      "returns": "list[float | None]"
+    },
+    {
+      "type": "class",
+      "name": "MarketDataValidationService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "validate_bar",
+      "signature": "(self, bar)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "validate_batch",
+      "signature": "(self, bars)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "_validate_trading_hours_window",
+      "signature": "(self, bar, start_hour, start_minute, end_hour, end_minute)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "validate_trading_hours",
+      "signature": "(self, bar)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "validate_price_movements",
+      "signature": "(self, current_bar, previous_bar)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "validate_volume_patterns",
+      "signature": "(self, bars)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "class",
+      "name": "TradingCalendarService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "is_trading_day",
+      "signature": "(self, date)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "get_trading_session_times",
+      "signature": "(self, trading_date)",
+      "returns": "dict[str, datetime]"
+    },
+    {
+      "type": "function",
+      "name": "get_next_trading_day",
+      "signature": "(self, current_date)",
+      "returns": "date"
+    },
+    {
+      "type": "function",
+      "name": "get_previous_trading_day",
+      "signature": "(self, current_date)",
+      "returns": "date"
+    }
+  ],
+  "src/marketpipe/validation/application/commands.py": [
+    {
+      "type": "class",
+      "name": "ValidateJobCommand",
+      "signature": "()",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/validation/application/services.py": [
+    {
+      "type": "class",
+      "name": "ValidationRunnerService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, storage_engine, validator, reporter)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_extract_provider_feed_info",
+      "signature": "(self, event)",
+      "returns": "tuple[str, str]"
+    },
+    {
+      "type": "function",
+      "name": "handle_ingestion_completed",
+      "signature": "(self, event)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_convert_dataframe_to_bars",
+      "signature": "(self, df, symbol_name)",
+      "returns": "list"
+    },
+    {
+      "type": "function",
+      "name": "build_default",
+      "signature": "(cls)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "register",
+      "signature": "(cls)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/validation/infrastructure/repositories.py": [
+    {
+      "type": "class",
+      "name": "CsvReportRepository",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, root)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "save",
+      "signature": "(self, job_id, result)",
+      "returns": "Path"
+    },
+    {
+      "type": "function",
+      "name": "list_reports",
+      "signature": "(self, job_id)",
+      "returns": "list[Path]"
+    },
+    {
+      "type": "function",
+      "name": "load_report",
+      "signature": "(self, path)",
+      "returns": "pd.DataFrame"
+    },
+    {
+      "type": "function",
+      "name": "get_report_summary",
+      "signature": "(self, path)",
+      "returns": "dict"
+    }
+  ],
+  "src/marketpipe/validation/domain/value_objects.py": [
+    {
+      "type": "class",
+      "name": "BarError",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "ValidationResult",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "is_valid",
+      "signature": "(self)",
+      "returns": "bool"
+    }
+  ],
+  "src/marketpipe/validation/domain/events.py": [
+    {
+      "type": "class",
+      "name": "ValidationCompleted",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, result)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "event_type",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "aggregate_id",
+      "signature": "(self)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "event_id",
+      "signature": "(self)",
+      "returns": "UUID"
+    },
+    {
+      "type": "function",
+      "name": "occurred_at",
+      "signature": "(self)",
+      "returns": "datetime"
+    },
+    {
+      "type": "function",
+      "name": "version",
+      "signature": "(self)",
+      "returns": "int"
+    },
+    {
+      "type": "function",
+      "name": "_get_event_data",
+      "signature": "(self)",
+      "returns": "dict[str, Any]"
+    }
+  ],
+  "src/marketpipe/validation/domain/services.py": [
+    {
+      "type": "class",
+      "name": "ValidationDomainService",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "validate_bars",
+      "signature": "(self, symbol, bars)",
+      "returns": "ValidationResult"
+    },
+    {
+      "type": "function",
+      "name": "_validate_ohlc_consistency",
+      "signature": "(self, bar)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "_validate_timestamp_alignment",
+      "signature": "(self, bar)",
+      "returns": "bool"
+    },
+    {
+      "type": "function",
+      "name": "_validate_price_movements",
+      "signature": "(self, current_bar, previous_bar, index)",
+      "returns": "list[BarError]"
+    },
+    {
+      "type": "function",
+      "name": "_validate_volume_patterns",
+      "signature": "(self, bar, index)",
+      "returns": "list[BarError]"
+    },
+    {
+      "type": "function",
+      "name": "validate_trading_hours",
+      "signature": "(self, bar)",
+      "returns": "list[BarError]"
+    },
+    {
+      "type": "function",
+      "name": "validate_price_reasonableness",
+      "signature": "(self, bar, symbol)",
+      "returns": "list[BarError]"
+    }
+  ],
+  "src/marketpipe/cli/metrics_info.py": [
+    {
+      "type": "function",
+      "name": "serve_metrics_info",
+      "signature": "(port, host)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "handle_request",
+      "signature": "(reader, writer)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/cli/ohlcv_backfill.py": [
+    {
+      "type": "function",
+      "name": "backfill_ohlcv",
+      "signature": "(config, lookback, since, symbol, provider)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/cli/prune.py": [
+    {
+      "type": "function",
+      "name": "_parse_age",
+      "signature": "(expr)",
+      "returns": "dt.date"
+    },
+    {
+      "type": "function",
+      "name": "prune_parquet",
+      "signature": "(older_than, parquet_root, dry_run)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "prune_database",
+      "signature": "(older_than, dry_run)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "prune_sqlite_legacy",
+      "signature": "(older_than, dry_run)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/cli/utils.py": [
+    {
+      "type": "function",
+      "name": "metrics",
+      "signature": "(port, legacy_metrics, metric, since, avg, plot, list_metrics)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "run_async_server",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "providers",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "migrate",
+      "signature": "(path)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_parse_time_window",
+      "signature": "(window_str)",
+      "returns": "int | None"
+    },
+    {
+      "type": "function",
+      "name": "_create_sparkline",
+      "signature": "(values)",
+      "returns": "str"
+    }
+  ],
+  "src/marketpipe/cli/ohlcv_ingest.py": [
+    {
+      "type": "class",
+      "name": "FilteredStderr",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, original_stderr)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "write",
+      "signature": "(self, text)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_process_line",
+      "signature": "(self, line)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "flush",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "isatty",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "fileno",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "CleanAsyncExecution",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__enter__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__exit__",
+      "signature": "(self, _exc_type, _exc_val, _exc_tb)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_build_ingestion_services",
+      "signature": "(provider_config, output_path)",
+      "returns": "tuple[IngestionJobService, IngestionCoordinatorService]"
+    },
+    {
+      "type": "class",
+      "name": "ValidationAdapter",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "validate_bars",
+      "signature": "(self, bars)",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "AdapterResult",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, validation_result)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_cleanup_async_resources",
+      "signature": "(*repositories)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_check_boundaries",
+      "signature": "(path, symbol, start, end, provider)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_ingest_impl",
+      "signature": "(config, symbols, start, end, batch_size, output_path, workers, provider, feed_type)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "run_ingestion",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "ingest_ohlcv",
+      "signature": "(config, symbols, start, end, batch_size, output_path, workers, provider, feed_type, help_flag)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "ingest_ohlcv_convenience",
+      "signature": "(config, symbols, start, end, batch_size, output_path, workers, provider, feed_type, help_flag)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "ingest_deprecated",
+      "signature": "(config, symbols, start, end, batch_size, output_path, workers, provider, feed_type)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/cli/jobs.py": [
+    {
+      "type": "function",
+      "name": "_get_db_path",
+      "signature": "()",
+      "returns": "str | None"
+    },
+    {
+      "type": "function",
+      "name": "list",
+      "signature": "(state, limit, symbol)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "status",
+      "signature": "(job_id)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "doctor",
+      "signature": "(fix, timeout_hours)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "kill",
+      "signature": "(job_id, reason)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/cli/metrics_dashboard.py": [
+    {
+      "type": "function",
+      "name": "serve_metrics_dashboard",
+      "signature": "(metrics_port, dashboard_port, host)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "fetch_metrics",
+      "signature": "()",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "parse_prometheus_metrics",
+      "signature": "(text)",
+      "returns": "dict[str, Any]"
+    },
+    {
+      "type": "function",
+      "name": "generate_dashboard_html",
+      "signature": "(metrics_data)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "generate_metrics_section",
+      "signature": "(title, metrics)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "handle_request",
+      "signature": "(reader, writer)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/cli/ohlcv_aggregate.py": [
+    {
+      "type": "function",
+      "name": "_aggregate_impl",
+      "signature": "(job_id)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "aggregate_ohlcv",
+      "signature": "(job_id)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "aggregate_ohlcv_convenience",
+      "signature": "(job_id)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "aggregate_deprecated",
+      "signature": "(job_id)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/cli/query.py": [
+    {
+      "type": "function",
+      "name": "query",
+      "signature": "(sql, csv, limit)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/cli/ohlcv_validate.py": [
+    {
+      "type": "function",
+      "name": "_validate_impl",
+      "signature": "(job_id, list_reports, show)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "validate_ohlcv",
+      "signature": "(job_id, list_reports, show)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "validate_ohlcv_convenience",
+      "signature": "(job_id, list_reports, show)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "validate_deprecated",
+      "signature": "(job_id, list_reports, show)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/cli/symbols.py": [
+    {
+      "type": "function",
+      "name": "validate_date_format",
+      "signature": "(date_string, flag_name)",
+      "returns": "date"
+    },
+    {
+      "type": "function",
+      "name": "validate_backfill_range",
+      "signature": "(backfill_date, snapshot_date)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "check_diff_only_precondition",
+      "signature": "(db_path)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "show_progress_summary",
+      "signature": "(current_date, total_days, current_day, inserts, updates, verbose)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "update",
+      "signature": "(providers, snapshot_as_of, db_path, data_dir, dry_run, diff_only, backfill, execute, verbose)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/cli/__init__.py": [
+    {
+      "type": "function",
+      "name": "_noop",
+      "signature": "(*_a, **_kw)",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "_Typer",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self, *args, **kwargs)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "command",
+      "signature": "(self, *_dargs, **_dk)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "decorator",
+      "signature": "(func)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "add_typer",
+      "signature": "(self, _other, **_kw)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__call__",
+      "signature": "(self, *args, **kwargs)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "_deprecated_command",
+      "signature": "(old_name, new_name, help_text)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "decorator",
+      "signature": "(func)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "wrapper",
+      "signature": "(*args, **kwargs)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/cli/factory_reset.py": [
+    {
+      "type": "function",
+      "name": "_get_data_paths",
+      "signature": "(base_dir)",
+      "returns": "list[Path]"
+    },
+    {
+      "type": "function",
+      "name": "_format_size",
+      "signature": "(path)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "factory_reset",
+      "signature": "(confirm_nuclear, keep_schema, backup_before_wipe, dry_run, base_directory)",
+      "returns": null
+    }
+  ],
+  "src/marketpipe/cli/validators.py": [
+    {
+      "type": "function",
+      "name": "cli_error",
+      "signature": "(message)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_parse_iso",
+      "signature": "(date_str)",
+      "returns": "dt.date"
+    },
+    {
+      "type": "function",
+      "name": "validate_date_range",
+      "signature": "(start, end)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "validate_symbols",
+      "signature": "(symbols_csv)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "validate_output_dir",
+      "signature": "(output)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "validate_workers",
+      "signature": "(workers)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "validate_batch_size",
+      "signature": "(size)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "validate_config_file",
+      "signature": "(config_path)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "validate_provider",
+      "signature": "(provider)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "validate_feed_type",
+      "signature": "(provider, feed_type)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/cli/health_check.py": [
+    {
+      "type": "class",
+      "name": "HealthCheckResult",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "class",
+      "name": "MarketPipeHealthChecker",
+      "signature": "()",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "__init__",
+      "signature": "(self)",
+      "returns": null
+    },
+    {
+      "type": "function",
+      "name": "run_all_checks",
+      "signature": "(self, config_path, verbose)",
+      "returns": "list[HealthCheckResult]"
+    },
+    {
+      "type": "function",
+      "name": "check_python_version",
+      "signature": "(self)",
+      "returns": "HealthCheckResult"
+    },
+    {
+      "type": "function",
+      "name": "check_dependencies",
+      "signature": "(self)",
+      "returns": "HealthCheckResult"
+    },
+    {
+      "type": "function",
+      "name": "check_marketpipe_installation",
+      "signature": "(self)",
+      "returns": "HealthCheckResult"
+    },
+    {
+      "type": "function",
+      "name": "check_configuration",
+      "signature": "(self, config_path)",
+      "returns": "HealthCheckResult"
+    },
+    {
+      "type": "function",
+      "name": "check_provider_registry",
+      "signature": "(self)",
+      "returns": "HealthCheckResult"
+    },
+    {
+      "type": "function",
+      "name": "check_fake_provider",
+      "signature": "(self)",
+      "returns": "HealthCheckResult"
+    },
+    {
+      "type": "function",
+      "name": "check_database_connectivity",
+      "signature": "(self)",
+      "returns": "HealthCheckResult"
+    },
+    {
+      "type": "function",
+      "name": "check_data_directory_permissions",
+      "signature": "(self)",
+      "returns": "HealthCheckResult"
+    },
+    {
+      "type": "function",
+      "name": "check_cli_commands",
+      "signature": "(self)",
+      "returns": "HealthCheckResult"
+    },
+    {
+      "type": "function",
+      "name": "check_end_to_end_pipeline",
+      "signature": "(self)",
+      "returns": "HealthCheckResult"
+    },
+    {
+      "type": "function",
+      "name": "generate_report",
+      "signature": "(self, verbose)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "_get_recommendation",
+      "signature": "(self, result)",
+      "returns": "str"
+    },
+    {
+      "type": "function",
+      "name": "health_check_command",
+      "signature": "(config, verbose, output_file)",
+      "returns": "None"
+    }
+  ],
+  "src/marketpipe/migrations/__init__.py": [
+    {
+      "type": "function",
+      "name": "apply_pending",
+      "signature": "(db_path)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_ensure_schema_version_table",
+      "signature": "(db_path)",
+      "returns": "None"
+    },
+    {
+      "type": "function",
+      "name": "_get_applied_versions",
+      "signature": "(db_path)",
+      "returns": "list[str]"
+    },
+    {
+      "type": "function",
+      "name": "_apply_migration",
+      "signature": "(db_path, version, migration_file)",
+      "returns": "None"
+    }
+  ]
+}

@@ -1,0 +1,492 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/joey/MarketPipe
+configfile: pytest.ini
+testpaths: tests
+plugins: cov-6.2.1, mock-3.14.1, anyio-4.9.0, asyncio-1.0.0, respx-0.22.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 915 items
+
+tests/cli/test_deprecated_alias.py ......                                [  0%]
+tests/cli/test_help_no_side_effects.py ....                              [  1%]
+tests/cli/test_new_command_paths.py ............                         [  2%]
+tests/cli/test_symbols_cli.py .F..FF.........                            [  4%]
+tests/cli/test_symbols_execute.py F..FF                                  [  4%]
+tests/cli/test_symbols_modes.py FFFF.............                        [  6%]
+tests/config/test_versioning.py ...............                          [  8%]
+tests/ingestion/normalizer/test_scd_writer.py ..............             [  9%]
+tests/ingestion/normalizer/test_symbol_normalizer.py .......             [ 10%]
+tests/ingestion/normalizer/test_symbol_views.py ..........               [ 11%]
+tests/ingestion/symbol_providers/test_base.py ...................        [ 13%]
+tests/ingestion/symbol_providers/test_dummy_adapter.py ................. [ 15%]
+                                                                         [ 15%]
+tests/ingestion/symbol_providers/test_nasdaq_dl.py ...F...F..........    [ 17%]
+tests/ingestion/symbol_providers/test_polygon.py ..................      [ 19%]
+tests/ingestion/test_validation_logging.py ....                          [ 19%]
+tests/integration/test_duckdb_views.py ..............                    [ 21%]
+tests/integration/test_full_pipeline.py ...                              [ 21%]
+tests/integration/test_ingestion_coordinator_service_flow.py ....FFF     [ 22%]
+tests/integration/test_metrics_events.py .......                         [ 23%]
+tests/integration/test_pipeline_e2e.py ...                               [ 23%]
+tests/integration/test_symbol_pipeline_idempotence.py ...                [ 23%]
+tests/metrics/test_async_server.py .................                     [ 25%]
+tests/metrics/test_symbols_metrics.py ........                           [ 26%]
+tests/regression/test_provider_feed_metrics.py .............             [ 27%]
+tests/test_alpaca_client.py ....                                         [ 28%]
+tests/test_base_client.py ...                                            [ 28%]
+tests/test_bootstrap_side_effect.py .............                        [ 30%]
+tests/test_cli.py .                                                      [ 30%]
+tests/test_cli_rename.py ..................                              [ 32%]
+tests/test_loader.py .......                                             [ 33%]
+tests/test_mask.py ......................                                [ 35%]
+tests/test_metrics.py ..                                                 [ 35%]
+tests/test_migrations.py .......ss....                                   [ 37%]
+tests/test_postgres_migrations.py ssss                                   [ 37%]
+tests/test_provider_loader.py ..............                             [ 39%]
+tests/test_provider_registry.py .................                        [ 40%]
+tests/test_prune_commands.py .....................                       [ 43%]
+tests/test_rate_limiter.py ..........................                    [ 46%]
+tests/test_rate_limiter_load.py ....                                     [ 46%]
+tests/test_repository_factory_fixes.py ................................. [ 50%]
+................                                                         [ 51%]
+tests/test_secrets_masking_integration.py ......                         [ 52%]
+tests/unit/aggregation/test_duckdb_engine.py ..                          [ 52%]
+tests/unit/aggregation/test_duckdb_engine_coverage.py .......            [ 53%]
+tests/unit/aggregation/test_duckdb_views_unit.py ...................     [ 55%]
+tests/unit/application/test_ingestion_job_service.py .........           [ 56%]
+tests/unit/cli/test_cli_help_displays_correctly.py ...                   [ 56%]
+tests/unit/cli/test_ingest_boundary_check.py .......                     [ 57%]
+tests/unit/cli/test_ingest_cli.py FF..                                   [ 58%]
+tests/unit/cli/test_ingest_cli_boundary_integration.py ..F.F..           [ 58%]
+tests/unit/cli/test_ingest_cli_config.py FFF.F.                          [ 59%]
+tests/unit/cli/test_ingest_output_handling.py FFFFFF.F...                [ 60%]
+tests/unit/cli/test_query_cli.py ..............                          [ 62%]
+tests/unit/cli/test_utils.py ....................                        [ 64%]
+tests/unit/config/test_ingestion_config.py ................              [ 66%]
+tests/unit/domain/test_calculation_service.py ................           [ 67%]
+tests/unit/domain/test_ingestion_job_entity.py ..................        [ 69%]
+tests/unit/domain/test_symbol.py .............................           [ 73%]
+tests/unit/domain/test_symbol_bars_aggregate.py ................         [ 74%]
+tests/unit/domain/test_validation_service.py ..................          [ 76%]
+tests/unit/events/test_event_bus.py ..                                   [ 76%]
+tests/unit/events/test_ingest_to_agg.py ....                             [ 77%]
+tests/unit/infrastructure/test_alpaca_client_pagination_and_retry.py ... [ 77%]
+..                                                                       [ 77%]
+tests/unit/infrastructure/test_alpaca_market_data_adapter.py F.......... [ 79%]
+                                                                         [ 79%]
+tests/unit/infrastructure/test_alpaca_timestamp_fix.py .....             [ 79%]
+tests/unit/infrastructure/test_boundary_check_timestamp_fix.py ....      [ 80%]
+tests/unit/infrastructure/test_domain_event_handlers.py ......           [ 80%]
+tests/unit/infrastructure/test_event_publishers.py ..........            [ 81%]
+tests/unit/infrastructure/test_ingestion_writer.py .....                 [ 82%]
+tests/unit/infrastructure/test_migrations.py .........                   [ 83%]
+tests/unit/infrastructure/test_parquet_storage.py .                      [ 83%]
+tests/unit/infrastructure/test_parquet_storage_engine.py ............... [ 85%]
+.................                                                        [ 86%]
+tests/unit/infrastructure/test_pooling.py ...........                    [ 88%]
+tests/unit/infrastructure/test_sqlite_domain_repositories.py ........... [ 89%]
+...........                                                              [ 90%]
+tests/unit/infrastructure/test_verification_service.py ..........        [ 91%]
+tests/unit/metrics/test_ingestion_metrics_collection.py ...              [ 92%]
+tests/unit/services/test_gap_detector.py ...........                     [ 93%]
+tests/unit/test_ddd_guard_rails.py .........                             [ 94%]
+tests/unit/test_deprecated_modules.py .......s                           [ 95%]
+tests/unit/test_main.py ..                                               [ 95%]
+tests/unit/test_metrics_integration.py ..........                        [ 96%]
+tests/unit/test_metrics_server.py .......                                [ 97%]
+tests/unit/validation/test_commands.py ...                               [ 97%]
+tests/unit/validation/test_csv_report_repo.py ...........                [ 98%]
+tests/unit/validation/test_validation_domain.py ............/home/joey/MarketPipe/test_venv/lib/python3.10/site-packages/coverage/inorout.py:525: CoverageWarning: Module marketpipe was previously imported, but not measured (module-not-measured)
+  self.warn(msg, slug="module-not-measured")
+             [100%]
+
+=================================== FAILURES ===================================
+_____________ TestSymbolsUpdateCommand.test_unknown_provider_exits _____________
+tests/cli/test_symbols_cli.py:66: in test_unknown_provider_exits
+    assert result.exit_code == 1
+E   assert 0 == 1
+E    +  where 0 = <Result okay>.exit_code
+_____ TestSymbolsUpdateCommand.test_all_providers_used_when_none_specified _____
+tests/cli/test_symbols_cli.py:103: in test_all_providers_used_when_none_specified
+    assert result.exit_code == 0
+E   assert 2 == 0
+E    +  where 2 = <Result SystemExit(2)>.exit_code
+________ TestSymbolsUpdateCommand.test_environment_variables_respected _________
+tests/cli/test_symbols_cli.py:120: in test_environment_variables_respected
+    assert "/custom/db/path.duckdb" in result.output
+E   AssertionError: assert '/custom/db/path.duckdb' in 'Symbol update plan:\n  providers: polygon\n  snapshot_as_of: 2025-06-24\n  db: warehouse.duckdb\n  data_dir: data\n  dry_run: False\n  diff_only: False\n  execute: False\nDry preview complete. Re-run with --execute to perform writes.\n'
+E    +  where 'Symbol update plan:\n  providers: polygon\n  snapshot_as_of: 2025-06-24\n  db: warehouse.duckdb\n  data_dir: data\n  dry_run: False\n  diff_only: False\n  execute: False\nDry preview complete. Re-run with --execute to perform writes.\n' = <Result okay>.output
+____________ TestSymbolsExecuteIntegration.test_full_execute_dummy _____________
+tests/cli/test_symbols_execute.py:109: in test_full_execute_dummy
+    assert result.exit_code == 0
+E   assert 1 == 0
+E    +  where 1 = <Result SystemExit(1)>.exit_code
+______ TestSymbolsExecuteIntegration.test_execute_creates_database_views _______
+tests/cli/test_symbols_execute.py:199: in test_execute_creates_database_views
+    assert result.exit_code == 0
+E   assert 1 == 0
+E    +  where 1 = <Result SystemExit(1)>.exit_code
+____ TestSymbolsExecuteIntegration.test_rerun_same_snapshot_adds_zero_rows _____
+tests/cli/test_symbols_execute.py:249: in test_rerun_same_snapshot_adds_zero_rows
+    assert result.exit_code == 0
+E   assert 1 == 0
+E    +  where 1 = <Result SystemExit(1)>.exit_code
+____________ TestSymbolsModes.test_dry_run_with_execute_precedence _____________
+tests/cli/test_symbols_modes.py:145: in test_dry_run_with_execute_precedence
+    assert "✅ Finished 1 run(s)" in result.output
+E   AssertionError: assert '✅ Finished 1 run(s)' in 'Both --dry-run and --execute specified\n--execute takes precedence\nSymbol update plan:\n  providers: dummy\n  snapsh...1 date(s)...\n[1/1] 2025-06-24: 0 inserts, 0 updates\n\n✅ Pipeline complete.\n  Total inserts: 0\n  Total updates: 0\n'
+E    +  where 'Both --dry-run and --execute specified\n--execute takes precedence\nSymbol update plan:\n  providers: dummy\n  snapsh...1 date(s)...\n[1/1] 2025-06-24: 0 inserts, 0 updates\n\n✅ Pipeline complete.\n  Total inserts: 0\n  Total updates: 0\n' = <Result okay>.output
+_________________ TestSymbolsModes.test_diff_only_error_combo __________________
+tests/cli/test_symbols_modes.py:160: in test_diff_only_error_combo
+    assert "`--diff-only` implies DB writes; cannot combine with --dry-run." in result.output
+E   AssertionError: assert '`--diff-only` implies DB writes; cannot combine with --dry-run.' in 'Both --dry-run and --execute specified\n--execute takes precedence\nSymbol update plan:\n  providers: dummy\n  snapsh...\n❌ --diff-only requires existing symbols_snapshot table.\nRun without --diff-only first to create initial snapshot.\n'
+E    +  where 'Both --dry-run and --execute specified\n--execute takes precedence\nSymbol update plan:\n  providers: dummy\n  snapsh...\n❌ --diff-only requires existing symbols_snapshot table.\nRun without --diff-only first to create initial snapshot.\n' = <Result SystemExit(1)>.output
+_____________ TestSymbolsModes.test_backfill_diff_only_error_combo _____________
+tests/cli/test_symbols_modes.py:179: in test_backfill_diff_only_error_combo
+    assert "Back-fill requires provider fetch -> cannot use --diff-only." in result.output
+E   AssertionError: assert 'Back-fill requires provider fetch -> cannot use --diff-only.' in '❌ --diff-only requires existing symbols_snapshot table.\nRun without --diff-only first to create initial snapshot.\n'
+E    +  where '❌ --diff-only requires existing symbols_snapshot table.\nRun without --diff-only first to create initial snapshot.\n' = <Result SystemExit(1)>.output
+______________ TestSymbolsModes.test_backfill_runs_multiple_days _______________
+tests/cli/test_symbols_modes.py:253: in test_backfill_runs_multiple_days
+    assert "Finished 3 run(s)" in result.output
+E   AssertionError: assert 'Finished 3 run(s)' in '🚀 Starting symbol update pipeline for 3 date(s)...\n[1/3] 2025-06-17: 0 inserts, 0 updates\n[2/3] 2025-06-18: 0 inser... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00\n✅ Pipeline complete.\n  Total inserts: 0\n  Total updates: 0\n'
+E    +  where '🚀 Starting symbol update pipeline for 3 date(s)...\n[1/3] 2025-06-17: 0 inserts, 0 updates\n[2/3] 2025-06-18: 0 inser... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00\n✅ Pipeline complete.\n  Total inserts: 0\n  Total updates: 0\n' = <Result okay>.output
+_______ TestNasdaqDailyListProviderParsing.test_fetch_symbols_happy_path _______
+tests/ingestion/symbol_providers/test_nasdaq_dl.py:104: in test_fetch_symbols_happy_path
+    assert aapl.as_of == datetime.date(2025, 6, 19)  # From footer
+E   AssertionError: assert datetime.date(2025, 6, 24) == datetime.date(2025, 6, 19)
+E    +  where datetime.date(2025, 6, 24) = SymbolRecord(id=None, ticker='AAPL', figi=None, cusip=None, isin=None, cik=None, exchange_mic='XNAS', asset_class=<Ass...lot_size': '100', 'etf_flag': 'N', 'nextshares': 'N', 'source': 'nasdaq_daily_list'}, as_of=datetime.date(2025, 6, 24)).as_of
+E    +  and   datetime.date(2025, 6, 19) = <class 'datetime.date'>(2025, 6, 19)
+E    +    where <class 'datetime.date'> = datetime.date
+_______ TestNasdaqDailyListProviderParsing.test_footer_with_extra_spaces _______
+tests/ingestion/symbol_providers/test_nasdaq_dl.py:252: in test_footer_with_extra_spaces
+    assert records[0].as_of == datetime.date(2025, 6, 19)  # Should parse correctly
+E   AssertionError: assert datetime.date(2025, 6, 24) == datetime.date(2025, 6, 19)
+E    +  where datetime.date(2025, 6, 24) = SymbolRecord(id=None, ticker='AAPL', figi=None, cusip=None, isin=None, cik=None, exchange_mic='XNAS', asset_class=<Ass...lot_size': '100', 'etf_flag': 'N', 'nextshares': 'N', 'source': 'nasdaq_daily_list'}, as_of=datetime.date(2025, 6, 24)).as_of
+E    +  and   datetime.date(2025, 6, 19) = <class 'datetime.date'>(2025, 6, 19)
+E    +    where <class 'datetime.date'> = datetime.date
+_ TestIngestionCoordinatorEndToEndFlow.test_coordinator_creates_proper_partition_paths _
+tests/integration/test_ingestion_coordinator_service_flow.py:384: in test_coordinator_creates_proper_partition_paths
+    assert created_partition.record_count == len(test_bars)
+E   AssertionError: assert 0 == 10
+E    +  where 0 = IngestionPartition(symbol=Symbol(value='AAPL'), file_path=PosixPath('/tmp/pytest-of-joey/pytest-0/test_coordinator_cre...ze_bytes=0, created_at=datetime.datetime(2025, 6, 24, 17, 22, 38, 354095, tzinfo=datetime.timezone.utc), checksum=None).record_count
+E    +  and   10 = len([OHLCVBar(id=845809a4-2530-437d-b8d7-e539a9900d0f, symbol=AAPL, timestamp=2023-01-02T13:30:00+00:00, open=$100.0000, h...+00:00, open=$100.0000, high=$101.0000, low=$99.0000, close=$100.5000, volume=1,050, trade_count=None, vwap=None), ...])
+---------------------------- Captured log teardown -----------------------------
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b4216d3e40>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b4216d3e40>
+RuntimeError: aclose(): asynchronous generator is already running
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b4216d3ac0>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b4216d3ac0>
+RuntimeError: aclose(): asynchronous generator is already running
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b4216d0940>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b4216d0940>
+RuntimeError: aclose(): asynchronous generator is already running
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b4216d3d40>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b4216d3d40>
+RuntimeError: aclose(): asynchronous generator is already running
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b4216d0f40>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b4216d0f40>
+RuntimeError: aclose(): asynchronous generator is already running
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b4216d3bc0>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b4216d3bc0>
+RuntimeError: aclose(): asynchronous generator is already running
+_ TestIngestionCoordinatorEndToEndFlow.test_coordinator_emits_comprehensive_domain_events _
+tests/integration/test_ingestion_coordinator_service_flow.py:453: in test_coordinator_emits_comprehensive_domain_events
+    assert batch_events[0].bars_processed == len(test_bars)
+E   AssertionError: assert 0 == 10
+E    +  where 0 = IngestionBatchProcessed(job_id=IngestionJobId('AAPL_2025-06-14'), symbol=Symbol(value='AAPL'), bars_processed=0, parti...286b4dfc1a0'), occurred_at=datetime.datetime(2025, 6, 24, 17, 22, 38, 379997, tzinfo=datetime.timezone.utc), version=1).bars_processed
+E    +  and   10 = len([OHLCVBar(id=ab29e207-0fca-47ff-b448-ef278583571d, symbol=AAPL, timestamp=2023-01-02T13:30:00+00:00, open=$100.0000, h...+00:00, open=$100.0000, high=$101.0000, low=$99.0000, close=$100.5000, volume=1,050, trade_count=None, vwap=None), ...])
+---------------------------- Captured log teardown -----------------------------
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b42c13ae40>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b42c13ae40>
+RuntimeError: aclose(): asynchronous generator is already running
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b42c0e66c0>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b42c0e66c0>
+RuntimeError: aclose(): asynchronous generator is already running
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b42c0e6ac0>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b42c0e6ac0>
+RuntimeError: aclose(): asynchronous generator is already running
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b42c0e6cc0>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b42c0e6cc0>
+RuntimeError: aclose(): asynchronous generator is already running
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b42c0e6d40>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b42c0e6d40>
+RuntimeError: aclose(): asynchronous generator is already running
+ERROR    asyncio:base_events.py:1758 an error occurred during closing of asynchronous generator <async_generator object SqliteAsyncMixin._conn at 0x70b42c0e69c0>
+asyncgen: <async_generator object SqliteAsyncMixin._conn at 0x70b42c0e69c0>
+RuntimeError: aclose(): asynchronous generator is already running
+_ TestIngestionCoordinatorEndToEndFlow.test_process_symbol_writes_parquet_partition _
+tests/integration/test_ingestion_coordinator_service_flow.py:492: in test_process_symbol_writes_parquet_partition
+    assert count == len(bars)
+E   assert 0 == 4
+E    +  where 4 = len([OHLCVBar(id=27187c95-0ba3-44ad-9346-7d1b91d47770, symbol=AAPL, timestamp=2023-01-02T13:30:00+00:00, open=$100.0000, h...33:00+00:00, open=$100.0000, high=$101.0000, low=$99.0000, close=$100.5000, volume=1,030, trade_count=None, vwap=None)])
+____________________________ test_ingest_cli_smoke _____________________________
+tests/unit/cli/test_ingest_cli.py:51: in test_ingest_cli_smoke
+    assert result.exit_code == 0
+E   assert 1 == 0
+E    +  where 1 = <Result SystemExit(1)>.exit_code
+____________________ test_ingest_cli_with_multiple_symbols _____________________
+tests/unit/cli/test_ingest_cli.py:97: in test_ingest_cli_with_multiple_symbols
+    assert result.exit_code == 0
+E   assert 1 == 0
+E    +  where 1 = <Result SystemExit(1)>.exit_code
+_ TestIngestCLIBoundaryIntegration.test_boundary_check_called_after_ingestion __
+/usr/lib/python3.10/unittest/mock.py:940: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected '_check_boundaries' to be called once. Called 0 times.
+
+During handling of the above exception, another exception occurred:
+tests/unit/cli/test_ingest_cli_boundary_integration.py:112: in test_boundary_check_called_after_ingestion
+    mock_check_boundaries.assert_called_once_with(
+E   AssertionError: Expected '_check_boundaries' to be called once. Called 0 times.
+____ TestIngestCLIBoundaryIntegration.test_help_shows_updated_descriptions _____
+tests/unit/cli/test_ingest_cli_boundary_integration.py:174: in test_help_shows_updated_descriptions
+    assert "(required without --config)" in result.stdout
+E   AssertionError: assert '(required without --config)' in '                                                                                \n Usage: root ohlcv ingest [OPTIONS]...ge and exit.                   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n'
+E    +  where '                                                                                \n Usage: root ohlcv ingest [OPTIONS]...ge and exit.                   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n' = <Result okay>.stdout
+_________________ TestIngestCliConfig.test_config_file_loading _________________
+tests/unit/cli/test_ingest_cli_config.py:58: in test_config_file_loading
+    assert result.exit_code == 0
+E   assert 1 == 0
+E    +  where 1 = <Result SystemExit(1)>.exit_code
+_____________ TestIngestCliConfig.test_config_override_with_flags ______________
+tests/unit/cli/test_ingest_cli_config.py:116: in test_config_override_with_flags
+    assert result.exit_code == 0
+E   assert 1 == 0
+E    +  where 1 = <Result SystemExit(1)>.exit_code
+_____________ TestIngestCliConfig.test_direct_flags_without_config _____________
+tests/unit/cli/test_ingest_cli_config.py:161: in test_direct_flags_without_config
+    assert result.exit_code == 0
+E   assert 1 == 0
+E    +  where 1 = <Result SystemExit(1)>.exit_code
+______________ TestIngestCliConfig.test_kebab_case_config_loading ______________
+tests/unit/cli/test_ingest_cli_config.py:216: in test_kebab_case_config_loading
+    assert result.exit_code == 0
+E   assert 1 == 0
+E    +  where 1 = <Result SystemExit(1)>.exit_code
+_______ TestCLIOutputHandling.test_output_flag_creates_custom_directory ________
+tests/unit/cli/test_ingest_output_handling.py:54: in test_output_flag_creates_custom_directory
+    assert result.returncode == 0, f"Command failed: {result.stderr}"
+E   AssertionError: Command failed: INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+E     INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['/home/joey/MarketPipe/test_venv/bin/python', '-m', 'marketpipe', 'ohlcv', 'ingest', '--provide...c.runtime.migration] Context impl SQLiteImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\n').returncode
+_______ TestCLIOutputHandling.test_verification_failure_exits_with_error _______
+tests/unit/cli/test_ingest_output_handling.py:96: in test_verification_failure_exits_with_error
+    assert "Running post-ingestion verification" in result.stdout
+E   assert 'Running post-ingestion verification' in "📊 Ingestion Configuration:\n  Symbols: AAPL\n  Date range: 2024-06-20 to 2024-06-21\n  Provider: alpaca\n  Feed type:...uling conflicts: Symbols ['AAPL'] are already being processed by job AAPL_2025-06-20\n🧹 Background cleanup completed\n"
+E    +  where "📊 Ingestion Configuration:\n  Symbols: AAPL\n  Date range: 2024-06-20 to 2024-06-21\n  Provider: alpaca\n  Feed type:...uling conflicts: Symbols ['AAPL'] are already being processed by job AAPL_2025-06-20\n🧹 Background cleanup completed\n" = CompletedProcess(args=['/home/joey/MarketPipe/test_venv/bin/python', '-m', 'marketpipe', 'ohlcv', 'ingest', '--provide...c.runtime.migration] Context impl SQLiteImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\n').stdout
+_________ TestCLIOutputHandling.test_default_output_path_when_no_flag __________
+tests/unit/cli/test_ingest_output_handling.py:131: in test_default_output_path_when_no_flag
+    assert result.returncode == 0, f"Command failed: {result.stderr}"
+E   AssertionError: Command failed: INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+E     INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['/home/joey/MarketPipe/test_venv/bin/python', '-m', 'marketpipe', 'ohlcv', 'ingest', '--provide...c.runtime.migration] Context impl SQLiteImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\n').returncode
+___ TestCLIOutputHandling.test_verification_service_gets_correct_parameters ____
+tests/unit/cli/test_ingest_output_handling.py:167: in test_verification_service_gets_correct_parameters
+    assert "Running post-ingestion verification" in result.stdout
+E   assert 'Running post-ingestion verification' in "📊 Ingestion Configuration:\n  Symbols: AAPL\n  Date range: 2024-01-01 to 2024-01-02\n  Provider: fake\n  Feed type: i...uling conflicts: Symbols ['AAPL'] are already being processed by job AAPL_2025-06-20\n🧹 Background cleanup completed\n"
+E    +  where "📊 Ingestion Configuration:\n  Symbols: AAPL\n  Date range: 2024-01-01 to 2024-01-02\n  Provider: fake\n  Feed type: i...uling conflicts: Symbols ['AAPL'] are already being processed by job AAPL_2025-06-20\n🧹 Background cleanup completed\n" = CompletedProcess(args=['/home/joey/MarketPipe/test_venv/bin/python', '-m', 'marketpipe', 'ohlcv', 'ingest', '--provide...c.runtime.migration] Context impl SQLiteImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\n').stdout
+_________ TestProviderSuggestions.test_provider_suggestions_in_output __________
+tests/unit/cli/test_ingest_output_handling.py:210: in test_provider_suggestions_in_output
+    assert "Try provider=" in result.stdout
+E   assert 'Try provider=' in "📊 Ingestion Configuration:\n  Symbols: AAPL\n  Date range: 2025-06-20 to 2025-06-21\n  Provider: alpaca\n  Feed type:...uling conflicts: Symbols ['AAPL'] are already being processed by job AAPL_2025-06-20\n🧹 Background cleanup completed\n"
+E    +  where "📊 Ingestion Configuration:\n  Symbols: AAPL\n  Date range: 2025-06-20 to 2025-06-21\n  Provider: alpaca\n  Feed type:...uling conflicts: Symbols ['AAPL'] are already being processed by job AAPL_2025-06-20\n🧹 Background cleanup completed\n" = CompletedProcess(args=['/home/joey/MarketPipe/test_venv/bin/python', '-m', 'marketpipe', 'ohlcv', 'ingest', '--provide...c.runtime.migration] Context impl SQLiteImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\n').stdout
+___________ TestProviderSuggestions.test_verification_error_handling ___________
+tests/unit/cli/test_ingest_output_handling.py:247: in test_verification_error_handling
+    assert result.returncode == 0, f"Command should complete successfully: {result.stderr}"
+E   AssertionError: Command should complete successfully: INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+E     INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['/home/joey/MarketPipe/test_venv/bin/python', '-m', 'marketpipe', 'ohlcv', 'ingest', '--provide...c.runtime.migration] Context impl SQLiteImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\n').returncode
+______ TestIngestOutputHandling.test_boundary_check_accepts_correct_data _______
+/usr/lib/python3.10/unittest/mock.py:908: in assert_called_once
+    raise AssertionError(msg)
+E   AssertionError: Expected '_check_boundaries' to have been called once. Called 0 times.
+
+During handling of the above exception, another exception occurred:
+tests/unit/cli/test_ingest_output_handling.py:371: in test_boundary_check_accepts_correct_data
+    mock_check.assert_called_once()
+E   AssertionError: Expected '_check_boundaries' to have been called once. Called 0 times.
+_ TestAlpacaMarketDataAdapterTranslation.test_translates_alpaca_bar_format_to_domain_ohlcv_bar _
+tests/unit/infrastructure/test_alpaca_market_data_adapter.py:55: in test_translates_alpaca_bar_format_to_domain_ohlcv_bar
+    assert domain_bar.timestamp.value == expected_dt
+E   assert datetime.datetime(2023, 1, 2, 16, 10, tzinfo=datetime.timezone.utc) == datetime.datetime(2023, 1, 2, 13, 30, tzinfo=datetime.timezone.utc)
+E    +  where datetime.datetime(2023, 1, 2, 16, 10, tzinfo=datetime.timezone.utc) = Timestamp(2023-01-02T16:10:00+00:00).value
+E    +    where Timestamp(2023-01-02T16:10:00+00:00) = OHLCVBar(id=72047783-3cd4-40d9-a2af-ad3202c0de04, symbol=AAPL, timestamp=2023-01-02T16:10:00+00:00, open=$130.2800, high=$130.9000, low=$129.6100, close=$130.7300, volume=10,000, trade_count=None, vwap=None).timestamp
+=============================== warnings summary ===============================
+tests/ingestion/normalizer/test_scd_writer.py::TestSCDWriter::test_second_load_handles_updates
+  /home/joey/MarketPipe/src/marketpipe/ingestion/normalizer/scd_writer.py:294: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+    combined_df = pd.concat(non_empty_dfs, ignore_index=True)
+
+tests/test_secrets_masking_integration.py::TestSecretsInLogs::test_alpaca_client_json_parse_error_masks_key
+  /home/joey/MarketPipe/tests/test_secrets_masking_integration.py:117: UserWarning: Log capture failed due to test isolation - main security check passed
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.10.12-final-0 _______________
+
+Name                                                                Stmts   Miss  Cover   Missing
+-------------------------------------------------------------------------------------------------
+src/marketpipe/__init__.py                                              5      0   100%
+src/marketpipe/__main__.py                                              3      0   100%
+src/marketpipe/aggregation/__init__.py                                  3      0   100%
+src/marketpipe/aggregation/application/__init__.py                      2      0   100%
+src/marketpipe/aggregation/application/services.py                     65      1    98%   83
+src/marketpipe/aggregation/domain/__init__.py                           3      0   100%
+src/marketpipe/aggregation/domain/events.py                            53     12    77%   23, 27, 31, 35, 39, 42, 57, 61, 65, 69, 73, 76
+src/marketpipe/aggregation/domain/services.py                           7      0   100%
+src/marketpipe/aggregation/domain/value_objects.py                      9      1    89%   15
+src/marketpipe/aggregation/infrastructure/__init__.py                   3      0   100%
+src/marketpipe/aggregation/infrastructure/duckdb_engine.py             68     10    85%   60-61, 75-76, 104-106, 119-121, 141
+src/marketpipe/aggregation/infrastructure/duckdb_views.py              76      0   100%
+src/marketpipe/bootstrap.py                                            71      2    97%   30, 58
+src/marketpipe/cli/__init__.py                                         45     10    78%   59-75, 140
+src/marketpipe/cli/__main__.py                                          3      0   100%
+src/marketpipe/cli/ohlcv_aggregate.py                                  36      9    75%   51-59, 69
+src/marketpipe/cli/ohlcv_backfill.py                                   60     44    27%   76-151
+src/marketpipe/cli/ohlcv_ingest.py                                    250     60    76%   70, 86-88, 92-123, 128, 136-151, 155, 159, 208-224, 248-258, 294-296, 304-307, 356-357, 409-410, 424, 426, 488-489, 543
+src/marketpipe/cli/ohlcv_validate.py                                  107     71    34%   45-64, 68-114, 141-171, 189
+src/marketpipe/cli/prune.py                                           173     46    73%   33, 97-98, 102-106, 114-127, 131, 156-157, 167-172, 180-181, 202-212, 270-272, 288-289, 299-300, 313-314, 329-330, 334
+src/marketpipe/cli/query.py                                            27      0   100%
+src/marketpipe/cli/symbols.py                                         123      7    94%   108-110, 206-209, 212-215, 278
+src/marketpipe/cli/utils.py                                           185    109    41%   57-80, 88-93, 111-227
+src/marketpipe/cli_old.py                                              16      4    75%   23, 34-40
+src/marketpipe/config/__init__.py                                       3      0   100%
+src/marketpipe/config/ingestion.py                                     73      4    95%   55, 60, 90-92
+src/marketpipe/config/loader.py                                        43      1    98%   86
+src/marketpipe/domain/__init__.py                                       8      0   100%
+src/marketpipe/domain/aggregates.py                                   198     40    80%   78, 200, 203, 251, 291, 355-356, 360, 374-378, 383, 388, 393, 401-406, 417-422, 433-437, 445-446, 454, 462, 473, 497, 501-504
+src/marketpipe/domain/entities.py                                     101     16    84%   53, 57, 65, 180, 188, 196-200, 211, 227-231, 239-240
+src/marketpipe/domain/event_handlers.py                                 2      0   100%
+src/marketpipe/domain/events.py                                       333     78    77%   34, 42, 56, 62, 68, 74, 80, 89, 93, 97, 123, 127, 130, 157, 161, 164, 194, 198, 201, 224-227, 231, 235, 238, 269, 273, 276, 309, 313, 316, 343-346, 350, 354, 357, 383-386, 390, 394, 397, 418-421, 425, 429, 432, 450-453, 457, 461, 464, 482-485, 489, 493, 496, 515-518, 522, 526, 529, 559, 562, 598, 608
+src/marketpipe/domain/market_data.py                                   29      4    86%   59, 69, 79, 89
+src/marketpipe/domain/repositories.py                                 113     30    73%   23, 46, 58, 71, 86, 99, 123, 138, 151, 164, 177, 189, 202, 221, 230, 239, 248, 268, 284, 293, 302, 315, 332, 344, 356, 365, 384, 394, 403, 415
+src/marketpipe/domain/services.py                                     262     69    74%   124-126, 219, 242-244, 293-322, 334-367, 391, 393, 395, 397, 401, 409, 414, 442, 627, 639-645, 661-667, 678-684
+src/marketpipe/domain/symbol.py                                       212     13    94%   123, 127, 138, 142, 153, 157, 168, 172, 190, 216, 218, 355, 375
+src/marketpipe/domain/value_objects.py                                179     49    73%   31, 39, 71, 99-102, 107, 111, 115, 119-121, 125-133, 161, 178-179, 199-200, 250, 275, 285-286, 333, 338, 342, 346-349, 353-356, 364, 408-411, 419, 441, 445, 449
+src/marketpipe/events.py                                                6      0   100%
+src/marketpipe/infrastructure/__init__.py                               3      0   100%
+src/marketpipe/infrastructure/events/__init__.py                        2      0   100%
+src/marketpipe/infrastructure/events/publishers.py                     30      0   100%
+src/marketpipe/infrastructure/messaging/__init__.py                     3      0   100%
+src/marketpipe/infrastructure/messaging/in_memory_bus.py               25      0   100%
+src/marketpipe/infrastructure/monitoring/__init__.py                    3      0   100%
+src/marketpipe/infrastructure/monitoring/domain_event_handlers.py      45      8    82%   30, 50, 67, 74-75, 83, 91, 96
+src/marketpipe/infrastructure/monitoring/event_handlers.py            109     19    83%   41, 75-76, 80, 111-112, 136-137, 164-165, 185-186, 198, 201-202, 216-217, 251-252
+src/marketpipe/infrastructure/repositories/__init__.py                  1      0   100%
+src/marketpipe/infrastructure/repositories/sqlite_domain.py           212     44    79%   76-77, 120-127, 145-146, 181-182, 198-199, 241-242, 269-270, 320-322, 338-339, 368-369, 386-387, 391-416, 448-449, 467-468, 483-484, 498-499
+src/marketpipe/infrastructure/sqlite_async_mixin.py                    27      2    93%   25-27
+src/marketpipe/infrastructure/sqlite_pool.py                           56      2    96%   109-110
+src/marketpipe/infrastructure/storage/__init__.py                       2      0   100%
+src/marketpipe/infrastructure/storage/parquet_engine.py               194     39    80%   121, 189-249, 319-320, 340-344, 374, 380-382, 388, 395-397, 400, 429-430, 481-482
+src/marketpipe/ingestion/__init__.py                                    5      0   100%
+src/marketpipe/ingestion/application/__init__.py                        5      0   100%
+src/marketpipe/ingestion/application/commands.py                       39      2    95%   27, 30
+src/marketpipe/ingestion/application/queries.py                        32      0   100%
+src/marketpipe/ingestion/application/services.py                      222     83    63%   91, 118, 135-150, 154-169, 173-198, 212, 218-227, 242-252, 301, 309, 320-323, 386-393, 431-454, 479-482, 516-559
+src/marketpipe/ingestion/connectors/__init__.py                         7      1    86%   11
+src/marketpipe/ingestion/connectors/alpaca_client.py                   74     65    12%   14-145
+src/marketpipe/ingestion/domain/__init__.py                             8      0   100%
+src/marketpipe/ingestion/domain/entities.py                           219     33    85%   83, 91, 97-109, 114-123, 128-129, 204, 245, 295, 315, 335, 354, 384-388, 418, 422, 439, 447, 450
+src/marketpipe/ingestion/domain/events.py                             164     25    85%   43, 46, 83, 86, 116, 120, 123, 155, 158, 191, 194, 217-220, 224, 228, 231, 253-256, 260, 264, 267
+src/marketpipe/ingestion/domain/repositories.py                        77     19    75%   22, 27, 32, 37, 44, 49, 54, 59, 70, 77, 82, 87, 92, 97, 106, 111, 118, 125, 130
+src/marketpipe/ingestion/domain/services.py                           118     46    61%   75-79, 98-110, 125-135, 171, 192-219, 224, 227, 232, 237, 246, 251, 256, 263-264, 268, 272, 300-301, 310-316
+src/marketpipe/ingestion/domain/storage.py                              9      1    89%   20
+src/marketpipe/ingestion/domain/value_objects.py                      127     46    64%   28, 31, 34, 37, 40, 45, 56, 78, 81, 84, 87, 114, 117, 120, 125, 130-132, 136, 160-173, 178-181, 186-188, 192, 216, 219, 224, 233-236, 245-248
+src/marketpipe/ingestion/infrastructure/__init__.py                    12      0   100%
+src/marketpipe/ingestion/infrastructure/adapters.py                   135     27    80%   115, 142-154, 162-163, 171, 253, 281-283, 296, 302, 307, 311, 322, 339-342, 369, 380, 385-401
+src/marketpipe/ingestion/infrastructure/alpaca_client.py              154     47    69%   39, 68, 104-107, 124-132, 147, 166, 173-196, 202-223, 298
+src/marketpipe/ingestion/infrastructure/auth.py                        20      3    85%   14, 21, 24
+src/marketpipe/ingestion/infrastructure/base_api_client.py             64      5    92%   88, 92, 148-149, 153
+src/marketpipe/ingestion/infrastructure/clients.py                     27     14    48%   29-35, 50-54, 58-63, 67
+src/marketpipe/ingestion/infrastructure/fake_adapter.py                60     35    42%   81-111, 116-135, 148, 152, 156, 174-179
+src/marketpipe/ingestion/infrastructure/finnhub_adapter.py            158    135    15%   41-52, 74-123, 127-147, 151-169, 173, 184-202, 206-262, 266-282, 288-344, 347
+src/marketpipe/ingestion/infrastructure/iex_adapter.py                105     70    33%   48, 80-82, 86-88, 102-155, 176-206, 210, 220-242, 246-261, 265, 276, 280, 286
+src/marketpipe/ingestion/infrastructure/models.py                      21      0   100%
+src/marketpipe/ingestion/infrastructure/parquet_storage.py             31      1    97%   34
+src/marketpipe/ingestion/infrastructure/polygon_adapter.py            166    143    14%   41-52, 74-152, 156-182, 186-203, 207, 218-236, 240-302, 306-321, 327-368, 371
+src/marketpipe/ingestion/infrastructure/postgres_repository.py        216    171    21%   64-99, 103-122, 126-142, 146-165, 171-192, 196-213, 217-233, 237-262, 269-320, 324-339, 343-367, 371-373, 382, 412, 422-485, 489-491, 502
+src/marketpipe/ingestion/infrastructure/provider_loader.py             39      0   100%
+src/marketpipe/ingestion/infrastructure/provider_registry.py           59      3    95%   34, 94, 127
+src/marketpipe/ingestion/infrastructure/rate_limit.py                 116      9    92%   79-82, 123-126, 187
+src/marketpipe/ingestion/infrastructure/repositories.py               350    246    30%   60-86, 90-105, 109-124, 145-146, 152-168, 172-182, 186-198, 202-218, 222-269, 273-282, 286-301, 305-319, 385-399, 403-482, 489, 493-500, 508-517, 558-577, 583-607, 611-638, 644-652, 658-684, 690-700, 736-761, 765-794, 800-834, 840-873, 877-900
+src/marketpipe/ingestion/infrastructure/repository_factory.py          34      9    74%   52-59, 72, 76-79
+src/marketpipe/ingestion/infrastructure/simple_job_adapter.py         143     81    43%   72-74, 81-83, 95-123, 138, 148-149, 160-161, 166-168, 181-193, 210, 214, 218-222, 226-228, 232-233, 239-245, 251-281, 286-301, 305, 309
+src/marketpipe/ingestion/infrastructure/verification.py               105     10    90%   156-158, 201, 203, 207, 222, 256, 266-267
+src/marketpipe/ingestion/normalizer/__init__.py                         2      0   100%
+src/marketpipe/ingestion/normalizer/refresh_views.py                   33     13    61%   34, 41, 72-75, 84-92
+src/marketpipe/ingestion/normalizer/run_scd_update.py                  68     68     0%   14-161
+src/marketpipe/ingestion/normalizer/run_symbol_normalizer.py           23     10    57%   35, 45, 48, 56-64
+src/marketpipe/ingestion/normalizer/scd_writer.py                     182     32    82%   39, 45, 100-101, 172-184, 213-214, 220-224, 273, 282-283, 297, 401-402, 416-442, 453-454, 457-458, 467-470
+src/marketpipe/ingestion/pipeline/__init__.py                           2      0   100%
+src/marketpipe/ingestion/pipeline/symbol_pipeline.py                   90      8    91%   117-126, 158-160, 195, 207
+src/marketpipe/ingestion/services/__init__.py                           4      0   100%
+src/marketpipe/ingestion/services/gap_detector.py                      47      0   100%
+src/marketpipe/ingestion/symbol_providers/__init__.py                  24      0   100%
+src/marketpipe/ingestion/symbol_providers/base.py                      23      2    91%   41, 46
+src/marketpipe/ingestion/symbol_providers/dummy.py                     17      0   100%
+src/marketpipe/ingestion/symbol_providers/nasdaq_dl.py                 70     12    83%   159-174
+src/marketpipe/ingestion/symbol_providers/polygon.py                   61      3    95%   177-179, 186
+src/marketpipe/ingestion/writer.py                                     18      0   100%
+src/marketpipe/loader.py                                               95     15    84%   16, 86, 118-119, 137, 208-210, 219-227
+src/marketpipe/metrics.py                                             126      4    97%   164-165, 333-335
+src/marketpipe/metrics_event_handlers.py                                7      0   100%
+src/marketpipe/metrics_server.py                                      177     35    80%   59, 77, 105-106, 110-113, 122-123, 127-129, 156-165, 172-173, 196-197, 221-223, 307-316, 320-322
+src/marketpipe/migrations/__init__.py                                  49      0   100%
+src/marketpipe/providers/__init__.py                                   57      6    89%   74, 116, 118, 130, 163, 167
+src/marketpipe/security/__init__.py                                     2      0   100%
+src/marketpipe/security/mask.py                                        17      0   100%
+src/marketpipe/validation/__init__.py                                   2      0   100%
+src/marketpipe/validation/application/__init__.py                       0      0   100%
+src/marketpipe/validation/application/commands.py                       5      0   100%
+src/marketpipe/validation/application/services.py                      80     12    85%   99-105, 120-129, 149-151
+src/marketpipe/validation/domain/__init__.py                            0      0   100%
+src/marketpipe/validation/domain/events.py                             29      6    79%   26, 30, 34, 38, 42, 45
+src/marketpipe/validation/domain/services.py                           60      3    95%   32, 36, 40
+src/marketpipe/validation/domain/value_objects.py                      14      1    93%   28
+src/marketpipe/validation/infrastructure/__init__.py                    0      0   100%
+src/marketpipe/validation/infrastructure/repositories.py               50      0   100%
+-------------------------------------------------------------------------------------------------
+TOTAL                                                                8222   2364    71%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file reports/coverage_initial.xml
+Required test coverage of 70% reached. Total coverage: 71.25%
+=========================== short test summary info ============================
+FAILED tests/cli/test_symbols_cli.py::TestSymbolsUpdateCommand::test_unknown_provider_exits
+FAILED tests/cli/test_symbols_cli.py::TestSymbolsUpdateCommand::test_all_providers_used_when_none_specified
+FAILED tests/cli/test_symbols_cli.py::TestSymbolsUpdateCommand::test_environment_variables_respected
+FAILED tests/cli/test_symbols_execute.py::TestSymbolsExecuteIntegration::test_full_execute_dummy
+FAILED tests/cli/test_symbols_execute.py::TestSymbolsExecuteIntegration::test_execute_creates_database_views
+FAILED tests/cli/test_symbols_execute.py::TestSymbolsExecuteIntegration::test_rerun_same_snapshot_adds_zero_rows
+FAILED tests/cli/test_symbols_modes.py::TestSymbolsModes::test_dry_run_with_execute_precedence
+FAILED tests/cli/test_symbols_modes.py::TestSymbolsModes::test_diff_only_error_combo
+FAILED tests/cli/test_symbols_modes.py::TestSymbolsModes::test_backfill_diff_only_error_combo
+FAILED tests/cli/test_symbols_modes.py::TestSymbolsModes::test_backfill_runs_multiple_days
+FAILED tests/ingestion/symbol_providers/test_nasdaq_dl.py::TestNasdaqDailyListProviderParsing::test_fetch_symbols_happy_path
+FAILED tests/ingestion/symbol_providers/test_nasdaq_dl.py::TestNasdaqDailyListProviderParsing::test_footer_with_extra_spaces
+FAILED tests/integration/test_ingestion_coordinator_service_flow.py::TestIngestionCoordinatorEndToEndFlow::test_coordinator_creates_proper_partition_paths
+FAILED tests/integration/test_ingestion_coordinator_service_flow.py::TestIngestionCoordinatorEndToEndFlow::test_coordinator_emits_comprehensive_domain_events
+FAILED tests/integration/test_ingestion_coordinator_service_flow.py::TestIngestionCoordinatorEndToEndFlow::test_process_symbol_writes_parquet_partition
+FAILED tests/unit/cli/test_ingest_cli.py::test_ingest_cli_smoke - assert 1 == 0
+FAILED tests/unit/cli/test_ingest_cli.py::test_ingest_cli_with_multiple_symbols
+FAILED tests/unit/cli/test_ingest_cli_boundary_integration.py::TestIngestCLIBoundaryIntegration::test_boundary_check_called_after_ingestion
+FAILED tests/unit/cli/test_ingest_cli_boundary_integration.py::TestIngestCLIBoundaryIntegration::test_help_shows_updated_descriptions
+FAILED tests/unit/cli/test_ingest_cli_config.py::TestIngestCliConfig::test_config_file_loading
+FAILED tests/unit/cli/test_ingest_cli_config.py::TestIngestCliConfig::test_config_override_with_flags
+FAILED tests/unit/cli/test_ingest_cli_config.py::TestIngestCliConfig::test_direct_flags_without_config
+FAILED tests/unit/cli/test_ingest_cli_config.py::TestIngestCliConfig::test_kebab_case_config_loading
+FAILED tests/unit/cli/test_ingest_output_handling.py::TestCLIOutputHandling::test_output_flag_creates_custom_directory
+FAILED tests/unit/cli/test_ingest_output_handling.py::TestCLIOutputHandling::test_verification_failure_exits_with_error
+FAILED tests/unit/cli/test_ingest_output_handling.py::TestCLIOutputHandling::test_default_output_path_when_no_flag
+FAILED tests/unit/cli/test_ingest_output_handling.py::TestCLIOutputHandling::test_verification_service_gets_correct_parameters
+FAILED tests/unit/cli/test_ingest_output_handling.py::TestProviderSuggestions::test_provider_suggestions_in_output
+FAILED tests/unit/cli/test_ingest_output_handling.py::TestProviderSuggestions::test_verification_error_handling
+FAILED tests/unit/cli/test_ingest_output_handling.py::TestIngestOutputHandling::test_boundary_check_accepts_correct_data
+FAILED tests/unit/infrastructure/test_alpaca_market_data_adapter.py::TestAlpacaMarketDataAdapterTranslation::test_translates_alpaca_bar_format_to_domain_ohlcv_bar
+====== 31 failed, 877 passed, 7 skipped, 2 warnings in 116.70s (0:01:56) =======
