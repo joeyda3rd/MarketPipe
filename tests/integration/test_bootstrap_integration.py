@@ -25,12 +25,9 @@ from marketpipe.bootstrap import (
     BootstrapOrchestrator,
     get_global_orchestrator,
     set_global_orchestrator,
+    reset_bootstrap_state,
+    is_bootstrapped,
 )
-# Import from legacy bootstrap module for backward compatibility functions  
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..', 'src'))
-import marketpipe.bootstrap as legacy_bootstrap
 from marketpipe.bootstrap.interfaces import (
     AlembicMigrationService,
     EnvironmentProvider,
@@ -140,17 +137,17 @@ class TestBootstrapIntegrationWithRealDatabase:
         # Should have exactly 4 services registered (not 8 from double registration)
         assert len(registered_services) == 4
 
-    def test_bootstrap_migration_failure_with_real_database(self, integration_db):
+    def test_bootstrap_migration_failure_with_real_database(self, tmp_path):
         """Test bootstrap handles real migration failures gracefully.
         
         IMPROVEMENT: Tests real error handling with actual database failures
         instead of mocking exceptions.
         """
-        # Create environment pointing to read-only location to cause migration failure
-        readonly_dir = Path(integration_db.get_file_path()).parent
-        readonly_db_path = readonly_dir / "readonly.db"
+        # Create a custom test directory that we can control permissions on
+        test_dir = tmp_path / "readonly_test"
+        test_dir.mkdir()
+        readonly_db_path = test_dir / "readonly.db"
         
-        # Make directory read-only after creating orchestrator
         env_provider = FakeEnvironmentProvider()
         env_provider.set_database_path(readonly_db_path)
         
@@ -160,9 +157,9 @@ class TestBootstrapIntegrationWithRealDatabase:
             environment_provider=env_provider
         )
         
-        # Temporarily make the directory read-only
+        # Make the test directory read-only to cause migration failure
         try:
-            readonly_dir.chmod(0o444)  # Read-only
+            test_dir.chmod(0o444)  # Read-only directory
             
             result = orchestrator.bootstrap()
             
@@ -180,8 +177,8 @@ class TestBootstrapIntegrationWithRealDatabase:
             assert len(service_registry.get_registered_services()) == 0
             
         finally:
-            # Restore permissions
-            readonly_dir.chmod(0o755)
+            # Restore permissions so cleanup can work
+            test_dir.chmod(0o755)
 
     def test_bootstrap_with_custom_database_path(self, tmp_path):
         """Test bootstrap uses custom database path correctly.

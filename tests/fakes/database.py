@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import os
+import sqlite3
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import pytest
-from marketpipe.bootstrap import apply_pending_alembic
+# Import from the legacy bootstrap module, not the new bootstrap package
+import marketpipe.bootstrap as legacy_bootstrap
 
 
 class FakeDatabase:
@@ -51,13 +53,13 @@ class FakeDatabase:
 
         # Apply real migrations using the bootstrap module
         if self.db_path != ":memory:":
-            apply_pending_alembic(self.db_path)
+            legacy_bootstrap.apply_pending_alembic(self.db_path)
         else:
             # For in-memory databases, we need to use a temporary file
             # because Alembic requires a file path
             if not self._temp_file:
                 self._temp_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False).name
-                apply_pending_alembic(self._temp_file)
+                legacy_bootstrap.apply_pending_alembic(self._temp_file)
 
         self._is_setup = True
 

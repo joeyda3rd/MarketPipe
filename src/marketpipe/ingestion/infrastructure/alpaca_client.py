@@ -158,7 +158,7 @@ class AlpacaClient(BaseApiClient):
         retries = 0
         while True:
             start = time.perf_counter()
-                        r = await self.async_http_client.get(
+            r = await self.async_http_client.get(
                 url,
                 params=params,  # Include all params including symbols
                 headers=headers,
