@@ -249,7 +249,7 @@ pytest --durations=0 | grep -E "\s+[1-9][0-9]*\.[0-9]+s"
 - Use `@pytest.mark.flaky` sparingly and fix underlying issues
 - Prefer `pytest.mark.skipif(condition)` over `pytest.skip()`
 
-### Development Workflow  
+### Development Workflow
 - Use `make test` for rapid iteration
 - Always run `make test-all` before pushing
 - Run `make test-timing` weekly to catch performance regressions
@@ -260,4 +260,4 @@ pytest --durations=0 | grep -E "\s+[1-9][0-9]*\.[0-9]+s"
 - Never use `--lf`, `-m` filters, or `-n auto` in CI
 - Set up branch protection to require full test suite passage
 
-This approach ensures you get fast feedback during development while maintaining comprehensive test coverage for production code. 
+This approach ensures you get fast feedback during development while maintaining comprehensive test coverage for production code.

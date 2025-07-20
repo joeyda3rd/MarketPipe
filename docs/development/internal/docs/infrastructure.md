@@ -17,7 +17,7 @@ engine = ParquetStorageEngine(root="data/raw", compression="zstd")
 file_path = engine.write(
     df,
     frame="1m",
-    symbol="AAPL", 
+    symbol="AAPL",
     trading_day=date(2024, 1, 1),
     job_id="AAPL_2024-01-01",
     overwrite=False
@@ -110,26 +110,26 @@ def write(self, df: pd.DataFrame, *, frame: str, symbol: str, trading_day: date,
     # Validate DataFrame
     if df.empty:
         raise ValueError("Cannot write empty DataFrame")
-    
+
     required_cols = {"ts_ns", "open", "high", "low", "close", "volume"}
     if not required_cols.issubset(df.columns):
         missing = required_cols - set(df.columns)
         raise ValueError(f"DataFrame missing required columns: {missing}")
-    
+
     # Create partition structure: frame=1m/symbol=AAPL/date=2024-01-01/
     partition_path = (
         self._root / f"frame={frame}" / f"symbol={symbol}" / f"date={trading_day.isoformat()}"
     )
     partition_path.mkdir(parents=True, exist_ok=True)
-    
+
     file_path = partition_path / f"{job_id}.parquet"
-    
+
     # Use file locking for concurrency safety
     lock_path = str(file_path) + ".lock"
     with fasteners.InterProcessLock(lock_path):
         if file_path.exists() and not overwrite:
             raise FileExistsError(f"File already exists: {file_path}")
-        
+
         # Write with compression and optimized settings
         table = pa.Table.from_pandas(df, preserve_index=False)
         pq.write_table(table, file_path, compression=self._compression, row_group_size=10000, use_dictionary=False)
@@ -141,15 +141,15 @@ def write(self, df: pd.DataFrame, *, frame: str, symbol: str, trading_day: date,
 # Load all symbol data for a specific ingestion job
 def load_job_bars(self, job_id: str) -> Dict[str, pd.DataFrame]:
     symbol_dataframes = {}
-    
+
     # Search across all frame/symbol partitions for job files
     for frame_dir in self._root.glob("frame=*"):
         for symbol_dir in frame_dir.glob("symbol=*"):
             symbol = symbol_dir.name.split("=")[1]
-            
+
             # Find job files across all dates for this symbol
             job_files = list(symbol_dir.glob(f"**/{job_id}.parquet"))
-            
+
             if job_files:
                 # Load and combine all files for this symbol
                 dfs = []
@@ -159,13 +159,13 @@ def load_job_bars(self, job_id: str) -> Dict[str, pd.DataFrame]:
                         dfs.append(df)
                     except Exception as e:
                         self.log.warning(f"Failed to load {file_path}: {e}")
-                
+
                 if dfs:
                     combined_df = pd.concat(dfs, ignore_index=True)
                     if "ts_ns" in combined_df.columns:
                         combined_df = combined_df.sort_values("ts_ns")
                     symbol_dataframes[symbol] = combined_df
-    
+
     return symbol_dataframes
 ```
 
@@ -179,25 +179,25 @@ async def get_by_symbol_and_date(self, symbol: Symbol, trading_date: date) -> Op
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 """
-                SELECT symbol, trading_date, version, is_complete, 
+                SELECT symbol, trading_date, version, is_complete,
                        collection_started, bar_count, created_at, updated_at
                 FROM symbol_bars_aggregates
                 WHERE symbol = ? AND trading_date = ?
             """,
                 (symbol.value, trading_date.isoformat()),
             )
-            
+
             row = await cursor.fetchone()
             if row is None:
                 return None
-            
+
             # Reconstruct aggregate from stored data
             aggregate = SymbolBarsAggregate(symbol, trading_date)
             aggregate._version = row["version"]
             aggregate._is_complete = bool(row["is_complete"])
             aggregate._collection_started = bool(row["collection_started"])
             aggregate._bar_count = row["bar_count"]
-            
+
             return aggregate
     except Exception as e:
         raise RepositoryError(f"Failed to get symbol bars aggregate: {e}") from e
@@ -218,18 +218,18 @@ async def save(self, aggregate: SymbolBarsAggregate) -> None:
             """,
                 (aggregate.symbol.value, aggregate.trading_date.isoformat()),
             )
-            
+
             existing_row = await cursor.fetchone()
             if existing_row and existing_row[0] != aggregate.version - 1:
                 raise ConcurrencyError(
                     f"Aggregate has been modified by another process. "
                     f"Expected version {aggregate.version - 1}, found {existing_row[0]}"
                 )
-            
+
             # Insert or update with new version
             await db.execute(
                 """
-                INSERT OR REPLACE INTO symbol_bars_aggregates 
+                INSERT OR REPLACE INTO symbol_bars_aggregates
                 (symbol, trading_date, version, is_complete, collection_started, bar_count, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
@@ -251,7 +251,7 @@ async def save(self, aggregate: SymbolBarsAggregate) -> None:
 # Publish domain events with handler execution
 async def publish(self, event: DomainEvent) -> None:
     self._events.append(event)
-    
+
     # Call registered handlers
     event_type = event.event_type
     if event_type in self._handlers:
@@ -332,4 +332,4 @@ CREATE TABLE checkpoints (
 - **Partitioned Storage**: Efficient organization and querying of time-series data
 - **Async Operations**: Non-blocking database operations with aiosqlite
 - **Data Integrity**: Transaction management and constraint enforcement
-- **Scalable Design**: Streaming operations and batch processing support 
+- **Scalable Design**: Streaming operations and batch processing support

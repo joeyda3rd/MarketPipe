@@ -6,11 +6,11 @@ The MarketPipe project uses an automated system to keep `TODO.md` synchronized w
 
 The automation system analyzes the codebase and automatically:
 
-✅ **Updates task completion status** based on code analysis  
-✅ **Refreshes test coverage statistics** from actual test runs  
-✅ **Discovers new TODO/FIXME items** as they're added to code  
-✅ **Identifies production blockers** like NotImplementedError  
-✅ **Tracks dependency completion** across bounded contexts  
+✅ **Updates task completion status** based on code analysis
+✅ **Refreshes test coverage statistics** from actual test runs
+✅ **Discovers new TODO/FIXME items** as they're added to code
+✅ **Identifies production blockers** like NotImplementedError
+✅ **Tracks dependency completion** across bounded contexts
 
 ## 🔧 Components
 
@@ -62,7 +62,7 @@ python scripts/update_roadmap.py --dry-run
 **`Makefile`** - Convenient commands
 
 ```bash
-make update-roadmap    # Update TODO.md 
+make update-roadmap    # Update TODO.md
 make check-roadmap     # Preview roadmap status
 make install-hooks     # Setup pre-commit hook
 make ci-check          # Run all checks including roadmap
@@ -89,9 +89,9 @@ The system tracks test coverage per bounded context:
 # Example coverage calculation
 def _calculate_context_coverage(coverage_data, context):
     context_files = [f for f in files if f"/{context}/" in f]
-    total_statements = sum(files[f]["summary"]["num_statements"] 
+    total_statements = sum(files[f]["summary"]["num_statements"]
                           for f in context_files)
-    covered_statements = sum(files[f]["summary"]["covered_lines"] 
+    covered_statements = sum(files[f]["summary"]["covered_lines"]
                             for f in context_files)
     return (covered_statements / total_statements * 100)
 ```
@@ -106,7 +106,7 @@ def _calculate_context_coverage(coverage_data, context):
 4. **Push changes** - GitHub Action automatically updates roadmap
 5. **Review impact** - PR comments show roadmap changes
 
-### For Maintainers  
+### For Maintainers
 
 1. **Monitor progress** - Roadmap automatically tracks completion
 2. **Review blockers** - Critical tasks with 🔴 priority are highlighted
@@ -146,7 +146,7 @@ Modify coverage targets in the script:
 ```python
 # Current thresholds
 COVERAGE_EXCELLENT = 70.0  # ✅ Green
-COVERAGE_GOOD = 50.0       # ⚠️ Yellow  
+COVERAGE_GOOD = 50.0       # ⚠️ Yellow
 COVERAGE_POOR = 30.0       # ❌ Red
 ```
 
@@ -188,7 +188,7 @@ COVERAGE_POOR = 30.0       # ❌ Red
 
 ### For Development Teams
 - ✅ **Always current roadmap** - No more stale TODO lists
-- ✅ **Automatic progress tracking** - See completion in real-time  
+- ✅ **Automatic progress tracking** - See completion in real-time
 - ✅ **Early issue detection** - New TODOs surface immediately
 - ✅ **Coverage accountability** - Context-specific coverage targets
 
@@ -200,4 +200,4 @@ COVERAGE_POOR = 30.0       # ❌ Red
 
 ---
 
-**💡 The roadmap automation system ensures `TODO.md` is a living document that evolves with your codebase, not a static wishlist that becomes outdated.** 
+**💡 The roadmap automation system ensures `TODO.md` is a living document that evolves with your codebase, not a static wishlist that becomes outdated.**

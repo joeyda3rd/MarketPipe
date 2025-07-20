@@ -7,7 +7,7 @@ AI agent guidance for MarketPipe - A Domain-Driven Financial ETL Pipeline
 MarketPipe is a **Domain-Driven Design (DDD)** financial ETL pipeline organized into bounded contexts:
 
 ### Bounded Contexts
-- **Data Ingestion** (Core Domain): Orchestrates market data collection 
+- **Data Ingestion** (Core Domain): Orchestrates market data collection
 - **Market Data Integration** (Supporting): External API abstractions
 - **Data Validation** (Supporting): Quality and business rule enforcement
 - **Data Storage** (Supporting): Partitioned time-series persistence
@@ -35,7 +35,7 @@ Use these exact terms consistently across all code:
 - `Checkpoint` (not bookmark): Resumable progress marker
 
 **Time Domain:**
-- `Timestamp`: Specific UTC moment 
+- `Timestamp`: Specific UTC moment
 - `TimeRange`: Start/end period
 - `TimeFrame`: Aggregation period (1m, 5m, 1h, 1d)
 - `TradingSession`: Regular, pre-market, post-market
@@ -56,14 +56,14 @@ class ClientConfig:
     api_key: str
     base_url: str
     timeout: float = 30.0
-    
+
     def __post_init__(self) -> None:
         if not self.api_key:
             raise ValueError("api_key is required")
 
 class BaseApiClient(ABC):
     """Abstract vendor-agnostic client."""
-    
+
     @abstractmethod
     def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Transform vendor data to canonical OHLCV schema."""
@@ -74,19 +74,19 @@ class BaseApiClient(ABC):
 @dataclass(frozen=True)
 class EntityId:
     value: UUID
-    
+
     @classmethod
     def generate(cls) -> EntityId:
         return cls(uuid4())
 
 class OHLCVBar(Entity):
     """Domain entity with business behavior."""
-    
+
     def __init__(self, id: EntityId, symbol: Symbol, timestamp: Timestamp, ...):
         super().__init__(id)
         self._symbol = symbol
         self._validate_ohlc_consistency()
-    
+
     def _validate_ohlc_consistency(self) -> None:
         """Business rule validation."""
         if not (self._high >= self._open and self._high >= self._close):
@@ -96,7 +96,7 @@ class OHLCVBar(Entity):
 class Symbol:
     """Value object for stock symbols."""
     value: str
-    
+
     def __post_init__(self):
         if not self.value.isalpha() or len(self.value) > 10:
             raise ValueError(f"Invalid symbol: {self.value}")
@@ -135,7 +135,7 @@ def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
 ```python
 def fetch_batch(self, symbol: str, start_ts: int, end_ts: int) -> List[Dict[str, Any]]:
     """Synchronous batch fetch."""
-    
+
 async def async_fetch_batch(self, symbol: str, start_ts: int, end_ts: int) -> List[Dict[str, Any]]:
     """Asynchronous batch fetch."""
 ```
@@ -144,11 +144,11 @@ async def async_fetch_batch(self, symbol: str, start_ts: int, end_ts: int) -> Li
 ```python
 class SchemaValidator:
     """Multi-level OHLCV validation."""
-    
+
     def validate_batch(self, rows: List[Dict[str, Any]], symbol: str) -> Tuple[List[Dict[str, Any]], List[str]]:
         """Validate with comprehensive error reporting."""
         valid_rows, errors = [], []
-        
+
         for i, row in enumerate(rows):
             # Level 1: Schema validation
             schema_errors = self._validate_schema(row)
@@ -156,13 +156,13 @@ class SchemaValidator:
             business_errors = self._validate_business_rules(row)
             # Level 3: Data quality
             quality_errors = self._validate_data_quality(row, symbol)
-            
+
             all_errors = schema_errors + business_errors + quality_errors
             if all_errors:
                 errors.extend([f"Row {i}: {err}" for err in all_errors])
             else:
                 valid_rows.append(row)
-        
+
         return valid_rows, errors
 ```
 
@@ -201,7 +201,7 @@ class PipelineConfig:
 def load_config(config_path: str) -> PipelineConfig:
     """Load config with environment variable support."""
     load_dotenv()  # Load .env file
-    
+
     # Get credentials from environment
     api_key = os.getenv("ALPACA_KEY") or config_dict.get("key", "")
     if not api_key:
@@ -213,15 +213,15 @@ def load_config(config_path: str) -> PipelineConfig:
 def test_alpaca_pagination(monkeypatch):
     """Test pagination with descriptive name."""
     pages = [{"bars": {"AAPL": [mock_bar_1]}, "next_page_token": "abc"}]
-    
+
     def mock_get(url, params=None, headers=None, timeout=None):
         return MockResponse(status_code=200, json_data=pages.pop(0))
-    
+
     monkeypatch.setattr(httpx, "get", mock_get)
-    
+
     config = ClientConfig(api_key="test", base_url="https://api.test.com")
     client = AlpacaClient(config=config, auth=HeaderTokenAuth("key", "secret"))
-    
+
     rows = client.fetch_batch("AAPL", 0, 1000)
     assert len(rows) == 1
     assert rows[0]["schema_version"] == 1
@@ -306,8 +306,8 @@ src/marketpipe/
 └── metrics/                  # Monitoring Context
 ```
 
-Focus on **domain-driven design**, **ubiquitous language**, and **bounded context separation** when making any changes to the codebase. 
+Focus on **domain-driven design**, **ubiquitous language**, and **bounded context separation** when making any changes to the codebase.
 
 ## Chat Date Context Rule
 
-> **Rule**: At the start of every chat, the agent **MUST** fetch the current date from the shell (e.g. invoking `date`), store that value in memory, and reference it for all time-aware reasoning during the conversation. If the context window is reset, truncated, or significantly condensed, the agent **MUST** refresh the stored date by re-executing the command before continuing. 
+> **Rule**: At the start of every chat, the agent **MUST** fetch the current date from the shell (e.g. invoking `date`), store that value in memory, and reference it for all time-aware reasoning during the conversation. If the context window is reset, truncated, or significantly condensed, the agent **MUST** refresh the stored date by re-executing the command before continuing.

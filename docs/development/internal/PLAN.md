@@ -5,7 +5,7 @@ Fix 31 failing tests across 5 root cause categories. Strategy prioritizes high-i
 
 ## Task 1: Fix Date Hardcoding Issues (4 tests)
 **Priority**: High (simple fixes, clear patterns)
-**Files to touch**: 
+**Files to touch**:
 - `tests/ingestion/symbol_providers/test_nasdaq_dl.py`
 - `tests/unit/infrastructure/test_alpaca_market_data_adapter.py`
 - `tests/cli/test_symbols_cli.py`
@@ -96,7 +96,7 @@ Fix 31 failing tests across 5 root cause categories. Strategy prioritizes high-i
 1. **Task 1** (Date fixes) - Straightforward, deterministic
 2. **Task 2** investigation - Root cause analysis for CLI issues
 
-### Phase 2: CLI Ecosystem 
+### Phase 2: CLI Ecosystem
 3. **Task 2** implementation - Fix CLI exit codes
 4. **Task 3** - Update CLI output expectations
 5. **Task 5** - Fix mock verifications

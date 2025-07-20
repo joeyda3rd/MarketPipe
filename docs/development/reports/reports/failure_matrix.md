@@ -18,7 +18,7 @@
 - `tests/ingestion/symbol_providers/test_nasdaq_dl.py::TestNasdaqDailyListProviderParsing::test_footer_with_extra_spaces`
 - `tests/unit/infrastructure/test_alpaca_market_data_adapter.py::TestAlpacaMarketDataAdapterTranslation::test_translates_alpaca_bar_format_to_domain_ohlcv_bar`
 
-**Stack Trace Sample**: 
+**Stack Trace Sample**:
 ```
 assert datetime.date(2025, 6, 24) == datetime.date(2025, 6, 19)
 ```

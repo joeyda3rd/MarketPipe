@@ -60,7 +60,7 @@ async def test_database_operations():
 async def test_database_operations():
     worker_id = os.getenv('PYTEST_XDIST_WORKER', 'main')
     table_name = f"test_data_{worker_id}_{uuid.uuid4().hex[:8]}"
-    
+
     await db.create_table(table_name)
     await db.insert_data(table_name, test_records)
     result = await db.query(f"SELECT * FROM {table_name}")
@@ -91,7 +91,7 @@ def isolated_client():
     """Create client with worker-specific rate limiter."""
     worker_id = os.getenv('PYTEST_XDIST_WORKER', 'main')
     config = ClientConfig(api_key=f"test_key_{worker_id}", base_url="https://test.api")
-    
+
     # Each worker gets its own rate limiter
     rate_limiter = RateLimiter(requests_per_window=100, window_seconds=60)
     return AlpacaClient(config=config, auth=test_auth, rate_limiter=rate_limiter)
@@ -116,7 +116,7 @@ async def test_parse_response():
     result = client.parse_response(mock_json)
     assert len(result) == 2
 
-# Integration tests - sequential execution  
+# Integration tests - sequential execution
 @pytest.mark.integration
 async def test_full_ingestion_workflow():
     # Involves files, databases, external APIs
@@ -149,9 +149,9 @@ def temp_data_dir():
     worker_id = os.getenv('PYTEST_XDIST_WORKER', 'main')
     temp_dir = Path(f"/tmp/marketpipe_test_{worker_id}_{uuid.uuid4().hex[:8]}")
     temp_dir.mkdir(parents=True, exist_ok=True)
-    
+
     yield temp_dir
-    
+
     # Cleanup
     if temp_dir.exists():
         shutil.rmtree(temp_dir)
@@ -170,17 +170,17 @@ def mock_http_client():
 ```python
 class MockAsyncClient:
     """Async client mock that works with pytest-xdist."""
-    
+
     def __init__(self):
         self.worker_id = os.getenv('PYTEST_XDIST_WORKER', 'main')
         self.call_count = 0
-    
+
     async def __aenter__(self):
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
-    
+
     async def get(self, url, **kwargs):
         self.call_count += 1
         # Return worker-specific responses if needed
@@ -195,7 +195,7 @@ class MockAsyncClient:
 @pytest.mark.asyncio
 async def test_async_client_with_mock(monkeypatch):
     monkeypatch.setattr('httpx.AsyncClient', MockAsyncClient)
-    
+
     client = AlpacaClient(config, auth)
     result = await client.async_fetch_batch("AAPL", 0, 1000)
     assert len(result) > 0
@@ -215,11 +215,11 @@ async def test_data_parsing():
     assert result[0]["symbol"] == "AAPL"
 
 # ❌ Avoid - Shared file system state
-@pytest.mark.asyncio  
+@pytest.mark.asyncio
 async def test_file_operations():
     with open("test_data.json", "w") as f:  # Race condition!
         json.dump(test_data, f)
-    
+
     result = await process_file("test_data.json")
     assert result is not None
 ```
@@ -234,7 +234,7 @@ async def test_async_request_retry():
     # Mock everything, no real I/O
     pass
 
-# Slow or stateful tests - run sequentially  
+# Slow or stateful tests - run sequentially
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_end_to_end_ingestion():
@@ -271,7 +271,7 @@ pytest -n 2 -v --tb=short tests/test_async.py
 def test_worker_identification():
     worker_id = os.getenv('PYTEST_XDIST_WORKER', 'main')
     print(f"Running in worker: {worker_id}")
-    
+
     # Use worker_id in test logic to identify conflicts
     assert worker_id is not None
 ```
@@ -321,4 +321,4 @@ class SyncMockClient:
 ### Performance Impact
 - **Parallel unit tests**: ~3-4x speedup on typical development machines
 - **Sequential integration**: No speedup but maintains reliability
-- **Smart selection**: Best of both - fast feedback with safety 
+- **Smart selection**: Best of both - fast feedback with safety

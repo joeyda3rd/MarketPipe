@@ -64,7 +64,7 @@ events = aggregate.get_uncommitted_events()
 ### Domain Events
 ```python
 from marketpipe.domain import (
-    BarCollectionCompleted, ValidationFailed, 
+    BarCollectionCompleted, ValidationFailed,
     IngestionJobCompleted, MarketDataReceived
 )
 
@@ -228,4 +228,4 @@ class AlpacaProvider(IMarketDataProvider):
 - **Business Rule Enforcement**: Entities and aggregates validate invariants
 - **Event-Driven Communication**: Loose coupling between bounded contexts
 - **Type Safety**: Value objects prevent primitive obsession
-- **Testability**: Domain logic easily unit tested in isolation 
+- **Testability**: Domain logic easily unit tested in isolation

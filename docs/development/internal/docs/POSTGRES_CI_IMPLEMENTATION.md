@@ -7,7 +7,7 @@ Successfully implemented Postgres support in CI alongside existing SQLite testin
 
 ### 1. GitHub Actions Workflow (`.github/workflows/ci.yml`)
 - **test-sqlite job**: Runs all tests against SQLite (existing behavior)
-- **test-postgres job**: Runs tests against Postgres 15 service container  
+- **test-postgres job**: Runs tests against Postgres 15 service container
 - **coverage-report job**: Combines coverage from both database backends
 
 #### Key Features:
@@ -49,8 +49,8 @@ Successfully implemented Postgres support in CI alongside existing SQLite testin
 pytest tests/test_migrations.py -v
 # 11 passed, 2 skipped
 
-# Postgres tests (properly skipped without DATABASE_URL)  
-pytest tests/test_postgres_migrations.py -v  
+# Postgres tests (properly skipped without DATABASE_URL)
+pytest tests/test_postgres_migrations.py -v
 # 4 skipped
 
 # Postgres job simulation (excludes sqlite_only)
@@ -60,7 +60,7 @@ pytest -m "not sqlite_only" tests/test_migrations.py -v
 
 ### CI Workflow Structure
 1. **test-sqlite**: Standard pytest run against SQLite
-2. **test-postgres**: 
+2. **test-postgres**:
    - Postgres 15 service container
    - `DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/mp_test`
    - Runs `alembic upgrade head` before tests
@@ -74,7 +74,7 @@ pytest -m "not sqlite_only" tests/test_migrations.py -v
 ## Migration Compatibility
 All three existing migrations work on both backends:
 - `0001_initial_schema`: Core tables creation
-- `0002_optimize_metrics_index`: Index optimization  
+- `0002_optimize_metrics_index`: Index optimization
 - `0003_add_missing_ohlcv_columns`: Column additions with SQLite table recreation
 
 ## Benefits Achieved
@@ -97,4 +97,4 @@ The infrastructure is now ready for:
 1. Implementing `PostgresIngestionJobRepository` with `asyncpg`
 2. Feature-flagged Postgres support activated by `DATABASE_URL`
 3. Production deployment with Postgres backend
-4. Additional database backend integrations (e.g., MySQL, TimescaleDB) 
+4. Additional database backend integrations (e.g., MySQL, TimescaleDB)

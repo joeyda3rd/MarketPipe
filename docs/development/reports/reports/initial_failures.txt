@@ -269,7 +269,7 @@ tests/unit/cli/test_ingest_output_handling.py:54: in test_output_flag_creates_cu
     assert result.returncode == 0, f"Command failed: {result.stderr}"
 E   AssertionError: Command failed: INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
 E     INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
-E     
+E
 E   assert 1 == 0
 E    +  where 1 = CompletedProcess(args=['/home/joey/MarketPipe/test_venv/bin/python', '-m', 'marketpipe', 'ohlcv', 'ingest', '--provide...c.runtime.migration] Context impl SQLiteImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\n').returncode
 _______ TestCLIOutputHandling.test_verification_failure_exits_with_error _______
@@ -282,7 +282,7 @@ tests/unit/cli/test_ingest_output_handling.py:131: in test_default_output_path_w
     assert result.returncode == 0, f"Command failed: {result.stderr}"
 E   AssertionError: Command failed: INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
 E     INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
-E     
+E
 E   assert 1 == 0
 E    +  where 1 = CompletedProcess(args=['/home/joey/MarketPipe/test_venv/bin/python', '-m', 'marketpipe', 'ohlcv', 'ingest', '--provide...c.runtime.migration] Context impl SQLiteImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\n').returncode
 ___ TestCLIOutputHandling.test_verification_service_gets_correct_parameters ____
@@ -300,7 +300,7 @@ tests/unit/cli/test_ingest_output_handling.py:247: in test_verification_error_ha
     assert result.returncode == 0, f"Command should complete successfully: {result.stderr}"
 E   AssertionError: Command should complete successfully: INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
 E     INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
-E     
+E
 E   assert 1 == 0
 E    +  where 1 = CompletedProcess(args=['/home/joey/MarketPipe/test_venv/bin/python', '-m', 'marketpipe', 'ohlcv', 'ingest', '--provide...c.runtime.migration] Context impl SQLiteImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\n').returncode
 ______ TestIngestOutputHandling.test_boundary_check_accepts_correct_data _______

@@ -138,7 +138,7 @@ The `providers` command lists all registered market data providers and their cap
 ## Error Handling
 
 - Bootstrap failures → Database migration errors
-- Configuration errors → Invalid YAML or missing credentials  
+- Configuration errors → Invalid YAML or missing credentials
 - Validation errors → Typer parameter validation
 - Application errors → Domain service failures with user-friendly messages
 
@@ -154,4 +154,4 @@ The CLI includes deprecation warnings for command migration:
 - `ALPACA_KEY/ALPACA_SECRET` - Default provider credentials
 - `MP_DB` - Core database path
 - `METRICS_DB_PATH` - Metrics database path
-- `DATABASE_URL` - Alternative database configuration 
+- `DATABASE_URL` - Alternative database configuration

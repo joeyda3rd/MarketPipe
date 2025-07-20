@@ -329,7 +329,7 @@ Maintaining a DDD architecture requires ongoing attention to both technical and 
 
 The key to success is:
 - **Automation** for consistent validation
-- **Documentation** for knowledge preservation  
+- **Documentation** for knowledge preservation
 - **Team discipline** for following DDD principles
 - **Continuous learning** about the domain
 

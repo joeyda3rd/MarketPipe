@@ -13,7 +13,7 @@
 | Command | Purpose | Speed |
 |---------|---------|-------|
 | `make test` | **Default fast loop** - last failed, fail-fast, parallel, skip slow/integration | ⚡ Fastest |
-| `make test-fast` | Fast without cache (first failure mode) | ⚡ Fast |  
+| `make test-fast` | Fast without cache (first failure mode) | ⚡ Fast |
 | `make test-unit` | Unit tests only in parallel | ⚡ Fast |
 | `make test-integration` | Integration tests (no parallel) | 🐌 Slow |
 | `make test-timing` | Show test durations (weekly check) | 📊 Analysis |
@@ -47,7 +47,7 @@ pip install pytest-xdist>=3.0.0
 # 1. Start with fast feedback loop
 make test
 
-# 2. Focus on specific area during development  
+# 2. Focus on specific area during development
 pytest -q --lf -k "test_alpaca"
 
 # 3. Before committing
@@ -70,7 +70,7 @@ make test-all  # Full suite: ~2-5 minutes (when needed)
 ## 🎯 Key Benefits
 
 1. **Faster Feedback**: Tests run in 10-30 seconds instead of 2-5 minutes
-2. **Parallel Execution**: Utilizes all CPU cores automatically  
+2. **Parallel Execution**: Utilizes all CPU cores automatically
 3. **Smart Caching**: `--lf` only runs previously failed tests
 4. **Fail Fast**: `--maxfail=3` stops after 3 failures
 5. **Focused Testing**: Skip slow/integration tests during development
@@ -81,7 +81,7 @@ make test-all  # Full suite: ~2-5 minutes (when needed)
 Your tests are already well-marked! The system uses:
 
 - `@pytest.mark.integration` - E2E tests (skipped in fast loop)
-- `@pytest.mark.slow` - Performance tests (skipped in fast loop)  
+- `@pytest.mark.slow` - Performance tests (skipped in fast loop)
 - `@pytest.mark.unit` - Fast unit tests (included in fast loop)
 - `@pytest.mark.postgres` - Database tests (conditional)
 - Plus 10+ other specific markers for different scenarios
@@ -147,4 +147,4 @@ Look for any unit tests taking > 100ms - they should be optimized or marked as `
 
 ---
 
-This implementation follows the fast pytest loop best practices while maintaining the robust test suite MarketPipe already has! 🎉 
+This implementation follows the fast pytest loop best practices while maintaining the robust test suite MarketPipe already has! 🎉

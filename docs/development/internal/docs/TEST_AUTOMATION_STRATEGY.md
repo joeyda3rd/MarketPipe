@@ -72,7 +72,7 @@ git commit --no-verify -m "wip: work in progress"
 **Multiple fallback mechanisms** to catch missed tests
 
 1. **Unmatched File Detection:** If changed files don't match any pattern, run unit tests as safety net
-2. **Critical File Protection:** Changes to critical files (CLI, domain core) trigger full test suite  
+2. **Critical File Protection:** Changes to critical files (CLI, domain core) trigger full test suite
 3. **Integration Test Requirements:** Infrastructure changes always trigger integration tests
 4. **Full Suite Triggers:** Configuration/CI changes require complete test run
 
@@ -112,7 +112,7 @@ make test-all
 | `make test-unit` | Unit tests only | ⚡ Fast | Quick validation |
 | `make test-fast` | No cache, fail fast | 🔥 Fast | Clean slate testing |
 
-### Comprehensive Commands  
+### Comprehensive Commands
 | Command | Purpose | Speed | When to Use |
 |---------|---------|-------|-------------|
 | `make test-all` | Complete test suite | 🐌 Slow | Before pushing |
@@ -133,7 +133,7 @@ make test-all
 # Skip all tests in git hooks
 export SKIP_TESTS=1
 
-# Pass custom pytest arguments  
+# Pass custom pytest arguments
 export PYTEST_ARGS="--verbose --no-cov"
 
 # Use different base reference for change detection
@@ -147,10 +147,10 @@ Edit `scripts/smart_test_runner.py` to customize file-to-test mappings:
 self.test_mappings = {
     # Add new patterns
     r"src/marketpipe/new_feature/": ["tests/unit/new_feature/"],
-    
+
     # Modify existing patterns
     r"src/marketpipe/cli\.py": [
-        "tests/unit/cli/", 
+        "tests/unit/cli/",
         "tests/integration/test_cli_*.py",
         "tests/e2e/test_cli_workflows.py"  # Add E2E tests
     ],
@@ -244,11 +244,11 @@ time make test-smart vs time make test-all
 - name: Smart Test Analysis
   run: |
     python3 scripts/smart_test_runner.py --format json > test-plan.json
-    
+
 - name: Run Detected Tests
   run: |
     python3 scripts/smart_test_runner.py --fast
-    
+
 - name: Full Suite (if critical changes)
   run: |
     if grep -q "FULL_SUITE" test-plan.json; then
@@ -361,4 +361,4 @@ The goal is to make testing so seamless that developers never have to think abou
 
 ---
 
-*"The best test automation is the one you don't have to think about."* 
+*"The best test automation is the one you don't have to think about."*

@@ -36,7 +36,7 @@ Alpaca returns OHLCV bars with the following structure:
 {
   "t": "2024-01-15T09:30:00Z",  // Timestamp (ISO string)
   "o": 150.25,                  // Open price
-  "h": 151.00,                  // High price  
+  "h": 151.00,                  // High price
   "l": 149.50,                  // Low price
   "c": 150.75,                  // Close price
   "v": 125000                   // Volume
@@ -101,4 +101,4 @@ workers: 3
 
 - `401 Unauthorized`: Check your API credentials
 - `429 Too Many Requests`: You've hit the rate limit, wait and retry
-- `403 Forbidden`: Your subscription may not include the requested data feed 
+- `403 Forbidden`: Your subscription may not include the requested data feed

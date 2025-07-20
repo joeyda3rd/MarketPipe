@@ -108,14 +108,14 @@ Metrics Recording
 def handle_ingestion_completed(self, event: IngestionJobCompleted) -> None:
     # Extract provider/feed for metrics
     provider, feed = self._extract_provider_feed_info(event)
-    
+
     # Load data and validate
     symbol_dataframes = self._storage_engine.load_job_bars(event.job_id)
-    
+
     for symbol_name, df in symbol_dataframes.items():
         bars = self._convert_dataframe_to_bars(df, symbol_name)
         result = self._validator.validate_bars(symbol_name, bars)
-        
+
         # Save report and record metrics
         report_path = self._reporter.save(event.job_id, result)
 ```
@@ -126,16 +126,16 @@ def handle_ingestion_completed(self, event: IngestionJobCompleted) -> None:
 # Comprehensive OHLCV validation
 def validate_bars(self, symbol: str, bars: list[OHLCVBar]) -> ValidationResult:
     errors = []
-    
+
     for i, bar in enumerate(bars):
         # Monotonic timestamp validation
         if bar.timestamp_ns <= prev_ts:
             errors.append(BarError(bar.timestamp_ns, f"non-monotonic timestamp at index {i}"))
-        
+
         # Positive price validation
         if any(price.value <= 0 for price in [bar.open_price, bar.high_price, bar.low_price, bar.close_price]):
             errors.append(BarError(bar.timestamp_ns, f"non-positive price at index {i}"))
-        
+
         # OHLC consistency validation
         if not self._validate_ohlc_consistency(bar):
             errors.append(BarError(bar.timestamp_ns, f"OHLC inconsistency at index {i}"))
@@ -172,7 +172,7 @@ def _validate_price_movements(self, current_bar: OHLCVBar, previous_bar: OHLCVBa
     errors = []
     prev_close = previous_bar.close_price.value
     curr_open = current_bar.open_price.value
-    
+
     if prev_close > 0:
         price_change_pct = abs(float(curr_open - prev_close)) / float(prev_close)
         if price_change_pct > 0.5:  # 50% change threshold
@@ -190,9 +190,9 @@ def _validate_price_movements(self, current_bar: OHLCVBar, previous_bar: OHLCVBa
 def save(self, job_id: str, result: ValidationResult) -> Path:
     job_dir = self.root / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
-    
+
     path = job_dir / f"{job_id}_{result.symbol}.csv"
-    
+
     if result.errors:
         error_data = []
         for error in result.errors:
@@ -205,7 +205,7 @@ def save(self, job_id: str, result: ValidationResult) -> Path:
     else:
         # Empty DataFrame for clean validation
         df = pd.DataFrame(columns=["symbol", "ts_ns", "reason"])
-    
+
     df.to_csv(path, index=False)
 ```
 
@@ -229,14 +229,14 @@ else:
 # Analyze validation report statistics
 def get_report_summary(self, path: Path) -> dict:
     df = self.load_report(path)
-    
+
     summary = {
         "total_bars": len(df["symbol"].unique()),
         "total_errors": len(df),
         "symbols": df["symbol"].unique().tolist(),
         "most_common_errors": []
     }
-    
+
     # Get most common error types
     if "reason" in df.columns and not df.empty:
         error_counts = df["reason"].value_counts().head(5)
@@ -287,4 +287,4 @@ ValidationRunnerService.register()  # Automatic event subscription
 - **Detailed Reporting**: CSV audit trails for quality monitoring
 - **Metrics Integration**: Provider/feed-specific quality metrics
 - **Extensible**: Easy to add new validation rules and checks
-- **Separation of Concerns**: Domain validation isolated from infrastructure 
+- **Separation of Concerns**: Domain validation isolated from infrastructure

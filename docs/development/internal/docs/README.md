@@ -37,7 +37,7 @@ Welcome to the MarketPipe documentation! This directory contains comprehensive g
 ```
 docs/
 ├── README.md                    # This file
-├── TESTING.md                   # Testing guide  
+├── TESTING.md                   # Testing guide
 ├── ARCHITECTURE.md              # Code architecture
 ├── CONFIGURATION.md             # Setup and config
 ├── DEVELOPMENT.md               # Advanced dev setup
@@ -55,4 +55,4 @@ dev/                             # Internal development
 1. **Contributor-first**: Make it easy for new people to contribute
 2. **Progressive disclosure**: Start simple, add complexity as needed
 3. **Practical examples**: Show real usage, not just theory
-4. **Keep it current**: Update docs with code changes 
+4. **Keep it current**: Update docs with code changes

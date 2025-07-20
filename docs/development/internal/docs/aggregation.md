@@ -41,8 +41,8 @@ duckdb_views.ensure_views()
 # Query aggregated data
 df = duckdb_views.query("""
     SELECT symbol, ts_ns, open, high, low, close, volume
-    FROM bars_5m 
-    WHERE symbol = 'AAPL' 
+    FROM bars_5m
+    WHERE symbol = 'AAPL'
     ORDER BY ts_ns
 """)
 
@@ -100,15 +100,15 @@ AggregationCompleted Event
 def handle_ingestion_completed(self, event: IngestionJobCompleted) -> None:
     # Extract provider/feed for metrics
     provider, feed = self._extract_provider_feed_info(event)
-    
+
     # Generate SQL for each timeframe
     sql_pairs = [
         (spec, self._domain.duckdb_sql(spec)) for spec in DEFAULT_SPECS
     ]
-    
+
     # Run aggregation
     result = self._engine.aggregate_job(event.job_id, sql_pairs)
-    
+
     # Refresh views and publish success event
     refresh_views()
     success_event = AggregationCompleted(event.job_id, len(DEFAULT_SPECS))
@@ -144,10 +144,10 @@ def duckdb_sql(frame: FrameSpec, src_table: str = "bars") -> str:
 def aggregate_job(self, job_id: str, frame_sql_pairs: List[Tuple[FrameSpec, str]]) -> None:
     # Load raw data for all symbols
     symbol_dataframes = self._raw_storage.load_job_bars(job_id)
-    
+
     # Create DuckDB connection
     con = duckdb.connect(":memory:")
-    
+
     # Process each symbol
     for symbol, df in symbol_dataframes.items():
         # Ensure required columns
@@ -155,10 +155,10 @@ def aggregate_job(self, job_id: str, frame_sql_pairs: List[Tuple[FrameSpec, str]
             df["ts_ns"] = df["timestamp_ns"]
         if "symbol" not in df.columns:
             df["symbol"] = symbol
-        
+
         # Register DataFrame in DuckDB
         con.register("bars", pa.Table.from_pandas(df))
-        
+
         # Execute aggregation for each timeframe
         for spec, sql in frame_sql_pairs:
             result_df = con.execute(sql).fetch_df()
@@ -171,7 +171,7 @@ def aggregate_job(self, job_id: str, frame_sql_pairs: List[Tuple[FrameSpec, str]
 # Create dynamic views for timeframe partitions
 def _attach_partition(frame: str) -> None:
     path = AGG_ROOT / f"frame={frame}"
-    
+
     if not path.exists():
         # Create empty view to avoid SQL errors
         _get_connection().execute(
@@ -182,7 +182,7 @@ def _attach_partition(frame: str) -> None:
             f"WHERE 1=0"
         )
         return
-    
+
     # Create view using Hive partitioning
     view_sql = (
         f"CREATE OR REPLACE VIEW bars_{frame} AS "
@@ -198,10 +198,10 @@ def _attach_partition(frame: str) -> None:
 def query(sql: str) -> pd.DataFrame:
     if not sql or not sql.strip():
         raise ValueError("SQL query cannot be empty")
-    
+
     # Ensure views are available
     ensure_views()
-    
+
     try:
         result_df = _get_connection().execute(sql).fetch_df()
         return result_df
@@ -211,7 +211,7 @@ def query(sql: str) -> pd.DataFrame:
 # Example usage
 df = duckdb_views.query("""
     SELECT symbol, ts_ns, close, volume
-    FROM bars_1h 
+    FROM bars_1h
     WHERE symbol IN ('AAPL', 'MSFT')
     AND ts_ns >= 1640995200000000000
     ORDER BY symbol, ts_ns
@@ -227,17 +227,17 @@ def get_available_data() -> pd.DataFrame:
     WITH frame_data AS (
         SELECT '5m' as frame, symbol, date, COUNT(*) as row_count FROM bars_5m GROUP BY symbol, date
         UNION ALL
-        SELECT '15m' as frame, symbol, date, COUNT(*) as row_count FROM bars_15m GROUP BY symbol, date  
+        SELECT '15m' as frame, symbol, date, COUNT(*) as row_count FROM bars_15m GROUP BY symbol, date
         UNION ALL
         SELECT '1h' as frame, symbol, date, COUNT(*) as row_count FROM bars_1h GROUP BY symbol, date
         UNION ALL
         SELECT '1d' as frame, symbol, date, COUNT(*) as row_count FROM bars_1d GROUP BY symbol, date
     )
-    SELECT 
+    SELECT
         frame, symbol,
         COUNT(DISTINCT date) as date_count,
         SUM(row_count) as total_rows
-    FROM frame_data 
+    FROM frame_data
     WHERE symbol IS NOT NULL
     GROUP BY frame, symbol
     ORDER BY frame, symbol
@@ -252,7 +252,7 @@ def get_available_data() -> pd.DataFrame:
 def run_manual_aggregation(self, job_id: str) -> None:
     # Record manual aggregation metrics
     record_metric("aggregation_manual_runs", 1, provider="manual", feed="manual")
-    
+
     # Create fake event and process it
     event = IngestionJobCompleted(
         job_id=job_id,
@@ -284,9 +284,9 @@ AggregationRunnerService.register()  # Automatic event subscription
 def validate_views() -> dict[str, bool]:
     frames = ["5m", "15m", "1h", "1d"]
     status = {}
-    
+
     ensure_views()
-    
+
     for frame in frames:
         view_name = f"bars_{frame}"
         try:
@@ -294,7 +294,7 @@ def validate_views() -> dict[str, bool]:
             status[view_name] = True
         except Exception as e:
             status[view_name] = False
-    
+
     return status
 ```
 
@@ -302,7 +302,7 @@ def validate_views() -> dict[str, bool]:
 
 ### Default Timeframes
 - **5m**: 5-minute bars (300 seconds)
-- **15m**: 15-minute bars (900 seconds)  
+- **15m**: 15-minute bars (900 seconds)
 - **1h**: 1-hour bars (3600 seconds)
 - **1d**: 1-day bars (86400 seconds)
 
@@ -350,4 +350,4 @@ data/agg/
 - **Partitioned Storage**: Efficient storage and querying by timeframe/symbol/date
 - **SQL Interface**: Standard SQL queries against aggregated data
 - **Extensible**: Easy to add new timeframes and aggregation rules
-- **Memory Efficient**: Streaming processing with optimized DuckDB settings 
+- **Memory Efficient**: Streaming processing with optimized DuckDB settings

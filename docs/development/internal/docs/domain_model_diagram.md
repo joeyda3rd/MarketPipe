@@ -9,36 +9,36 @@ graph TB
     subgraph "Core Domain"
         DI[Data Ingestion Context]
     end
-    
+
     subgraph "Supporting Domains"
         MDI[Market Data Integration Context]
         DV[Data Validation Context]
         DS[Data Storage Context]
         OM[Operations & Monitoring Context]
     end
-    
+
     subgraph "Generic Subdomains"
         AA[Authentication & Authorization]
         RL[Rate Limiting]
         CM[Configuration Management]
         SM[State Management]
     end
-    
+
     DI --> MDI
     DI --> DV
     DI --> DS
     DI --> OM
-    
+
     MDI --> AA
     MDI --> RL
-    
+
     DI --> SM
     DI --> CM
-    
+
     classDef coreContext fill:#ffeb9c,stroke:#333,stroke-width:3px
     classDef supportingContext fill:#dae8fc,stroke:#333,stroke-width:2px
     classDef genericContext fill:#f8cecc,stroke:#333,stroke-width:1px
-    
+
     class DI coreContext
     class MDI,DV,DS,OM supportingContext
     class AA,RL,CM,SM genericContext
@@ -57,13 +57,13 @@ graph TB
         SVC[Domain Services:<br/>• MarketDataValidationService]
         REPO[Repository Interfaces:<br/>• IOHLCVRepository<br/>• IUniverseRepository]
     end
-    
+
     subgraph "Application Layer (src/marketpipe/*/application/)"
         direction TB
         ASVC[Application Services:<br/>• IngestionApplicationService<br/>• ValidationApplicationService<br/>• AggregationApplicationService]
         ORCH[Event Orchestration:<br/>• Event Bus Integration<br/>• Cross-Context Coordination]
     end
-    
+
     subgraph "Infrastructure Layer (src/marketpipe/infrastructure/)"
         direction TB
         REPOS[Repository Implementations:<br/>• SQLiteOHLCVRepository<br/>• ParquetOHLCVRepository]
@@ -71,12 +71,12 @@ graph TB
         MONITOR[Monitoring:<br/>• Prometheus Metrics<br/>• Event-based Metrics Collection]
         STORAGE[Storage:<br/>• Parquet Writers<br/>• DuckDB Integration<br/>• SQLite State Management]
     end
-    
+
     subgraph "CLI Layer (src/marketpipe/cli/)"
         direction TB
         CLI[CLI Commands:<br/>• ingest-ohlcv<br/>• validate-ohlcv<br/>• aggregate-ohlcv<br/>• metrics<br/>• query]
     end
-    
+
     %% Dependencies (following DDD rules)
     CLI --> ASVC
     ASVC --> ENT
@@ -92,12 +92,12 @@ graph TB
     REPOS --> AGG
     EVENTS --> EVT
     MONITOR --> EVT
-    
+
     classDef domain fill:#ffeb9c,stroke:#333,stroke-width:3px
     classDef application fill:#dae8fc,stroke:#333,stroke-width:2px
     classDef infrastructure fill:#f8cecc,stroke:#333,stroke-width:2px
     classDef cli fill:#e1d5e7,stroke:#333,stroke-width:2px
-    
+
     class ENT,VO,AGG,EVT,SVC,REPO domain
     class ASVC,ORCH application
     class REPOS,EVENTS,MONITOR,STORAGE infrastructure
@@ -117,13 +117,13 @@ classDiagram
         +equals(other) bool
         +hashCode() int
     }
-    
+
     class EntityId {
         +UUID value
         +generate() EntityId
         +toString() str
     }
-    
+
     class OHLCVBar {
         -Symbol symbol
         -Timestamp timestamp
@@ -139,14 +139,14 @@ classDiagram
         +isSameTradingDay(other) bool
         +isDuringMarketHours() bool
     }
-    
+
     class Symbol {
         +str value
         +fromString(str) Symbol
         +toString() str
         +validate() void
     }
-    
+
     class Price {
         +Decimal value
         +fromFloat(float) Price
@@ -157,7 +157,7 @@ classDiagram
         +divide(number) Price
         +toFloat() float
     }
-    
+
     class Timestamp {
         +datetime value
         +now() Timestamp
@@ -168,7 +168,7 @@ classDiagram
         +isMarketHours() bool
         +roundToMinute() Timestamp
     }
-    
+
     class Volume {
         +int value
         +zero() Volume
@@ -176,7 +176,7 @@ classDiagram
         +subtract(Volume) Volume
         +multiply(number) Volume
     }
-    
+
     class TimeRange {
         +Timestamp start
         +Timestamp end
@@ -186,7 +186,7 @@ classDiagram
         +overlaps(TimeRange) bool
         +durationSeconds() float
     }
-    
+
     class SymbolBarsAggregate {
         -Symbol symbol
         -date tradingDate
@@ -204,7 +204,7 @@ classDiagram
         +getUncommittedEvents() list
         +markEventsCommitted() void
     }
-    
+
     class UniverseAggregate {
         -str universeId
         -dict symbols
@@ -219,7 +219,7 @@ classDiagram
         +getAllSymbols() list
         +isSymbolActive(Symbol) bool
     }
-    
+
     class DomainEvent {
         <<abstract>>
         +UUID eventId
@@ -228,14 +228,14 @@ classDiagram
         +getEventType() str
         +getAggregateId() str
     }
-    
+
     class BarCollectionCompleted {
         +Symbol symbol
         +date tradingDate
         +int barCount
         +bool hasGaps
     }
-    
+
     class IngestionJobCompleted {
         +str jobId
         +Symbol symbol
@@ -244,7 +244,7 @@ classDiagram
         +bool success
         +str errorMessage
     }
-    
+
     class ValidationFailed {
         +Symbol symbol
         +Timestamp timestamp
@@ -252,43 +252,43 @@ classDiagram
         +str ruleId
         +str severity
     }
-    
+
     class IEventPublisher {
         <<interface>>
         +publish(DomainEvent) void
         +subscribe(eventType, handler) void
     }
-    
+
     class MarketDataValidationService {
         +validateBatch(bars, symbol) list
         +validateBar(bar) list
         +validateBusinessRules(bar) list
     }
-    
+
     Entity <|-- OHLCVBar
     Entity o-- EntityId
-    
+
     OHLCVBar o-- Symbol
     OHLCVBar o-- Timestamp
     OHLCVBar o-- Price
     OHLCVBar o-- Volume
-    
+
     SymbolBarsAggregate o-- Symbol
     SymbolBarsAggregate o-- OHLCVBar
     SymbolBarsAggregate o-- DomainEvent
-    
+
     UniverseAggregate o-- Symbol
     UniverseAggregate o-- DomainEvent
-    
+
     DomainEvent <|-- BarCollectionCompleted
     DomainEvent <|-- IngestionJobCompleted
     DomainEvent <|-- ValidationFailed
-    
+
     BarCollectionCompleted o-- Symbol
     IngestionJobCompleted o-- Symbol
     ValidationFailed o-- Symbol
     ValidationFailed o-- Timestamp
-    
+
     MarketDataValidationService ..> OHLCVBar
     MarketDataValidationService ..> Symbol
 ```
@@ -302,7 +302,7 @@ sequenceDiagram
     participant Dom as Domain Aggregate
     participant Evt as Domain Events
     participant Infra as Infrastructure
-    
+
     CLI->>App: ingest command
     App->>Dom: create SymbolBarsAggregate
     App->>Dom: addBar(ohlcvBar)
@@ -325,24 +325,24 @@ classDiagram
         +exists(symbol, timestamp) bool
         +delete(symbol, timestamp) void
     }
-    
+
     class SQLiteOHLCVRepository {
         +save(bars) void
         +findBySymbolAndDateRange(symbol, start, end) list
         +exists(symbol, timestamp) bool
         +delete(symbol, timestamp) void
     }
-    
+
     class ParquetOHLCVRepository {
         +save(bars) void
         +findBySymbolAndDateRange(symbol, start, end) list
         +exists(symbol, timestamp) bool
         +delete(symbol, timestamp) void
     }
-    
+
     IOHLCVRepository <|.. SQLiteOHLCVRepository
     IOHLCVRepository <|.. ParquetOHLCVRepository
-    
+
     SQLiteOHLCVRepository ..> OHLCVBar
     ParquetOHLCVRepository ..> OHLCVBar
 ```

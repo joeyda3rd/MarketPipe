@@ -109,4 +109,4 @@ The core module creates these tables via Alembic migrations:
 - `MP_DB` - Core database path (default: `data/db/core.db`)
 - `METRICS_DB_PATH` - Metrics database path
 - `PROMETHEUS_MULTIPROC_DIR` - Multiprocess metrics directory
-- `METRICS_MAX_CONNECTIONS` - Server connection limit (default: 100) 
+- `METRICS_MAX_CONNECTIONS` - Server connection limit (default: 100)

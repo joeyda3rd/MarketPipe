@@ -155,7 +155,7 @@ pytest tests/config/test_versioning.py -v
 # Test scenarios covered:
 # - Valid version loading
 # - Missing version error
-# - Too old version error  
+# - Too old version error
 # - Future version warning
 # - Unknown keys rejection
 # - Kebab-case normalization
@@ -256,4 +256,4 @@ Common errors and solutions:
 
 - [Configuration Reference](configuration.md) - Complete field documentation
 - [CLI Usage](cli.md) - Command-line interface guide
-- [Troubleshooting](troubleshooting.md) - Common issues and solutions 
+- [Troubleshooting](troubleshooting.md) - Common issues and solutions

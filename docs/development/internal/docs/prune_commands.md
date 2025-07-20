@@ -96,7 +96,7 @@ The prune commands follow MarketPipe's architectural patterns:
    - Input validation and user feedback
    - Async coordination using `asyncio.run()`
 
-2. **Repository Layer** 
+2. **Repository Layer**
    - SQLite repository methods: `count_old_jobs()`, `delete_old_jobs()`
    - File system operations for parquet files
 
@@ -128,9 +128,9 @@ The prune commands follow MarketPipe's architectural patterns:
 
 ```
 # Bytes of data pruned by type
-DATA_PRUNED_BYTES_TOTAL{type="parquet"} 
+DATA_PRUNED_BYTES_TOTAL{type="parquet"}
 
-# Rows of data pruned by type  
+# Rows of data pruned by type
 DATA_PRUNED_ROWS_TOTAL{type="sqlite"}
 ```
 
@@ -155,7 +155,7 @@ class DataPruned(DomainEvent):
 # Clean old parquet files (keep 2 years)
 mp prune parquet 2y
 
-# Clean old job records (keep 18 months)  
+# Clean old job records (keep 18 months)
 mp prune sqlite 18m
 
 # Check metrics
@@ -182,7 +182,7 @@ mp prune parquet 5y
 mp prune sqlite 2y
 
 # Aggressive: Keep 6 months of parquet, 3 months of jobs
-mp prune parquet 6m  
+mp prune parquet 6m
 mp prune sqlite 3m
 
 # Balanced: Keep 1 year of parquet, 6 months of jobs
@@ -225,7 +225,7 @@ The prune commands include comprehensive tests covering:
 
 - Age expression parsing
 - Parquet file detection and deletion
-- SQLite record counting and deletion  
+- SQLite record counting and deletion
 - Dry-run mode functionality
 - Metrics recording
 - Domain event emission
@@ -278,4 +278,4 @@ mp prune parquet 1y --dry-run
 - **Parquet Pruning**: Performance depends on file system and number of files
 - **SQLite Pruning**: VACUUM operation can be slow on large databases
 - **Batch Processing**: Commands process files/records in batches for memory efficiency
-- **Monitoring**: Use metrics to track performance and adjust retention policies 
+- **Monitoring**: Use metrics to track performance and adjust retention policies

@@ -52,7 +52,7 @@ result = await coordinator.execute_job(job_id)
 ### Market Data Connectors
 ```python
 from marketpipe.ingestion.connectors import (
-    AlpacaClient, BaseApiClient, ClientConfig, 
+    AlpacaClient, BaseApiClient, ClientConfig,
     HeaderTokenAuth, RateLimiter
 )
 
@@ -246,4 +246,4 @@ partition = await storage.store_bars(
 - **Fault Tolerance**: Retry logic, checkpointing, and resume capability
 - **Event-Driven**: Loose coupling through domain events
 - **Type Safety**: Strong typing throughout the pipeline
-- **Testability**: Comprehensive mocking and testing support 
+- **Testability**: Comprehensive mocking and testing support

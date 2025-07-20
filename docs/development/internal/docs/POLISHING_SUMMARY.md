@@ -75,7 +75,7 @@ async def _get_pool(self) -> asyncpg.Pool:
 
 ### 5. **✅ Unified Backend Metrics with Labels**
 **Enhancement**: Added `backend` label to Prometheus metrics for dashboard filtering
-**Files Modified**: 
+**Files Modified**:
 - `src/marketpipe/ingestion/infrastructure/repositories.py`
 - `src/marketpipe/ingestion/infrastructure/postgres_repository.py`
 
@@ -127,7 +127,7 @@ MarketPipe supports multiple database backends for job state and metadata storag
 #### Version History
 **v0.2 β** - Database Backend Support
 - ✅ **PostgreSQL Support**: Full async PostgreSQL backend with connection pooling
-- ✅ **Auto-selection**: Automatic backend selection via `DATABASE_URL` environment variable  
+- ✅ **Auto-selection**: Automatic backend selection via `DATABASE_URL` environment variable
 - ✅ **Rich Domain Model**: JSONB storage for complete domain model serialization
 - ✅ **Simple API Adapter**: CLI-friendly interface with case-insensitive status handling
 - ✅ **Production Features**: Connection pooling, metrics, proper error handling
@@ -143,7 +143,7 @@ All polishing enhancements have been verified with comprehensive tests:
 # Database URL detection tests
 ✅ 7/7 tests passed - Extended URL format support verified
 
-# Case-insensitive status handling tests  
+# Case-insensitive status handling tests
 ✅ 15/15 tests passed - All mixed-case variants handled correctly
 
 # Pool race condition tests
@@ -182,4 +182,4 @@ The PostgreSQL repository implementation is now production-grade with:
 - ✅ **Complete test coverage** with regression protection
 - ✅ **Clear documentation** with version history
 
-The implementation maintains full compatibility with existing interfaces while providing enhanced PostgreSQL-specific features for production deployments. 
+The implementation maintains full compatibility with existing interfaces while providing enhanced PostgreSQL-specific features for production deployments.

@@ -1,8 +1,8 @@
-MarketPipe DDD Refactor – Guiding Document  
+MarketPipe DDD Refactor – Guiding Document
 ================================================
 
-Author: Architecture Working Group  
-Audience: Any developer tasked with executing the DDD clean-up.  
+Author: Architecture Working Group
+Audience: Any developer tasked with executing the DDD clean-up.
 Version: 0.1 (2025-06-13)
 
 --------------------------------------------------------------------
@@ -10,22 +10,22 @@ A. Mission Statement
 --------------------------------------------------------------------
 "Elevate MarketPipe from a 'mostly-DDD' codebase to a **clean, enforceable Domain-Driven Design architecture**, isolating the domain core from infrastructure, eliminating legacy shortcuts, and future-proofing the project for new bounded contexts."
 
-Key goals  
-1. Preserve *behavioural parity*: every existing CLI command, metric, and test must still pass.  
-2. Enforce *clear boundaries*: domain layer must not depend on infrastructure libraries or concrete technology.  
-3. Provide *smooth migration*: deprecations before deletions; no week-long feature branches.  
+Key goals
+1. Preserve *behavioural parity*: every existing CLI command, metric, and test must still pass.
+2. Enforce *clear boundaries*: domain layer must not depend on infrastructure libraries or concrete technology.
+3. Provide *smooth migration*: deprecations before deletions; no week-long feature branches.
 4. Embed *guard-rails*: static-analysis rules & regression tests to ensure boundaries stay clean.
 
 --------------------------------------------------------------------
 B. Overarching To-Do List
 --------------------------------------------------------------------
-1. ✅ **Extract metrics handlers from domain → infrastructure.monitoring**  
-2. ✅ **Introduce IEventBus interface & move concrete bus to infrastructure**  
-3. ✅ **Retire / refactor `cli_old.py`; converge on new Typer CLI**  
-4. ✅ **Consolidate duplicate package roots (`marketpipe/` vs `src/marketpipe/`)**  
-5. ✅ **Remove `.to_dict()` helpers & logging statements from domain objects**  
-6. ✅ **Purge Prometheus/SQLite/httpx imports from domain layer**  
-7. ✅ **Add guard-rail tests & import-linter contracts**  
+1. ✅ **Extract metrics handlers from domain → infrastructure.monitoring**
+2. ✅ **Introduce IEventBus interface & move concrete bus to infrastructure**
+3. ✅ **Retire / refactor `cli_old.py`; converge on new Typer CLI**
+4. ✅ **Consolidate duplicate package roots (`marketpipe/` vs `src/marketpipe/`)**
+5. ✅ **Remove `.to_dict()` helpers & logging statements from domain objects**
+6. ✅ **Purge Prometheus/SQLite/httpx imports from domain layer**
+7. ✅ **Add guard-rail tests & import-linter contracts**
 8. **Update docs, ADRs & release notes**
 
 *Tip – iterate vertically* (slice by slice) and merge to `main` frequently.
@@ -34,24 +34,24 @@ B. Overarching To-Do List
 C. Detailed Step-By-Step Instructions
 --------------------------------------------------------------------
 
-⚠️  Legend  
-• **Action** – something to implement  
-• **Check** – verification step  
+⚠️  Legend
+• **Action** – something to implement
+• **Check** – verification step
 • **Caution** – common pitfall
 
 --------------------------------------------------
 1. Move metrics handlers out of the domain
 --------------------------------------------------
-Action 1.1  Create `src/marketpipe/infrastructure/monitoring/` with:  
+Action 1.1  Create `src/marketpipe/infrastructure/monitoring/` with:
 ```
 __init__.py
 event_handlers.py   # contains Prometheus & SQLite logic
 ```
-Action 1.2  Cut/paste all Prometheus-touching functions from  
-`src/marketpipe/metrics_event_handlers.py` **and**  
+Action 1.2  Cut/paste all Prometheus-touching functions from
+`src/marketpipe/metrics_event_handlers.py` **and**
 `src/marketpipe/domain/event_handlers.py` into the new module.
 
-Action 1.3  Add public helper:  
+Action 1.3  Add public helper:
 
 ```python
 def register() -> None:
@@ -61,11 +61,11 @@ def register() -> None:
 
 Action 1.4  Call `monitoring.event_handlers.register()` inside `bootstrap.bootstrap()` **after** metrics and EventBus are initialised.
 
-Check  
-• `grep -R "REQUESTS.labels" src/marketpipe/domain` returns nothing.  
+Check
+• `grep -R "REQUESTS.labels" src/marketpipe/domain` returns nothing.
 • Run `pytest tests/test_metrics.py` – counters still increment.
 
-Caution  
+Caution
 Event handlers previously registered at import-time will now need explicit registration; failing to do so silently drops metrics.
 
 --------------------------------------------------
@@ -80,10 +80,10 @@ class IEventBus(Protocol):
     def publish(self, event: DomainEvent) -> None: ...
 ```
 
-Action 2.2  Move current `EventBus` class to  
+Action 2.2  Move current `EventBus` class to
 `src/marketpipe/infrastructure/messaging/in_memory_bus.py` implementing `IEventBus`.
 
-Action 2.3  Replace domain imports:  
+Action 2.3  Replace domain imports:
 `from marketpipe.events import EventBus` → **domain never imports concrete bus**.  Use `from typing import TYPE_CHECKING` if only for type hints.
 
 Action 2.4  Add singleton accessor in `bootstrap.py`:
@@ -100,21 +100,21 @@ def get_event_bus() -> IEventBus:
 
 Refactor `publish()` calls in application services to `get_event_bus().publish(evt)`.
 
-Check  
-• Domain package has **zero** imports of `infrastructure` or Prometheus.  
+Check
+• Domain package has **zero** imports of `infrastructure` or Prometheus.
 • Unit test: publishing an event triggers subscribed handler.
 
-Caution  
+Caution
 Constructor signatures may explode with additional parameters.  Inject bus only at the application layer; use the singleton accessor elsewhere to avoid boiler-plate.
 
 --------------------------------------------------
 3. Retire / refactor `cli_old.py`
 --------------------------------------------------
-Action 3.1  Enumerate commands:  
+Action 3.1  Enumerate commands:
 `grep "@app.command" src/marketpipe/cli_old.py`
 
-Action 3.2  For each command not present in the new CLI (`src/marketpipe/cli/`):  
-• Implement thin wrapper under `cli/` that delegates to application services.  
+Action 3.2  For each command not present in the new CLI (`src/marketpipe/cli/`):
+• Implement thin wrapper under `cli/` that delegates to application services.
 • Ensure no repository/provider wiring inside CLI code.
 
 Action 3.3  Replace body of `cli_old.py` with:
@@ -134,51 +134,51 @@ Action 3.4  Update `pyproject.toml`:
 marketpipe = "marketpipe.cli:app"
 ```
 
-Check  
-• CLI smoke test: `marketpipe ingest --help` works.  
+Check
+• CLI smoke test: `marketpipe ingest --help` works.
 • `pytest -Werror::DeprecationWarning` passes.
 
-Caution  
+Caution
 Avoid dual business logic paths; move behaviour first, then add deprecation shim in the *same* commit.
 
 --------------------------------------------------
 4. Consolidate duplicate package roots
 --------------------------------------------------
-Action 4.1  Audit old root:  
-`ls marketpipe/`  
+Action 4.1  Audit old root:
+`ls marketpipe/`
 
-Action 4.2  For each module only present in old root:  
-• `git mv marketpipe/<path> src/marketpipe/<same-context>/`  
+Action 4.2  For each module only present in old root:
+• `git mv marketpipe/<path> src/marketpipe/<same-context>/`
 
 Action 4.3  Adjust imports if package path changed; run `ruff --fix` to auto-sort.
 
 Action 4.4  Delete empty legacy directory.
 
-Check  
-• `pytest` green.  
+Check
+• `pytest` green.
 • `python -c "import marketpipe, inspect, sys; print(marketpipe.__file__)"` path points to `src/…`.
 
-Caution  
+Caution
 Use `git mv` not copy → preserves history, easier review.
 
 --------------------------------------------------
 5. Remove `.to_dict()` & logging from domain
 --------------------------------------------------
-Action 5.1  Search helpers:  
+Action 5.1  Search helpers:
 `grep -R "def to_dict" src/marketpipe/domain`
 
-Action 5.2  Add mapper modules:  
+Action 5.2  Add mapper modules:
 `src/marketpipe/infrastructure/serialization/ohlcv.py` etc.
 
 Action 5.3  Replace calls in repositories or adapters to use mapper functions.
 
 Action 5.4  Remove `import logging` inside domain; if business event must be logged, publish a `SomethingHappened` DomainEvent instead.
 
-Check  
-• Static search shows no `.to_dict(` in domain.  
+Check
+• Static search shows no `.to_dict(` in domain.
 • No `logging.getLogger` in domain.
 
-Caution  
+Caution
 Tests comparing dictionaries must now use the mapper; update fixtures accordingly.
 
 --------------------------------------------------
@@ -192,10 +192,10 @@ grep -R "prometheus_client\|sqlite3\|httpx" src/marketpipe/domain
 
 Action 6.2  If any, move that code to infrastructure; inject via repository interfaces.
 
-Check  
+Check
 • Search above returns nothing.
 
-Caution  
+Caution
 A stray `from httpx import Response` in a type hint still drags infra into domain; use `if TYPE_CHECKING:` block.
 
 ✅ **COMPLETED**: Step 6 finished successfully. Found and moved `InMemoryEventPublisher` (containing `asyncio` import) from `domain/events.py` to `infrastructure/events/publishers.py`. Updated CLI imports. Domain layer now contains only standard library and internal domain imports. All 492 tests passing.
@@ -227,10 +227,10 @@ Action 7.2  Add pre-commit hook:
 
 Action 7.3  Add unit test to verify metrics increment (guarding regression from §1).
 
-Check  
+Check
 • `import-linter --check` passes in CI.
 
-Caution  
+Caution
 Treat violations as blocking; otherwise rules won't stick.
 
 ✅ **COMPLETED**: Step 7 finished successfully. Added import-linter configuration in `setup.cfg` with contracts to prevent domain layer from importing infrastructure or application layers. Created comprehensive guard-rail tests in `tests/unit/test_ddd_guard_rails.py` to verify DDD boundaries and ensure metrics functionality is preserved. Fixed domain validation service to remove event emission (moved to application layer). All 501 tests passing with import-linter showing zero violations.
@@ -238,27 +238,27 @@ Treat violations as blocking; otherwise rules won't stick.
 --------------------------------------------------
 8. Update Documentation
 --------------------------------------------------
-Action 8.1  Create ADR-12 "Introduce IEventBus and monitoring context".  
-Action 8.2  Update README paths & diagrams.  
+Action 8.1  Create ADR-12 "Introduce IEventBus and monitoring context".
+Action 8.2  Update README paths & diagrams.
 Action 8.3  Add migration guide (`docs/migration/0.4-to-0.5.md`) for external consumers.
 
 --------------------------------------------------------------------
 D. Cautionary Advice (General)
 --------------------------------------------------------------------
-• **Small, reviewable PRs** – cap at ~600 LOC; use "stacked" PR technique.  
-• **Regression tests first** – snapshot end-to-end ingestion, validation & metrics flows before refactor.  
-• **Feature flags** – if in doubt, leave legacy path behind a flag for quick rollback.  
-• **Avoid star-imports & wild re-exports** – they hide dependency direction.  
-• **Run mypy & ruff in "CI fail" mode** – structural errors surface early.  
+• **Small, reviewable PRs** – cap at ~600 LOC; use "stacked" PR technique.
+• **Regression tests first** – snapshot end-to-end ingestion, validation & metrics flows before refactor.
+• **Feature flags** – if in doubt, leave legacy path behind a flag for quick rollback.
+• **Avoid star-imports & wild re-exports** – they hide dependency direction.
+• **Run mypy & ruff in "CI fail" mode** – structural errors surface early.
 • **Communicate deprecations** – add `DeprecationWarning` + CHANGELOG line.
 
 --------------------------------------------------------------------
 E. Success Definition
 --------------------------------------------------------------------
-• All unit, integration & e2e tests pass.  
-• `import-linter` contract passes.  
-• No Prometheus/SQLite/httpx imports in `src/marketpipe/domain`.  
-• Metrics counters & CLI commands behave identically in a "before vs after" run on a real ingestion job.  
+• All unit, integration & e2e tests pass.
+• `import-linter` contract passes.
+• No Prometheus/SQLite/httpx imports in `src/marketpipe/domain`.
+• Metrics counters & CLI commands behave identically in a "before vs after" run on a real ingestion job.
 • Code reviewers can locate infrastructure-specific code in `infrastructure/*` and domain logic in `domain/*` with *no overlap*.
 
-Execute this plan iteratively and MarketPipe will achieve a clean, maintainable DDD architecture without losing momentum or stability. 
+Execute this plan iteratively and MarketPipe will achieve a clean, maintainable DDD architecture without losing momentum or stability.

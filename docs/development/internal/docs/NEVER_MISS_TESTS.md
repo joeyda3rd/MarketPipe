@@ -173,7 +173,7 @@ Edit `scripts/smart_test_runner.py`:
 self.test_mappings = {
     # Add your pattern
     r"src/marketpipe/my_new_module/": ["tests/unit/my_new_module/"],
-    
+
     # Existing patterns...
 }
 ```
@@ -292,4 +292,4 @@ With this system:
 
 ---
 
-*Want more details? See [docs/TEST_AUTOMATION_STRATEGY.md](TEST_AUTOMATION_STRATEGY.md) for the complete technical documentation.* 
+*Want more details? See [docs/TEST_AUTOMATION_STRATEGY.md](TEST_AUTOMATION_STRATEGY.md) for the complete technical documentation.*

@@ -58,7 +58,7 @@ logger.error(safe_msg)
 3. **Use `safe_for_log()` with traceback information**:
    ```python
    import traceback
-   
+
    try:
        # Some operation that might fail
        pass
@@ -74,7 +74,7 @@ logger.error(safe_msg)
        # Test some functionality that might log errors
        with pytest.raises(SomeException):
            some_function_that_might_log_api_keys()
-       
+
        # Ensure no full API keys appear in logs
        assert "ABCD1234EFGH5678" not in caplog.text
        # Masked versions should be present
@@ -119,11 +119,11 @@ Always include tests that verify no sensitive information leaks into logs:
 def test_error_handling_masks_secrets(caplog):
     """Ensure error handling doesn't expose API keys."""
     api_key = "ABCD1234EFGH5678"
-    
+
     with pytest.raises(Exception):
         # Code that handles errors with potential API key exposure
         pass
-    
+
     # Verify no full API key in logs
     assert api_key not in caplog.text
     # Verify masked version might be present
@@ -137,4 +137,4 @@ def test_error_handling_masks_secrets(caplog):
 - Use environment variables or secure configuration management
 - Regularly rotate API keys and secrets
 - Monitor logs for any accidental exposure of sensitive data
-- Consider using more restrictive API key permissions when available 
+- Consider using more restrictive API key permissions when available

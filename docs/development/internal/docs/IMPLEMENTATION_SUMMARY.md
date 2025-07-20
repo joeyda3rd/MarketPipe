@@ -46,7 +46,7 @@ Changed file → Direct test mapping → Dependency analysis → Transitive depe
 # Layer 2: Safety nets for unmatched files
 Unmatched source files → Unit test safety net → Broader integration coverage
 
-# Layer 3: Critical file protection  
+# Layer 3: Critical file protection
 Core infrastructure changes → Full test suite trigger
 Configuration changes → Complete integration suite
 
@@ -70,20 +70,20 @@ The system handles async code through:
 # Automatic parallel safety detection
 def _is_parallel_safe(self, test_files: List[str]) -> bool:
     unsafe_patterns = [
-        "integration", "database", "e2e", "system", 
+        "integration", "database", "e2e", "system",
         "selenium", "browser"  # Known async/state conflicts
     ]
-    
+
     for test_file in test_files:
         if any(pattern in test_file.lower() for pattern in unsafe_patterns):
             return False  # Force sequential execution
-    
+
     return True  # Safe for parallel execution
 ```
 
 **Async Code Support:**
 - **Process isolation**: Each pytest-xdist worker gets its own Python interpreter and event loop
-- **Event loop per worker**: No shared async state between processes  
+- **Event loop per worker**: No shared async state between processes
 - **Automatic detection**: Integration/database tests run sequentially
 - **Configuration**: `asyncio_mode = auto` handles async test discovery
 - **Marker system**: `@pytest.mark.parallel_unsafe` for explicit control
@@ -163,7 +163,7 @@ vim src/marketpipe/ingestion/coordinator.py
 make test-intelligent
 # 🧠 Running intelligent test system...
 # 🚀 Parallel execution enabled
-# 📚 Using cached test results  
+# 📚 Using cached test results
 # ⚡ Fast mode: excluding slow and integration tests
 # ✅ Tests passed in 2.1s (parallel mode)
 ```
@@ -247,7 +247,7 @@ make test-performance-report
 # | test_large_dataset | 8.45s | 🔴 Needs optimization |
 # | test_api_timeout   | 4.23s | 🟡 Monitor |
 
-# 🔀 Flaky Tests (Reliability Issues)  
+# 🔀 Flaky Tests (Reliability Issues)
 # | test_race_condition | 0.156 flaky score | 🔍 Investigate |
 ```
 
@@ -259,7 +259,7 @@ branch_changes = detect_branch_switch()
 if branch_changes:
     purge_stale_cache()       # Clear lastfailed, nodeids
     update_cache_validity()   # Track new branch state
-    
+
 # Smart cache usage
 use_cache = is_cache_valid_for_branch()
 if use_cache:
@@ -271,7 +271,7 @@ if use_cache:
 ### Multiple Safety Nets
 
 1. **Pattern Matching**: Comprehensive file-to-test mappings
-2. **Dependency Analysis**: Tracks import relationships  
+2. **Dependency Analysis**: Tracks import relationships
 3. **Critical Path Protection**: Core files trigger full suites
 4. **Safety Net Coverage**: Unmatched files run unit tests
 5. **Human Oversight**: Dry run shows exact test plans
@@ -296,7 +296,7 @@ make test-cache-clear      # Manual cache reset
 - **Reliable results**: No more stale cache surprises
 - **Safety without friction**: Multiple fallbacks prevent missed tests
 
-### For AI Coding Agents  
+### For AI Coding Agents
 - **Context awareness**: Understands relevant tests for each change
 - **Efficient execution**: Avoids unnecessary test runs
 - **Clear feedback**: Structured output for decision making
@@ -305,7 +305,7 @@ make test-cache-clear      # Manual cache reset
 
 ### For Teams
 - **Consistent quality**: Enforced markers and categorization
-- **Performance visibility**: Regular optimization opportunities  
+- **Performance visibility**: Regular optimization opportunities
 - **Reliability tracking**: Systematic flaky test management
 - **CI efficiency**: Smart parallelization reduces build times
 - **Knowledge sharing**: Self-documenting test organization
@@ -327,10 +327,10 @@ The system is designed to support:
 We've successfully implemented a **complete intelligent testing blueprint** that:
 
 - ✅ **Maintains comprehensive mappings** through pattern matching + validation + safety nets
-- ✅ **Ensures no tests are missed** via multiple fallback layers and critical path protection  
+- ✅ **Ensures no tests are missed** via multiple fallback layers and critical path protection
 - ✅ **Handles async code properly** with intelligent parallelization and process isolation
 - ✅ **Provides excellent developer experience** with fast feedback and pleasant workflows
 - ✅ **Respects all red lines** while maximizing smart features
 - ✅ **Integrates seamlessly** with existing workflows and CI/CD
 
-The system embodies the core principle: **"Act like a performance coach - highlight weak spots but never skip the full workout when it matters."** 
+The system embodies the core principle: **"Act like a performance coach - highlight weak spots but never skip the full workout when it matters."**

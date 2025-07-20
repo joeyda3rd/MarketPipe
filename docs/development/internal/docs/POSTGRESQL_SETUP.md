@@ -165,4 +165,4 @@ All tests should pass with output similar to:
 ✅ Migration version: 0005
 ✅ Pytest PostgreSQL tests passed
 🎉 PostgreSQL setup and testing completed successfully!
-``` 
+```

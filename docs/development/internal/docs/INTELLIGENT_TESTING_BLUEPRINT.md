@@ -23,7 +23,7 @@ MarketPipe implements a **smart testing blueprint** that shrinks feedback loops 
 ```bash
 # Primary workflow - intelligent fast feedback
 make test-intelligent                # Auto-detect scope, smart parallel, fast mode
-make test-intelligent-dry           # See test plan without execution  
+make test-intelligent-dry           # See test plan without execution
 make test-intelligent-all           # Full intelligent suite (includes slow tests)
 
 # Diagnostics and maintenance
@@ -55,7 +55,7 @@ make test-smart-all               # Dry run analysis
 The system automatically determines which tests to run based on:
 
 - **File changes**: Maps changed source files to relevant test files
-- **Dependency graphs**: Includes tests affected by transitive dependencies  
+- **Dependency graphs**: Includes tests affected by transitive dependencies
 - **Recent failures**: Includes tests that failed in last 24 hours
 - **Critical path protection**: Changes to core files trigger broader test coverage
 
@@ -76,7 +76,7 @@ tests/test_alpaca_client.py          # Unit tests with HTTP mocks
 tests/test_base_client.py            # Abstract base class tests
 tests/test_validation.py             # Schema validation tests
 
-# Parallel-unsafe tests (run sequentially) 
+# Parallel-unsafe tests (run sequentially)
 tests/test_coordinator_flow.py       # Integration tests with shared state
 tests/test_database_*.py             # Database isolation issues
 tests/test_filesystem_*.py           # File system conflicts
@@ -97,7 +97,7 @@ def test_price_validation():
     """Fast, isolated unit test."""
     pass
 
-@pytest.mark.integration  
+@pytest.mark.integration
 @pytest.mark.parallel_unsafe
 def test_full_ingestion_pipeline():
     """Integration test requiring sequential execution."""
@@ -133,7 +133,7 @@ branch_cache = {
 
 # Auto-purge triggers
 - Branch switches → Clear cache
-- New commits → Validate cache  
+- New commits → Validate cache
 - Rebases/merges → Force refresh
 ```
 
@@ -154,7 +154,7 @@ if flaky_score > 0.05:  # 5% failure rate threshold
 
 # Quarantine process
 1. Add @pytest.mark.flaky to unreliable tests
-2. Exclude from regular runs: pytest -m "not flaky"  
+2. Exclude from regular runs: pytest -m "not flaky"
 3. Test separately with retries: pytest -m "flaky --reruns 3"
 4. Investigate root cause during dedicated time
 ```
@@ -177,7 +177,7 @@ vim src/marketpipe/ingestion/coordinator.py
 # 2. Run intelligent tests (1-3 seconds feedback)
 make test-intelligent
 # 🧠 Running intelligent test system...
-# 🚀 Parallel execution enabled  
+# 🚀 Parallel execution enabled
 # 📚 Using cached test results
 # ⚡ Fast mode: excluding slow and integration tests
 # ✅ Tests passed in 2.1s
@@ -247,11 +247,11 @@ make test-env-check
 # Smart testing markers
 markers =
     unit: Unit tests - fast, isolated, no external dependencies
-    integration: Integration tests - may require database, external services  
+    integration: Integration tests - may require database, external services
     slow: Tests that take >2 seconds (excluded from fast feedback loops)
     flaky: Tests with known reliability issues (quarantined for special handling)
     parallel_unsafe: Tests that cannot run safely in parallel
-    
+
 # Timeout protection (prevents hanging tests)
 timeout = 30
 timeout_method = thread
@@ -281,7 +281,7 @@ export TEST_TIMEOUT=60                 # Custom timeout for slow environments
 ### For Developers
 
 1. **Faster Feedback**: 1-3 second test cycles instead of 30+ seconds
-2. **Intelligent Scope**: Only runs tests relevant to changes  
+2. **Intelligent Scope**: Only runs tests relevant to changes
 3. **Reliable Results**: Branch-aware caching prevents stale results
 4. **Pleasant Experience**: Clear output, fail-fast, auto-diagnosis
 5. **Safety Nets**: Multiple fallbacks prevent missed tests
@@ -298,7 +298,7 @@ export TEST_TIMEOUT=60                 # Custom timeout for slow environments
 
 1. **Consistent Quality**: Enforced markers and categorization
 2. **Performance Visibility**: Regular optimization opportunities
-3. **Reliability Tracking**: Systematic handling of flaky tests  
+3. **Reliability Tracking**: Systematic handling of flaky tests
 4. **CI Efficiency**: Smart parallelization reduces build times
 5. **Knowledge Sharing**: Self-documenting test organization
 
@@ -336,4 +336,4 @@ python -c "import pytest_xdist, pytest_asyncio; print('All dependencies availabl
 
 ---
 
-*This system embodies the principle: "Act like a performance coach - highlight weak spots but never skip the full workout when it matters."* 
+*This system embodies the principle: "Act like a performance coach - highlight weak spots but never skip the full workout when it matters."*

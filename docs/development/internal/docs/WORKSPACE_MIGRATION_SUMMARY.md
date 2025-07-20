@@ -152,4 +152,4 @@ All moved components use existing project dependencies:
 - **Monitoring**: Uses existing Prometheus client
 - **Tools**: Use existing MarketPipe components
 
-No additional dependencies required for core functionality. 
+No additional dependencies required for core functionality.
