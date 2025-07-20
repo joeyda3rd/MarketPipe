@@ -12,7 +12,7 @@ authors = [{name = "MarketPipe Team", email = "maintainers@marketpipe.dev"}]
 maintainers = [{name = "MarketPipe Team", email = "maintainers@marketpipe.dev"}]
 requires-python = ">=3.9"
 keywords = [
-    "etl", "finance", "market-data", "trading", "data-pipeline", 
+    "etl", "finance", "market-data", "trading", "data-pipeline",
     "financial-data", "ohlcv", "time-series", "alpaca", "domain-driven-design"
 ]
 classifiers = [
@@ -115,6 +115,9 @@ quality = [
     "pre-commit>=3.5.0",
     "isort>=5.12.0",
     "bandit>=1.7.0",
+    "pip-audit>=2.6.0",   # Dependency vulnerability scanning
+    "safety>=2.3.0",      # Known security issues database
+    "psutil>=5.8.0",      # For benchmarking system metrics
 ]
 
 # Development utilities
@@ -244,11 +247,11 @@ markers = [
     "unit: Unit tests (fast, isolated)",
     "integration: Integration tests (slower, external dependencies)",
     "slow: Tests that take longer than 5 seconds",
-    
+
     # Test reliability markers
     "flaky: Tests that are known to be flaky",
     "auth_required: Tests that require authentication credentials",
-    
+
     # Domain-specific markers
     "database: Database interaction tests",
     "sqlite_only: Tests that only run on SQLite",
@@ -256,12 +259,12 @@ markers = [
     "api_client: API client and connector tests",
     "config: Configuration and validation tests",
     "cli: Command-line interface tests",
-    
+
     # Quality and validation markers
     "boundary: Boundary condition tests",
     "security: Security-related tests",
     "data_quality: Data quality validation tests",
-    
+
     # System and infrastructure markers
     "production_simulation: Production simulation tests",
     "chaos_engineering: Chaos engineering tests",

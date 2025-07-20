@@ -26,9 +26,13 @@ scripts/health-check # Verify everything is working
 
 ### Testing
 - **`scripts/pre-commit-tests`** - Ultra-fast tests for pre-commit hooks (~2s)
-- **`scripts/test-fast`** - Fast tests for development feedback (~3s) 
+- **`scripts/test-fast`** - Fast tests for development feedback (~3s)
 - **`scripts/test-full`** - Complete test suite with coverage reporting
 - **`scripts/test-ci`** - Simulate CI environment locally
+
+### Security & Quality Assurance
+- **`scripts/alpha-release-check`** - Comprehensive alpha release quality gates
+- **`scripts/benchmark`** - Performance benchmarking and regression testing
 
 ### Demo & Usage
 - **`scripts/demo`** - Quick demo with fake data (no API keys needed)
@@ -48,6 +52,12 @@ scripts/test-fast    # Quick feedback during development
 scripts/test-full    # Comprehensive testing before PR
 scripts/test-ci      # Simulate CI locally
 
+# Security and quality assurance
+scripts/alpha-release-check         # Full alpha release validation
+scripts/alpha-release-check --check security   # Security-only checks
+scripts/benchmark                   # Run performance benchmarks
+scripts/benchmark --baseline       # Establish performance baseline
+
 # Try MarketPipe
 scripts/demo
 
@@ -65,4 +75,4 @@ scripts/clean --all  # Including workspace
 
 ## Advanced Tools
 
-Advanced development tools are in `tools/` - these are optional and not required for contributing. 
+Advanced development tools are in `tools/` - these are optional and not required for contributing.
