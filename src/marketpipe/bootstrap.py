@@ -97,6 +97,9 @@ def bootstrap() -> None:
     This function is idempotent and safe to call multiple times. It will only
     perform initialization once per process.
 
+    REFACTOR NOTE: This function now uses BootstrapOrchestrator internally
+    for better testability while maintaining backward compatibility.
+
     Performs:
     1. Database migrations on the core database
     2. Service registrations for validation and aggregation services
@@ -110,41 +113,17 @@ def bootstrap() -> None:
             logger.debug("Bootstrap already completed, skipping")
             return
 
-        logger.info("Starting MarketPipe bootstrap initialization...")
-
         try:
-            # Apply database migrations using Alembic
-            db_path = Path(os.getenv("MP_DB", "data/db/core.db"))
-            logger.debug(f"Applying database migrations to: {db_path}")
-            apply_pending_alembic(db_path)
+            # Use the new orchestrator-based approach
+            from marketpipe.bootstrap import get_global_orchestrator
+            
+            orchestrator = get_global_orchestrator()
+            result = orchestrator.bootstrap()
+            
+            if not result.success:
+                raise RuntimeError(result.error_message or "Bootstrap failed")
 
-            # Register validation service
-            logger.debug("Registering validation service")
-            from marketpipe.validation import ValidationRunnerService
-
-            ValidationRunnerService.register()
-
-            # Register aggregation service
-            logger.debug("Registering aggregation service")
-            from marketpipe.aggregation import AggregationRunnerService
-
-            AggregationRunnerService.register()
-
-            # Register monitoring event handlers
-            logger.debug("Registering monitoring event handlers")
-            from marketpipe.infrastructure.monitoring.event_handlers import register
-
-            register()
-
-            # Register logging event handlers
-            logger.debug("Registering logging event handlers")
-            from marketpipe.infrastructure.monitoring.domain_event_handlers import (
-                register_logging_handlers,
-            )
-
-            register_logging_handlers()
-
-            # Mark as bootstrapped
+            # Update global state for backward compatibility
             _BOOTSTRAPPED = True
             logger.info("MarketPipe bootstrap completed successfully")
 
@@ -170,6 +149,12 @@ def reset_bootstrap_state() -> None:
     global _BOOTSTRAPPED
     with _BOOTSTRAP_LOCK:
         _BOOTSTRAPPED = False
+        
+        # Also reset the orchestrator's state
+        from marketpipe.bootstrap import get_global_orchestrator
+        orchestrator = get_global_orchestrator()
+        orchestrator.reset_bootstrap_state()
+        
     logger.debug("Bootstrap state reset for testing")
 
 
