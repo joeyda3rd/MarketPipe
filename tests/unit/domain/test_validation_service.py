@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
-
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.services import MarketDataValidationService
 from marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume

@@ -7,7 +7,6 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-
 from marketpipe.ingestion.infrastructure.adapters import AlpacaMarketDataAdapter
 from marketpipe.ingestion.infrastructure.alpaca_client import AlpacaClient
 from marketpipe.ingestion.infrastructure.auth import HeaderTokenAuth

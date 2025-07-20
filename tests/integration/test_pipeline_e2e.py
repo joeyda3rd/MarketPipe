@@ -7,10 +7,9 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
-from typer.testing import CliRunner
-
 from marketpipe.cli import app
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
+from typer.testing import CliRunner
 
 
 def _create_fake_bars_dataframe() -> pd.DataFrame:

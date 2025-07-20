@@ -2,7 +2,6 @@
 """Base API client tests."""
 
 import pytest
-
 from marketpipe.ingestion.infrastructure.auth import AuthStrategy
 from marketpipe.ingestion.infrastructure.base_api_client import BaseApiClient
 from marketpipe.ingestion.infrastructure.models import ClientConfig

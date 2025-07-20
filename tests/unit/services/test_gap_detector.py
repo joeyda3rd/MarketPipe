@@ -8,7 +8,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from marketpipe.ingestion.services.gap_detector import GapDetectorService
 
 

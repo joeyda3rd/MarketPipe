@@ -7,7 +7,7 @@ This directory contains sophisticated fake implementations for testing MarketPip
 Instead of mocking collaborators with `Mock` objects, these fakes implement the actual interfaces and protocols while providing test-specific configuration and verification capabilities. This approach:
 
 - **Reduces test brittleness**: Tests don't break when implementation details change
-- **Improves test realism**: Fakes behave more like real components  
+- **Improves test realism**: Fakes behave more like real components
 - **Enhances maintainability**: Shared fakes can be improved to benefit all tests
 - **Enables better verification**: Fakes can provide rich verification APIs
 
@@ -19,7 +19,7 @@ Replaces monkeypatching `httpx` with a configurable fake HTTP client.
 
 **Features:**
 - Configure responses for URL patterns
-- Simulate errors, delays, and rate limiting  
+- Simulate errors, delays, and rate limiting
 - Capture request history for verification
 - Support both sync and async operations
 
@@ -29,18 +29,18 @@ from tests.fakes.adapters import FakeHttpClient
 
 def test_api_client_handles_errors():
     http_client = FakeHttpClient()
-    
+
     # Configure error response
     http_client.configure_error(
         url_pattern=r".*/stocks/bars",
         error=httpx.TimeoutException("Request timeout")
     )
-    
+
     client = AlpacaClient(config=config, http_client=http_client)
-    
+
     with pytest.raises(httpx.TimeoutException):
         client.fetch_bars("AAPL", time_range)
-    
+
     # Verify request was made
     requests = http_client.get_requests_made()
     assert len(requests) == 1
@@ -48,7 +48,7 @@ def test_api_client_handles_errors():
 ```
 
 **Benefits:**
-- Eliminates monkeypatching of `httpx.get()` 
+- Eliminates monkeypatching of `httpx.get()`
 - Provides realistic HTTP behavior simulation
 - Enables verification without coupling to internals
 - Supports complex scenarios (rate limiting, pagination)
@@ -70,12 +70,12 @@ from tests.fakes.database import FakeDatabase, DatabaseEnvironment
 async def test_bootstrap_with_real_database():
     db = FakeDatabase()
     await db.setup_schema()
-    
+
     with DatabaseEnvironment(db):
         # Environment variables set for services
         result = bootstrap()
         assert result.success
-        
+
         # Can verify real database state
         # No mocking of database operations needed
 ```
@@ -93,7 +93,7 @@ Enhanced fake market data provider supporting various test scenarios.
 **Features:**
 - Configure symbol data responses
 - Simulate provider errors and rate limiting
-- Track request history for verification  
+- Track request history for verification
 - Support pagination and edge cases
 
 **Example Usage:**
@@ -102,16 +102,16 @@ from tests.fakes.adapters import FakeMarketDataAdapter
 
 def test_ingestion_handles_provider_errors():
     provider = FakeMarketDataAdapter("test_provider")
-    
+
     # Configure different responses per symbol
     provider.configure_symbol_data("AAPL", [sample_bars])
     provider.configure_error("GOOGL", ConnectionError("Network error"))
-    
+
     result = ingestion_service.ingest_symbols(["AAPL", "GOOGL"])
-    
+
     assert result.successful_symbols == ["AAPL"]
     assert result.failed_symbols == ["GOOGL"]
-    
+
     # Verify request patterns
     history = provider.get_request_history()
     assert len(history) == 2
@@ -139,16 +139,16 @@ from tests.fakes.metrics import FakeMetricsCollector, patch_prometheus_metrics
 
 def test_service_emits_metrics():
     metrics = FakeMetricsCollector()
-    
+
     with patch_prometheus_metrics(metrics):
         # Service uses prometheus_client normally
         service = IngestionService()
         service.process_symbols(["AAPL"])
-        
+
         # Verify metrics were emitted
         metrics.assert_counter_incremented("symbols_processed", {"status": "success"})
         metrics.assert_histogram_observed("processing_duration")
-        
+
         assert metrics.get_counter_value("symbols_processed", {"status": "success"}) == 1
 ```
 
@@ -166,34 +166,34 @@ def test_service_emits_metrics():
 ```python
 def test_client_retries_on_error(monkeypatch):
     call_count = 0
-    
+
     def mock_get(url, **kwargs):
         nonlocal call_count
         call_count += 1
         if call_count == 1:
             raise httpx.TimeoutException("Timeout")
         return MockResponse(200, {"data": []})
-    
+
     monkeypatch.setattr(httpx, "get", mock_get)
-    
+
     client = AlpacaClient(config)
     result = client.fetch_bars("AAPL", time_range)
-    
+
     assert call_count == 2  # Implementation detail!
 ```
 
 **After (using fakes):**
-```python  
+```python
 def test_client_retries_on_error():
     http_client = FakeHttpClient()
-    
+
     # Configure timeout then success
     http_client.configure_error(r".*/bars", httpx.TimeoutException("Timeout"))
     http_client.configure_response(r".*/bars", 200, {"data": []})
-    
+
     client = AlpacaClient(config, http_client=http_client)
     result = client.fetch_bars("AAPL", time_range)
-    
+
     # Test behavior, not implementation
     assert result == []
     requests = http_client.get_requests_made()
@@ -211,16 +211,16 @@ def test_client_retries_on_error():
 **Before (mocking everything):**
 ```python
 @patch('marketpipe.bootstrap.apply_pending_alembic')
-@patch('marketpipe.bootstrap.ValidationRunnerService.register')  
+@patch('marketpipe.bootstrap.ValidationRunnerService.register')
 @patch('marketpipe.bootstrap.AggregationRunnerService.register')
 def test_bootstrap_idempotent(mock_agg, mock_val, mock_alembic):
     mock_alembic.return_value = None
     mock_val.return_value = None
     mock_agg.return_value = None
-    
+
     bootstrap()
     bootstrap()  # Second call
-    
+
     # Test mocks, not behavior
     assert mock_alembic.call_count == 2
 ```
@@ -230,11 +230,11 @@ def test_bootstrap_idempotent(mock_agg, mock_val, mock_alembic):
 async def test_bootstrap_idempotent():
     db = FakeDatabase()
     await db.setup_schema()
-    
+
     with DatabaseEnvironment(db):
         result1 = bootstrap()
         result2 = bootstrap()
-        
+
         # Test actual behavior
         assert result1.success
         assert result2.success
@@ -252,7 +252,7 @@ async def test_bootstrap_idempotent():
 - Multiple tests need similar collaborator behavior
 - Collaborator behavior is complex (HTTP, database, etc.)
 
-**Use Mocks When:**  
+**Use Mocks When:**
 - Testing a single unit in isolation
 - Collaborator interface is simple or unstable
 - You need to verify specific method calls
@@ -277,7 +277,7 @@ def configured_environment():
     http_client = FakeHttpClient()
     metrics = FakeMetricsCollector()
     provider = FakeMarketDataAdapter()
-    
+
     return TestEnvironment(database, http_client, metrics, provider)
 ```
 
@@ -286,7 +286,7 @@ def configured_environment():
 class TestServiceFactory:
     def __init__(self, test_environment: TestEnvironment):
         self.test_env = test_environment
-        
+
     def create_ingestion_service(self) -> IngestionService:
         return IngestionService(
             provider=self.test_env.provider,
@@ -301,15 +301,15 @@ def test_end_to_end_workflow(configured_environment):
     # Arrange
     env = configured_environment
     env.provider.configure_symbol_data("AAPL", [sample_bars])
-    
+
     service = TestServiceFactory(env).create_ingestion_service()
-    
+
     # Act
     result = service.process_symbols(["AAPL"])
-    
+
     # Assert - verify behavior, not implementation
     assert result.success
-    
+
     # Verify interactions through fake APIs
     assert env.metrics.get_counter_value("symbols_processed") == 1
     assert len(env.provider.get_request_history()) == 1
@@ -336,7 +336,7 @@ def test_end_to_end_workflow(configured_environment):
 
 Planned improvements to the fake implementations:
 
-1. **Enhanced HTTP Server**: Real HTTP server for more realistic integration tests  
+1. **Enhanced HTTP Server**: Real HTTP server for more realistic integration tests
 2. **Database Seeding**: Pre-built datasets for common test scenarios
 3. **Provider Sandboxes**: Integration with provider sandbox/test APIs
 4. **Performance Monitoring**: Built-in performance benchmarking capabilities
@@ -351,4 +351,4 @@ When adding new fakes:
 3. Include verification APIs for test assertions
 4. Support realistic behavior simulation
 5. Add pytest fixtures for easy use
-6. Include example usage in docstrings 
+6. Include example usage in docstrings

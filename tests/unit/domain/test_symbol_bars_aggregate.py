@@ -7,7 +7,6 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 
 import pytest
-
 from marketpipe.domain.aggregates import DailySummary, SymbolBarsAggregate
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.events import (

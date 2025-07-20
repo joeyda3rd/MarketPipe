@@ -15,7 +15,6 @@ import time
 from pathlib import Path
 
 import pytest
-
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 
 

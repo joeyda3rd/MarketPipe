@@ -11,7 +11,6 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-
 from marketpipe.bootstrap import get_event_bus
 from marketpipe.domain.events import IngestionJobCompleted, ValidationFailed
 from marketpipe.domain.value_objects import Symbol, Timestamp
@@ -184,7 +183,9 @@ class TestApplicationLayerIntegration:
 
     def test_ingestion_application_service_coordination(self):
         """Verify ingestion application service coordinates properly."""
-        from marketpipe.ingestion.application.services import IngestionCoordinatorService
+        from marketpipe.ingestion.application.services import (
+            IngestionCoordinatorService,
+        )
 
         # Service should be importable and have expected methods
         assert hasattr(IngestionCoordinatorService, "execute_job")

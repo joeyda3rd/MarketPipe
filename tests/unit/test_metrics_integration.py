@@ -9,7 +9,6 @@ import tempfile
 from datetime import datetime, timezone
 
 import pytest
-
 from marketpipe.metrics import (
     AGG_ROWS,
     INGEST_ROWS,

@@ -8,18 +8,30 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.application.commands import (
     CancelJobCommand,
     CreateIngestionJobCommand,
     StartJobCommand,
 )
-from marketpipe.ingestion.application.queries import GetActiveJobsQuery, GetJobStatusQuery
+from marketpipe.ingestion.application.queries import (
+    GetActiveJobsQuery,
+    GetJobStatusQuery,
+)
 from marketpipe.ingestion.application.services import IngestionJobService
-from marketpipe.ingestion.domain.entities import IngestionJob, IngestionJobId, ProcessingState
-from marketpipe.ingestion.domain.services import IngestionDomainService, IngestionProgressTracker
-from marketpipe.ingestion.domain.value_objects import BatchConfiguration, IngestionConfiguration
+from marketpipe.ingestion.domain.entities import (
+    IngestionJob,
+    IngestionJobId,
+    ProcessingState,
+)
+from marketpipe.ingestion.domain.services import (
+    IngestionDomainService,
+    IngestionProgressTracker,
+)
+from marketpipe.ingestion.domain.value_objects import (
+    BatchConfiguration,
+    IngestionConfiguration,
+)
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from fakes.events import FakeEventPublisher

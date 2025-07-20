@@ -6,7 +6,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
-
 from marketpipe.ingestion.infrastructure.rate_limit import RateLimiter
 
 

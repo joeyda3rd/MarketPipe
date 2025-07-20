@@ -6,7 +6,6 @@ from unittest.mock import Mock
 
 import pandas as pd
 import pytest
-
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.events import IngestionJobCompleted
 from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
@@ -257,7 +256,10 @@ def test_multiple_symbols_pipeline(tmp_path):
 
     # Mock validator to return different results for each symbol
     def mock_validate_bars(symbol_name, bars):
-        from marketpipe.validation.domain.value_objects import BarError, ValidationResult
+        from marketpipe.validation.domain.value_objects import (
+            BarError,
+            ValidationResult,
+        )
 
         if symbol_name == "AAPL":
             return ValidationResult(

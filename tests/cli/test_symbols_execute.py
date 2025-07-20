@@ -6,9 +6,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
-from typer.testing import CliRunner
-
 from marketpipe.cli import app as root_app
+from typer.testing import CliRunner
 
 
 def create_mock_duckdb_connection():

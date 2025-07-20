@@ -9,7 +9,6 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
-
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 
 

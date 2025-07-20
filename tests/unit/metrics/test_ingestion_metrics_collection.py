@@ -7,7 +7,6 @@ import random
 from unittest.mock import patch
 
 import requests
-
 from marketpipe.metrics import REQUESTS
 from marketpipe.metrics_server import run as metrics_run
 
