@@ -238,11 +238,11 @@ def ingest_command(config: Path, service_factory: CLIServiceFactory):
 ```
 
 ### Deliverables Phase 2
-- [ ] `src/marketpipe/bootstrap.py` refactored with BootstrapOrchestrator
-- [ ] HTTP client injection added to all API clients
-- [ ] CLI service factories implemented
-- [ ] Interface definitions for all injected dependencies
-- [ ] Updated tests demonstrating improved testability
+- [x] `src/marketpipe/bootstrap.py` refactored with BootstrapOrchestrator ✅
+- [x] HTTP client injection added to all API clients ✅ (BaseApiClient, AlpacaClient)
+- [ ] CLI service factories implemented (moved to Phase 3)
+- [x] Interface definitions for all injected dependencies ✅ 
+- [x] Updated tests demonstrating improved testability ✅ (test_bootstrap_orchestrator.py)
 
 ## Phase 3: Convert High-Value Tests to Integration Style (Weeks 5-6)
 
