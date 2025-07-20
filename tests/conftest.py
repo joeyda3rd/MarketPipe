@@ -233,9 +233,7 @@ class DomainObjectFactory:
             **overrides,
         }
 
-    def create_time_range(
-        self, start: Optional[datetime] = None, duration_minutes: int = 30
-    ):
+    def create_time_range(self, start: Optional[datetime] = None, duration_minutes: int = 30):
         """Create TimeRange for testing.
 
         Args:

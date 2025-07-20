@@ -28,7 +28,10 @@ import yaml
 
 # Import MarketPipe components for testing
 try:
-    from marketpipe.connectors.provider_loader import load_provider_registry
+    from marketpipe import __version__ as mp_version
+    from marketpipe.ingestion.infrastructure.provider_loader import (
+        get_available_providers,
+    )
 
     MARKETPIPE_AVAILABLE = True
 except ImportError:
@@ -152,12 +155,20 @@ class MarketPipeHealthChecker:
             "prometheus-client",
         ]
 
+        # Map package names to their import names
+        import_mapping = {
+            "pyyaml": "yaml",
+            "python-dotenv": "dotenv",
+            "prometheus-client": "prometheus_client",
+        }
+
         missing_packages = []
         installed_packages = {}
 
         for package in required_packages:
+            import_name = import_mapping.get(package, package.replace("-", "_"))
             try:
-                module = importlib.import_module(package.replace("-", "_"))
+                module = importlib.import_module(import_name)
                 version = getattr(module, "__version__", "unknown")
                 installed_packages[package] = version
             except ImportError:
@@ -191,9 +202,6 @@ class MarketPipeHealthChecker:
 
         try:
             if MARKETPIPE_AVAILABLE:
-                # Try to import key modules
-                from marketpipe import __version__ as mp_version
-
                 result.passed = True
                 result.details = {"version": mp_version, "importable": True}
             else:
@@ -253,8 +261,7 @@ class MarketPipeHealthChecker:
 
         try:
             if MARKETPIPE_AVAILABLE:
-                registry = load_provider_registry()
-                providers = list(registry.list_providers())
+                providers = get_available_providers()
 
                 result.passed = len(providers) > 0
                 result.details = {

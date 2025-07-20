@@ -334,7 +334,7 @@ class TestMigrationFromOldPatterns:
             http_client.configure_response("http://test.com", 200, {"ok": True})
             response = http_client.get("http://test.com")
             assert response.status_code == 200
-            
+
             # Use metrics to avoid unused variable warning
             metrics.increment_counter("test_operations")
 
