@@ -28,8 +28,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 try:
-    from marketpipe.cli import app
     from typer.testing import CliRunner
+
+    from marketpipe.cli import app
 
     TYPER_AVAILABLE = True
 except ImportError:

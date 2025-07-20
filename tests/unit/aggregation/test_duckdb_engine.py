@@ -4,6 +4,7 @@ from __future__ import annotations
 import duckdb
 import pandas as pd
 import pyarrow as pa
+
 from marketpipe.aggregation.domain.services import AggregationDomainService
 from marketpipe.aggregation.domain.value_objects import FrameSpec
 

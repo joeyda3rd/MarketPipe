@@ -78,9 +78,7 @@ class IngestionJobConfig(BaseModel):
         """Validate market data provider."""
         # Get available providers from registry
         try:
-            from marketpipe.ingestion.infrastructure.provider_registry import (
-                list_providers,
-            )
+            from marketpipe.ingestion.infrastructure.provider_registry import list_providers
 
             valid_providers = set(list_providers())
 

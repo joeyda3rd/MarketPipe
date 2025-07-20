@@ -6,6 +6,7 @@ import threading
 import time
 
 import pytest
+
 from marketpipe.ingestion.infrastructure.rate_limit import (
     RATE_LIMITER_WAITS,
     RateLimiter,

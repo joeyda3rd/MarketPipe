@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.metrics import (
     ERRORS,

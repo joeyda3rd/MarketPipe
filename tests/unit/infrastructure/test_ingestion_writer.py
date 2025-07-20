@@ -7,6 +7,7 @@ import tempfile
 
 import pyarrow.parquet as pq
 import pytest
+
 from marketpipe.ingestion.writer import write_parquet
 
 

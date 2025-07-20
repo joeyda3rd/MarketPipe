@@ -6,6 +6,7 @@ import logging
 from datetime import date
 
 import anyio
+
 from marketpipe.ingestion.symbol_providers.dummy import DummyProvider
 
 

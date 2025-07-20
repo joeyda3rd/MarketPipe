@@ -12,9 +12,10 @@ from datetime import date
 from textwrap import dedent
 
 import pytest
+from typer.testing import CliRunner
+
 from marketpipe.cli import app
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
-from typer.testing import CliRunner
 
 
 @pytest.mark.integration

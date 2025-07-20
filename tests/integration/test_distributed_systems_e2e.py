@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 
 

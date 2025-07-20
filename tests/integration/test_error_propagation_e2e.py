@@ -14,11 +14,12 @@ from textwrap import dedent
 from unittest.mock import patch
 
 import pytest
+from typer.testing import CliRunner
+
 from marketpipe.aggregation.infrastructure.duckdb_engine import DuckDBAggregationEngine
 from marketpipe.cli import app
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 from marketpipe.security.mask import safe_for_log
-from typer.testing import CliRunner
 
 
 class ErrorInjector:

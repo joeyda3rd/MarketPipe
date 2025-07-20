@@ -6,8 +6,9 @@ from __future__ import annotations
 import subprocess
 import sys
 
-from marketpipe.cli import app
 from typer.testing import CliRunner
+
+from marketpipe.cli import app
 
 
 def test_ingest_ohlcv_help():
