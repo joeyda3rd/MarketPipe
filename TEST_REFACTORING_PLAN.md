@@ -28,26 +28,26 @@ Establish reusable, realistic test doubles to replace brittle mocks.
 ```python
 class FakeHttpClient:
     """Configurable fake HTTP client for testing."""
-    
+
     def __init__(self):
         self.responses: Queue[ResponseSpec] = Queue()
         self.requests_made: List[RequestCapture] = []
         self.delay_simulation: Optional[float] = None
-        
-    def configure_response(self, 
+
+    def configure_response(self,
                           url_pattern: str,
                           status: int = 200,
                           body: Dict[str, Any] = None,
                           headers: Dict[str, str] = None,
                           delay: Optional[float] = None):
         """Configure expected response for URL pattern."""
-        
+
     def configure_error(self, url_pattern: str, error_type: Exception):
         """Configure error response for URL pattern."""
-        
+
     async def get(self, url: str, **kwargs) -> FakeResponse:
         """Async GET implementation with request tracking."""
-        
+
     def get_requests_made(self) -> List[RequestCapture]:
         """Get history of requests made for test verification."""
 ```
@@ -57,7 +57,7 @@ class FakeHttpClient:
 - Provides request verification without coupling to internals
 - Simulates realistic HTTP behaviors (delays, errors, retries)
 
-#### 1.2 Create FakeDatabase Fixture  
+#### 1.2 Create FakeDatabase Fixture
 **Location**: `tests/fakes/database.py`
 
 **Current State**: Tests mock `apply_pending_alembic` and database operations
@@ -66,20 +66,20 @@ class FakeHttpClient:
 ```python
 class FakeDatabase:
     """Test database using real SQLite with isolation."""
-    
+
     def __init__(self, db_path: Optional[Path] = None):
         self.db_path = db_path or Path(":memory:")
         self._connection_pool: Optional[ConnectionPool] = None
-        
+
     async def setup_schema(self):
         """Apply real migrations to create test schema."""
-        
+
     async def cleanup(self):
         """Clean up test data while preserving schema."""
-        
+
     def get_connection_string(self) -> str:
         """Get connection string for services."""
-        
+
     async def seed_test_data(self, dataset: str):
         """Load predefined test datasets."""
 
@@ -106,22 +106,22 @@ async def test_database():
 ```python
 class FakeMarketDataProvider:
     """Enhanced fake provider with scenario support."""
-    
+
     def configure_symbol_data(self, symbol: Symbol, bars: List[OHLCVBar]):
         """Configure expected bar data for symbol."""
-        
+
     def configure_error(self, symbol: Symbol, error: Exception):
         """Configure error responses for symbol."""
-        
+
     def configure_rate_limiting(self, delay: float, max_requests: int):
         """Simulate rate limiting behavior."""
-        
+
     def configure_pagination(self, page_size: int, total_pages: int):
         """Simulate paginated responses."""
-        
+
     async def fetch_bars_for_symbol(self, symbol, time_range, max_bars=1000):
         """Fetch bars with configured behavior."""
-        
+
     def get_request_history(self) -> List[RequestInfo]:
         """Verify request patterns without coupling to internals."""
 ```
@@ -140,21 +140,21 @@ class FakeMarketDataProvider:
 ```python
 class FakeMetricsCollector:
     """In-memory metrics collection for tests."""
-    
+
     def __init__(self):
         self.counters: Dict[str, float] = defaultdict(float)
         self.histograms: Dict[str, List[float]] = defaultdict(list)
         self.gauges: Dict[str, float] = {}
-        
+
     def increment_counter(self, name: str, labels: Dict[str, str] = None, value: float = 1.0):
         """Record counter increment."""
-        
+
     def observe_histogram(self, name: str, labels: Dict[str, str] = None, value: float = 0.0):
         """Record histogram observation."""
-        
+
     def set_gauge(self, name: str, labels: Dict[str, str] = None, value: float = 0.0):
         """Set gauge value."""
-        
+
     def get_counter_value(self, name: str, labels: Dict[str, str] = None) -> float:
         """Get counter value for test verification."""
 ```
@@ -165,12 +165,12 @@ class FakeMetricsCollector:
 - Supports testing metric-driven functionality
 
 ### Deliverables Phase 1
-- [ ] `tests/fakes/adapters.py` with FakeHttpClient
-- [ ] `tests/fakes/database.py` with FakeDatabase fixture
-- [ ] `tests/fakes/providers.py` with enhanced FakeMarketDataProvider  
-- [ ] `tests/fakes/metrics.py` with FakeMetricsCollector
-- [ ] Documentation: `tests/fakes/README.md` with usage patterns
-- [ ] Migration guide: Convert 3 test files to use new fakes as proof of concept
+- [x] `tests/fakes/adapters.py` with FakeHttpClient ✅
+- [x] `tests/fakes/database.py` with FakeDatabase fixture ✅
+- [x] `tests/fakes/providers.py` with enhanced FakeMarketDataProvider ✅ (in adapters.py)
+- [x] `tests/fakes/metrics.py` with FakeMetricsCollector ✅
+- [x] Documentation: `tests/fakes/README.md` with usage patterns ✅
+- [x] Migration guide: Convert 3 test files to use new fakes as proof of concept ✅ (test_alpaca_client_refactored.py)
 
 ## Phase 2: Refactor for Testability (Weeks 3-4)
 
@@ -185,14 +185,14 @@ Address design issues that require excessive mocking.
 **Solution**: Dependency injection pattern
 ```python
 class BootstrapOrchestrator:
-    def __init__(self, 
+    def __init__(self,
                  migration_service: IMigrationService,
                  validation_service: IValidationService,
                  aggregation_service: IAggregationService):
         self.migration_service = migration_service
-        self.validation_service = validation_service  
+        self.validation_service = validation_service
         self.aggregation_service = aggregation_service
-        
+
     def bootstrap(self) -> BootstrapResult:
         """Bootstrap with injected dependencies."""
 ```
@@ -208,7 +208,7 @@ class BootstrapOrchestrator:
 **Solution**: Constructor injection
 ```python
 class AlpacaClient(BaseApiClient):
-    def __init__(self, 
+    def __init__(self,
                  config: ClientConfig,
                  auth: AuthStrategy,
                  http_client: Optional[HttpClientProtocol] = None):
@@ -229,10 +229,10 @@ class CLIServiceFactory:
     def __init__(self, database: IDatabase, http_client: HttpClientProtocol):
         self.database = database
         self.http_client = http_client
-        
+
     def create_ingestion_service(self) -> IngestionService:
         """Create properly configured ingestion service."""
-        
+
 def ingest_command(config: Path, service_factory: CLIServiceFactory):
     """CLI command with injected service factory."""
 ```
@@ -246,7 +246,7 @@ def ingest_command(config: Path, service_factory: CLIServiceFactory):
 
 ## Phase 3: Convert High-Value Tests to Integration Style (Weeks 5-6)
 
-### Objective  
+### Objective
 Replace brittle mocked tests with integration tests using real components.
 
 ### Priority Tests for Conversion
@@ -264,11 +264,11 @@ def test_bootstrap_idempotent_with_real_database(test_database):
         validation_service=FakeValidationService(),
         aggregation_service=FakeAggregationService()
     )
-    
+
     # First bootstrap should succeed
     result1 = orchestrator.bootstrap()
     assert result1.success
-    
+
     # Second bootstrap should be idempotent
     result2 = orchestrator.bootstrap()
     assert result2.success
@@ -287,19 +287,19 @@ def test_pipeline_with_validation_errors(test_database, fake_provider):
         create_valid_bar(),
         create_invalid_bar(),  # Will trigger validation
     ])
-    
+
     result = run_full_pipeline(
         provider=fake_provider,
         storage=ParquetStorage(test_database),
         validator=RealValidator()
     )
-    
+
     assert result.valid_bars == 1
     assert result.invalid_bars == 1
     assert result.validation_errors[0].type == "ohlc_consistency"
 ```
 
-#### 3.3 Provider Integration Tests  
+#### 3.3 Provider Integration Tests
 **Current**: All provider tests mock HTTP responses
 **Target**: Tests with real HTTP server or provider sandbox APIs
 
@@ -312,17 +312,17 @@ def test_alpaca_client_real_http(fake_http_server):
         response={"bars": [sample_alpaca_bar()]},
         headers={"content-type": "application/json"}
     )
-    
+
     client = AlpacaClient(config=config, http_client=requests_client)
     bars = await client.fetch_bars("AAPL", time_range)
-    
+
     assert len(bars) == 1
     assert fake_http_server.get_requests()[0].headers["Authorization"]
 ```
 
 ### Deliverables Phase 3
 - [ ] 5+ bootstrap tests converted to integration style
-- [ ] 3+ full pipeline tests with realistic scenarios  
+- [ ] 3+ full pipeline tests with realistic scenarios
 - [ ] Provider integration tests with HTTP server
 - [ ] Test performance comparison (integration vs mocked)
 - [ ] Documentation on when to use integration vs unit tests
@@ -344,10 +344,10 @@ def integration_environment():
     database = FakeDatabase()
     http_client = FakeHttpClient()
     metrics = FakeMetricsCollector()
-    
+
     yield IntegrationEnvironment(database, http_client, metrics)
 
-@pytest.fixture  
+@pytest.fixture
 def domain_objects():
     """Factory for creating valid domain objects with reasonable defaults."""
     return DomainObjectFactory()
@@ -355,7 +355,7 @@ def domain_objects():
 class DomainObjectFactory:
     def create_ohlcv_bar(self, symbol="AAPL", **overrides) -> OHLCVBar:
         """Create valid OHLCV bar with overrides."""
-        
+
     def create_ingestion_job(self, symbols=None, **overrides) -> IngestionJob:
         """Create valid ingestion job with overrides."""
 ```
@@ -364,18 +364,18 @@ class DomainObjectFactory:
 ```python
 class IntegrationTestCase:
     """Base class for integration tests."""
-    
+
     def setup_method(self):
         self.database = FakeDatabase()
-        self.http_client = FakeHttpClient() 
+        self.http_client = FakeHttpClient()
         self.metrics = FakeMetricsCollector()
-        
+
     def create_service_factory(self) -> ServiceFactory:
         """Create service factory with test doubles."""
 
 class PipelineTestCase(IntegrationTestCase):
     """Specialized base class for pipeline integration tests."""
-    
+
     def run_ingestion_pipeline(self, symbols: List[str], **config) -> PipelineResult:
         """Helper to run complete ingestion pipeline."""
 ```
@@ -384,12 +384,12 @@ class PipelineTestCase(IntegrationTestCase):
 ```python
 class TestPerformanceBenchmarks:
     """Benchmark tests to catch performance regressions."""
-    
+
     @pytest.mark.benchmark
     def test_ingestion_throughput_benchmark(self, benchmark_data):
         """Benchmark ingestion throughput with realistic data volume."""
-        
-    @pytest.mark.benchmark  
+
+    @pytest.mark.benchmark
     def test_validation_performance_benchmark(self, large_dataset):
         """Benchmark validation performance."""
 ```
@@ -424,7 +424,7 @@ class TestPerformanceBenchmarks:
 - **Complexity**: More sophisticated test doubles require maintenance
   - *Mitigation*: Comprehensive documentation and examples
 
-### Timeline Risks  
+### Timeline Risks
 - **Scope creep**: Temptation to fix all tests at once
   - *Mitigation*: Strict phase boundaries, focus on high-impact tests first
 - **Regression**: Changes break existing functionality
@@ -448,4 +448,4 @@ class TestPerformanceBenchmarks:
 
 This refactoring plan addresses the core issues identified in the test infrastructure audit. By focusing on better test doubles, improved design for testability, and comprehensive integration tests, we will create a more maintainable and reliable test suite that better serves the MarketPipe development process.
 
-The plan prioritizes high-impact changes first and provides clear deliverables for each phase, ensuring steady progress toward more robust testing practices. 
+The plan prioritizes high-impact changes first and provides clear deliverables for each phase, ensuring steady progress toward more robust testing practices.
