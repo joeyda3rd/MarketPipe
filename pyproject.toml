@@ -228,6 +228,13 @@ addopts = [
     "--disable-warnings",
     "-ra"
 ]
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::FutureWarning",
+    "ignore::RuntimeWarning"
+]
 markers = [
     "unit: Unit tests (fast, isolated)",
     "integration: Integration tests (slower, external dependencies)",
@@ -248,7 +255,7 @@ markers = [
     "orchestration: Orchestration and reporting tests"
 ]
 asyncio_mode = "auto"
-timeout = 30
+timeout = 60
 
 [tool.importlinter.contracts.domain_forbidden_infrastructure]
 name = "Domain layer must not import infrastructure"

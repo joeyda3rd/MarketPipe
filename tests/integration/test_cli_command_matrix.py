@@ -210,7 +210,7 @@ class CLICommandValidator:
                     ["python", "-m", "marketpipe"] + cmd_path,
                     capture_output=True,
                     text=True,
-                    timeout=30,
+                    timeout=10,
                     cwd=Path(__file__).parent.parent.parent,
                 )
                 execution_time = (time.time() - start_time) * 1000
@@ -262,7 +262,7 @@ class CLICommandValidator:
                         ["python", "-m", "marketpipe"] + cmd_path,
                         capture_output=True,
                         text=True,
-                        timeout=30,
+                        timeout=10,
                         cwd=Path(__file__).parent.parent.parent,
                     )
                 elif self.runner and app:

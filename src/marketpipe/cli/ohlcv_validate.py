@@ -175,8 +175,32 @@ def validate_ohlcv(
     job_id: str = typer.Option(None, "--job-id", help="Re-run validation for job"),
     list_reports: bool = typer.Option(False, "--list", help="List available reports"),
     show: Path = typer.Option(None, "--show", help="Show a report CSV"),
+    help_flag: bool = typer.Option(
+        False,
+        "--help",
+        "-h",
+        is_flag=True,
+        help="Show this message and exit",
+        show_default=False,
+    ),
 ):
     """Validate OHLCV data quality and generate reports."""
+    # Skip all processing and show help immediately if help flag is set
+    if help_flag:
+        help_text = """
+Usage: ohlcv validate [OPTIONS]
+
+Validate OHLCV data quality and generate reports.
+
+Options:
+  --job-id TEXT    Re-run validation for job
+  --list           List available reports
+  --show PATH      Show a report CSV
+  -h, --help       Show this message and exit
+"""
+        typer.echo(help_text.strip())
+        raise typer.Exit(0)
+    
     _validate_impl(job_id=job_id, list_reports=list_reports, show=show)
 
 
@@ -184,8 +208,32 @@ def validate_ohlcv_convenience(
     job_id: str = typer.Option(None, "--job-id", help="Re-run validation for job"),
     list_reports: bool = typer.Option(False, "--list", help="List available reports"),
     show: Path = typer.Option(None, "--show", help="Show a report CSV"),
+    help_flag: bool = typer.Option(
+        False,
+        "--help",
+        "-h",
+        is_flag=True,
+        help="Show this message and exit",
+        show_default=False,
+    ),
 ):
     """Validate OHLCV data quality and generate reports (convenience command)."""
+    # Skip all processing and show help immediately if help flag is set
+    if help_flag:
+        help_text = """
+Usage: validate-ohlcv [OPTIONS]
+
+Validate OHLCV data quality and generate reports (convenience command).
+
+Options:
+  --job-id TEXT    Re-run validation for job
+  --list           List available reports
+  --show PATH      Show a report CSV
+  -h, --help       Show this message and exit
+"""
+        typer.echo(help_text.strip())
+        raise typer.Exit(0)
+    
     _validate_impl(job_id=job_id, list_reports=list_reports, show=show)
 
 

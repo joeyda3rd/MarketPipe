@@ -111,12 +111,12 @@ if not _USING_TYER_STUB:
 
     # Register OHLCV sub-app commands
     ohlcv_app.command(name="ingest", add_help_option=False)(ingest_ohlcv)
-    ohlcv_app.command(name="validate")(validate_ohlcv)
+    ohlcv_app.command(name="validate", add_help_option=False)(validate_ohlcv)
     ohlcv_app.command(name="aggregate")(aggregate_ohlcv)
 
     # Convenience commands
     app.command(name="ingest-ohlcv", add_help_option=False)(ingest_ohlcv_convenience)
-    app.command(name="validate-ohlcv")(validate_ohlcv_convenience)
+    app.command(name="validate-ohlcv", add_help_option=False)(validate_ohlcv_convenience)
     app.command(name="aggregate-ohlcv")(aggregate_ohlcv_convenience)
 
     # Deprecated aliases
