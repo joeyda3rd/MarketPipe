@@ -37,6 +37,7 @@ try:
     reset_bootstrap_state = legacy_bootstrap.reset_bootstrap_state
     is_bootstrapped = legacy_bootstrap.is_bootstrapped
     bootstrap = legacy_bootstrap.bootstrap
+    get_event_bus = getattr(legacy_bootstrap, 'get_event_bus', lambda: None)
 except Exception:
     # Fallback - define a simple version
     def apply_pending_alembic(db_path):
@@ -71,6 +72,10 @@ except Exception:
         """Simple fallback bootstrap implementation."""
         global _bootstrapped
         _bootstrapped = True
+    
+    def get_event_bus():
+        """Simple fallback get_event_bus implementation."""
+        return None
 
 __all__ = [
     # Interfaces
@@ -91,4 +96,5 @@ __all__ = [
     "reset_bootstrap_state", 
     "is_bootstrapped",
     "bootstrap",
+    "get_event_bus",
 ] 
