@@ -1,6 +1,6 @@
 # Getting Started with MarketPipe
 
-> ⚠️ **Alpha Software Warning**  
+> ⚠️ **Alpha Software Warning**
 > MarketPipe is currently in alpha development. While feature-complete for basic ETL workflows, expect breaking changes, incomplete documentation, and potential stability issues. Not recommended for production use without thorough testing.
 
 ## Overview
@@ -67,8 +67,19 @@ pip install marketpipe
 git clone https://github.com/your-org/marketpipe.git
 cd marketpipe
 
-# Install in development mode with all dependencies
+# One-command development setup
+scripts/setup
+
+# Or manual setup:
 pip install -e ".[dev]"
+
+# Install pre-commit hooks (recommended for contributors)
+pip install pre-commit
+pre-commit install
+
+# Verify installation
+scripts/health-check
+scripts/test-fast
 ```
 
 #### Option 3: Docker Installation
@@ -112,7 +123,7 @@ symbols:
   - MSFT
 
 start: "2024-01-02"
-end: "2024-01-03" 
+end: "2024-01-03"
 output_path: "./data"
 compression: snappy
 workers: 3
@@ -283,7 +294,7 @@ df = marketpipe.load_ohlcv("./data", symbol="AAPL", start="2024-01-01", end="202
 
 # Query with SQL
 result = marketpipe.query_sql(
-    "./data", 
+    "./data",
     "SELECT symbol, AVG(close) as avg_close FROM read_parquet('./data/**/*.parquet') GROUP BY symbol"
 )
 ```
@@ -320,7 +331,7 @@ MarketPipe uses a standardized OHLCV schema:
   "trade_count": 645046,
   "vwap": 178.089,
   "session": "regular",
-  "currency": "USD", 
+  "currency": "USD",
   "status": "ok",
   "source": "alpaca",
   "frame": "1m",
@@ -373,7 +384,7 @@ marketpipe validate --data-path ./data --verbose
    marketpipe ingest --config config.yaml --verbose
    ```
 
-2. **Validate configuration**: 
+2. **Validate configuration**:
    ```bash
    marketpipe admin validate-config --config config.yaml
    ```
@@ -390,9 +401,55 @@ marketpipe validate --data-path ./data --verbose
 ## Next Steps
 
 ### For Development
-1. **Set up development environment**: Follow [CONTRIBUTING.md](../CONTRIBUTING.md)
-2. **Run tests**: `pytest tests/`
-3. **Explore architecture**: Review [Architecture Guide](ARCHITECTURE.md)
+
+#### Quick Development Setup
+```bash
+# One-command setup
+scripts/setup
+
+# Install pre-commit hooks (recommended)
+pip install pre-commit
+pre-commit install
+
+# Verify setup
+scripts/health-check
+```
+
+#### Development Workflow
+```bash
+# Fast development feedback loop
+scripts/test-fast        # Quick tests (~3s) during development
+scripts/format           # Format code before committing
+
+# Git workflow with automatic quality checks
+git add .
+git commit -m "Your changes"  # Pre-commit hooks run automatically
+
+# Before pushing - simulate CI locally
+scripts/test-ci          # Full CI simulation
+```
+
+#### Testing Options
+```bash
+# Ultra-fast tests for pre-commit hooks
+scripts/pre-commit-tests  # ~2 seconds
+
+# Development feedback tests
+scripts/test-fast         # ~3 seconds, verbose output
+
+# Full test suite with coverage
+scripts/test-full         # Complete suite
+
+# Run specific test categories
+pytest -m fast           # Only fast tests
+pytest -m api_client     # Only API client tests
+pytest -m config         # Only configuration tests
+```
+
+#### Additional Resources
+1. **Pre-commit Framework**: See [pre-commit.md](pre-commit.md) for detailed setup
+2. **Contributing Guide**: Follow [CONTRIBUTING.md](../CONTRIBUTING.md)
+3. **Architecture**: Review [Architecture Guide](ARCHITECTURE.md)
 
 ### For Production
 1. **Review security**: [SECURITY.md](../SECURITY.md)
@@ -420,4 +477,4 @@ For production use, thoroughly test with your specific requirements and data vol
 
 ---
 
-**Need help?** Join our [community discussions](https://github.com/your-org/marketpipe/discussions) or [report issues](https://github.com/your-org/marketpipe/issues). 
+**Need help?** Join our [community discussions](https://github.com/your-org/marketpipe/discussions) or [report issues](https://github.com/your-org/marketpipe/issues).
