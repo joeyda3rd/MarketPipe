@@ -52,6 +52,7 @@ SAMPLE_CSV = {
 class TestSymbolRecordValidation:
     """Test field validation and coercion."""
 
+    @pytest.mark.fast
     def test_valid_sample_json_passes(self):
         """Load SAMPLE_JSON fixture and validate successfully."""
         record = SymbolRecord(**SAMPLE_JSON)
@@ -74,6 +75,7 @@ class TestSymbolRecordValidation:
         assert record.company_name == "Apple Inc."
         assert record.as_of == datetime.date(2024, 1, 1)
 
+    @pytest.mark.fast
     def test_empty_strings_become_none(self):
         """Pass empty strings for optional IDs, assert they are None."""
         data = {

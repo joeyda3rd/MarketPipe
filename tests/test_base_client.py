@@ -15,6 +15,8 @@ class DummyMarketDataAuth(AuthStrategy):
         pass
 
 
+@pytest.mark.fast
+@pytest.mark.api_client
 def test_abstract_base_client_enforces_complete_implementation():
     """Test that abstract base client enforces complete implementation."""
 
@@ -35,12 +37,16 @@ def test_abstract_base_client_enforces_complete_implementation():
         )
 
 
+@pytest.mark.fast
+@pytest.mark.config
 def test_client_config_validates_required_parameters():
     """Test that client config validates required parameters."""
     with pytest.raises(Exception):
         ClientConfig(api_key=123, base_url=None)  # type: ignore
 
 
+@pytest.mark.fast
+@pytest.mark.api_client
 def test_base_client_supports_symbol_data_pagination():
     pages = [{"cursor": "a"}, {"cursor": "b"}, {"cursor": None}]
 

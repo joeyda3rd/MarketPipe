@@ -1,0 +1,113 @@
+repos:
+  # Code formatting
+  - repo: https://github.com/psf/black
+    rev: 24.2.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=100]
+
+  # Import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=100]
+
+  # Linting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.2.2
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  # Basic file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]  # Allow custom YAML tags
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+
+  # Python-specific checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-ast
+      - id: check-builtin-literals
+      - id: check-docstring-first
+      - id: debug-statements
+
+  # Type checking (optional, can be slow)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: 
+          - types-PyYAML
+          - types-requests
+        args: [--ignore-missing-imports, --show-error-codes]
+        files: ^src/
+        # Only run on src/ to keep it fast
+
+  # Security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.7
+    hooks:
+      - id: bandit
+        args: [-r, src/, -f, txt, --skip, B101,B601]
+        exclude: ^tests/
+
+  # Local hooks (project-specific)
+  - repo: local
+    hooks:
+      # Fast test suite for pre-commit
+      - id: fast-tests
+        name: Fast Tests
+        entry: python scripts/pre-commit-tests
+        language: system
+        pass_filenames: false
+        stages: [commit]
+        verbose: true
+
+      # Configuration validation
+      - id: config-check
+        name: Configuration Check
+        entry: python scripts/health-check
+        language: system
+        files: ^(config/|src/marketpipe/config/)
+        pass_filenames: false
+        args: [--config-only]
+
+      # Ensure no placeholder values in configs
+      - id: no-placeholders
+        name: No Config Placeholders
+        entry: python scripts/check_env_placeholders.py
+        language: system
+        files: ^config/.*\.(yaml|yml|json)$
+        pass_filenames: false
+
+# Global configuration
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [commit]
+
+# Performance: only run on changed files where possible
+exclude: |
+  (?x)^(
+    \.git/.*|
+    \.pytest_cache/.*|
+    __pycache__/.*|
+    \.mypy_cache/.*|
+    \.venv/.*|
+    venv/.*|
+    build/.*|
+    dist/.*|
+    .*\.egg-info/.*
+  )$ 

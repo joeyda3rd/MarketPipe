@@ -122,6 +122,11 @@ marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2024-01-01
 git clone https://github.com/your-org/marketpipe.git
 cd marketpipe
 scripts/setup    # One-command development setup
+
+# Install pre-commit hooks (recommended)
+pip install pre-commit
+pre-commit install
+
 scripts/demo     # Run a quick demo
 ```
 
@@ -137,17 +142,21 @@ scripts/check    # Health check
 ### Testing
 
 ```bash
-# Fast development loop
-make test
+# Fast tests for development feedback (~3s)
+scripts/test-fast
+
+# Pre-commit tests (ultra-fast, ~2s)
+scripts/pre-commit-tests  
 
 # Full test suite with coverage
+scripts/test-full
+
+# Simulate CI environment locally
+scripts/test-ci
+
+# Legacy make commands (still work)
+make test
 make test-all
-
-# Smart test runner (runs only relevant tests)
-make test-smart
-
-# Performance tests
-make test-performance
 ```
 
 ### Architecture Validation

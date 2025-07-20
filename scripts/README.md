@@ -23,7 +23,12 @@ scripts/health-check # Verify everything is working
 - **`scripts/format`** - Format code with Black/Ruff
 - **`scripts/watch`** - Auto-run tests when files change
 - **`scripts/clean`** - Remove generated files and caches
-- **`scripts/pre-commit-tests`** - Fast test runner for pre-commit hooks (~2s)
+
+### Testing
+- **`scripts/pre-commit-tests`** - Ultra-fast tests for pre-commit hooks (~2s)
+- **`scripts/test-fast`** - Fast tests for development feedback (~3s) 
+- **`scripts/test-full`** - Complete test suite with coverage reporting
+- **`scripts/test-ci`** - Simulate CI environment locally
 
 ### Demo & Usage
 - **`scripts/demo`** - Quick demo with fake data (no API keys needed)
@@ -38,8 +43,10 @@ scripts/setup
 scripts/watch        # In one terminal
 scripts/format       # Before committing
 
-# Test before commit (fast)
-scripts/pre-commit-tests
+# Testing workflow
+scripts/test-fast    # Quick feedback during development
+scripts/test-full    # Comprehensive testing before PR
+scripts/test-ci      # Simulate CI locally
 
 # Try MarketPipe
 scripts/demo

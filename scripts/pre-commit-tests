@@ -18,28 +18,17 @@ def main():
     # Get project root (parent of scripts directory)
     project_root = Path(__file__).parent.parent
     
-    # Define fast test paths (core unit tests only)
-    fast_test_paths = [
-        "tests/test_base_client.py",           # Key API client tests
-        "tests/unit/test_main.py",             # Main module tests
-        "tests/unit/test_ddd_guard_rails.py",  # DDD validation tests
-        "tests/unit/domain/",                  # Domain logic tests
-        "tests/unit/config/",                  # Configuration tests
-    ]
-    
     try:
-        # Run fast tests with optimized settings for pre-commit
+        # Run tests marked as 'fast' - these should complete in <2 seconds total
         cmd = [
             sys.executable, "-m", "pytest",
-            *fast_test_paths,
-            "-x",                    # Stop on first failure
-            "--tb=line",             # Very short traceback format
-            "-q",                    # Quiet output
-            "--disable-warnings",    # Suppress warnings for cleaner output
-            "--maxfail=1",          # Stop after first failure for speed
-            "--no-cov",             # Disable coverage for speed
-            # Skip async tests to reduce overhead
-            "-k", "not asyncio",    
+            "-m", "fast",               # Only run fast tests
+            "-x",                       # Stop on first failure
+            "--tb=line",               # Very short traceback format
+            "-q",                      # Quiet output
+            "--disable-warnings",      # Suppress warnings for cleaner output
+            "--maxfail=1",            # Stop after first failure for speed
+            "--no-cov",               # Disable coverage for speed
         ]
         
         print("🧪 Running pre-commit tests...")
