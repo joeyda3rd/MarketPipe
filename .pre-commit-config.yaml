@@ -50,7 +50,7 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
-        additional_dependencies: 
+        additional_dependencies:
           - types-PyYAML
           - types-requests
         args: [--ignore-missing-imports, --show-error-codes]
@@ -74,7 +74,7 @@ repos:
         entry: python scripts/pre-commit-tests
         language: system
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
         verbose: true
 
       # Configuration validation
@@ -96,7 +96,7 @@ repos:
 
 # Global configuration
 default_install_hook_types: [pre-commit, pre-push]
-default_stages: [commit]
+default_stages: [pre-commit]
 
 # Performance: only run on changed files where possible
 exclude: |
@@ -110,4 +110,4 @@ exclude: |
     build/.*|
     dist/.*|
     .*\.egg-info/.*
-  )$ 
+  )$
