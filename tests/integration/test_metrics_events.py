@@ -10,7 +10,6 @@ from datetime import date, datetime, timezone
 from unittest.mock import patch
 
 import pytest
-
 from marketpipe.aggregation.domain.events import AggregationCompleted, AggregationFailed
 from marketpipe.bootstrap import get_event_bus
 from marketpipe.domain.events import IngestionJobCompleted, ValidationFailed

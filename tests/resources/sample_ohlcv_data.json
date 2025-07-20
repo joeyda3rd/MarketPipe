@@ -18,7 +18,7 @@
     "schema_version": 1
   },
   {
-    "symbol": "AAPL", 
+    "symbol": "AAPL",
     "timestamp": 1609459860000000000,
     "date": "2021-01-01",
     "open": 133.61,
@@ -38,7 +38,7 @@
   {
     "symbol": "TSLA",
     "timestamp": 1609459800000000000,
-    "date": "2021-01-01", 
+    "date": "2021-01-01",
     "open": 705.67,
     "high": 710.32,
     "low": 703.45,
@@ -53,4 +53,4 @@
     "frame": "1m",
     "schema_version": 1
   }
-] 
+]

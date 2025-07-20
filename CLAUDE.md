@@ -79,7 +79,7 @@ MarketPipe is a time-series ETL framework with a modular, threaded architecture:
 
 ### Core Pipeline Flow
 1. **Ingestion**: `IngestionCoordinator` orchestrates threaded data collection
-2. **Validation**: `SchemaValidator` ensures data integrity 
+2. **Validation**: `SchemaValidator` ensures data integrity
 3. **Storage**: Partitioned Parquet files in `data/symbol=X/year=Y/month=M/day=D.parquet`
 4. **Aggregation**: DuckDB-based time frame aggregation
 5. **Metrics**: Prometheus metrics with Grafana dashboard support
@@ -122,7 +122,7 @@ MarketPipe is a time-series ETL framework with a modular, threaded architecture:
 
 ## API Reference available for fast accurate ledger
  - run workbook/tools/generate_api_reference.py before reviewing to update
- - provides every definition name, its parameters, and its location in 2 JSON files 
+ - provides every definition name, its parameters, and its location in 2 JSON files
  - dev/reference/api_reference.json for codebase references
  - dev/reference/test_api_reference.json for test references
 

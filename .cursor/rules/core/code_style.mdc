@@ -52,7 +52,7 @@ def fetch_batch(
     end_ts: int,
 ) -> List[Dict[str, Any]]:
     """Fetch OHLCV data for symbol in time range."""
-    
+
 async def async_request(self, params: Mapping[str, str]) -> Dict[str, Any]:
     """Async HTTP request with retry logic."""
 ```
@@ -79,13 +79,13 @@ def build_request_params(
     cursor: Optional[str] = None,
 ) -> Mapping[str, str]:
     """Build vendor-specific query parameters.
-    
+
     Args:
         symbol: Security identifier (e.g., "AAPL").
         start_ts: Start timestamp in milliseconds (inclusive).
         end_ts: End timestamp in milliseconds (exclusive).
         cursor: Pagination cursor for subsequent requests.
-        
+
     Returns:
         Query parameters dict for API request.
     """

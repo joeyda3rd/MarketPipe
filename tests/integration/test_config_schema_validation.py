@@ -122,7 +122,9 @@ class ConfigurationValidator:
                 else:
                     # For expected failures, we expect config to be parsed but command to fail
                     result.config_parsed = True  # Config parsing happens even for invalid configs
-                    result.command_succeeded = process_result.returncode == 0  # Should be False for failures
+                    result.command_succeeded = (
+                        process_result.returncode == 0
+                    )  # Should be False for failures
 
                     # Check for expected error patterns
                     combined_output = (process_result.stdout + process_result.stderr).lower()

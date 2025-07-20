@@ -9,10 +9,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from marketpipe.domain.entities import EntityId, OHLCVBar
-from marketpipe.domain.market_data import (
-    IMarketDataProvider,
-    ProviderMetadata,
-)
+from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
 from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
 from marketpipe.security.mask import safe_for_log
 

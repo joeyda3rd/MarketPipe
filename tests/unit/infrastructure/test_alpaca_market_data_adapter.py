@@ -8,7 +8,6 @@ from decimal import Decimal
 from unittest.mock import MagicMock
 
 import pytest
-
 from marketpipe.domain.value_objects import Price, Symbol, Volume
 from marketpipe.ingestion.infrastructure.adapters import (
     AlpacaMarketDataAdapter,

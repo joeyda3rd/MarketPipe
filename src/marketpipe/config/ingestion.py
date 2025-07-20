@@ -62,8 +62,11 @@ class IngestionJobConfig(BaseModel):
             symbol = symbol.strip().upper()
             # Use same validation as Symbol value object: alphanumeric + dots, 1-10 chars
             import re
+
             if not re.match(r"^[A-Z0-9\.]{1,10}$", symbol):
-                raise ValueError(f"Invalid symbol format: {symbol}. Must be 1-10 characters (A-Z, 0-9, or '.')")
+                raise ValueError(
+                    f"Invalid symbol format: {symbol}. Must be 1-10 characters (A-Z, 0-9, or '.')"
+                )
 
             normalized.append(symbol)
 

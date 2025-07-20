@@ -33,7 +33,7 @@ from typing import List, Tuple
 
 class IngestionCoordinator:
     """Coordinates threaded ingestion across multiple symbols and date ranges."""
-    
+
     def __init__(
         self,
         client: BaseApiClient,
@@ -46,7 +46,7 @@ class IngestionCoordinator:
         self.writer = writer
         self.max_workers = max_workers
         self.log = logging.getLogger(self.__class__.__name__)
-    
+
     def ingest_batch(
         self,
         symbols: List[str],
@@ -58,16 +58,16 @@ class IngestionCoordinator:
             for symbol in symbols
             for start_ts, end_ts in date_ranges
         ]
-        
+
         results = {"success": 0, "failed": 0, "errors": []}
-        
+
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all tasks
             future_to_task = {
                 executor.submit(self._process_symbol_date, symbol, start_ts, end_ts): (symbol, start_ts, end_ts)
                 for symbol, start_ts, end_ts in tasks
             }
-            
+
             # Process completed tasks
             for future in as_completed(future_to_task):
                 symbol, start_ts, end_ts = future_to_task[future]
@@ -80,7 +80,7 @@ class IngestionCoordinator:
                     error_msg = f"Failed {symbol} {start_ts}-{end_ts}: {e}"
                     results["errors"].append(error_msg)
                     self.log.error(error_msg)
-        
+
         return results
 ```
 
@@ -94,13 +94,13 @@ from typing import List, Dict, Any, Tuple
 
 class SchemaValidator:
     """Validates OHLCV data against JSON schema."""
-    
+
     def __init__(self, schema_path: str):
         with open(schema_path, 'r') as f:
             self.schema = json.load(f)
         self.validator = jsonschema.Draft7Validator(self.schema)
         self.log = logging.getLogger(self.__class__.__name__)
-    
+
     def validate_batch(
         self,
         rows: List[Dict[str, Any]],
@@ -109,7 +109,7 @@ class SchemaValidator:
         """Validate batch of OHLCV rows."""
         valid_rows = []
         errors = []
-        
+
         for i, row in enumerate(rows):
             validation_errors = list(self.validator.iter_errors(row))
             if validation_errors:
@@ -121,17 +121,17 @@ class SchemaValidator:
                 self.log.warning(f"Invalid row {i} for {symbol}: {error_details}")
             else:
                 valid_rows.append(row)
-        
+
         if errors:
             self.log.warning(f"Validation failed for {len(errors)} rows in {symbol}")
-        
+
         return valid_rows, errors
-    
+
     def validate_required_fields(self, row: Dict[str, Any]) -> List[str]:
         """Check required fields are present and valid."""
         errors = []
         required_fields = ["symbol", "timestamp", "open", "high", "low", "close", "volume"]
-        
+
         for field in required_fields:
             if field not in row or row[field] is None:
                 errors.append(f"Missing required field: {field}")
@@ -139,7 +139,7 @@ class SchemaValidator:
                 errors.append(f"Invalid price for {field}: {row[field]}")
             elif field == "volume" and row[field] < 0:
                 errors.append(f"Invalid volume: {row[field]}")
-        
+
         return errors
 ```
 
@@ -155,12 +155,12 @@ from typing import List, Dict, Any
 
 class ParquetWriter:
     """Writes OHLCV data to partitioned Parquet files."""
-    
+
     def __init__(self, output_path: str, compression: str = "snappy"):
         self.output_path = Path(output_path)
         self.compression = compression
         self.log = logging.getLogger(self.__class__.__name__)
-    
+
     def write_batch(
         self,
         rows: List[Dict[str, Any]],
@@ -170,14 +170,14 @@ class ParquetWriter:
         """Write batch of rows to partitioned Parquet file."""
         if not rows:
             return 0
-        
+
         # Convert to Arrow table
         table = pa.Table.from_pylist(rows)
-        
+
         # Create partition path
         partition_path = self.output_path / f"symbol={symbol}" / f"date={date}"
         partition_path.mkdir(parents=True, exist_ok=True)
-        
+
         # Write Parquet file
         filename = partition_path / f"{symbol}_{date}.parquet"
         pq.write_table(
@@ -187,10 +187,10 @@ class ParquetWriter:
             use_dictionary=True,
             row_group_size=10000,
         )
-        
+
         self.log.info(f"Wrote {len(rows)} rows to {filename}")
         return len(rows)
-    
+
     def append_to_existing(
         self,
         rows: List[Dict[str, Any]],
@@ -200,24 +200,24 @@ class ParquetWriter:
         """Append rows to existing Parquet file or create new one."""
         partition_path = self.output_path / f"symbol={symbol}" / f"date={date}"
         filename = partition_path / f"{symbol}_{date}.parquet"
-        
+
         if filename.exists():
             # Read existing data
             existing_table = pq.read_table(filename)
             existing_rows = existing_table.to_pylist()
-            
+
             # Combine with new rows and deduplicate
             all_rows = existing_rows + rows
             deduped_rows = self._deduplicate_by_timestamp(all_rows)
-            
+
             # Write combined data
             table = pa.Table.from_pylist(deduped_rows)
             pq.write_table(table, filename, compression=self.compression)
-            
+
             return len(deduped_rows) - len(existing_rows)
         else:
             return self.write_batch(rows, symbol, date)
-    
+
     def _deduplicate_by_timestamp(
         self,
         rows: List[Dict[str, Any]]
@@ -225,13 +225,13 @@ class ParquetWriter:
         """Remove duplicate rows based on symbol and timestamp."""
         seen = set()
         deduped = []
-        
+
         for row in sorted(rows, key=lambda r: (r["symbol"], r["timestamp"])):
             key = (row["symbol"], row["timestamp"])
             if key not in seen:
                 seen.add(key)
                 deduped.append(row)
-        
+
         return deduped
 ```
 
@@ -246,11 +246,11 @@ from typing import Optional, List, Dict, Any
 
 class DataLoader:
     """Loads and queries Parquet data using DuckDB."""
-    
+
     def __init__(self, data_path: str):
         self.data_path = Path(data_path)
         self.log = logging.getLogger(self.__class__.__name__)
-    
+
     def query_symbol_data(
         self,
         symbol: str,
@@ -259,24 +259,24 @@ class DataLoader:
     ) -> List[Dict[str, Any]]:
         """Query OHLCV data for a symbol with optional date filtering."""
         symbol_path = self.data_path / f"symbol={symbol}"
-        
+
         if not symbol_path.exists():
             return []
-        
+
         # Build DuckDB query
         query = f"""
         SELECT *
         FROM read_parquet('{symbol_path}/**/*.parquet')
         WHERE 1=1
         """
-        
+
         if start_date:
             query += f" AND date >= '{start_date}'"
         if end_date:
             query += f" AND date <= '{end_date}'"
-        
+
         query += " ORDER BY timestamp"
-        
+
         # Execute query
         conn = duckdb.connect()
         try:
@@ -285,7 +285,7 @@ class DataLoader:
             return [dict(zip(columns, row)) for row in result]
         finally:
             conn.close()
-    
+
     def aggregate_to_timeframe(
         self,
         symbol: str,
@@ -300,13 +300,13 @@ class DataLoader:
             "1h": "1 hour",
             "1d": "1 day",
         }
-        
+
         if timeframe not in interval_map:
             raise ValueError(f"Unsupported timeframe: {timeframe}")
-        
+
         interval = interval_map[timeframe]
         symbol_path = self.data_path / f"symbol={symbol}"
-        
+
         query = f"""
         SELECT
             symbol,
@@ -323,17 +323,17 @@ class DataLoader:
         FROM read_parquet('{symbol_path}/**/*.parquet')
         WHERE 1=1
         """
-        
+
         if start_date:
             query += f" AND date >= '{start_date}'"
         if end_date:
             query += f" AND date <= '{end_date}'"
-        
+
         query += """
         GROUP BY symbol, time_bucket(INTERVAL '{interval}', timestamp::TIMESTAMP)
         ORDER BY timestamp
         """.replace('{interval}', interval)
-        
+
         conn = duckdb.connect()
         try:
             result = conn.execute(query).fetchall()
@@ -353,11 +353,11 @@ from typing import Optional, Union
 
 class SQLiteState:
     """SQLite-based state persistence for checkpointing."""
-    
+
     def __init__(self, db_path: str):
         self.db_path = db_path
         self._init_db()
-    
+
     def _init_db(self) -> None:
         """Initialize database schema."""
         with sqlite3.connect(self.db_path) as conn:
@@ -368,7 +368,7 @@ class SQLiteState:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-    
+
     def set(self, symbol: str, checkpoint: Union[str, int]) -> None:
         """Save checkpoint for symbol."""
         with sqlite3.connect(self.db_path) as conn:
@@ -376,7 +376,7 @@ class SQLiteState:
                 INSERT OR REPLACE INTO checkpoints (symbol, checkpoint, updated_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """, (symbol, str(checkpoint)))
-    
+
     def get(self, symbol: str) -> Optional[str]:
         """Load checkpoint for symbol."""
         with sqlite3.connect(self.db_path) as conn:
@@ -386,7 +386,7 @@ class SQLiteState:
             )
             result = cursor.fetchone()
             return result[0] if result else None
-    
+
     def clear(self, symbol: str) -> None:
         """Clear checkpoint for symbol."""
         with sqlite3.connect(self.db_path) as conn:

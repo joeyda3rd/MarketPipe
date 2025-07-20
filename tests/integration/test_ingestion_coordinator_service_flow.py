@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 import pytest
-
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.application.commands import (
     CreateIngestionJobCommand,

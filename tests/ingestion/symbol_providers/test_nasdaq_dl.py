@@ -19,7 +19,6 @@ import types
 
 import httpx
 import pytest
-
 from marketpipe.domain import AssetClass, Status, SymbolRecord
 from marketpipe.ingestion.symbol_providers import get, list_providers
 from marketpipe.ingestion.symbol_providers.nasdaq_dl import NasdaqDailyListProvider

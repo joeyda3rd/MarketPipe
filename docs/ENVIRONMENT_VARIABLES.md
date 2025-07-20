@@ -23,7 +23,7 @@ These providers are prioritized for current implementation.
 #### Alpaca Markets
 - **`ALPACA_KEY`** - Your Alpaca API key ID (required)
 - **`ALPACA_SECRET`** - Your Alpaca API secret key (required)
-- **Purpose**: US equity market data via IEX feed (free tier) or SIP feed (paid)  
+- **Purpose**: US equity market data via IEX feed (free tier) or SIP feed (paid)
 - **Get credentials**: https://alpaca.markets/
 - **Usage**: Paper trading account provides free market data access
 
@@ -39,7 +39,7 @@ These providers are prioritized for current implementation.
 
 ##### Binance
 - **`MP_BINANCE_API_KEY`** - Binance API key
-- **`MP_BINANCE_API_SECRET`** - Binance API secret  
+- **`MP_BINANCE_API_SECRET`** - Binance API secret
 - **Purpose**: Spot crypto market data from world's largest exchange
 - **Get credentials**: https://www.binance.com/en/my/settings/api-management
 - **Usage**: Public market data (no auth needed), private endpoints require key/secret
@@ -55,7 +55,7 @@ These providers are prioritized for current implementation.
 ##### Polygon
 - **`MP_POLYGON_API_KEY`** - Polygon.io API key
 - **Purpose**: Tick-level US equities and options data with fast WebSockets
-- **Get credentials**: https://polygon.io/dashboard/api-keys  
+- **Get credentials**: https://polygon.io/dashboard/api-keys
 - **Usage**: High-frequency tick data, aggregates, options chains
 
 ##### Tiingo
@@ -226,7 +226,7 @@ These providers are planned for future implementation.
 
 ### Security and Logging
 
-#### Logging Configuration  
+#### Logging Configuration
 - **`LOG_LEVEL`** - Application logging level
 - **Default**: `INFO`
 - **Purpose**: Control verbosity of application logs
@@ -256,7 +256,7 @@ These providers are planned for future implementation.
 - **Values**: Set to any non-empty value to enable
 - **Usage**: Skips PostgreSQL tests when not set (e.g., CI without PostgreSQL)
 
-- **`POSTGRES_TEST_DSN`** - PostgreSQL connection string for tests  
+- **`POSTGRES_TEST_DSN`** - PostgreSQL connection string for tests
 - **Default**: `postgresql://marketpipe:password@localhost:5433/marketpipe_test`
 - **Purpose**: Test database connection for PostgreSQL integration tests
 - **Format**: Standard PostgreSQL connection string
@@ -378,7 +378,7 @@ MP_DATA_DIR=./dev-data
 
 ### Production Setup
 ```bash
-# .env.production  
+# .env.production
 LOG_LEVEL=INFO
 MASK_SECRETS=true
 METRICS_ENABLED=true
@@ -397,4 +397,4 @@ LOG_LEVEL=WARNING
 METRICS_ENABLED=false
 ```
 
-This comprehensive guide covers all environment variables used in MarketPipe. Keep this documentation updated as new variables are added to the codebase. 
+This comprehensive guide covers all environment variables used in MarketPipe. Keep this documentation updated as new variables are added to the codebase.

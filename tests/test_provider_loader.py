@@ -2,7 +2,6 @@
 """Tests for provider loader system."""
 
 import pytest
-
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
 from marketpipe.ingestion.infrastructure.provider_loader import (
     build_provider,

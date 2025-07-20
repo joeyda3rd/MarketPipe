@@ -90,4 +90,4 @@ echo $DATABASE_URL
 echo $MP_DB
 ```
 
-For complete details on each variable, usage examples, and troubleshooting, see the full [Environment Variables Documentation](ENVIRONMENT_VARIABLES.md). 
+For complete details on each variable, usage examples, and troubleshooting, see the full [Environment Variables Documentation](ENVIRONMENT_VARIABLES.md).

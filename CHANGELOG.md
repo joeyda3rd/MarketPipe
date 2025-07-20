@@ -176,5 +176,4 @@ We welcome contributions to MarketPipe! Please see:
 
 ---
 
-**🎉 Thank you for trying MarketPipe Alpha!** Your feedback helps us build a better financial data platform. 
-
+**🎉 Thank you for trying MarketPipe Alpha!** Your feedback helps us build a better financial data platform.

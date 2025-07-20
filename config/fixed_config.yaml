@@ -14,4 +14,4 @@ batch_size: 1000        # Number of bars per API request
 provider: alpaca        # Market data provider
 feed_type: iex         # Data feed type (iex for free)
 output_path: ./data    # Output directory for data files
-workers: 1             # Number of worker threads 
+workers: 1             # Number of worker threads

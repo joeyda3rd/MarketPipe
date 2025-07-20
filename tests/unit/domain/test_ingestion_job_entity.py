@@ -6,7 +6,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.domain.entities import (
     IngestionJob,

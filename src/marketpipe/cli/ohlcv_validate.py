@@ -8,9 +8,7 @@ from pathlib import Path
 import typer
 
 from marketpipe.validation.application.services import ValidationRunnerService
-from marketpipe.validation.infrastructure.repositories import (
-    CsvReportRepository,
-)
+from marketpipe.validation.infrastructure.repositories import CsvReportRepository
 
 
 def _validate_impl(
@@ -200,7 +198,7 @@ Options:
 """
         typer.echo(help_text.strip())
         raise typer.Exit(0)
-    
+
     _validate_impl(job_id=job_id, list_reports=list_reports, show=show)
 
 
@@ -233,7 +231,7 @@ Options:
 """
         typer.echo(help_text.strip())
         raise typer.Exit(0)
-    
+
     _validate_impl(job_id=job_id, list_reports=list_reports, show=show)
 
 

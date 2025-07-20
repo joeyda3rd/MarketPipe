@@ -13,4 +13,4 @@ These files are intended for local development and testing purposes. They are ty
 
 ## Note
 
-Files in this directory should not be committed with sensitive credentials. Use `.env.example` files for sharing configuration templates. 
+Files in this directory should not be committed with sensitive credentials. Use `.env.example` files for sharing configuration templates.

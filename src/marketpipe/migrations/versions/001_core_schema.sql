@@ -45,14 +45,14 @@ CREATE TABLE IF NOT EXISTS metrics (
 );
 
 -- Basic indexes for performance
-CREATE INDEX IF NOT EXISTS idx_symbol_bars_date 
+CREATE INDEX IF NOT EXISTS idx_symbol_bars_date
 ON symbol_bars_aggregates(trading_date);
 
-CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_timestamp 
+CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_timestamp
 ON ohlcv_bars(symbol, timestamp_ns);
 
-CREATE INDEX IF NOT EXISTS idx_metrics_ts_name 
+CREATE INDEX IF NOT EXISTS idx_metrics_ts_name
 ON metrics(ts, name);
 
-CREATE INDEX IF NOT EXISTS idx_metrics_name 
-ON metrics(name); 
+CREATE INDEX IF NOT EXISTS idx_metrics_name
+ON metrics(name);

@@ -19,7 +19,6 @@ from typing import Any
 
 import httpx
 import pytest
-
 from marketpipe.domain import AssetClass, Status, SymbolRecord
 from marketpipe.ingestion.symbol_providers import get
 from marketpipe.ingestion.symbol_providers.polygon import PolygonSymbolProvider

@@ -23,10 +23,7 @@ from ..domain.services import (
     JobCreationRequest,
 )
 from ..domain.storage import IDataStorage
-from ..domain.value_objects import (
-    IngestionCheckpoint,
-    IngestionPartition,
-)
+from ..domain.value_objects import IngestionCheckpoint, IngestionPartition
 from .commands import (
     CancelJobCommand,
     CompleteJobCommand,

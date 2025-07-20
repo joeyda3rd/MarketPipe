@@ -80,7 +80,7 @@ repos:
       # Configuration validation
       - id: config-check
         name: Configuration Check
-        entry: python scripts/health-check
+        entry: bash scripts/health-check
         language: system
         files: ^(config/|src/marketpipe/config/)
         pass_filenames: false

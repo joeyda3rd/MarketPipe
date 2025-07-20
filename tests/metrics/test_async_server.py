@@ -10,7 +10,6 @@ from unittest.mock import patch
 import httpx
 import pytest
 import pytest_asyncio
-
 from marketpipe.metrics import EVENT_LOOP_LAG, REQUESTS
 from marketpipe.metrics_server import (
     AsyncMetricsServer,

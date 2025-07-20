@@ -7,7 +7,7 @@ python_classes = Test*
 python_functions = test_*
 
 # Output and formatting
-addopts = 
+addopts =
     --strict-markers
     --strict-config
     --tb=short
@@ -47,4 +47,4 @@ addopts_cov = --cov-report=term-missing --cov-report=html
 # Filtering options for common workflows
 # Usage: pytest -m "not slow and not integration"  # Fast tests only
 # Usage: pytest -m "unit"                          # Unit tests only
-# Usage: pytest -m "integration"                   # Integration tests only 
+# Usage: pytest -m "integration"                   # Integration tests only

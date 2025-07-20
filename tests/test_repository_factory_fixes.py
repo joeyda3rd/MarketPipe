@@ -7,12 +7,11 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
+from marketpipe.ingestion.domain.entities import ProcessingState
 from marketpipe.ingestion.infrastructure.repository_factory import (
     create_ingestion_job_repository,
 )
 from marketpipe.ingestion.infrastructure.simple_job_adapter import SimpleJobRepository
-from marketpipe.ingestion.domain.entities import IngestionJob, ProcessingState
 
 
 class TestRepositoryFactoryFixes:
@@ -70,7 +69,10 @@ class TestSimpleJobRepositoryFixes:
     @pytest.fixture
     def simple_repo(self, mock_repo):
         """Create SimpleJobRepository with mocked backend."""
-        with patch('marketpipe.ingestion.infrastructure.simple_job_adapter.create_ingestion_job_repository', return_value=mock_repo):
+        with patch(
+            "marketpipe.ingestion.infrastructure.simple_job_adapter.create_ingestion_job_repository",
+            return_value=mock_repo,
+        ):
             return SimpleJobRepository()
 
     @pytest.mark.asyncio
@@ -83,15 +85,15 @@ class TestSimpleJobRepositoryFixes:
             ("Done", ProcessingState.COMPLETED),
             ("ERROR", ProcessingState.FAILED),
         ]
-        
+
         for status_input, expected_state in test_cases:
             mock_repo.get_job_history.return_value = []  # No existing jobs
-            
+
             await simple_repo.upsert("AAPL", "2024-01-01", status_input)
-            
+
             # Verify save was called
             assert mock_repo.save.called
-            
+
             # Reset mock for next iteration
             mock_repo.save.reset_mock()
 
@@ -103,13 +105,13 @@ class TestSimpleJobRepositoryFixes:
         mock_job.symbols = [MagicMock()]
         mock_job.symbols[0].__str__ = MagicMock(return_value="AAPL")
         mock_job.state = ProcessingState.PENDING
-        
+
         # Mock the _extract_day_string method to return a proper date string
-        with patch.object(simple_repo, '_extract_day_string', return_value="2024-01-01"):
+        with patch.object(simple_repo, "_extract_day_string", return_value="2024-01-01"):
             mock_repo.get_job_history.return_value = [mock_job]
-            
+
             result = await simple_repo.list_jobs()
-            
+
             assert isinstance(result, list)
             assert len(result) == 1
             assert isinstance(result[0], tuple)
@@ -129,17 +131,17 @@ class TestSimpleJobRepositoryFixes:
         mock_job.complete = MagicMock()
         mock_job.fail = MagicMock()
         mock_job.cancel = MagicMock()
-        
+
         # Mock finding the job
-        with patch.object(simple_repo, '_find_job_by_symbol_day', return_value=mock_job):
+        with patch.object(simple_repo, "_find_job_by_symbol_day", return_value=mock_job):
             # Test done status
             await simple_repo.mark_done("AAPL", "2024-01-01", "done")
             mock_job.complete.assert_called_once()
-            
-            # Test error status  
+
+            # Test error status
             await simple_repo.mark_done("AAPL", "2024-01-01", "error")
             mock_job.fail.assert_called_once()
-            
+
             # Test cancelled status
             await simple_repo.mark_done("AAPL", "2024-01-01", "cancelled")
             mock_job.cancel.assert_called_once()

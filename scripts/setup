@@ -69,4 +69,4 @@ if python -c "import marketpipe; print('✅ MarketPipe imported successfully')" 
 else
     echo "❌ Setup failed - MarketPipe not importable"
     exit 1
-fi 
+fi

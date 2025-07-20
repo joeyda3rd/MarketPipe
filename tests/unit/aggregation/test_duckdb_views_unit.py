@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 import duckdb
 import pandas as pd
 import pytest
-
 from marketpipe.aggregation.infrastructure import duckdb_views
 
 

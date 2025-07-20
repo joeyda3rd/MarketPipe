@@ -13,7 +13,6 @@ import tempfile
 from datetime import date, datetime, timezone
 
 import pytest
-
 from marketpipe.domain.aggregates import SymbolBarsAggregate
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.repositories import (

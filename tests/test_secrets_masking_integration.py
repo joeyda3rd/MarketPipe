@@ -7,7 +7,6 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-
 from marketpipe.ingestion.infrastructure.adapters import AlpacaMarketDataAdapter
 from marketpipe.ingestion.infrastructure.alpaca_client import AlpacaClient
 from marketpipe.ingestion.infrastructure.auth import HeaderTokenAuth
@@ -232,13 +231,13 @@ class TestSecretsInLogs:
         warning_logs = [
             record.message for record in caplog.records if record.levelname == "WARNING"
         ]
-        
+
         # In test suite context, log capture may fail due to isolation issues
         # If we have warning logs, verify they don't contain credentials
         if warning_logs:
             # Verify there are warning logs from translation failures
             assert len(warning_logs) > 0
-            
+
             # Verify warning logs don't contain full credentials
             for warning_msg in warning_logs:
                 assert test_api_key not in warning_msg
@@ -247,6 +246,7 @@ class TestSecretsInLogs:
             # If no warning logs were captured due to test isolation issues,
             # that's acceptable as long as the main security requirement is met
             import warnings
+
             warnings.warn(
                 "Log capture failed due to test isolation - main security check passed",
                 stacklevel=2,

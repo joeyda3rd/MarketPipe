@@ -34,7 +34,7 @@ CREATE TABLE ohlcv_bars_new (
 INSERT INTO ohlcv_bars_new (
     id, symbol, timestamp_ns, open_price, high_price, low_price, close_price, volume, created_at
 )
-SELECT 
+SELECT
     id, symbol, timestamp_ns, open_price, high_price, low_price, close_price, volume, created_at
 FROM ohlcv_bars;
 
@@ -43,21 +43,21 @@ DROP TABLE ohlcv_bars;
 ALTER TABLE ohlcv_bars_new RENAME TO ohlcv_bars;
 
 -- Recreate the index that was lost when we recreated the table
-CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_timestamp 
+CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_timestamp
 ON ohlcv_bars(symbol, timestamp_ns);
 
 COMMIT;
 
 -- Update existing rows to populate trading_date from timestamp_ns
 -- Convert nanoseconds to date in YYYY-MM-DD format
-UPDATE ohlcv_bars 
+UPDATE ohlcv_bars
 SET trading_date = date(timestamp_ns / 1000000000, 'unixepoch')
 WHERE trading_date IS NULL;
 
 -- Create index on trading_date for efficient queries
-CREATE INDEX IF NOT EXISTS idx_ohlcv_trading_date 
+CREATE INDEX IF NOT EXISTS idx_ohlcv_trading_date
 ON ohlcv_bars(trading_date);
 
 -- Create composite index for symbol and trading_date queries
-CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_trading_date 
-ON ohlcv_bars(symbol, trading_date); 
+CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_trading_date
+ON ohlcv_bars(symbol, trading_date);

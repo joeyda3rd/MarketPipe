@@ -7,9 +7,8 @@ import subprocess
 import sys
 import tempfile
 
-from typer.testing import CliRunner
-
 from marketpipe.cli import app
+from typer.testing import CliRunner
 
 
 def test_deprecated_ingest_command_warning():

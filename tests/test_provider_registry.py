@@ -4,7 +4,6 @@
 from unittest.mock import Mock, patch
 
 import pytest
-
 from marketpipe.domain.entities import OHLCVBar
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
 from marketpipe.domain.value_objects import Symbol, TimeRange

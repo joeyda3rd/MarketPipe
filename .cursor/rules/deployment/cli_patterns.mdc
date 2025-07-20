@@ -37,15 +37,15 @@ app = typer.Typer(
 @app.command()
 def ingest(
     config: str = typer.Option(
-        ..., 
-        "--config", 
+        ...,
+        "--config",
         "-c",
         help="Path to YAML configuration file"
     ),
     symbols: Optional[List[str]] = typer.Option(
         None,
         "--symbol",
-        "-s", 
+        "-s",
         help="Override symbols from config (can be used multiple times)"
     ),
     start_date: Optional[str] = typer.Option(
@@ -55,7 +55,7 @@ def ingest(
     ),
     end_date: Optional[str] = typer.Option(
         None,
-        "--end", 
+        "--end",
         help="Override end date (YYYY-MM-DD)"
     ),
     dry_run: bool = typer.Option(
@@ -71,10 +71,10 @@ def ingest(
         if not config_path.exists():
             typer.echo(f"❌ Config file not found: {config}", err=True)
             raise typer.Exit(1)
-        
+
         # Load and validate configuration
         pipeline_config = load_config(config)
-        
+
         # Apply CLI overrides
         if symbols:
             pipeline_config.symbols = symbols
@@ -82,24 +82,24 @@ def ingest(
             pipeline_config.start = start_date
         if end_date:
             pipeline_config.end = end_date
-        
+
         if dry_run:
             typer.echo("🔍 Dry run mode - showing what would be processed:")
             typer.echo(f"Symbols: {pipeline_config.symbols}")
             typer.echo(f"Date range: {pipeline_config.start} to {pipeline_config.end}")
             typer.echo(f"Output: {pipeline_config.output_path}")
             return
-        
+
         # Run ingestion
         typer.echo("🚀 Starting ingestion pipeline...")
         results = ingestion.ingest(pipeline_config)
-        
+
         # Report results
         typer.echo(f"✅ Ingestion completed successfully")
         typer.echo(f"Processed: {results['success']} tasks")
         if results['failed'] > 0:
             typer.echo(f"⚠️ Failed: {results['failed']} tasks")
-            
+
     except Exception as e:
         typer.echo(f"❌ Ingestion failed: {e}", err=True)
         raise typer.Exit(1)
@@ -126,17 +126,17 @@ def metrics(
     try:
         # Setup multiprocess metrics
         setup_multiprocess_metrics()
-        
+
         typer.echo(f"📊 Starting metrics server on http://localhost:{port}/metrics")
         typer.echo("Press Ctrl+C to stop the server")
-        
+
         # Start server
         metrics_server_run(port=port)
-        
+
         # Keep running
         while True:
             time.sleep(1)
-            
+
     except OSError as e:
         if e.errno == 98:  # Address already in use
             typer.echo(f"\n❌ Error: Port {port} is already in use!", err=True)
@@ -167,20 +167,20 @@ def validate_cli_config(config_path: str, **overrides) -> Tuple[PipelineConfig, 
         typer.echo(f"❌ Configuration file not found: {config_path}", err=True)
         typer.echo(f"💡 Create a config file based on: config/example_config.yaml")
         raise typer.Exit(1)
-    
+
     try:
         # Load configuration
         pipeline_config, vendor_configs = load_config(config_path)
-        
+
         # Apply overrides from CLI
         for key, value in overrides.items():
             if value is not None:
                 setattr(pipeline_config, key, value)
-        
+
         # Validate date range
         if pipeline_config.start and pipeline_config.end:
             validate_date_range(pipeline_config.start, pipeline_config.end)
-        
+
         # Check output directory is writable
         output_path = Path(pipeline_config.output_path)
         try:
@@ -188,9 +188,9 @@ def validate_cli_config(config_path: str, **overrides) -> Tuple[PipelineConfig, 
         except PermissionError:
             typer.echo(f"❌ Cannot write to output directory: {output_path}", err=True)
             raise typer.Exit(1)
-        
+
         return pipeline_config, vendor_configs
-        
+
     except yaml.YAMLError as e:
         typer.echo(f"❌ Invalid YAML in configuration file: {e}", err=True)
         raise typer.Exit(1)
@@ -269,12 +269,12 @@ def main():
     if len(sys.argv) != 2:
         print("Usage: python -m marketpipe.ingestion <config.yaml>")
         sys.exit(1)
-    
+
     config_path = sys.argv[1]
     if not Path(config_path).exists():
         print(f"Error: Config file not found: {config_path}")
         sys.exit(1)
-    
+
     from . import ingest
     try:
         ingest(config_path)
@@ -302,7 +302,7 @@ Examples:
   marketpipe ingest -c config.yaml --symbol AAPL --symbol GOOGL
   marketpipe metrics --port 8080
   marketpipe aggregate --input ./data --output ./aggregated
-  
+
 For more information, visit: https://github.com/yourorg/marketpipe
 """,
     epilog="Run 'marketpipe COMMAND --help' for more information on a command."
@@ -320,10 +320,10 @@ def ingest(
 ):
     """
     Run the ingestion pipeline to collect market data.
-    
+
     This command processes financial market data from configured sources
     and stores it in partitioned Parquet files.
-    
+
     Examples:
       marketpipe ingest --config config/alpaca.yaml
       marketpipe ingest -c config.yaml --symbol AAPL --start 2024-01-01
@@ -344,10 +344,10 @@ from rich.progress import Progress, BarColumn, TimeElapsedColumn
 def ingest(config: str):
     """Run ingestion with progress reporting."""
     pipeline_config, vendor_configs = validate_cli_config(config)
-    
+
     # Calculate total work
     total_tasks = len(pipeline_config.symbols) * len(pipeline_config.date_ranges)
-    
+
     with Progress(
         "[progress.description]{task.description}",
         BarColumn(),
@@ -355,18 +355,18 @@ def ingest(config: str):
         TimeElapsedColumn(),
         console=typer.get_console()
     ) as progress:
-        
+
         task = progress.add_task("Processing symbols", total=total_tasks)
-        
+
         def progress_callback(completed: int, total: int, current_symbol: str):
             """Update progress bar."""
             progress.update(task, completed=completed, description=f"Processing {current_symbol}")
-        
+
         # Run ingestion with progress callback
         results = ingestion.ingest_with_progress(pipeline_config, progress_callback)
-        
+
         progress.update(task, completed=total_tasks, description="Completed")
-    
+
     # Report final results
     typer.echo(f"✅ Processed {results['success']} tasks successfully")
     if results['failed'] > 0:

@@ -11,7 +11,7 @@ immediate_providers:
     auth_scheme: "simple API key"
     env_vars:
       - "MP_FINNHUB_API_KEY"
-    
+
   polygon:
     key: "polygon"
     description: "Tick-level US equities and options, fast WebSockets"
@@ -19,7 +19,7 @@ immediate_providers:
     auth_scheme: "simple API key"
     env_vars:
       - "MP_POLYGON_API_KEY"
-    
+
   iex:
     key: "iex"
     description: "US equities real-time and deep book, widely used"
@@ -28,7 +28,7 @@ immediate_providers:
     env_vars:
       - "MP_IEX_SECRET_TOKEN"
       - "MP_IEX_PUB_TOKEN"
-    
+
   alphavantage:
     key: "alphavantage"
     description: "Free tier, broad asset classes, global symbols"
@@ -36,7 +36,7 @@ immediate_providers:
     auth_scheme: "simple API key"
     env_vars:
       - "MP_ALPHAVANTAGE_API_KEY"
-    
+
   tiingo:
     key: "tiingo"
     description: "High-quality US equities & news, CSV/JSON"
@@ -44,7 +44,7 @@ immediate_providers:
     auth_scheme: "simple API key"
     env_vars:
       - "MP_TIINGO_API_KEY"
-    
+
   twelvedata:
     key: "twelvedata"
     description: "1-min global equities/forex, generous free tier"
@@ -52,7 +52,7 @@ immediate_providers:
     auth_scheme: "simple API key"
     env_vars:
       - "MP_TWELVEDATA_API_KEY"
-    
+
   binance:
     key: "binance"
     description: "Largest spot crypto exchange, global liquidity"
@@ -61,7 +61,7 @@ immediate_providers:
     env_vars:
       - "MP_BINANCE_API_KEY"
       - "MP_BINANCE_API_SECRET"
-    
+
   fred:
     key: "fred"
     description: "Macro indicators for risk models"
@@ -75,56 +75,56 @@ backlog_providers:
     key: "marketstack"
     env_vars:
       - "MP_MARKETSTACK_API_KEY"
-    
+
   eodhd:
     key: "eodhd"
     env_vars:
       - "MP_EODHD_API_KEY"
-    
+
   intrinio:
     key: "intrinio"
     env_vars:
       - "MP_INTRINIO_API_KEY"
-    
+
   tradier:
     key: "tradier"
     env_vars:
       - "MP_TRADIER_API_KEY"
       - "MP_TRADIER_API_SECRET"
-    
+
   quandl:
     key: "quandl"
     env_vars:
       - "MP_QUANDL_API_KEY"
-    
+
   refinitiv:
     key: "refinitiv"
     env_vars:
       - "MP_REFINITIV_APP_KEY"
-    
+
   exegy:
     key: "exegy"
     env_vars:
       - "MP_EXEGY_API_KEY"
-    
+
   cme_datamine:
     key: "cme_datamine"
     env_vars:
       - "MP_CME_DATAMINE_USERNAME"
       - "MP_CME_DATAMINE_PASSWORD"
-    
+
   kraken:
     key: "kraken"
     env_vars:
       - "MP_KRAKEN_API_KEY"
       - "MP_KRAKEN_API_SECRET"
-    
+
   coinbase:
     key: "coinbase"
     env_vars:
       - "MP_COINBASE_API_KEY"
       - "MP_COINBASE_API_SECRET"
-    
+
   yfinance:
     key: "yfinance"
     description: "No credentials required"
@@ -137,7 +137,7 @@ naming_convention:
     - "MP_POLYGON_API_KEY"
     - "MP_IEX_SECRET_TOKEN"
     - "MP_BINANCE_API_SECRET"
-  
+
   guidelines:
     - "Provider key must be lowercase in code, uppercase in env var"
     - "Credential names should be descriptive (API_KEY, SECRET_TOKEN, etc.)"

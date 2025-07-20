@@ -12,7 +12,6 @@ from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
 import pytest
-
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 from marketpipe.validation.application.services import ValidationRunnerService

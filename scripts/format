@@ -28,4 +28,4 @@ if command -v isort &> /dev/null; then
     isort src/ tests/ examples/
 fi
 
-echo "✅ Code formatting complete!" 
+echo "✅ Code formatting complete!"

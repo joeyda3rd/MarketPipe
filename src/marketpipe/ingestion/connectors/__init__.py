@@ -1,5 +1,3 @@
-"""Connector exports for easy access."""
-
 """Public connector exports for IDE-friendly auto-completion."""
 
 from ..infrastructure.auth import AuthStrategy, HeaderTokenAuth, TokenAuth

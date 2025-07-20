@@ -12,10 +12,9 @@ from datetime import date
 from textwrap import dedent
 
 import pytest
-from typer.testing import CliRunner
-
 from marketpipe.cli import app
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
+from typer.testing import CliRunner
 
 
 @pytest.mark.integration
@@ -234,9 +233,7 @@ class TestConfigurationExecutionFlow:
         # Check both stdout and stderr for error messages
         combined_output = (result.stdout + result.stderr).lower()
         assert (
-            "config" in combined_output
-            or "yaml" in combined_output
-            or "parse" in combined_output
+            "config" in combined_output or "yaml" in combined_output or "parse" in combined_output
         )
         print("✅ Invalid YAML handled gracefully")
 

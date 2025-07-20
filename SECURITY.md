@@ -198,4 +198,4 @@ We would like to thank the security community and researchers who help us improv
 
 ---
 
-**⚠️ Alpha Disclaimer**: As MarketPipe is currently in alpha, security features and policies are still evolving. We appreciate your patience and feedback as we work to build a secure financial data platform. 
+**⚠️ Alpha Disclaimer**: As MarketPipe is currently in alpha, security features and policies are still evolving. We appreciate your patience and feedback as we work to build a secure financial data platform.

@@ -579,4 +579,4 @@ This script demonstrates:
 - Metrics monitoring
 - Data querying and analysis
 - Gap detection and backfilling
-- Cleanup and maintenance operations 
+- Cleanup and maintenance operations

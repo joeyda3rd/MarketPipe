@@ -13,7 +13,7 @@ warnings.warn(
     "MarketPipe is in alpha development. Expect breaking changes and potential "
     "stability issues. Not recommended for production use without thorough testing.",
     UserWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Configure validation logger

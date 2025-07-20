@@ -366,7 +366,7 @@ class ComplianceValidator:
 
     def validate_data_lineage(self, data_items: list[dict]) -> dict:
         """Validate data lineage compliance."""
-        
+
         required_fields = self.compliance_rules["data_lineage"]["tracking_fields"]
         lineage_issues = []
 
@@ -399,7 +399,7 @@ class ComplianceValidator:
 
     def validate_pii_protection(self, data_items: list[dict]) -> dict:
         """Validate PII protection compliance."""
-        
+
         pii_violations = []
         pii_fields = ["email", "ssn", "phone", "address", "credit_card"]
 
@@ -407,7 +407,9 @@ class ComplianceValidator:
             for field_name, field_value in item.items():
                 if field_name.lower() in pii_fields:
                     # Check if PII is properly masked
-                    if isinstance(field_value, str) and not ("*" in field_value or "X" in field_value):
+                    if isinstance(field_value, str) and not (
+                        "*" in field_value or "X" in field_value
+                    ):
                         pii_violations.append(
                             {
                                 "item_id": item.get("id", "unknown"),

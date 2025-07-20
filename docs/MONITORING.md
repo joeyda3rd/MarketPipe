@@ -126,13 +126,13 @@ metrics:
   multiprocess_dir: "/var/lib/marketpipe/metrics"
   collection_interval: 15  # seconds
   retention_days: 7
-  
+
   # Export configuration
   export:
     prometheus: true
     json: true
     csv: false
-    
+
   # Alert thresholds
   alerts:
     error_rate_threshold: 0.05  # 5%
@@ -365,4 +365,4 @@ curl http://localhost:8001  # Dashboard
 curl http://localhost:8000/metrics  # Raw metrics
 ```
 
-For more advanced monitoring configurations, see the Grafana dashboard in `docs/grafana_dashboard.json` and environment variable reference in `docs/ENVIRONMENT_VARIABLES.md`. 
+For more advanced monitoring configurations, see the Grafana dashboard in `docs/grafana_dashboard.json` and environment variable reference in `docs/ENVIRONMENT_VARIABLES.md`.

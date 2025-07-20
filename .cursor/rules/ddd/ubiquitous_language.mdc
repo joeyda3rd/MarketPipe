@@ -275,8 +275,8 @@ Apply ubiquitous language in all communication:
 # Code comments
 def ingest_symbol_data(symbol: Symbol) -> None:
     """
-    Ingest OHLCV bars for the specified symbol from the configured 
-    market data provider. Validates data quality and stores in 
+    Ingest OHLCV bars for the specified symbol from the configured
+    market data provider. Validates data quality and stores in
     partitioned format for efficient retrieval.
     """
 

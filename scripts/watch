@@ -31,11 +31,11 @@ else
     echo ""
     echo "🔄 Falling back to manual watch loop..."
     echo "   Running tests every 5 seconds..."
-    
+
     while true; do
         sleep 5
         echo "🧪 Running tests..."
         pytest --tb=short -x || true
         echo ""
     done
-fi 
+fi

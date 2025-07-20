@@ -3,9 +3,8 @@ from __future__ import annotations
 import os
 from unittest.mock import patch
 
-from typer.testing import CliRunner
-
 from marketpipe.cli import app as root_app
+from typer.testing import CliRunner
 
 
 class TestSymbolsUpdateCommand:

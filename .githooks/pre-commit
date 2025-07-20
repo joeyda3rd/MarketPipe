@@ -58,7 +58,7 @@ echo -e "${BLUE}Command: $TEST_CMD${NC}"
 if [ "${SKIP_TESTS}" != "1" ]; then
     echo -e "\n${YELLOW}Run tests before committing? (Y/n/s=skip for this commit)${NC}"
     read -r response
-    
+
     case $response in
         [nN]|[nN][oO])
             echo -e "${YELLOW}⚠️  Skipping tests - make sure to run them later!${NC}"
@@ -85,4 +85,4 @@ else
     echo -e "${YELLOW}💡 To run all tests: make test-all${NC}"
     echo -e "${YELLOW}💡 To see test mapping: python3 scripts/smart_test_runner.py --show-mapping${NC}"
     exit 1
-fi 
+fi

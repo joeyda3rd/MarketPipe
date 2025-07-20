@@ -72,7 +72,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
       - GF_SECURITY_SECRET_KEY=${GRAFANA_SECRET}
-  
+
   prometheus:
     command:
       # Add authentication, TLS, etc.
@@ -100,7 +100,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-  
+
   marketpipe:
     environment:
       - DATABASE_URL=postgresql://marketpipe:${POSTGRES_PASSWORD}@postgres:5432/marketpipe
@@ -164,4 +164,4 @@ docker stats
 
 # Monitor logs in real-time
 docker compose logs -f --tail=100
-``` 
+```

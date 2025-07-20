@@ -106,16 +106,16 @@ from datetime import datetime
 
 class SchemaValidator:
     """Multi-level validator for OHLCV data."""
-    
+
     def __init__(self, schema_path: str):
         with open(schema_path, 'r') as f:
             self.schema_config = json.load(f)
-        
+
         # Build JSON Schema from config
         self.json_schema = self._build_json_schema()
         self.validator = jsonschema.Draft7Validator(self.json_schema)
         self.log = logging.getLogger(self.__class__.__name__)
-    
+
     def validate_batch(
         self,
         rows: List[Dict[str, Any]],
@@ -124,35 +124,35 @@ class SchemaValidator:
         """Validate batch of OHLCV rows with comprehensive checks."""
         valid_rows = []
         all_errors = []
-        
+
         for i, row in enumerate(rows):
             errors = []
-            
+
             # Level 1: Schema validation
             schema_errors = self._validate_schema(row)
             errors.extend([f"Schema: {err}" for err in schema_errors])
-            
+
             # Level 2: Business rules validation
             if not schema_errors:  # Only if schema is valid
                 business_errors = self._validate_business_rules(row)
                 errors.extend([f"Business: {err}" for err in business_errors])
-            
+
             # Level 3: Data quality checks
             quality_errors = self._validate_data_quality(row, symbol)
             errors.extend([f"Quality: {err}" for err in quality_errors])
-            
+
             if errors:
                 error_msg = f"Row {i}: {'; '.join(errors)}"
                 all_errors.append(error_msg)
                 self.log.warning(f"Validation failed for {symbol} row {i}: {errors}")
             else:
                 valid_rows.append(row)
-        
+
         if all_errors:
             self.log.warning(f"Validation failed for {len(all_errors)}/{len(rows)} rows in {symbol}")
-        
+
         return valid_rows, all_errors
-    
+
     def _validate_schema(self, row: Dict[str, Any]) -> List[str]:
         """Validate against JSON schema."""
         errors = []
@@ -160,11 +160,11 @@ class SchemaValidator:
             field_path = '.'.join(str(p) for p in error.absolute_path)
             errors.append(f"{error.message} at {field_path}")
         return errors
-    
+
     def _validate_business_rules(self, row: Dict[str, Any]) -> List[str]:
         """Validate business logic rules."""
         errors = []
-        
+
         # OHLC consistency
         try:
             o, h, l, c = row['open'], row['high'], row['low'], row['close']
@@ -172,7 +172,7 @@ class SchemaValidator:
                 errors.append("OHLC values are inconsistent (high should be >= open,close,low; low should be <= open,close,high)")
         except (KeyError, TypeError):
             errors.append("Missing or invalid OHLC values for consistency check")
-        
+
         # Volume validation
         try:
             volume = row['volume']
@@ -180,7 +180,7 @@ class SchemaValidator:
                 errors.append("Volume cannot be negative")
         except (KeyError, TypeError):
             errors.append("Missing or invalid volume")
-        
+
         # Timestamp alignment (1-minute bars should align to minute boundaries)
         try:
             timestamp_ns = row['timestamp']
@@ -188,17 +188,17 @@ class SchemaValidator:
                 errors.append("Timestamp does not align to minute boundary")
         except (KeyError, TypeError):
             errors.append("Missing or invalid timestamp for alignment check")
-        
+
         return errors
-    
+
     def _validate_data_quality(self, row: Dict[str, Any], symbol: str) -> List[str]:
         """Validate data quality and sanity checks."""
         errors = []
-        
+
         # Symbol consistency
         if row.get('symbol') != symbol:
             errors.append(f"Symbol mismatch: expected {symbol}, got {row.get('symbol')}")
-        
+
         # Price reasonableness (basic sanity check)
         try:
             prices = [row['open'], row['high'], row['low'], row['close']]
@@ -208,18 +208,18 @@ class SchemaValidator:
                 errors.append("Prices seem unreasonably high (>$100,000)")
         except (KeyError, TypeError):
             pass  # Already caught in schema validation
-        
+
         # Date consistency
         try:
             timestamp_ns = row['timestamp']
             date_from_timestamp = datetime.fromtimestamp(timestamp_ns / 1_000_000_000).date()
             date_from_field = datetime.fromisoformat(str(row['date'])).date()
-            
+
             if date_from_timestamp != date_from_field:
                 errors.append(f"Date field {date_from_field} doesn't match timestamp date {date_from_timestamp}")
         except (KeyError, ValueError, TypeError):
             errors.append("Cannot validate date consistency due to missing or invalid date/timestamp")
-        
+
         return errors
 ```
 
@@ -230,13 +230,13 @@ Provide comprehensive error reporting and recovery options:
 ```python
 class ValidationResult:
     """Container for validation results with detailed error information."""
-    
+
     def __init__(self):
         self.valid_rows: List[Dict[str, Any]] = []
         self.invalid_rows: List[Dict[str, Any]] = []
         self.errors: List[ValidationError] = []
         self.warnings: List[str] = []
-        
+
     def add_error(self, row_index: int, row: Dict[str, Any], error_type: str, message: str):
         """Add validation error with context."""
         error = ValidationError(
@@ -248,15 +248,15 @@ class ValidationResult:
         )
         self.errors.append(error)
         self.invalid_rows.append(row)
-    
+
     def add_warning(self, message: str):
         """Add validation warning."""
         self.warnings.append(message)
-    
+
     def is_valid(self) -> bool:
         """Check if validation passed."""
         return len(self.errors) == 0
-    
+
     def get_error_summary(self) -> Dict[str, int]:
         """Get summary of error types."""
         summary = {}
@@ -272,7 +272,7 @@ class ValidationError:
     error_type: str
     message: str
     timestamp: datetime
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for logging/serialization."""
         return {
@@ -291,11 +291,11 @@ Handle schema versioning and backward compatibility:
 ```python
 class SchemaManager:
     """Manages schema versions and evolution."""
-    
+
     def __init__(self, schema_dir: str):
         self.schema_dir = Path(schema_dir)
         self.schemas = self._load_all_schemas()
-    
+
     def _load_all_schemas(self) -> Dict[int, Dict[str, Any]]:
         """Load all available schema versions."""
         schemas = {}
@@ -304,13 +304,13 @@ class SchemaManager:
             with open(schema_file, 'r') as f:
                 schemas[version] = json.load(f)
         return schemas
-    
+
     def get_validator(self, version: int) -> SchemaValidator:
         """Get validator for specific schema version."""
         if version not in self.schemas:
             raise ValueError(f"Schema version {version} not found")
         return SchemaValidator.from_schema_dict(self.schemas[version])
-    
+
     def validate_with_migration(
         self,
         rows: List[Dict[str, Any]],
@@ -319,10 +319,10 @@ class SchemaManager:
         """Validate and migrate data to target schema version."""
         migrated_rows = []
         errors = []
-        
+
         for row in rows:
             source_version = row.get('schema_version', 1)
-            
+
             if source_version == target_version:
                 # No migration needed
                 migrated_rows.append(row)
@@ -333,24 +333,24 @@ class SchemaManager:
                     migrated_rows.append(migrated_row)
                 except Exception as e:
                     errors.append(f"Migration failed for row: {e}")
-        
+
         # Validate migrated data
         validator = self.get_validator(target_version)
         return validator.validate_batch(migrated_rows, "migrated")
-    
+
     def _migrate_row(self, row: Dict[str, Any], from_version: int, to_version: int) -> Dict[str, Any]:
         """Migrate a single row between schema versions."""
         if from_version == to_version:
             return row
-            
+
         # Apply migration rules based on version changes
         migrated = row.copy()
-        
+
         if from_version == 1 and to_version == 2:
             # Example migration: add new field with default value
             migrated['new_field'] = migrated.get('new_field', 'default_value')
             migrated['schema_version'] = 2
-        
+
         return migrated
 ```
 
@@ -361,12 +361,12 @@ Integrate validation into the data processing pipeline:
 ```python
 class ValidatedParquetWriter:
     """Parquet writer with built-in validation."""
-    
+
     def __init__(self, output_path: str, validator: SchemaValidator):
         self.output_path = Path(output_path)
         self.validator = validator
         self.log = logging.getLogger(self.__class__.__name__)
-    
+
     def write_batch_with_validation(
         self,
         rows: List[Dict[str, Any]],
@@ -377,25 +377,25 @@ class ValidatedParquetWriter:
         """Write batch after validation."""
         # Validate data
         valid_rows, errors = self.validator.validate_batch(rows, symbol)
-        
+
         if strict and errors:
             # In strict mode, fail if any validation errors
             raise ValueError(f"Validation failed for {symbol}: {errors}")
-        
+
         if not valid_rows:
             self.log.warning(f"No valid rows to write for {symbol} on {date}")
             return 0, errors
-        
+
         # Write valid rows
         rows_written = self._write_parquet(valid_rows, symbol, date)
-        
+
         # Log validation results
         if errors:
             self.log.warning(f"Wrote {rows_written} valid rows for {symbol}, "
                            f"skipped {len(errors)} invalid rows")
         else:
             self.log.info(f"Wrote {rows_written} rows for {symbol}, all passed validation")
-        
+
         return rows_written, errors
 ```
 

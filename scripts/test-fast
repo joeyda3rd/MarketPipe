@@ -5,17 +5,17 @@ Runs tests marked as 'fast' - suitable for development workflow.
 These tests should complete in under 5 seconds.
 """
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 
 def main():
     """Run fast tests for development feedback."""
-    
+
     # Get project root (parent of scripts directory)
     project_root = Path(__file__).parent.parent
-    
+
     try:
         cmd = [
             sys.executable, "-m", "pytest",
@@ -24,21 +24,21 @@ def main():
             "--disable-warnings",          # Clean output
             "-v",                          # Verbose for development
         ]
-        
+
         print("🚀 Running fast tests...")
         result = subprocess.run(cmd, cwd=project_root)
-        
+
         if result.returncode == 0:
             print("✅ All fast tests passed!")
         else:
             print("❌ Some fast tests failed!")
-        
+
         return result.returncode
-        
+
     except Exception as e:
         print(f"❌ Error running tests: {e}")
         return 1
 
 
 if __name__ == "__main__":
-    sys.exit(main()) 
+    sys.exit(main())

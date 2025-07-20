@@ -201,10 +201,12 @@ def _build_ingestion_services(
 ) -> tuple[IngestionJobService, IngestionCoordinatorService]:
     """Build and wire the DDD ingestion services with shared storage engine."""
     # Use the configured output path as the base directory for all data
-    base_data_dir = Path(output_path).parent  # Get parent of output_path (e.g., if output_path is "data/raw", use "data")
+    base_data_dir = Path(
+        output_path
+    ).parent  # Get parent of output_path (e.g., if output_path is "data/raw", use "data")
     if base_data_dir == Path("."):  # If parent is current dir, use output_path itself
         base_data_dir = Path(output_path)
-    
+
     # Create data directory if it doesn't exist
     base_data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -237,7 +239,7 @@ def _build_ingestion_services(
     # Repository setup - use base_data_dir instead of hardcoded "data"
     db_dir = base_data_dir / "db"
     db_dir.mkdir(exist_ok=True)
-    
+
     core_db_path = str(db_dir / "core.db")
     job_repo = SqliteIngestionJobRepository(str(base_data_dir / "ingestion_jobs.db"))
     checkpoint_repo = SqliteCheckpointRepository(core_db_path)
@@ -424,7 +426,7 @@ def _ingest_impl(
     from marketpipe.bootstrap import bootstrap
 
     bootstrap()
-    
+
     # Alpha software warning
     print("⚠️  ALPHA SOFTWARE WARNING: MarketPipe is in alpha development.")
     print("   Expect breaking changes and potential stability issues.")
@@ -701,11 +703,11 @@ Options:
     validate_workers(workers)
     validate_batch_size(batch_size)
     validate_output_dir(output_path)
-    
+
     # Convert output_path to Path after validation
     if output_path is not None:
         output_path = Path(output_path)
-    
+
     validate_config_file(str(config) if config else None)
 
     # Date and symbol validation
@@ -810,11 +812,11 @@ Options:
     validate_workers(workers)
     validate_batch_size(batch_size)
     validate_output_dir(output_path)
-    
+
     # Convert output_path to Path after validation
     if output_path is not None:
         output_path = Path(output_path)
-    
+
     validate_config_file(str(config) if config else None)
     validate_date_range(start, end)
     validate_symbols(symbols)

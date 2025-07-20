@@ -6,13 +6,12 @@ from __future__ import annotations
 import subprocess
 import tempfile
 import time
-import yaml
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 import pytest
+import yaml
 
 
 @dataclass
@@ -71,12 +70,12 @@ class PipelineSmokeValidator:
         # Enhanced cleanup of persistent database files to prevent job conflicts
         persistent_db_files = [
             self.base_dir / "data" / "ingestion_jobs.db",
-            self.base_dir / "data" / "metrics.db", 
+            self.base_dir / "data" / "metrics.db",
             self.base_dir / "data" / "db" / "core.db",
             self.base_dir / "data" / "db" / "marketpipe.db",
             self.base_dir / "data" / "db" / "warehouse.duckdb",
         ]
-        
+
         # Try multiple cleanup attempts to handle file locking issues
         for attempt in range(3):
             cleanup_successful = True
@@ -86,10 +85,10 @@ class PipelineSmokeValidator:
                         db_file.unlink()
                     except (PermissionError, OSError):
                         cleanup_successful = False
-            
+
             if cleanup_successful:
                 break
-            
+
             # Wait a bit before retrying cleanup
             if attempt < 2:
                 time.sleep(0.1)
@@ -160,25 +159,25 @@ class PipelineSmokeValidator:
 
     def _filter_operational_logs(self, stderr_output: str) -> str:
         """Filter out operational logs from stderr output to focus on actual errors."""
-        lines = stderr_output.split('\n')
+        lines = stderr_output.split("\n")
         filtered_lines = []
-        
+
         for line in lines:
             # Skip alembic INFO logs which are operational, not errors
-            if 'INFO  [alembic.runtime.migration]' in line:
+            if "INFO  [alembic.runtime.migration]" in line:
                 continue
             # Skip alpha warning - this is informational, not an error
-            if 'MarketPipe is in alpha development' in line:
+            if "MarketPipe is in alpha development" in line:
                 continue
             # Skip the __import__ line that follows alpha warnings
-            if '__import__(pkg_name)' in line:
+            if "__import__(pkg_name)" in line:
                 continue
             # Skip other operational messages
-            if line.strip() == '':
+            if line.strip() == "":
                 continue
             filtered_lines.append(line)
-        
-        return '\n'.join(filtered_lines)
+
+        return "\n".join(filtered_lines)
 
     def _has_actual_errors(self, stderr_output: str) -> bool:
         """Check if stderr contains actual errors vs just operational logs."""
@@ -233,7 +232,9 @@ class PipelineSmokeValidator:
                 # Check if this is a test isolation issue (alpha warning in stderr)
                 if "MarketPipe is in alpha development" in list_result.stderr:
                     # This is likely a test isolation issue, skip validation gracefully
-                    return True, ["Validation skipped due to test isolation - this is expected in test suite"]
+                    return True, [
+                        "Validation skipped due to test isolation - this is expected in test suite"
+                    ]
                 return False, [f"Could not list validation jobs: {list_result.stderr}"]
 
             # Run validation (without specific job ID for latest)
@@ -252,7 +253,9 @@ class PipelineSmokeValidator:
             else:
                 # Check if this is a test isolation issue
                 if "MarketPipe is in alpha development" in validate_result.stderr:
-                    return True, ["Validation skipped due to test isolation - this is expected in test suite"]
+                    return True, [
+                        "Validation skipped due to test isolation - this is expected in test suite"
+                    ]
                 return False, [f"Validation failed: {validate_result.stderr}"]
 
         except subprocess.TimeoutExpired:
@@ -381,7 +384,7 @@ class PipelineTestScenarioGenerator:
                 provider="fake",
                 symbols=["AAPL"],  # Use only AAPL for reliability
                 start_date="2024-02-01",  # Use different month to avoid conflicts
-                end_date="2024-02-15",   # Shorter range for faster execution
+                end_date="2024-02-15",  # Shorter range for faster execution
                 expected_records_min=19000,  # ~20k minutes in 2 weeks
             )
         )
@@ -513,7 +516,7 @@ class TestPipelineSmokeValidation:
             # Add a longer delay between scenarios to ensure proper cleanup
             if i > 0:
                 time.sleep(1.0)  # Increased from 0.5 to 1.0 seconds
-                
+
             result = pipeline_validator.run_pipeline_scenario(scenario)
 
             # Check basic success criteria

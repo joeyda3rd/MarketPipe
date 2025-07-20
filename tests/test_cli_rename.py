@@ -7,9 +7,8 @@ from unittest.mock import patch
 
 import pytest
 import typer
-from typer.testing import CliRunner
-
 from marketpipe.cli import app
+from typer.testing import CliRunner
 
 runner = CliRunner()
 

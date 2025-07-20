@@ -9,7 +9,7 @@ Complete Grafana dashboard for monitoring MarketPipe ETL operations.
 
 **Features:**
 - **Request Rate**: API requests per second by vendor
-- **Error Rate**: API errors and failure rates  
+- **Error Rate**: API errors and failure rates
 - **Latency**: Request duration percentiles (50th, 95th, 99th)
 - **Ingestion Backlog**: Pending ingestion jobs by symbol
 - **Data Quality**: Validation errors and data quality metrics
@@ -62,7 +62,7 @@ scrape_configs:
 
 ### Application Metrics
 - `marketpipe_requests_total` - Total API requests by vendor
-- `marketpipe_errors_total` - Total errors by vendor and status code  
+- `marketpipe_errors_total` - Total errors by vendor and status code
 - `marketpipe_request_duration_seconds` - Request latency histogram
 - `marketpipe_ingestion_backlog` - Pending ingestion jobs by symbol
 - `marketpipe_data_quality_total` - Data quality issues by type
@@ -114,7 +114,7 @@ groups:
 - **Success Rate**: Percentage of successful requests
 - **Error Breakdown**: Errors by status code and vendor
 
-### Performance Monitoring  
+### Performance Monitoring
 - **Response Times**: Latency percentiles over time
 - **Throughput**: Data processing rate (rows/second)
 - **Queue Depth**: Pending work by symbol
@@ -154,4 +154,4 @@ marketpipe metrics --port 8000
 ### Performance Impact
 - Metrics collection adds ~1-2% CPU overhead
 - Multiprocess mode required for production (multiple workers)
-- Consider metrics retention policies for long-running systems 
+- Consider metrics retention policies for long-running systems

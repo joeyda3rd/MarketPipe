@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Back-fill gaps in daily OHLCV parquet partitions.
 
 Implements the ``mp ohlcv backfill`` command that:
@@ -14,6 +12,8 @@ invoke the private ``_ingest_impl`` helper with *start=end=gap_day* which
 already takes care of repository wiring, validation, storage, etc.
 """
 
+from __future__ import annotations
+
 import asyncio
 import datetime as dt
 from pathlib import Path
@@ -26,10 +26,7 @@ from marketpipe.config import ConfigVersionError, load_config
 from marketpipe.domain.events import BackfillJobCompleted, BackfillJobFailed
 from marketpipe.infrastructure.events import InMemoryEventPublisher
 from marketpipe.ingestion.services.gap_detector import GapDetectorService
-from marketpipe.metrics import (
-    BACKFILL_GAP_LATENCY_SECONDS,
-    BACKFILL_GAPS_FOUND_TOTAL,
-)
+from marketpipe.metrics import BACKFILL_GAP_LATENCY_SECONDS, BACKFILL_GAPS_FOUND_TOTAL
 
 # ---------------------------------------------------------------------------
 # Typer sub-app will be attached from ``marketpipe.cli.__init__``

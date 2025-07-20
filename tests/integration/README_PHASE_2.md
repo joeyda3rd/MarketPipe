@@ -50,12 +50,12 @@ class ErrorInjector:
     @contextmanager
     def storage_error(error_type: str, message: str):
         # Injects storage layer errors (permission, disk full, corruption)
-    
-    @staticmethod 
+
+    @staticmethod
     @contextmanager
     def duckdb_error(error_type: str, message: str):
         # Injects DuckDB layer errors (SQL, connection)
-        
+
     # Additional injection points for network, validation layers
 ```
 
@@ -64,10 +64,10 @@ class ErrorInjector:
 class PerformanceMonitor:
     def start(self):
         # Begins real-time memory and timing monitoring
-        
+
     def stop(self) -> Dict[str, float]:
         # Returns comprehensive performance metrics
-        
+
     def _monitor_loop(self):
         # Background thread for continuous monitoring
 ```
@@ -94,7 +94,7 @@ def generate_realistic_trading_data(symbols, trading_days, bars_per_day=390):
 
 ### Performance Test Scenarios
 1. **Single Symbol Full Year**: 252 trading days × 390 bars = 98,280 bars
-2. **Multi-Symbol Single Day**: 50 symbols × 390 bars = 19,500 bars  
+2. **Multi-Symbol Single Day**: 50 symbols × 390 bars = 19,500 bars
 3. **Large File Handling**: 2,000+ bars per individual file
 4. **Concurrent Operations**: Simultaneous read/write operations
 5. **Memory Leak Detection**: 20 repeated operation cycles
@@ -133,7 +133,7 @@ def generate_realistic_trading_data(symbols, trading_days, bars_per_day=390):
 
 ### Performance Test Coverage
 - ✅ Single symbol full year processing
-- ✅ Multi-symbol concurrent processing  
+- ✅ Multi-symbol concurrent processing
 - ✅ Large file handling performance
 - ✅ Concurrent read/write operations
 - ✅ Memory leak detection
@@ -173,12 +173,12 @@ def generate_realistic_trading_data(symbols, trading_days, bars_per_day=390):
 
 ## 📈 Impact on E2E Coverage
 
-**Before Phase 2**: ~70% E2E coverage with critical aggregation mocking gap  
+**Before Phase 2**: ~70% E2E coverage with critical aggregation mocking gap
 **After Phase 2**: ~90% E2E coverage with comprehensive error handling and performance validation
 
 **Key Gaps Eliminated**:
 - ❌ Error propagation testing across system layers → ✅ **Complete coverage**
-- ❌ Performance validation under realistic load → ✅ **Comprehensive benchmarking**  
+- ❌ Performance validation under realistic load → ✅ **Comprehensive benchmarking**
 - ❌ Security validation during error scenarios → ✅ **Secret masking verified**
 - ❌ Resource cleanup validation → ✅ **Memory leak detection**
 - ❌ Concurrent operation testing → ✅ **Thread safety validated**

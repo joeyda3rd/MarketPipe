@@ -114,7 +114,7 @@ make test-cmd
 
 ### Multiple Safety Nets
 1. **Pattern matching**: File changes → specific tests
-2. **Dependency analysis**: Import relationships → related tests  
+2. **Dependency analysis**: Import relationships → related tests
 3. **Safety fallbacks**: Unknown files → unit test coverage
 4. **Critical path protection**: Core files → full test suite
 5. **Human oversight**: Dry run shows test plan before execution
@@ -190,4 +190,4 @@ python -c "import pytest_asyncio; print('Async support available')"
 2. **Always `make test-all`** before pushing
 3. **Use `make test-show`** when unsure what will run
 4. **Check `make test-timing`** weekly for performance
-5. **Keep workspace separate** for experimental features 
+5. **Keep workspace separate** for experimental features

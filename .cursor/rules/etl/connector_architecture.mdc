@@ -32,17 +32,17 @@ from .auth import AuthStrategy
 
 class NewVendorClient(BaseApiClient):
     """New vendor API client implementation."""
-    
+
     _PATH_TEMPLATE = "/v1/bars"
-    
+
     def __init__(self, *args, feed: str = "default", **kwargs):
         super().__init__(*args, **kwargs)
         self.feed = feed
         self.log.info(f"NewVendorClient initialized with feed: {feed}")
-    
+
     def endpoint_path(self) -> str:
         return self._PATH_TEMPLATE
-    
+
     def build_request_params(
         self,
         symbol: str,
@@ -52,15 +52,15 @@ class NewVendorClient(BaseApiClient):
     ) -> Mapping[str, str]:
         """Build vendor-specific query parameters."""
         # Vendor-specific implementation
-    
+
     def next_cursor(self, raw_json: Dict[str, Any]) -> Optional[str]:
         """Extract pagination cursor from response."""
         # Vendor-specific implementation
-    
+
     def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Convert vendor response to canonical OHLCV format."""
         # Transform to standard schema
-    
+
     def should_retry(self, status: int, body: Dict[str, Any]) -> bool:
         """Determine if request should be retried."""
         # Vendor-specific retry logic
@@ -84,24 +84,24 @@ def _request(self, params: Mapping[str, str]) -> Dict[str, Any]:
     """Synchronous HTTP request with retry logic."""
     if self.rate_limiter:
         self.rate_limiter.acquire()
-    
+
     url = f"{self.config.base_url}{self.endpoint_path()}"
     headers = {"Accept": "application/json", "User-Agent": self.config.user_agent}
     self.auth.apply(headers, params={})
-    
+
     retries = 0
     while True:
         start = time.perf_counter()
         response = httpx.get(url, params=params, headers=headers, timeout=self.config.timeout)
         duration = time.perf_counter() - start
-        
+
         # Record metrics
         LATENCY.labels(self.__class__.__name__.lower().replace('client', '')).observe(duration)
         REQUESTS.labels(self.__class__.__name__.lower().replace('client', '')).inc()
-        
+
         if response.status_code >= 400:
             ERRORS.labels(self.__class__.__name__.lower().replace('client', ''), str(response.status_code)).inc()
-        
+
         try:
             response_json = response.json()
         except (json.JSONDecodeError, ValueError) as e:
@@ -115,14 +115,14 @@ def _request(self, params: Mapping[str, str]) -> Dict[str, Any]:
                 continue
             else:
                 raise RuntimeError(f"Failed to parse API response: {response.text}")
-        
+
         if not self.should_retry(response.status_code, response_json):
             return response_json
-        
+
         retries += 1
         if retries > self.config.max_retries:
             raise RuntimeError(f"Request exceeded retry limit: {response.text}")
-        
+
         sleep_time = self._backoff(retries)
         self.log.warning(f"Retry {retries} sleeping {sleep_time:.2f}s")
         time.sleep(sleep_time)
@@ -210,18 +210,18 @@ def should_retry(self, status: int, body: Dict[str, Any]) -> bool:
     # Standard HTTP errors that should be retried
     if status in {429, 500, 502, 503, 504}:
         return True
-    
+
     # Vendor-specific error conditions
     if status == 403:
         error_code = body.get("error_code")
         if error_code in {"rate_limit", "temporary_ban"}:
             return True
-    
+
     # Check error message for rate limiting
     error_message = str(body).lower()
     if "too many requests" in error_message or "rate limit" in error_message:
         return True
-    
+
     return False
 
 @staticmethod
@@ -249,14 +249,14 @@ def fetch_with_checkpoints(
     if checkpoint:
         start_ts = max(start_ts, int(checkpoint))
         self.log.info(f"Resuming from checkpoint: {checkpoint}")
-    
+
     rows = self.fetch_batch(symbol, start_ts, end_ts)
-    
+
     # Save checkpoint after successful fetch
     if rows:
         latest_timestamp = max(row["timestamp"] for row in rows)
         self.save_checkpoint(symbol, latest_timestamp)
-    
+
     return rows
 ```
 
@@ -271,19 +271,19 @@ def test_new_vendor_client_pagination(monkeypatch):
         {"data": [mock_bar_1], "next_cursor": "abc"},
         {"data": [mock_bar_2], "next_cursor": None}
     ]
-    
+
     def mock_get(url, params=None, headers=None, timeout=None):
         body = pages.pop(0)
         return MockResponse(status_code=200, json_data=body)
-    
+
     monkeypatch.setattr(httpx, "get", mock_get)
-    
+
     config = ClientConfig(api_key="test", base_url="https://api.test.com")
     auth = HeaderTokenAuth("api-key", "api-secret")
     client = NewVendorClient(config=config, auth=auth)
-    
+
     rows = client.fetch_batch("AAPL", 0, 1000)
-    
+
     assert len(rows) == 2
     assert all(row["schema_version"] == 1 for row in rows)
     assert all(row["source"] == "newvendor" for row in rows)

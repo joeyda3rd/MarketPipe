@@ -7,7 +7,6 @@ from datetime import timezone
 from pathlib import Path
 
 import pyarrow.parquet as pq
-
 from marketpipe.domain.value_objects import Symbol
 from marketpipe.ingestion.domain.value_objects import IngestionConfiguration
 from marketpipe.ingestion.infrastructure.parquet_storage import ParquetDataStorage

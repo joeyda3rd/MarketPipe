@@ -6,10 +6,9 @@ from unittest.mock import Mock
 
 import pandas as pd
 import pytest
-
 from marketpipe.domain.entities import EntityId, OHLCVBar
-from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
 from marketpipe.domain.events import IngestionJobCompleted
+from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 from marketpipe.ingestion.domain.entities import IngestionJobId
 from marketpipe.validation.application.services import ValidationRunnerService

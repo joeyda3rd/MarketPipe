@@ -7,9 +7,8 @@ import os
 import tempfile
 from unittest.mock import AsyncMock, patch
 
-from typer.testing import CliRunner
-
 from marketpipe.cli import app
+from typer.testing import CliRunner
 
 runner = CliRunner()
 

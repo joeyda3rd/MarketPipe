@@ -210,4 +210,4 @@ Add local hooks:
       language: system
 ```
 
-For more information, see the [official pre-commit documentation](https://pre-commit.com/). 
+For more information, see the [official pre-commit documentation](https://pre-commit.com/).

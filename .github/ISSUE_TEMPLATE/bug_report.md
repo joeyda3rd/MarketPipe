@@ -83,4 +83,4 @@ Paste logs here
 - [ ] Configuration
 - [ ] Docker Deployment
 - [ ] Database Migrations
-- [ ] Other (please specify): ________________ 
+- [ ] Other (please specify): ________________

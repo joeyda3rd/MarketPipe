@@ -8,7 +8,6 @@ from unittest.mock import patch
 import duckdb
 import pandas as pd
 import pytest
-
 from marketpipe.ingestion.normalizer.scd_writer import (
     _add_partition_columns,
     _count_new_files,

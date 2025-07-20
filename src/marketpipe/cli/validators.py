@@ -96,7 +96,7 @@ def validate_output_dir(output: Path | str | None) -> None:
     # Check for empty path string
     if output == "":
         cli_error("output path cannot be empty", code=2)
-    
+
     # Convert to Path for further validation
     if isinstance(output, str):
         output = Path(output)

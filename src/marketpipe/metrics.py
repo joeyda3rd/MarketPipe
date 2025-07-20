@@ -10,13 +10,13 @@ from pathlib import Path
 from prometheus_client import Counter, Gauge, Histogram, Summary
 
 from marketpipe.infrastructure.sqlite_async_mixin import SqliteAsyncMixin
-from marketpipe.migrations import apply_pending
 
 # Rate limiter metrics (imported from rate_limit module)
 from marketpipe.ingestion.infrastructure.rate_limit import RATE_LIMITER_WAITS
 
 # Event loop lag monitoring (imported from metrics_server module)
 from marketpipe.metrics_server import EVENT_LOOP_LAG
+from marketpipe.migrations import apply_pending
 
 # Core metrics with full label set: source, provider, feed
 REQUESTS = Counter("mp_requests_total", "API requests", ["source", "provider", "feed"])

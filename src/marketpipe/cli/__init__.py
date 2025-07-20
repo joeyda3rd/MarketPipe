@@ -45,8 +45,8 @@ import warnings
 
 # Main CLI app
 app = typer.Typer(
-    add_completion=False, 
-    help="MarketPipe ETL commands for financial data processing\n\n⚠️  ALPHA SOFTWARE: Expect breaking changes and stability issues. Not recommended for production use."
+    add_completion=False,
+    help="MarketPipe ETL commands for financial data processing\n\n⚠️  ALPHA SOFTWARE: Expect breaking changes and stability issues. Not recommended for production use.",
 )
 
 # OHLCV sub-app for pipeline commands
@@ -94,11 +94,7 @@ if not _USING_TYER_STUB:
         aggregate_ohlcv_convenience,
     )
     from .ohlcv_backfill import app as backfill_app
-    from .ohlcv_ingest import (
-        ingest_deprecated,
-        ingest_ohlcv,
-        ingest_ohlcv_convenience,
-    )
+    from .ohlcv_ingest import ingest_deprecated, ingest_ohlcv, ingest_ohlcv_convenience
     from .ohlcv_validate import (
         validate_deprecated,
         validate_ohlcv,

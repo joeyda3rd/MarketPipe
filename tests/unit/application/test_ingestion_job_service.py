@@ -8,7 +8,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.application.commands import (
     CancelJobCommand,

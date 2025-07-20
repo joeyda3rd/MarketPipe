@@ -146,7 +146,7 @@ scripts/check    # Health check
 scripts/test-fast
 
 # Pre-commit tests (ultra-fast, ~2s)
-scripts/pre-commit-tests  
+scripts/pre-commit-tests
 
 # Full test suite with coverage
 scripts/test-full
@@ -264,10 +264,10 @@ providers:
   alpaca:
     feed: "iex"  # or "sip" for premium data
     rate_limit: 200
-  
+
 database:
   url: "postgresql://user:pass@host/db"
-  
+
 monitoring:
   enabled: true
   port: 8000

@@ -98,4 +98,4 @@ Most tools require MarketPipe to be installed in development mode:
 pip install -e ".[dev]"
 ```
 
-Some tools may require additional PostgreSQL setup or specific configuration files. 
+Some tools may require additional PostgreSQL setup or specific configuration files.

@@ -99,4 +99,4 @@ fi
 echo ""
 echo "🎯 Summary:"
 echo "   Run 'scripts/setup' if you see any issues"
-echo "   Run 'scripts/demo' to test end-to-end functionality" 
+echo "   Run 'scripts/demo' to test end-to-end functionality"

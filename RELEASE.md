@@ -138,4 +138,4 @@ For production releases (v1.0.0+):
 1. Set up Test PyPI account and configure `TEST_PYPI_TOKEN` secret
 2. Test the alpha release process with v0.1.0-alpha.1
 3. Document any issues or improvements needed
-4. Plan for beta and stable release processes 
+4. Plan for beta and stable release processes

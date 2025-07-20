@@ -51,4 +51,4 @@ echo "✅ Cleanup complete!"
 # Show what's left in the directory
 echo ""
 echo "📂 Current directory contents:"
-ls -la | grep -E "^(d|l)" | head -10 
+ls -la | grep -E "^(d|l)" | head -10
