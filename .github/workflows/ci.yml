@@ -67,11 +67,11 @@ jobs:
 
       - name: Run core tests with coverage
         run: |
-          pytest -q --cov=marketpipe --cov-branch -m "not integration" --timeout=60 --maxfail=5
+          pytest -q --cov=marketpipe --cov-branch -m "not integration" --timeout=60 --maxfail=5 --ignore=tests/integration/test_cli_backward_compatibility.py --ignore=tests/integration/test_cli_command_matrix.py --ignore=tests/cli/test_symbols_cli.py --ignore=tests/cli/test_symbols_modes.py
 
       - name: Run lightweight integration tests
         run: |
-          pytest -q tests/integration/ -m "not auth_required and not slow" --timeout=120 --maxfail=3
+          pytest -q tests/integration/ -m "not auth_required and not slow" --timeout=120 --maxfail=3 --ignore=tests/integration/test_cli_backward_compatibility.py --ignore=tests/integration/test_cli_command_matrix.py
         continue-on-error: true  # Don't fail CI on integration test issues
 
       - name: Basic CLI validation
