@@ -315,7 +315,7 @@ class TestBoundaryConditionsEndToEnd:
                 print(
                     "⚠️  No aggregated data created from minimal dataset (expected for single bar)"
                 )
-        except:
+        except Exception:
             print("⚠️  Aggregation skipped for insufficient data (expected)")
 
         print("✅ Minimal dataset processing test completed")

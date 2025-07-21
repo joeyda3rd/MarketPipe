@@ -38,10 +38,8 @@ import yaml
 try:
     import typer
     from rich.console import Console
-    from rich.panel import Panel
     from rich.progress import BarColumn, Progress, TimeElapsedColumn
     from rich.table import Table
-    from rich.text import Text
 except ImportError as e:
     print(f"❌ Missing required dependencies: {e}")
     print("Please install with: pip install typer rich")

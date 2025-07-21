@@ -149,7 +149,7 @@ class PipelineRunner:
                     if not self.dry_run:
                         print("🔧 Auto-fixing stuck jobs...")
 
-                        for job_id, symbol, day, _state, _created_at, updated_at in stuck_jobs:
+                        for job_id, symbol, day, _state, _created_at, _updated_at in stuck_jobs:
                             cursor.execute(
                                 """
                                 UPDATE ingestion_jobs

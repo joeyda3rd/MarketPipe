@@ -507,7 +507,7 @@ class ComprehensivePipelineValidator:
                                     pass_rate = int(passed) / int(total)
                                     if pass_rate >= 0.8:  # 80% pass rate acceptable
                                         return "PASS"
-                        except:
+                        except Exception:
                             pass
 
         # Jobs commands may return non-zero when no jobs exist (not necessarily failure)

@@ -46,13 +46,13 @@ class TestAgeParser:
 
     def test_invalid_expressions(self):
         """Test invalid age expressions."""
-        with pytest.raises(Exception):  # typer.BadParameter
+        with pytest.raises(ValueError):  # typer.BadParameter
             _parse_age("invalid")
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             _parse_age("30x")  # Invalid unit
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             _parse_age("")  # Empty string
 
 

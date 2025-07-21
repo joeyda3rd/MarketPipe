@@ -147,11 +147,11 @@ def install_dependencies():
             return False
 
     # Check if asyncpg is available
-    try:
-        import asyncpg
+    import importlib.util
 
+    if importlib.util.find_spec("asyncpg") is not None:
         print("✅ asyncpg is already available")
-    except ImportError:
+    else:
         print("📦 Installing asyncpg...")
         if run_command(f"{sys.executable} -m pip install asyncpg", "Install asyncpg"):
             print("✅ asyncpg installed successfully")

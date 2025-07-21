@@ -74,7 +74,7 @@ class PerformanceMonitor:
                 current_memory_mb = self.process.memory_info().rss / 1024 / 1024
                 self.peak_memory_mb = max(self.peak_memory_mb, current_memory_mb)
                 time.sleep(0.1)  # Monitor every 100ms
-            except:
+            except Exception:
                 break
 
 
