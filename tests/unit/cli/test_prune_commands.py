@@ -7,8 +7,9 @@ import datetime as dt
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from marketpipe.cli.prune import _parse_age, prune_app
 from typer.testing import CliRunner
+
+from marketpipe.cli.prune import _parse_age, prune_app
 
 
 class TestAgeParser:

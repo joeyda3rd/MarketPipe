@@ -6,6 +6,7 @@ import asyncio
 from unittest.mock import Mock
 
 import pytest
+
 from marketpipe.domain.events import DomainEvent
 from marketpipe.infrastructure.events.publishers import InMemoryEventPublisher
 

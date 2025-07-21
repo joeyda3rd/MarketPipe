@@ -9,25 +9,25 @@ from typing import Any, Dict, Optional, Protocol, runtime_checkable
 @runtime_checkable
 class HttpResponse(Protocol):
     """Protocol for HTTP response objects."""
-    
+
     status_code: int
     headers: Dict[str, str]
     text: str
-    
+
     def json(self) -> Dict[str, Any]:
         """Parse response as JSON."""
         ...
 
 
-@runtime_checkable  
+@runtime_checkable
 class HttpClientProtocol(Protocol):
     """Protocol for HTTP client implementations.
-    
+
     This protocol allows for dependency injection of HTTP clients,
     enabling tests to inject fake HTTP clients instead of using
     real HTTP libraries.
     """
-    
+
     def get(
         self,
         url: str,
@@ -36,13 +36,13 @@ class HttpClientProtocol(Protocol):
         timeout: Optional[float] = None,
     ) -> HttpResponse:
         """Make a synchronous GET request.
-        
+
         Args:
             url: Request URL
             params: Query parameters
-            headers: Request headers  
+            headers: Request headers
             timeout: Request timeout in seconds
-            
+
         Returns:
             HttpResponse: Response object with status, headers, and body
         """
@@ -52,7 +52,7 @@ class HttpClientProtocol(Protocol):
 @runtime_checkable
 class AsyncHttpClientProtocol(Protocol):
     """Protocol for async HTTP client implementations."""
-    
+
     async def get(
         self,
         url: str,
@@ -61,13 +61,13 @@ class AsyncHttpClientProtocol(Protocol):
         timeout: Optional[float] = None,
     ) -> HttpResponse:
         """Make an asynchronous GET request.
-        
+
         Args:
             url: Request URL
             params: Query parameters
             headers: Request headers
             timeout: Request timeout in seconds
-            
+
         Returns:
             HttpResponse: Response object with status, headers, and body
         """
@@ -78,33 +78,33 @@ class AsyncHttpClientProtocol(Protocol):
 
 class HttpxResponseAdapter:
     """Adapter to make httpx.Response compatible with HttpResponse protocol."""
-    
+
     def __init__(self, httpx_response):
         self._response = httpx_response
-        
+
     @property
     def status_code(self) -> int:
         return self._response.status_code
-        
+
     @property
     def headers(self) -> Dict[str, str]:
         return dict(self._response.headers)
-        
+
     @property
     def text(self) -> str:
         return self._response.text
-        
+
     def json(self) -> Dict[str, Any]:
         return self._response.json()
 
 
 class HttpxClientAdapter:
     """Adapter to make httpx.Client compatible with HttpClientProtocol."""
-    
+
     def __init__(self, httpx_client=None):
         import httpx
         self._client = httpx_client or httpx
-        
+
     def get(
         self,
         url: str,
@@ -124,11 +124,11 @@ class HttpxClientAdapter:
 
 class AsyncHttpxClientAdapter:
     """Adapter to make httpx.AsyncClient compatible with AsyncHttpClientProtocol."""
-    
+
     def __init__(self, httpx_client=None):
         import httpx
         self._client = httpx_client or httpx
-        
+
     async def get(
         self,
         url: str,
@@ -155,4 +155,4 @@ def get_default_http_client() -> HttpClientProtocol:
 
 def get_default_async_http_client() -> AsyncHttpClientProtocol:
     """Get default async HTTP client implementation."""
-    return AsyncHttpxClientAdapter() 
+    return AsyncHttpxClientAdapter()

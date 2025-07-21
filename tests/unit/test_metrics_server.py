@@ -6,6 +6,7 @@ import tempfile
 from unittest.mock import Mock, patch
 
 import pytest
+
 from marketpipe.metrics_server import AsyncMetricsServer, metrics_app, run
 
 

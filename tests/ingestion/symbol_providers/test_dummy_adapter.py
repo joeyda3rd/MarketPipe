@@ -15,6 +15,7 @@ from __future__ import annotations
 import datetime
 
 import pytest
+
 from marketpipe.domain import AssetClass, Status, SymbolRecord
 from marketpipe.ingestion.symbol_providers import get
 from marketpipe.ingestion.symbol_providers.dummy import DummyProvider

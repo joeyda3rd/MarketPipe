@@ -15,8 +15,8 @@ DEMONSTRATES:
 from __future__ import annotations
 
 import pytest
-from marketpipe.domain.value_objects import Symbol
 
+from marketpipe.domain.value_objects import Symbol
 from tests.base import BenchmarkTestCase, IntegrationTestCase, PipelineTestCase
 
 

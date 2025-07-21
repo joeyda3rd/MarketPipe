@@ -1,74 +1,95 @@
-# Documentation
+# MarketPipe Documentation
 
-## Getting Started
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI version](https://badge.fury.io/py/marketpipe.svg)](https://badge.fury.io/py/marketpipe)
+[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![CI Status](https://github.com/yourorg/marketpipe/workflows/CI/badge.svg)](https://github.com/yourorg/marketpipe/actions)
+[![Coverage](https://codecov.io/gh/yourorg/marketpipe/branch/main/graph/badge.svg)](https://codecov.io/gh/yourorg/marketpipe)
 
-- **[Getting Started Guide](GETTING_STARTED.md)** - Complete setup and first steps
-- **[Main README](../README.md)** - Project overview and quick start
-- **[Contributing Guide](../CONTRIBUTING.md)** - Development workflow and guidelines
+**Modern, Python-native ETL framework for financial market data workflows with Domain-Driven Design**
 
-## Development
+MarketPipe transforms how you collect, validate, and store financial market data. Built with modern Python patterns, it provides a robust, scalable foundation for financial data workflows with enterprise-grade observability and monitoring.
 
-- **[Pre-commit Framework](pre-commit.md)** - Code quality and automated checks setup
-- **[Migration Guide](migration-guide.md)** - Migrating to new pre-commit and test framework
-- **[CLI Commands Reference](CLI_COMMANDS_REFERENCE.md)** - Complete command documentation
-- **[Testing](#testing)** - Test organization and markers
+> **⚠️ Alpha Software**: MarketPipe is currently in alpha. APIs may change and features are being actively developed. Use with caution in production environments.
 
-## Configuration
+## Quick Navigation
 
-- **[Environment Variables](ENVIRONMENT_VARIABLES.md)** - Complete reference for all environment variables
-- **[Environment Variables Quick Reference](ENV_VARIABLES_QUICK_REFERENCE.md)** - Quick lookup table
-- **[Provider Environment Map](provider_env_map.yaml)** - YAML reference for data provider credentials
+### 🚀 **New Users**
+- **[Getting Started](getting_started.md)** - Installation, first run, and hello-world example
+- **[CLI Usage](user_guide/cli_usage.md)** - Command reference and common workflows
+- **[Configuration](user_guide/configuration.md)** - Setup and configuration guide
+- **[Troubleshooting](user_guide/troubleshooting.md)** - FAQ and common issues
 
-## Monitoring
+### 🔧 **Operators & DevOps**
+- **[Monitoring](user_guide/monitoring.md)** - Metrics, alerting, and observability
+- **[CLI Reference](reference/cli/)** - Complete command documentation
+- **[Configuration Reference](user_guide/configuration.md)** - All environment variables and settings
 
-- **[Monitoring Guide](MONITORING.md)** - Observability, metrics, and monitoring setup
-- **[Grafana Dashboard](grafana_dashboard.json)** - Pre-built monitoring dashboard
+### 👩‍💻 **Contributors**
+- **[Contributing](developer_guide/contributing.md)** - Development setup and workflow
+- **[Architecture](developer_guide/architecture.md)** - System design and patterns
+- **[Testing](developer_guide/testing.md)** - Test strategy and guidelines
+- **[Release Process](developer_guide/release_process.md)** - How we ship releases
 
-## Testing
+## Features Highlights
 
-MarketPipe uses a comprehensive test suite with clear organization:
+### 🏗️ **Modern Architecture**
+- Domain-Driven Design with enforced boundaries
+- Plugin-based providers for easy integration
+- Async/sync dual APIs for maximum flexibility
+- Type-safe configuration with validation
 
-### Test Markers
-Tests are organized with pytest markers for flexible execution:
+### 📊 **Data Providers**
+- **Alpaca Markets** - Real-time and historical data
+- **IEX Cloud** - Professional-grade financial data
+- **Fake Provider** - Generate test data
+- **Extensible Plugin System** - Add custom providers
+
+### 🔧 **ETL Pipeline**
+- Parallel ingestion across symbols and timeframes
+- Schema validation with business rule enforcement
+- Incremental loading with checkpoint/resume
+- Partitioned Parquet storage for performance
+
+### 📈 **Observability**
+- Prometheus metrics with multiprocess support
+- Grafana dashboards for real-time monitoring
+- Structured logging with configurable levels
+- Performance tracking and error alerting
+
+## Quick Start
+
+Install and run your first data ingestion in 2 minutes:
 
 ```bash
-# Speed-based markers
-pytest -m fast          # Ultra-fast tests (<2s total)
-pytest -m unit           # Unit tests (fast, isolated)
-pytest -m integration    # Integration tests (slower)
-pytest -m slow           # Tests taking >5 seconds
+# Install MarketPipe
+pip install marketpipe
 
-# Domain-specific markers
-pytest -m api_client     # API client and connector tests
-pytest -m config         # Configuration tests
-pytest -m database       # Database interaction tests
-pytest -m cli           # Command-line interface tests
+# Set up credentials
+echo "ALPACA_KEY=your_key" > .env
+echo "ALPACA_SECRET=your_secret" >> .env
+
+# Run first ingestion
+marketpipe ingest --symbol AAPL --start 2024-01-02 --end 2024-01-02
+
+# View results
+marketpipe query --symbol AAPL --limit 10
 ```
 
-### Test Scripts
-```bash
-scripts/pre-commit-tests  # Ultra-fast (~2s) - used by pre-commit hooks
-scripts/test-fast        # Fast tests (~3s) - development feedback
-scripts/test-full        # Complete suite with coverage
-scripts/test-ci          # Simulate CI environment locally
-```
+See the [Getting Started Guide](getting_started.md) for detailed setup instructions.
 
-## Examples
+## Support & Community
 
-Check out [examples/](../examples/) for usage examples.
+- **GitHub Issues**: [Report bugs or request features](https://github.com/yourorg/marketpipe/issues)
+- **Discussions**: [Community Q&A and ideas](https://github.com/yourorg/marketpipe/discussions)
+- **Contributing**: [Join our contributor community](developer_guide/contributing.md)
+- **Security**: [Report security issues](../SECURITY.md)
 
-## Code Structure
+## License
 
-The code is organized into:
-- `src/marketpipe/` - Main source code following Domain-Driven Design
-- `tests/` - Tests mirror the source structure with clear markers
-- `scripts/` - Development and testing scripts
-- `tools/` - Database and development utilities
+MarketPipe is licensed under the [Apache 2.0 License](../LICENSE).
 
-## Need Help?
+---
 
-- Start with the [Getting Started Guide](GETTING_STARTED.md)
-- Look at the code - it's designed to be readable
-- Check the examples directory
-- Review the [pre-commit setup](pre-commit.md) for development
-- Open an issue for questions
+*Last updated: 2024-01-20*

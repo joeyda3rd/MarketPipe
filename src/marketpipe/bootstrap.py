@@ -116,10 +116,10 @@ def bootstrap() -> None:
         try:
             # Use the new orchestrator-based approach
             from marketpipe.bootstrap import get_global_orchestrator
-            
+
             orchestrator = get_global_orchestrator()
             result = orchestrator.bootstrap()
-            
+
             if not result.success:
                 raise RuntimeError(result.error_message or "Bootstrap failed")
 
@@ -149,12 +149,12 @@ def reset_bootstrap_state() -> None:
     global _BOOTSTRAPPED
     with _BOOTSTRAP_LOCK:
         _BOOTSTRAPPED = False
-        
+
         # Also reset the orchestrator's state
         from marketpipe.bootstrap import get_global_orchestrator
         orchestrator = get_global_orchestrator()
         orchestrator.reset_bootstrap_state()
-        
+
     logger.debug("Bootstrap state reset for testing")
 
 

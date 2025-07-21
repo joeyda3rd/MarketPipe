@@ -10,6 +10,7 @@ from datetime import date
 
 import duckdb
 import pytest
+
 from marketpipe.ingestion.normalizer.refresh_views import refresh
 
 

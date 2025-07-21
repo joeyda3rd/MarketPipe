@@ -9,11 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from marketpipe.bootstrap import (
-    BootstrapOrchestrator,
-    set_global_orchestrator,
-)
-
+from marketpipe.bootstrap import BootstrapOrchestrator, set_global_orchestrator
 from tests.fakes.bootstrap import (
     FakeEnvironmentProvider,
     FakeServiceRegistry,

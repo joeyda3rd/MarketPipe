@@ -10,8 +10,9 @@ from __future__ import annotations
 import datetime
 
 import pytest
-from marketpipe.domain import AssetClass, Status, SymbolRecord
 from pydantic import ValidationError
+
+from marketpipe.domain import AssetClass, Status, SymbolRecord
 
 # Test fixtures
 SAMPLE_JSON = {

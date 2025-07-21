@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pytest
+
 # Import from the legacy bootstrap module, not the new bootstrap package
 import marketpipe.bootstrap as legacy_bootstrap
 

@@ -13,6 +13,7 @@ from pathlib import Path
 
 import duckdb
 import pytest
+
 from marketpipe.domain import AssetClass, Status, SymbolRecord
 from marketpipe.ingestion.symbol_providers import get as get_provider
 

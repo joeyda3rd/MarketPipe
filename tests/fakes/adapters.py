@@ -11,9 +11,9 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from marketpipe.domain.entities import OHLCVBar, EntityId
+from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
-from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp, Price, Volume
+from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
 
 
 @dataclass
@@ -405,29 +405,29 @@ class FakeMarketDataProvider(IMarketDataProvider):
 
 
 def create_test_ohlcv_bars(
-    symbol: Symbol, 
-    count: int = 10, 
+    symbol: Symbol,
+    count: int = 10,
     start_time: datetime = None
 ) -> List[OHLCVBar]:
     """Create test OHLCV bars for testing purposes.
-    
+
     Args:
         symbol: Symbol to create bars for
         count: Number of bars to create
         start_time: Starting timestamp (defaults to recent time)
-        
+
     Returns:
         List of OHLCVBar entities with sequential timestamps
     """
-    from datetime import timezone, timedelta
-    
+    from datetime import timedelta, timezone
+
     if start_time is None:
         start_time = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-        
+
     bars = []
     for i in range(count):
         timestamp = start_time + timedelta(minutes=i)
-        
+
         bar = OHLCVBar(
             id=EntityId.generate(),
             symbol=symbol,
@@ -439,5 +439,5 @@ def create_test_ohlcv_bars(
             volume=Volume(1000 + i * 10),
         )
         bars.append(bar)
-        
+
     return bars

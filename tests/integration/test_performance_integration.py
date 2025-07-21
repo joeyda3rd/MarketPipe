@@ -17,6 +17,7 @@ from datetime import date, datetime, timedelta, timezone
 import pandas as pd
 import psutil
 import pytest
+
 from marketpipe.aggregation.application.services import AggregationRunnerService
 from marketpipe.aggregation.domain.services import AggregationDomainService
 from marketpipe.aggregation.infrastructure.duckdb_engine import DuckDBAggregationEngine

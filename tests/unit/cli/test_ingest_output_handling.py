@@ -9,8 +9,9 @@ from unittest.mock import AsyncMock, patch
 
 import pyarrow as pa
 import pyarrow.parquet as pq
-from marketpipe.cli import app
 from typer.testing import CliRunner
+
+from marketpipe.cli import app
 
 
 class TestCLIOutputHandling:

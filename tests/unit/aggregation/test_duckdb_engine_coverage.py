@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pandas as pd
+
 from marketpipe.aggregation.domain.value_objects import FrameSpec
 from marketpipe.aggregation.infrastructure.duckdb_engine import DuckDBAggregationEngine
 

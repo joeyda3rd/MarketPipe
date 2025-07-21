@@ -2,6 +2,7 @@
 """Unit tests for CsvReportRepository."""
 
 import pytest
+
 from marketpipe.validation.domain.value_objects import BarError, ValidationResult
 from marketpipe.validation.infrastructure.repositories import CsvReportRepository
 

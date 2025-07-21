@@ -7,6 +7,7 @@ from datetime import date
 from unittest.mock import Mock, patch
 
 import pytest
+
 from marketpipe.ingestion.infrastructure.verification import (
     IngestionVerificationService,
     VerificationResult,

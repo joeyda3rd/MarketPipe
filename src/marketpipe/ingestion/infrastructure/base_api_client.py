@@ -38,16 +38,16 @@ class BaseApiClient(abc.ABC):
         self.metrics = metrics_collector or (lambda *a, **k: None)
         self.state = state_backend
         self.log = logger or logging.getLogger(self.__class__.__name__)
-        
+
         # HTTP client dependency injection
         self.http_client = http_client
         self.async_http_client = async_http_client
-        
+
         # Lazy initialization of HTTP clients
         if self.http_client is None:
             from .http_client_protocol import get_default_http_client
             self.http_client = get_default_http_client()
-            
+
         if self.async_http_client is None:
             from .http_client_protocol import get_default_async_http_client
             self.async_http_client = get_default_async_http_client()

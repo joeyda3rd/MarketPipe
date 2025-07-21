@@ -1,0 +1,111 @@
+site_name: MarketPipe Documentation
+site_description: ETL pipeline for financial market data
+site_url: https://marketpipe.dev
+repo_name: yourorg/marketpipe
+repo_url: https://github.com/yourorg/marketpipe
+edit_uri: edit/main/docs/
+
+# Theme configuration
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.action.edit
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - footnotes
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+# Plugins
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+  - minify:
+      minify_html: true
+
+# Extra
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/yourorg/marketpipe
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/marketpipe/
+  version:
+    provider: mike
+    default: stable
+
+# Navigation structure
+nav:
+  - Home: README.md
+
+  - Getting Started:
+    - Overview: getting_started.md
+
+  - User Guide:
+    - CLI Usage: user_guide/cli_usage.md
+    - Configuration: user_guide/configuration.md
+    - Monitoring: user_guide/monitoring.md
+    - Troubleshooting: user_guide/troubleshooting.md
+
+  - Developer Guide:
+    - Contributing: developer_guide/contributing.md
+    - Architecture: developer_guide/architecture.md
+    - Testing: developer_guide/testing.md
+
+  - Reference:
+    - CLI Commands: user_guide/cli_usage.md#cli-commands-reference
+    - Configuration Options: user_guide/configuration.md#configuration-reference
+    - Metrics & Alerts: user_guide/monitoring.md#metrics-reference
+    - Error Codes: user_guide/troubleshooting.md#common-errors
+    - Environment Variables: user_guide/configuration.md#environment-variables
+
+  - Support:
+    - FAQ: getting_started.md#faq
+    - Troubleshooting: user_guide/troubleshooting.md
+    - Issue Templates: developer_guide/contributing.md#reporting-issues
+    - Community: README.md#support--community
+    - Release Notes: release_notes.md

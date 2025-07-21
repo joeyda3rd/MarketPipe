@@ -7,8 +7,9 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
-from marketpipe.cli import app
 from typer.testing import CliRunner
+
+from marketpipe.cli import app
 
 
 @pytest.fixture

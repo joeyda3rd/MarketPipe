@@ -12,6 +12,7 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from marketpipe.bootstrap import bootstrap, is_bootstrapped, reset_bootstrap_state
 
 
@@ -36,8 +37,9 @@ class TestBootstrapSideEffects:
 
     def test_help_command_no_db_creation(self, tmp_path):
         """Test that running --help does not create database files."""
-        from marketpipe.cli import app
         from typer.testing import CliRunner
+
+        from marketpipe.cli import app
 
         # Set up clean environment
         with patch.dict(os.environ, {"MP_DB": str(tmp_path / "test_core.db")}):
@@ -56,8 +58,9 @@ class TestBootstrapSideEffects:
 
     def test_subcommand_help_no_db_creation(self, tmp_path):
         """Test that subcommand help does not trigger bootstrap."""
-        from marketpipe.cli import app
         from typer.testing import CliRunner
+
+        from marketpipe.cli import app
 
         with patch.dict(os.environ, {"MP_DB": str(tmp_path / "test_core.db")}):
             reset_bootstrap_state()
@@ -172,8 +175,9 @@ class TestCliCommandBootstrap:
 
     def test_ingest_command_calls_bootstrap(self, tmp_path):
         """Test that ingest command calls bootstrap."""
-        from marketpipe.cli import app
         from typer.testing import CliRunner
+
+        from marketpipe.cli import app
 
         with patch.dict(os.environ, {"MP_DB": str(tmp_path / "test_core.db")}):
             reset_bootstrap_state()
@@ -221,8 +225,9 @@ class TestCliCommandBootstrap:
 
     def test_validate_command_calls_bootstrap(self, tmp_path):
         """Test that validate command calls bootstrap."""
-        from marketpipe.cli import app
         from typer.testing import CliRunner
+
+        from marketpipe.cli import app
 
         with patch.dict(os.environ, {"MP_DB": str(tmp_path / "test_core.db")}):
             reset_bootstrap_state()
@@ -250,8 +255,9 @@ class TestCliCommandBootstrap:
 
     def test_aggregate_command_calls_bootstrap(self, tmp_path):
         """Test that aggregate command calls bootstrap."""
-        from marketpipe.cli import app
         from typer.testing import CliRunner
+
+        from marketpipe.cli import app
 
         with patch.dict(os.environ, {"MP_DB": str(tmp_path / "test_core.db")}):
             reset_bootstrap_state()
@@ -284,8 +290,9 @@ class TestCliCommandBootstrap:
 
     def test_metrics_command_calls_bootstrap(self, tmp_path):
         """Test that metrics command calls bootstrap."""
-        from marketpipe.cli import app
         from typer.testing import CliRunner
+
+        from marketpipe.cli import app
 
         with patch.dict(os.environ, {"MP_DB": str(tmp_path / "test_core.db")}):
             reset_bootstrap_state()
@@ -322,8 +329,9 @@ class TestCliCommandBootstrap:
 
     def test_query_command_calls_bootstrap(self, tmp_path):
         """Test that query command calls bootstrap."""
-        from marketpipe.cli import app
         from typer.testing import CliRunner
+
+        from marketpipe.cli import app
 
         with patch.dict(os.environ, {"MP_DB": str(tmp_path / "test_core.db")}):
             reset_bootstrap_state()

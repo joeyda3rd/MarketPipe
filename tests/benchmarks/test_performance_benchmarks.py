@@ -21,8 +21,8 @@ from datetime import datetime, timezone
 
 import psutil
 import pytest
-from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 
+from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from tests.base import BenchmarkTestCase
 from tests.fakes.adapters import FakeMarketDataAdapter, create_test_ohlcv_bars
 

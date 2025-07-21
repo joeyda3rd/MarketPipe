@@ -13,14 +13,14 @@ This guide explains when to use integration tests vs unit tests in MarketPipe, b
 # GOOD: Tests cross-component behavior
 def test_full_ingestion_pipeline_with_validation():
     """Integration test: provider → coordinator → storage → validation"""
-    provider = FakeMarketDataAdapter() 
+    provider = FakeMarketDataAdapter()
     coordinator = IngestionCoordinatorService(provider, database, metrics)
     result = coordinator.ingest_symbol_data(symbol, time_range)
     # Tests real component interactions
 ```
 
 #### ✅ **External System Integration**
-```python 
+```python
 # GOOD: Tests real database operations
 def test_bootstrap_with_real_migrations():
     orchestrator = BootstrapOrchestrator(
@@ -31,7 +31,7 @@ def test_bootstrap_with_real_migrations():
     # Tests actual database migration behavior
 ```
 
-#### ✅ **Complex State Management** 
+#### ✅ **Complex State Management**
 ```python
 # GOOD: Tests stateful behavior across operations
 def test_bootstrap_idempotent_with_real_database():
@@ -60,7 +60,7 @@ def test_pipeline_memory_usage_with_large_datasets():
 
 #### ✅ **Single Component Logic**
 ```python
-# GOOD: Tests single domain object behavior  
+# GOOD: Tests single domain object behavior
 def test_ohlcv_bar_validates_price_consistency():
     # Tests a single entity's validation rules
     with pytest.raises(ValueError, match="OHLC prices are inconsistent"):
@@ -76,7 +76,7 @@ def test_timestamp_conversion_to_nanoseconds():
 ```
 
 #### ✅ **Algorithm Implementation**
-```python  
+```python
 # GOOD: Tests specific algorithm logic
 def test_exponential_backoff_calculation():
     backoff = AlpacaClient._backoff(attempt=3)
@@ -113,19 +113,19 @@ def test_with_real_database():
 
 ### Pattern 2: Real HTTP + Controlled Responses
 
-```python 
+```python
 def test_with_real_http_server():
     """Use real HTTP server for network behavior, control responses."""
     mock_server = MockHTTPServer()  # Real HTTP server
     mock_server.configure_response("AAPL", bars_data)  # Controlled responses
-    
+
     client = AlpacaClient(config=ClientConfig(base_url=mock_server.get_url()))
     # Tests real HTTP client behavior with controlled server responses
 ```
 
 **Benefits:**
 - Tests actual HTTP client behavior (retries, timeouts, headers)
-- Tests realistic network conditions 
+- Tests realistic network conditions
 - Controlled, repeatable responses
 
 ### Pattern 3: Dependency Injection with Mixed Real/Fake
@@ -154,7 +154,7 @@ def test_mixed_real_fake_components():
 ```python
 # BAD: Integration test that mocks everything
 @patch('marketpipe.storage.write')
-@patch('marketpipe.validation.validate') 
+@patch('marketpipe.validation.validate')
 @patch('marketpipe.provider.fetch')
 def test_pipeline_all_mocked():
     # This is not an integration test - it's a complex unit test!
@@ -197,7 +197,7 @@ def test_pipeline_calls_private_methods():
 - Use fake HTTP clients instead of real network calls when possible
 - Limit concurrent operations in tests
 
-### Unit Test Performance  
+### Unit Test Performance
 
 **Target:** Unit tests should complete in < 100ms each
 
@@ -217,14 +217,14 @@ def integration_environment():
     """Complete test environment with realistic data."""
     db = FakeDatabase()
     http_client = FakeHttpClient()
-    
+
     # Seed with realistic test data
     test_bars = create_test_ohlcv_bars(
         symbol="AAPL",
         count=100,
         start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
     )
-    
+
     return IntegrationTestEnvironment(db, http_client, test_bars)
 ```
 
@@ -245,18 +245,18 @@ def test_price_calculation():
 
 ### Integration Error Testing
 
-```python  
+```python
 def test_pipeline_handles_database_failure():
     """Test error propagation across components."""
     db = FakeDatabase()
     db.configure_failure_after_operations(5)  # Fail after 5 operations
-    
+
     coordinator = IngestionCoordinatorService(provider, db, metrics)
-    
+
     # Should handle database failure gracefully
     with pytest.raises(DatabaseError):
         coordinator.process_large_dataset(...)
-    
+
     # Verify partial progress was made
     assert metrics.get_counter_value("bars_processed") == 5
 ```
@@ -265,7 +265,7 @@ def test_pipeline_handles_database_failure():
 
 ```python
 def test_price_validation_error():
-    """Test specific validation error.""" 
+    """Test specific validation error."""
     with pytest.raises(ValueError, match="Price cannot be negative"):
         Price.from_float(-10.0)
 ```
@@ -276,7 +276,7 @@ def test_price_validation_error():
 
 **When integration tests fail:**
 1. Check test environment setup (database, HTTP server)
-2. Verify test data configuration 
+2. Verify test data configuration
 3. Check component interaction logs
 4. Ensure proper cleanup between tests
 
@@ -305,7 +305,7 @@ def test_price_validation_error():
 ### Converting Mock-Heavy Tests to Integration
 
 1. **Identify integration points** - what components interact?
-2. **Choose real vs fake components** - what needs to be real for confidence?  
+2. **Choose real vs fake components** - what needs to be real for confidence?
 3. **Set up test environment** - database, HTTP server, etc.
 4. **Replace mocks with fakes** - more realistic test doubles
 5. **Verify same coverage** - ensure new tests cover same scenarios
@@ -321,9 +321,9 @@ def test_price_validation_error():
 def test_ingestion_old(mock_val, mock_save, mock_get):
     mock_get.return_value = Mock(status_code=200, json=lambda: {...})
     mock_val.return_value = ValidationResult(valid=True)
-    
+
     result = ingest_data("AAPL")
-    
+
     mock_get.assert_called_once()
     mock_save.assert_called_once()
     # Can only test mock interactions, not real behavior
@@ -333,13 +333,13 @@ def test_ingestion_integration():
     """Integration test with realistic components."""
     http_client = FakeHttpClient()
     http_client.configure_response(r".*", body={...})  # Realistic response
-    
+
     database = FakeDatabase()  # Real SQLite operations
     validator = RealValidator()  # Real validation logic
-    
+
     coordinator = IngestionCoordinator(http_client, database, validator)
     result = coordinator.ingest_data("AAPL")
-    
+
     # Can test real behavior
     assert result.bars_processed == 10
     stored_bars = database.query_bars("AAPL")  # Real database query
@@ -355,4 +355,4 @@ def test_ingestion_integration():
 
 **Key Principle:** Choose the test type that gives you the most confidence in the behavior you're trying to verify, while keeping tests maintainable and fast.
 
-The MarketPipe test infrastructure refactoring shows that **well-designed integration tests using dependency injection and realistic fakes can provide much higher confidence than complex mock-based tests**, while still being maintainable and reasonably fast. 
+The MarketPipe test infrastructure refactoring shows that **well-designed integration tests using dependency injection and realistic fakes can provide much higher confidence than complex mock-based tests**, while still being maintainable and reasonably fast.

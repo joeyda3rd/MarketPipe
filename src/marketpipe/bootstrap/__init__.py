@@ -20,11 +20,7 @@ from .interfaces import (  # Concrete implementations
 )
 
 # Export orchestrator
-from .orchestrator import (
-    BootstrapOrchestrator,
-    get_global_orchestrator,
-    set_global_orchestrator,
-)
+from .orchestrator import BootstrapOrchestrator, get_global_orchestrator, set_global_orchestrator
 
 sys.path.insert(0, os.path.dirname(__file__))
 try:

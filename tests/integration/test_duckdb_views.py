@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pandas as pd
 import pytest
+
 from marketpipe.aggregation.infrastructure import duckdb_views
 
 

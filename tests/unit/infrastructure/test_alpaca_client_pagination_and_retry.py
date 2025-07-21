@@ -7,6 +7,7 @@ import asyncio
 import types
 
 import httpx
+
 from marketpipe.ingestion.infrastructure.alpaca_client import AlpacaClient
 from marketpipe.ingestion.infrastructure.auth import HeaderTokenAuth
 from marketpipe.ingestion.infrastructure.models import ClientConfig

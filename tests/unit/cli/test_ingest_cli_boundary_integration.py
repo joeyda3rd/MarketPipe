@@ -5,8 +5,9 @@ from __future__ import annotations
 import sys
 from unittest.mock import AsyncMock, patch
 
-from marketpipe.cli import app
 from typer.testing import CliRunner
+
+from marketpipe.cli import app
 
 
 class TestIngestCLIBoundaryIntegration:
