@@ -27,13 +27,13 @@ logger = logging.getLogger(__name__)
 
 def load_ohlcv(
     symbols: Union[str, Sequence[str]],
-    start: Union[str, dt].Optional[datetime] = None,
-    end: Union[str, dt].Optional[datetime] = None,
+    start: Union[str, Optional[dt.datetime]] = None,
+    end: Union[str, Optional[dt.datetime]] = None,
     timeframe: str = "1m",
     *,
     as_polars: bool = False,
-    root: str | Optional[Path] = None,
-) -> pd.Union[DataFrame, pl].DataFrame:
+    root: Union[str, Optional[Path]] = None,
+) -> Union[pd.DataFrame, pl.DataFrame]:
     """
     Load OHLCV bars from the local Parquet lake.
 

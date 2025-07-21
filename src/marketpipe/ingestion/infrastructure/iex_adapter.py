@@ -53,7 +53,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
                 else "https://cloud.iexapis.com/stable"
             )
 
-        self._client: httpx.Optional[AsyncClient] = None
+        self._client: Optional[httpx.AsyncClient] = None
         logger.info(f"Initialized IEX adapter (sandbox={is_sandbox})")
 
     @classmethod

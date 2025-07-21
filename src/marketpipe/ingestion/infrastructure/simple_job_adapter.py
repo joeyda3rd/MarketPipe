@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date, datetime, timezone
+from typing import Optional
 
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.domain.entities import IngestionJob, IngestionJobId, ProcessingState

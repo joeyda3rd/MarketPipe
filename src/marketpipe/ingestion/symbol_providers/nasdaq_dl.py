@@ -79,7 +79,7 @@ class NasdaqDailyListProvider(SymbolProviderBase):
         - Rare edge case: embedded pipes in company names may cause parsing issues
     """
 
-    def __init__(self, *, as_of: _dt.Optional[date] = None, **provider_cfg):
+    def __init__(self, *, as_of: Optional[_dt.date] = None, **provider_cfg):
         # Store whether as_of was explicitly provided by the user
         self._user_provided_as_of = as_of is not None
         super().__init__(as_of=as_of, **provider_cfg)

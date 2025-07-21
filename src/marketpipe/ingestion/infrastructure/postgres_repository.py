@@ -38,7 +38,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
             max_size: Maximum pool connections
         """
         self._dsn = dsn
-        self._pool: asyncpg.Optional[Pool] = None
+        self._pool: Optional[asyncpg.Pool] = None
         self._min_size = min_size
         self._max_size = max_size
         self._pool_lock = asyncio.Lock()  # Prevent race conditions on pool creation

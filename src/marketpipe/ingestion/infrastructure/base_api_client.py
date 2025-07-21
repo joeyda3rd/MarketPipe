@@ -29,9 +29,9 @@ class BaseApiClient(abc.ABC):
         rate_limiter: Optional[RateLimiter] = None,
         metrics_collector: Optional[Callable] = None,
         state_backend: Optional[Any] = None,
-        logger: logging.Optional[Logger] = None,
+        logger: Optional[logging.Logger] = None,
         http_client: Optional[HttpClientProtocol] = None,
-        async_http_client: AsyncOptional[HttpClientProtocol] = None,
+        async_http_client: Optional[HttpClientProtocol] = None,
     ) -> None:
         self.config = config
         self.auth = auth

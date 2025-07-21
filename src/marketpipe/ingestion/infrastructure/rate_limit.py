@@ -45,7 +45,7 @@ class RateLimiter:
 
         # Sync/async coordination primitives
         self._sync_condition = threading.Condition()
-        self._async_condition: asyncio.Optional[Condition] = None
+        self._async_condition: Optional[asyncio.Condition] = None
 
         # Provider name for metrics (set by clients)
         self._provider_name = "unknown"
