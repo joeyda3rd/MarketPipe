@@ -5,6 +5,7 @@ import asyncio
 import types
 
 import httpx
+import pytest
 
 from marketpipe.ingestion.infrastructure.alpaca_client import AlpacaClient
 from marketpipe.ingestion.infrastructure.auth import HeaderTokenAuth
