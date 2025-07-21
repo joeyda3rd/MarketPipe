@@ -43,6 +43,75 @@ MarketPipe transforms how you collect, validate, and store financial market data
 - **Health checks** and readiness probes
 - **Production-ready configuration**
 
+## Roadmap
+
+MarketPipe's development focuses exclusively on enhancing ETL capabilities within our Domain-Driven Design architecture for financial market data with enterprise-grade reliability.
+
+### Near-term (Next Releases)
+
+#### **Universe Builder/Manager**
+- CLI commands for managing symbol universes (domain models exist)
+- Import/export universe definitions
+- Universe validation and health checks
+- Programmatic universe management API
+
+#### **Enhanced Programmatic API**
+- Expanded Python API beyond basic `load_ohlcv()`
+- Better integration with Jupyter notebooks and research environments
+- Direct access to ingestion and validation services
+- Rich data access patterns for analysis workflows
+
+#### **Enhanced Data Loader**
+- Advanced filtering and aggregation capabilities
+- Multiple export formats (CSV, JSON, Arrow, etc.)
+- Custom query interface with complex predicates
+- Streaming data access for large datasets
+
+#### **Additional Data Providers**
+**Immediate targets (8 providers):** FRED (Economic Data), Binance (Crypto), Finnhub, Polygon, Tiingo, Twelve Data, plus enhanced IEX and Alpaca integrations
+
+**Extended ecosystem:** Alpha Vantage, CME DataMine, Coinbase, Quandl, Refinitiv, Yahoo Finance, Kraken, Tradier, and more
+
+**Community contributions:** See our [Contributing Guide](#contributing) for adding new data provider integrations
+
+### Medium-term (Later Releases)
+
+#### **Schema Registry**
+- Handle schema evolution from data providers
+- Version management for data structures
+- Backward compatibility tools
+- Automated migration assistance
+
+#### **Incremental ETL Engine**
+- Enhanced change detection and delta processing
+- Efficient backfill strategies
+- Checkpoint recovery improvements
+- Conflict resolution for overlapping data
+
+#### **Advanced Transform Engine**
+- Data normalization and standardization pipelines
+- Custom transformation rules and business logic
+- Cross-provider data harmonization
+- Real-time data transformation capabilities
+
+#### **ETL Observability Suite**
+- Data lineage tracking through the pipeline
+- Enhanced pipeline health monitoring
+- Data quality trend analysis
+- Performance optimization insights
+
+#### **Load Optimization**
+- Advanced partitioning strategies
+- Compression and storage format options
+- Multi-destination loading (multiple databases, cloud storage)
+- Parallel loading with automatic scaling
+
+#### **Data Catalog**
+- Metadata management for all ETL assets
+- Data discovery and documentation
+- Usage analytics and lineage visualization
+- Data governance and quality tracking
+
 ## Quick Start
 
 ### Installation
@@ -55,7 +124,7 @@ pip install marketpipe
 
 ```bash
 # Generate test data (no API keys needed)
-marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2024-01-01 --end 2024-01-02
+marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2025-01-01 --end 2025-01-02
 
 # Query the data
 marketpipe query --symbol AAPL --start 2024-01-01
@@ -72,13 +141,13 @@ export ALPACA_KEY="your_api_key"
 export ALPACA_SECRET="your_secret"
 
 # Ingest real market data
-marketpipe ingest --provider alpaca --symbols AAPL TSLA --start 2024-01-01 --end 2024-01-02
+marketpipe ingest --provider alpaca --symbols AAPL TSLA --start 2025-01-01 --end 2025-01-02
 
 # Validate data quality
-marketpipe validate --symbol AAPL --start 2024-01-01
+marketpipe validate --symbol AAPL --start 2025-01-01
 
 # Aggregate to different timeframes
-marketpipe aggregate --symbol AAPL --timeframe 5m --start 2024-01-01
+marketpipe aggregate --symbol AAPL --timeframe 5m --start 2025-01-01
 ```
 
 ## Documentation
@@ -111,7 +180,7 @@ marketpipe ingest --provider iex --symbols AAPL
 #### Fake Provider (Development)
 ```bash
 # No credentials needed - generates realistic test data
-marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2024-01-01
+marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2025-01-01
 ```
 
 ## Development
@@ -119,7 +188,7 @@ marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2024-01-01
 ### Quick Setup
 
 ```bash
-git clone https://github.com/your-org/marketpipe.git
+git clone https://github.com/joeyda3rd/marketpipe.git
 cd marketpipe
 scripts/setup    # One-command development setup
 
@@ -289,7 +358,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ### Current Capabilities (v0.1.0-alpha.1)
 
-✅ **Working Features:**
+**Working Features:**
 - Multi-provider data ingestion (Alpaca, IEX, Fake)
 - Parquet storage with partitioning
 - DuckDB query engine
@@ -311,14 +380,14 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - Monitor resource usage and error rates
 - Backup data regularly during alpha phase
 
-## 📄 License
+## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-org/marketpipe/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/marketpipe/discussions)
+- **Issues**: [GitHub Issues](https://github.com/joeyda3rd/marketpipe/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/joeyda3rd/marketpipe/discussions)
 - **Security**: See [SECURITY.md](SECURITY.md) for security policy
 
 ---
