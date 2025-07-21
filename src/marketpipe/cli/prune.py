@@ -219,7 +219,7 @@ def prune_parquet(
                 typer.echo("✨ File operations completed successfully despite database warning")
         else:
             typer.echo(f"❌ Pruning failed: {e}", err=True)
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
 
 @prune_app.command("database")
@@ -276,7 +276,7 @@ def prune_database(
                 return  # Exit successfully
             except Exception as e:
                 typer.echo(f"❌ Failed to count old records: {e}", err=True)
-                raise typer.Exit(1)
+                raise typer.Exit(1) from e
         else:
             # Actually delete the rows
             try:
@@ -315,7 +315,7 @@ def prune_database(
 
             except Exception as e:
                 typer.echo(f"❌ Failed to delete old records: {e}", err=True)
-                raise typer.Exit(1)
+                raise typer.Exit(1) from e
 
     except Exception as e:
         # Don't fail the command if operations succeeded but bootstrap/metrics failed
@@ -324,7 +324,7 @@ def prune_database(
             typer.echo("✨ Database operations completed successfully despite migration warning")
         else:
             typer.echo(f"❌ Database pruning failed: {e}", err=True)
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
 
 # Legacy alias for backward compatibility

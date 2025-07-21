@@ -5,9 +5,13 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Optional
 
-from .interfaces import BootstrapResult, IEnvironmentProvider, IMigrationService, IServiceRegistry
+from .interfaces import (
+    BootstrapResult,
+    IEnvironmentProvider,
+    IMigrationService,
+    IServiceRegistry,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +58,7 @@ class BootstrapOrchestrator:
             # Check if already bootstrapped
             if self._bootstrapped:
                 logger.debug("Bootstrap already completed, skipping")
-                return BootstrapResult(
-                    success=True,
-                    was_already_bootstrapped=True
-                )
+                return BootstrapResult(success=True, was_already_bootstrapped=True)
 
             logger.info("Starting MarketPipe bootstrap initialization...")
 
@@ -95,19 +96,13 @@ class BootstrapOrchestrator:
                 self._bootstrapped = True
                 logger.info("MarketPipe bootstrap completed successfully")
 
-                return BootstrapResult(
-                    success=True,
-                    services_registered=services_registered
-                )
+                return BootstrapResult(success=True, services_registered=services_registered)
 
             except Exception as e:
                 logger.error(f"Bootstrap failed: {e}")
                 error_msg = f"MarketPipe bootstrap failed: {e}"
 
-                return BootstrapResult(
-                    success=False,
-                    error_message=error_msg
-                )
+                return BootstrapResult(success=False, error_message=error_msg)
 
     def is_bootstrapped(self) -> bool:
         """Check if bootstrap has been completed.
@@ -129,7 +124,7 @@ class BootstrapOrchestrator:
 
 
 # Global orchestrator instance for backward compatibility
-_global_orchestrator: Optional[BootstrapOrchestrator] = None
+_global_orchestrator: BootstrapOrchestrator | None = None
 _global_lock = threading.Lock()
 
 

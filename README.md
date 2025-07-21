@@ -119,7 +119,7 @@ marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2024-01-01
 ### Quick Setup
 
 ```bash
-git clone https://github.com/your-org/marketpipe.git
+git clone https://github.com/joeyda3rd/MarketPipe.git
 cd marketpipe
 scripts/setup    # One-command development setup
 
@@ -317,8 +317,8 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-org/marketpipe/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/marketpipe/discussions)
+- **Issues**: [GitHub Issues](https://github.com/joeyda3rd/marketpipe/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/joeyda3rd/marketpipe/discussions)
 - **Security**: See [SECURITY.md](SECURITY.md) for security policy
 
 ---

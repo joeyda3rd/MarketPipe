@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from tests.fakes.adapters import FakeHttpClient, FakeMarketDataAdapter
 from tests.fakes.database import FakeDatabase
@@ -70,7 +70,7 @@ class IntegrationTestCase:
             self.temp_dir = Path(tempfile.mkdtemp(prefix="marketpipe_test_"))
         return self.temp_dir
 
-    def create_service_factory(self) -> Dict[str, Any]:
+    def create_service_factory(self) -> dict[str, Any]:
         """Create service factory with test doubles.
 
         Returns:
@@ -83,7 +83,7 @@ class IntegrationTestCase:
             "temp_dir": self.get_temp_dir(),
         }
 
-    def assert_metrics_recorded(self, expected_metrics: Dict[str, int]):
+    def assert_metrics_recorded(self, expected_metrics: dict[str, int]):
         """Assert that expected metrics were recorded.
 
         Args:
@@ -151,6 +151,7 @@ class PipelineTestCase(IntegrationTestCase):
 
         # Use the existing create_test_ohlcv_bars function
         from marketpipe.domain.value_objects import Symbol
+
         from tests.fakes.adapters import create_test_ohlcv_bars
 
         bars = create_test_ohlcv_bars(symbol=Symbol(symbol), count=bar_count)
@@ -158,8 +159,8 @@ class PipelineTestCase(IntegrationTestCase):
         provider.configure_symbol_data(symbol, bars)
 
     def run_ingestion_pipeline(
-        self, symbols: List[str], provider: Optional[FakeMarketDataAdapter] = None, **config
-    ) -> Dict[str, Any]:
+        self, symbols: list[str], provider: FakeMarketDataAdapter | None = None, **config
+    ) -> dict[str, Any]:
         """Helper to run complete ingestion pipeline.
 
         Args:
@@ -206,7 +207,7 @@ class PipelineTestCase(IntegrationTestCase):
 
         return results
 
-    def assert_pipeline_success(self, result: Dict[str, Any]):
+    def assert_pipeline_success(self, result: dict[str, Any]):
         """Assert that pipeline execution was successful.
 
         Args:
@@ -217,7 +218,7 @@ class PipelineTestCase(IntegrationTestCase):
         assert len(result["errors"]) == 0, f"Pipeline had errors: {result['errors']}"
 
     def assert_pipeline_partial_success(
-        self, result: Dict[str, Any], expected_successful_symbols: List[str]
+        self, result: dict[str, Any], expected_successful_symbols: list[str]
     ):
         """Assert that pipeline had partial success (some symbols failed).
 
@@ -322,7 +323,7 @@ class BenchmarkTestCase(IntegrationTestCase):
         """
         self._performance_results[test_name] = metrics
 
-    def get_performance_results(self) -> Dict[str, Dict[str, Any]]:
+    def get_performance_results(self) -> dict[str, dict[str, Any]]:
         """Get all recorded performance results.
 
         Returns:
@@ -354,7 +355,7 @@ class DatabaseTestCase(IntegrationTestCase):
         if not hasattr(self.database, "_is_setup") or not self.database._is_setup:
             self.database.setup_schema()
 
-    def insert_test_data(self, table_name: str, data: Dict[str, Any]):
+    def insert_test_data(self, table_name: str, data: dict[str, Any]):
         """Insert test data into database table.
 
         Args:
@@ -366,7 +367,7 @@ class DatabaseTestCase(IntegrationTestCase):
         assert self.database is not None
         # TODO: Implement actual data insertion when database schema is finalized
 
-    def query_test_data(self, table_name: str, **conditions) -> List[Dict[str, Any]]:
+    def query_test_data(self, table_name: str, **conditions) -> list[dict[str, Any]]:
         """Query test data from database table.
 
         Args:

@@ -36,8 +36,14 @@ from marketpipe.ingestion.application.services import (
     IngestionCoordinatorService,
     IngestionJobService,
 )
-from marketpipe.ingestion.domain.services import IngestionDomainService, IngestionProgressTracker
-from marketpipe.ingestion.domain.value_objects import BatchConfiguration, IngestionConfiguration
+from marketpipe.ingestion.domain.services import (
+    IngestionDomainService,
+    IngestionProgressTracker,
+)
+from marketpipe.ingestion.domain.value_objects import (
+    BatchConfiguration,
+    IngestionConfiguration,
+)
 from marketpipe.ingestion.infrastructure.provider_loader import build_provider
 from marketpipe.ingestion.infrastructure.repositories import (
     SqliteCheckpointRepository,
@@ -438,7 +444,7 @@ def _ingest_impl(
                     job_config = load_config(config)
                 except ConfigVersionError as e:
                     print(f"❌ Configuration version error: {e}")
-                    raise typer.Exit(1)
+                    raise typer.Exit(1) from e
 
                 # Apply CLI overrides if provided
                 overrides = {
@@ -586,16 +592,16 @@ def _ingest_impl(
                         end=str(job_config.end),
                         provider=job_config.provider,
                     )
-                except SystemExit:
+                except SystemExit as e:
                     # _check_boundaries calls sys.exit(1) on failure
                     print(f"❌ Post-ingestion verification failed for {symbol}")
-                    raise typer.Exit(1)
+                    raise typer.Exit(1) from e
 
             print("✅ Post-ingestion verification completed successfully!")
 
         except Exception as e:
             print(f"❌ Ingestion failed: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
 
 # NOTE: we disable Typer's default --help so that we can perform validation even when

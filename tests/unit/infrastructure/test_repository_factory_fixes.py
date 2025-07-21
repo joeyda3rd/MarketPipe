@@ -7,9 +7,10 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from marketpipe.ingestion.domain.entities import ProcessingState
-from marketpipe.ingestion.infrastructure.repository_factory import create_ingestion_job_repository
+from marketpipe.ingestion.infrastructure.repository_factory import (
+    create_ingestion_job_repository,
+)
 from marketpipe.ingestion.infrastructure.simple_job_adapter import SimpleJobRepository
 
 
@@ -85,7 +86,7 @@ class TestSimpleJobRepositoryFixes:
             ("ERROR", ProcessingState.FAILED),
         ]
 
-        for status_input, expected_state in test_cases:
+        for status_input, _expected_state in test_cases:
             mock_repo.get_job_history.return_value = []  # No existing jobs
 
             await simple_repo.upsert("AAPL", "2024-01-01", status_input)

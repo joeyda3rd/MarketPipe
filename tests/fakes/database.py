@@ -4,15 +4,12 @@
 from __future__ import annotations
 
 import os
-import sqlite3
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-
-import pytest
 
 # Import from the legacy bootstrap module, not the new bootstrap package
 import marketpipe.bootstrap as legacy_bootstrap
+import pytest
 
 
 class FakeDatabase:
@@ -22,7 +19,7 @@ class FakeDatabase:
     without mocking, while ensuring isolation between test runs.
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         if db_path is None:
             # Use in-memory database by default for speed
             self.db_path = ":memory:"
@@ -34,7 +31,7 @@ class FakeDatabase:
             self.db_path = str(db_path)
             self._temp_file = None
 
-        self._connection_string: Optional[str] = None
+        self._connection_string: str | None = None
         self._is_setup = False
 
     @classmethod
@@ -243,7 +240,7 @@ class ExampleTestPatterns:
     async def test_with_fixture(self, test_database):
         """Example using pytest fixture."""
         # test_database is automatically set up and torn down
-        connection_string = test_database.get_connection_string()
+        test_database.get_connection_string()
         # Use real database operations...
 
     async def test_with_context_manager(self):
