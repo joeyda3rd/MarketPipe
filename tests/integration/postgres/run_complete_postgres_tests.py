@@ -218,10 +218,9 @@ def test_alembic_migrations():
     print_step("Testing Alembic migrations")
 
     try:
-        from sqlalchemy import create_engine, text
-
         from alembic import command
         from alembic.config import Config
+        from sqlalchemy import create_engine, text
 
         postgres_url = "postgresql://marketpipe:password@localhost:5433/marketpipe"
 
