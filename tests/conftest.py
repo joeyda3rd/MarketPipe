@@ -21,7 +21,7 @@ from __future__ import annotations
 import tempfile
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 
@@ -58,7 +58,7 @@ class IntegrationEnvironment:
 
             shutil.rmtree(self._temp_dir, ignore_errors=True)
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Return as dictionary for backward compatibility."""
         return {
             "database": self.database,
@@ -160,7 +160,7 @@ class DomainObjectFactory:
         self,
         symbol: str = "AAPL",
         count: int = 10,
-        start_time: Optional[datetime] = None,
+        start_time: datetime | None = None,
         **overrides,
     ):
         """Create multiple OHLCV bars with sequential timestamps.
@@ -207,7 +207,7 @@ class DomainObjectFactory:
         return bars
 
     def create_ingestion_job(
-        self, symbols: Optional[List[str]] = None, trading_date: Optional[date] = None, **overrides
+        self, symbols: list[str] | None = None, trading_date: date | None = None, **overrides
     ):
         """Create valid ingestion job with overrides.
 
@@ -233,7 +233,7 @@ class DomainObjectFactory:
             **overrides,
         }
 
-    def create_time_range(self, start: Optional[datetime] = None, duration_minutes: int = 30):
+    def create_time_range(self, start: datetime | None = None, duration_minutes: int = 30):
         """Create TimeRange for testing.
 
         Args:

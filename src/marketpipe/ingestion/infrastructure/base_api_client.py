@@ -4,7 +4,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Iterable, Mapping
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from .auth import AuthStrategy
 from .http_client_protocol import AsyncHttpClientProtocol, HttpClientProtocol
@@ -46,10 +46,12 @@ class BaseApiClient(abc.ABC):
         # Lazy initialization of HTTP clients
         if self.http_client is None:
             from .http_client_protocol import get_default_http_client
+
             self.http_client = get_default_http_client()
 
         if self.async_http_client is None:
             from .http_client_protocol import get_default_async_http_client
+
             self.async_http_client = get_default_async_http_client()
 
     # ---------- URL / request helpers ----------

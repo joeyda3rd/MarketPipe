@@ -7,7 +7,7 @@ fragile mocks with reusable, realistic fakes.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import httpx
 import pytest
@@ -32,7 +32,7 @@ class TestAlpacaClientWithFakes:
         return HeaderTokenAuth("test-key-id", "test-secret")
 
     @pytest.fixture
-    def sample_alpaca_response(self) -> Dict[str, Any]:
+    def sample_alpaca_response(self) -> dict[str, Any]:
         """Sample Alpaca API response."""
         return {
             "bars": [

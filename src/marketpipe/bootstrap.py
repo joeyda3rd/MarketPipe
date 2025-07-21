@@ -18,7 +18,6 @@ __all__ = [
 ]
 
 import logging
-import os
 import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -152,6 +151,7 @@ def reset_bootstrap_state() -> None:
 
         # Also reset the orchestrator's state
         from marketpipe.bootstrap import get_global_orchestrator
+
         orchestrator = get_global_orchestrator()
         orchestrator.reset_bootstrap_state()
 

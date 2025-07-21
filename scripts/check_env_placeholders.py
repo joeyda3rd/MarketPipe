@@ -22,7 +22,6 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Set
 
 # Add src to path to import settings
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -35,7 +34,7 @@ except ImportError as e:
     sys.exit(1)
 
 
-def extract_env_vars_from_settings() -> Dict[str, List[str]]:
+def extract_env_vars_from_settings() -> dict[str, list[str]]:
     """Extract environment variables from all provider settings classes.
 
     Returns:
@@ -102,7 +101,7 @@ def extract_env_vars_from_settings() -> Dict[str, List[str]]:
     return env_vars_by_provider
 
 
-def extract_env_vars_from_example_file(file_path: Path) -> Set[str]:
+def extract_env_vars_from_example_file(file_path: Path) -> set[str]:
     """Extract environment variable names from .env.example file.
 
     Args:
@@ -133,7 +132,7 @@ def extract_env_vars_from_example_file(file_path: Path) -> Set[str]:
     return env_vars
 
 
-def validate_naming_convention(env_var: str, provider_name: str) -> List[str]:
+def validate_naming_convention(env_var: str, provider_name: str) -> list[str]:
     """Validate that environment variable follows naming convention.
 
     Args:

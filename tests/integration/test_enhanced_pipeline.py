@@ -15,9 +15,8 @@ IMPROVEMENTS OVER EXISTING PIPELINE TESTS:
 from __future__ import annotations
 
 import asyncio
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
 
 import pytest
 
@@ -40,11 +39,11 @@ class TestEnhancedPipelineIntegration:
         metrics = FakeMetricsCollector()
 
         return {
-            'database': db,
-            'http_client': http_client,
-            'metrics': metrics,
-            'storage_dir': tmp_path / "storage",
-            'reports_dir': tmp_path / "reports"
+            "database": db,
+            "http_client": http_client,
+            "metrics": metrics,
+            "storage_dir": tmp_path / "storage",
+            "reports_dir": tmp_path / "reports",
         }
 
     def test_pipeline_with_data_quality_issues(self, integration_environment):
@@ -53,20 +52,17 @@ class TestEnhancedPipelineIntegration:
         IMPROVEMENT: Tests realistic data scenarios without complex mock setup.
         Uses Phase 1 FakeMarketDataAdapter to simulate real data issues.
         """
-        env = integration_environment
 
         # Set up fake provider with mixed quality data
         provider = FakeMarketDataAdapter()
 
         # Configure realistic test data - first create valid bars
         valid_bars = create_test_ohlcv_bars(
-            symbol="AAPL",
-            count=5,
-            start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
+            symbol="AAPL", count=5, start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
         )
 
         # Create problematic bars manually (can't use overrides since it doesn't exist)
-        from marketpipe.domain.entities import EntityId, OHLCVBar
+        from marketpipe.domain.entities import EntityId
         from marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
 
         # Create bars with invalid OHLC relationships
@@ -107,16 +103,19 @@ class TestEnhancedPipelineIntegration:
         # The actual IngestionCoordinatorService doesn't exist in the current codebase
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc)),
         )
 
         # Test that we can fetch the configured data
         import asyncio
+
         fetched_bars = asyncio.run(provider.fetch_bars_for_symbol(Symbol("AAPL"), time_range))
 
         # Verify results - should get all bars we configured
         assert len(fetched_bars) == 7  # 5 valid + 2 problematic
-        assert all(str(bar.symbol) == "AAPL" for bar in fetched_bars)  # Handle both Symbol and string types
+        assert all(
+            str(bar.symbol) == "AAPL" for bar in fetched_bars
+        )  # Handle both Symbol and string types
 
         # Verify some bars have zero volume (quality issue)
         zero_volume_bars = [bar for bar in fetched_bars if bar.volume.value == 0]
@@ -131,9 +130,8 @@ class TestEnhancedPipelineIntegration:
         env = integration_environment
 
         # Configure HTTP client to simulate rate limiting
-        env['http_client'].configure_rate_limiting(
-            delay_after_requests=2,  # Delay after 2 requests
-            delay=0.1  # Small delay for testing
+        env["http_client"].configure_rate_limiting(
+            delay_after_requests=2, delay=0.1  # Delay after 2 requests  # Small delay for testing
         )
 
         # Set up provider - since FakeMarketDataAdapter doesn't take http_client,
@@ -144,19 +142,18 @@ class TestEnhancedPipelineIntegration:
         symbols = ["AAPL", "GOOGL"]
         for symbol in symbols:
             bars = create_test_ohlcv_bars(
-                symbol=symbol,
-                count=3,
-                start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
+                symbol=symbol, count=3, start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
             )
             provider.configure_symbol_data(symbol, bars)  # Use string directly
 
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc)),
         )
 
         # Test that we can fetch data from multiple symbols
         import asyncio
+
         results = []
         for symbol in symbols:
             bars = asyncio.run(provider.fetch_bars_for_symbol(Symbol(symbol), time_range))
@@ -168,17 +165,18 @@ class TestEnhancedPipelineIntegration:
 
         # Test HTTP client rate limiting behavior directly
         import time
+
         start_time = time.perf_counter()
 
         # Make multiple requests to trigger rate limiting
         for i in range(5):
-            response = env['http_client'].get(f"http://test.com/request{i}")
+            env["http_client"].get(f"http://test.com/request{i}")
 
         end_time = time.perf_counter()
-        duration = end_time - start_time
+        end_time - start_time
 
         # Should have some delay due to rate limiting after the first 2 requests
-        requests = env['http_client'].get_requests_made()
+        requests = env["http_client"].get_requests_made()
         assert len(requests) == 5
 
     def test_pipeline_with_partial_api_failures(self, integration_environment):
@@ -186,7 +184,6 @@ class TestEnhancedPipelineIntegration:
 
         IMPROVEMENT: Tests realistic failure scenarios with easy configuration.
         """
-        env = integration_environment
 
         provider = FakeMarketDataAdapter()
 
@@ -197,22 +194,17 @@ class TestEnhancedPipelineIntegration:
         # Configure successful data
         for symbol in success_symbols:
             bars = create_test_ohlcv_bars(
-                symbol=symbol,
-                count=5,
-                start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
+                symbol=symbol, count=5, start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
             )
             provider.configure_symbol_data(symbol, bars)
 
         # Configure failures
         for symbol in failure_symbols:
-            provider.configure_error(
-                symbol,
-                error=ValueError(f"Unknown symbol: {symbol}")
-            )
+            provider.configure_error(symbol, error=ValueError(f"Unknown symbol: {symbol}"))
 
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc)),
         )
 
         # Process all symbols
@@ -220,27 +212,28 @@ class TestEnhancedPipelineIntegration:
         results = {}
 
         import asyncio
+
         for symbol in all_symbols:
             try:
                 bars = asyncio.run(provider.fetch_bars_for_symbol(Symbol(symbol), time_range))
-                results[symbol] = {'success': True, 'bars': len(bars)}
+                results[symbol] = {"success": True, "bars": len(bars)}
             except Exception as e:
-                results[symbol] = {'success': False, 'error': str(e)}
+                results[symbol] = {"success": False, "error": str(e)}
 
         # Verify partial success behavior
-        successful_symbols = [s for s, r in results.items() if r['success']]
-        failed_symbols = [s for s, r in results.items() if not r['success']]
+        successful_symbols = [s for s, r in results.items() if r["success"]]
+        failed_symbols = [s for s, r in results.items() if not r["success"]]
 
         assert set(successful_symbols) == set(success_symbols)
         assert set(failed_symbols) == set(failure_symbols)
 
         # Verify successful data was processed
         for symbol in success_symbols:
-            assert results[symbol]['bars'] == 5
+            assert results[symbol]["bars"] == 5
 
         # Verify errors were captured for failed symbols
         for symbol in failure_symbols:
-            assert f"Unknown symbol: {symbol}" in results[symbol]['error']
+            assert f"Unknown symbol: {symbol}" in results[symbol]["error"]
 
     def test_pipeline_with_pagination_and_large_datasets(self, integration_environment):
         """Test pipeline with realistic pagination scenarios.
@@ -249,13 +242,13 @@ class TestEnhancedPipelineIntegration:
         """
         env = integration_environment
 
-        provider = FakeMarketDataAdapter(http_client=env['http_client'])
+        provider = FakeMarketDataAdapter(http_client=env["http_client"])
 
         # Configure large dataset requiring pagination
         large_bar_set = create_test_ohlcv_bars(
             symbol="AAPL",
             count=250,  # Large enough to require pagination
-            start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
+            start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc),
         )
 
         # Configure pagination behavior
@@ -264,19 +257,18 @@ class TestEnhancedPipelineIntegration:
 
         coordinator = IngestionCoordinatorService(
             market_data_provider=provider,
-            database=env['database'],
-            metrics_collector=env['metrics']
+            database=env["database"],
+            metrics_collector=env["metrics"],
         )
 
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 13, 40, tzinfo=timezone.utc))  # 4+ hours
+            end=Timestamp(datetime(2024, 1, 15, 13, 40, tzinfo=timezone.utc)),  # 4+ hours
         )
 
-        result = asyncio.run(coordinator.ingest_symbol_data(
-            symbol=Symbol("AAPL"),
-            time_range=time_range
-        ))
+        result = asyncio.run(
+            coordinator.ingest_symbol_data(symbol=Symbol("AAPL"), time_range=time_range)
+        )
 
         # Verify all pages were processed
         assert result.total_bars_processed == 250
@@ -288,7 +280,7 @@ class TestEnhancedPipelineIntegration:
         assert len(request_history) == 5  # 5 paginated requests
 
         # Verify all data was stored correctly
-        stored_bars = env['database'].query_bars("AAPL", time_range)
+        stored_bars = env["database"].query_bars("AAPL", time_range)
         assert len(stored_bars) == 250
 
     def test_cross_component_error_propagation(self, integration_environment):
@@ -299,43 +291,40 @@ class TestEnhancedPipelineIntegration:
         env = integration_environment
 
         # Configure database to fail after some operations
-        env['database'].configure_failure_after_operations(3)
+        env["database"].configure_failure_after_operations(3)
 
         provider = FakeMarketDataAdapter()
 
         # Set up valid data
         bars = create_test_ohlcv_bars(
-            symbol="AAPL",
-            count=5,
-            start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
+            symbol="AAPL", count=5, start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
         )
         provider.configure_symbol_data("AAPL", bars)
 
         coordinator = IngestionCoordinatorService(
             market_data_provider=provider,
-            database=env['database'],
-            metrics_collector=env['metrics']
+            database=env["database"],
+            metrics_collector=env["metrics"],
         )
 
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc)),
         )
 
         # Should fail due to database error
         with pytest.raises(Exception) as exc_info:
-            asyncio.run(coordinator.ingest_symbol_data(
-                symbol=Symbol("AAPL"),
-                time_range=time_range
-            ))
+            asyncio.run(
+                coordinator.ingest_symbol_data(symbol=Symbol("AAPL"), time_range=time_range)
+            )
 
         assert "database operation failed" in str(exc_info.value).lower()
 
         # Verify partial data was processed before failure
-        assert env['metrics'].get_counter_value("bars_fetched") >= 3
+        assert env["metrics"].get_counter_value("bars_fetched") >= 3
 
         # Verify error was recorded in metrics
-        assert env['metrics'].get_counter_value("pipeline_errors") == 1
+        assert env["metrics"].get_counter_value("pipeline_errors") == 1
 
 
 class TestPipelinePerformanceCharacteristics:
@@ -358,31 +347,31 @@ class TestPipelinePerformanceCharacteristics:
             bars = create_test_ohlcv_bars(
                 symbol=symbol,
                 count=bars_per_symbol,
-                start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
+                start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc),
             )
             provider.configure_symbol_data(symbol, bars)
 
         coordinator = IngestionCoordinatorService(
             market_data_provider=provider,
-            database=env['database'],
-            metrics_collector=env['metrics']
+            database=env["database"],
+            metrics_collector=env["metrics"],
         )
 
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)),
         )
 
         import time
+
         start_time = time.perf_counter()
 
         # Process all symbols
         total_bars = 0
         for symbol in symbols:
-            result = asyncio.run(coordinator.ingest_symbol_data(
-                symbol=Symbol(symbol),
-                time_range=time_range
-            ))
+            result = asyncio.run(
+                coordinator.ingest_symbol_data(symbol=Symbol(symbol), time_range=time_range)
+            )
             total_bars += result.total_bars_processed
 
         end_time = time.perf_counter()
@@ -399,7 +388,7 @@ class TestPipelinePerformanceCharacteristics:
         assert duration < 30, f"Processing took too long: {duration:.1f} seconds"
 
         # Verify no memory leaks (metrics should be reasonable)
-        memory_samples = env['metrics'].get_gauge_value("memory_usage_mb")
+        memory_samples = env["metrics"].get_gauge_value("memory_usage_mb")
         if memory_samples:
             assert memory_samples < 500  # Should stay under 500MB
 
@@ -416,7 +405,7 @@ class TestPipelinePerformanceCharacteristics:
         large_bars = create_test_ohlcv_bars(
             symbol="AAPL",
             count=10000,  # Large dataset
-            start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
+            start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc),
         )
 
         provider.configure_symbol_data("AAPL", large_bars)
@@ -424,13 +413,13 @@ class TestPipelinePerformanceCharacteristics:
 
         coordinator = IngestionCoordinatorService(
             market_data_provider=provider,
-            database=env['database'],
-            metrics_collector=env['metrics']
+            database=env["database"],
+            metrics_collector=env["metrics"],
         )
 
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 1, 0, 0, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 31, 23, 59, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 31, 23, 59, tzinfo=timezone.utc)),
         )
 
         # Track memory usage during processing
@@ -441,10 +430,9 @@ class TestPipelinePerformanceCharacteristics:
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss / 1024 / 1024  # MB
 
-        result = asyncio.run(coordinator.ingest_symbol_data(
-            symbol=Symbol("AAPL"),
-            time_range=time_range
-        ))
+        result = asyncio.run(
+            coordinator.ingest_symbol_data(symbol=Symbol("AAPL"), time_range=time_range)
+        )
 
         peak_memory = process.memory_info().rss / 1024 / 1024  # MB
         memory_increase = peak_memory - initial_memory
@@ -456,7 +444,7 @@ class TestPipelinePerformanceCharacteristics:
         assert memory_increase < 200, f"Memory usage too high: {memory_increase:.1f} MB"
 
         # Should process efficiently in batches
-        batches_processed = env['metrics'].get_counter_value("batches_processed")
+        batches_processed = env["metrics"].get_counter_value("batches_processed")
         assert batches_processed >= 100  # Should have processed in batches
 
 
@@ -479,12 +467,12 @@ class TestPipelineIntegrationWithBootstrap:
 
         # Set up bootstrap with real database
         bootstrap_env = FakeEnvironmentProvider()
-        bootstrap_env.set_database_path(Path(env['database'].get_file_path()))
+        bootstrap_env.set_database_path(Path(env["database"].get_file_path()))
 
         orchestrator = BootstrapOrchestrator(
             migration_service=AlembicMigrationService(),  # Real migrations
             service_registry=MarketPipeServiceRegistry(),  # Real service registration
-            environment_provider=bootstrap_env
+            environment_provider=bootstrap_env,
         )
 
         # Bootstrap the system
@@ -494,34 +482,31 @@ class TestPipelineIntegrationWithBootstrap:
         # Now run pipeline with bootstrapped system
         provider = FakeMarketDataAdapter()
         bars = create_test_ohlcv_bars(
-            symbol="AAPL",
-            count=10,
-            start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
+            symbol="AAPL", count=10, start_time=datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)
         )
         provider.configure_symbol_data("AAPL", bars)
 
         coordinator = IngestionCoordinatorService(
             market_data_provider=provider,
-            database=env['database'],  # Same database as bootstrap
-            metrics_collector=env['metrics']
+            database=env["database"],  # Same database as bootstrap
+            metrics_collector=env["metrics"],
         )
 
         time_range = TimeRange(
             start=Timestamp(datetime(2024, 1, 15, 9, 30, tzinfo=timezone.utc)),
-            end=Timestamp(datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc))
+            end=Timestamp(datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc)),
         )
 
-        result = asyncio.run(coordinator.ingest_symbol_data(
-            symbol=Symbol("AAPL"),
-            time_range=time_range
-        ))
+        result = asyncio.run(
+            coordinator.ingest_symbol_data(symbol=Symbol("AAPL"), time_range=time_range)
+        )
 
         # Verify full end-to-end functionality
         assert result.total_bars_processed == 10
         assert result.valid_bars == 10
 
         # Verify data persisted to bootstrapped database
-        stored_bars = env['database'].query_bars("AAPL", time_range)
+        stored_bars = env["database"].query_bars("AAPL", time_range)
         assert len(stored_bars) == 10
 
         # This demonstrates the power of Phase 1 + Phase 2 integration!

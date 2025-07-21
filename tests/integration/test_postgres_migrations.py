@@ -38,9 +38,8 @@ class TestPostgresMigrations:
         command.upgrade(alembic_cfg, "head")
 
         # Verify current migration version using sync driver
-        from sqlalchemy import create_engine
-
         from alembic.runtime.migration import MigrationContext
+        from sqlalchemy import create_engine
 
         # Convert asyncpg URL to psycopg2 URL for sync operations
         sync_url = postgres_url.replace("+asyncpg", "")

@@ -14,10 +14,9 @@ Usage:
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 
-def check_file_exists(filepath: str, description: str) -> Tuple[bool, str]:
+def check_file_exists(filepath: str, description: str) -> tuple[bool, str]:
     """Check if a file exists and return status."""
     if Path(filepath).exists():
         size = Path(filepath).stat().st_size
@@ -27,8 +26,8 @@ def check_file_exists(filepath: str, description: str) -> Tuple[bool, str]:
 
 
 def check_file_content(
-    filepath: str, required_content: List[str], description: str
-) -> Tuple[bool, str]:
+    filepath: str, required_content: list[str], description: str
+) -> tuple[bool, str]:
     """Check if a file contains required content."""
     if not Path(filepath).exists():
         return False, f"❌ {description} missing: {filepath}"
@@ -46,7 +45,7 @@ def check_file_content(
         return False, f"❌ Error reading {description}: {e}"
 
 
-def validate_phase3_deliverables() -> Dict[str, List[Tuple[bool, str]]]:
+def validate_phase3_deliverables() -> dict[str, list[tuple[bool, str]]]:
     """Validate all Phase 3 deliverables."""
     results = {
         "Release Documentation": [],
@@ -210,7 +209,7 @@ def validate_phase3_deliverables() -> Dict[str, List[Tuple[bool, str]]]:
     return results
 
 
-def print_validation_summary(results: Dict[str, List[Tuple[bool, str]]]) -> bool:
+def print_validation_summary(results: dict[str, list[tuple[bool, str]]]) -> bool:
     """Print validation summary and return overall success status."""
     print("📊 PHASE 3 VALIDATION SUMMARY")
     print("=" * 50)

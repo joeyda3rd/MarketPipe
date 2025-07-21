@@ -8,8 +8,7 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
@@ -22,9 +21,9 @@ class RequestCapture:
 
     url: str
     method: str = "GET"
-    headers: Dict[str, str] = None
-    params: Dict[str, Any] = None
-    body: Optional[str] = None
+    headers: dict[str, str] = None
+    params: dict[str, Any] = None
+    body: str | None = None
     timestamp: datetime = None
 
     def __post_init__(self):
@@ -42,10 +41,10 @@ class ResponseSpec:
 
     url_pattern: str
     status: int = 200
-    body: Dict[str, Any] = None
-    headers: Dict[str, str] = None
-    delay: Optional[float] = None
-    error: Optional[Exception] = None
+    body: dict[str, Any] = None
+    headers: dict[str, str] = None
+    delay: float | None = None
+    error: Exception | None = None
 
     def __post_init__(self):
         if self.body is None:
@@ -57,12 +56,12 @@ class ResponseSpec:
 class FakeResponse:
     """Fake HTTP response for testing."""
 
-    def __init__(self, status_code: int, body: Dict[str, Any], headers: Dict[str, str] = None):
+    def __init__(self, status_code: int, body: dict[str, Any], headers: dict[str, str] = None):
         self.status_code = status_code
         self._body = body
         self.headers = headers or {}
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         """Return JSON body."""
         return self._body
 
@@ -83,19 +82,19 @@ class FakeHttpClient:
     """
 
     def __init__(self):
-        self.response_specs: List[ResponseSpec] = []
-        self.requests_made: List[RequestCapture] = []
-        self.default_delay: Optional[float] = None
-        self._rate_limit_delay: Optional[float] = None
+        self.response_specs: list[ResponseSpec] = []
+        self.requests_made: list[RequestCapture] = []
+        self.default_delay: float | None = None
+        self._rate_limit_delay: float | None = None
         self._request_count = 0
 
     def configure_response(
         self,
         url_pattern: str,
         status: int = 200,
-        body: Dict[str, Any] = None,
-        headers: Dict[str, str] = None,
-        delay: Optional[float] = None,
+        body: dict[str, Any] = None,
+        headers: dict[str, str] = None,
+        delay: float | None = None,
     ):
         """Configure expected response for URL pattern.
 
@@ -132,7 +131,7 @@ class FakeHttpClient:
         self._rate_limit_threshold = delay_after_requests
         self._rate_limit_delay = delay
 
-    def get_requests_made(self) -> List[RequestCapture]:
+    def get_requests_made(self) -> list[RequestCapture]:
         """Get history of requests made for test verification."""
         return self.requests_made.copy()
 
@@ -142,14 +141,14 @@ class FakeHttpClient:
         self.response_specs.clear()
         self._request_count = 0
 
-    def _find_matching_spec(self, url: str) -> Optional[ResponseSpec]:
+    def _find_matching_spec(self, url: str) -> ResponseSpec | None:
         """Find response spec matching the URL."""
         for spec in self.response_specs:
             if re.search(spec.url_pattern, url):
                 return spec
         return None
 
-    def _simulate_delay(self, spec: Optional[ResponseSpec] = None):
+    def _simulate_delay(self, spec: ResponseSpec | None = None):
         """Simulate network delay."""
         delay = None
 
@@ -170,7 +169,7 @@ class FakeHttpClient:
 
             time.sleep(delay)
 
-    async def _async_simulate_delay(self, spec: Optional[ResponseSpec] = None):
+    async def _async_simulate_delay(self, spec: ResponseSpec | None = None):
         """Simulate network delay for async calls."""
         delay = None
 
@@ -192,8 +191,8 @@ class FakeHttpClient:
     def get(
         self,
         url: str,
-        params: Dict[str, Any] = None,
-        headers: Dict[str, str] = None,
+        params: dict[str, Any] = None,
+        headers: dict[str, str] = None,
         timeout: float = None,
     ) -> FakeResponse:
         """Synchronous GET request."""
@@ -242,8 +241,8 @@ class FakeAsyncHttpClient(FakeHttpClient):
     async def get(
         self,
         url: str,
-        params: Dict[str, Any] = None,
-        headers: Dict[str, str] = None,
+        params: dict[str, Any] = None,
+        headers: dict[str, str] = None,
         timeout: float = None,
     ) -> FakeResponse:
         """Asynchronous GET request."""
@@ -276,17 +275,17 @@ class FakeMarketDataAdapter:
     def __init__(
         self,
         provider_name: str = "fake_provider",
-        supported_symbols: List[str] = None,
+        supported_symbols: list[str] = None,
     ):
         self.provider_name = provider_name
         self.supported_symbols = supported_symbols or ["AAPL", "GOOGL", "MSFT"]
-        self._symbol_data: Dict[str, List[OHLCVBar]] = {}
-        self._error_configs: Dict[str, Exception] = {}
-        self._rate_limit_config: Optional[Dict[str, Any]] = None
-        self._pagination_config: Optional[Dict[str, Any]] = None
-        self._request_history: List[Dict[str, Any]] = []
+        self._symbol_data: dict[str, list[OHLCVBar]] = {}
+        self._error_configs: dict[str, Exception] = {}
+        self._rate_limit_config: dict[str, Any] | None = None
+        self._pagination_config: dict[str, Any] | None = None
+        self._request_history: list[dict[str, Any]] = []
 
-    def configure_symbol_data(self, symbol: str, bars: List[OHLCVBar]):
+    def configure_symbol_data(self, symbol: str, bars: list[OHLCVBar]):
         """Configure expected bar data for symbol."""
         self._symbol_data[symbol] = bars
 
@@ -311,7 +310,7 @@ class FakeMarketDataAdapter:
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
-    ) -> List[OHLCVBar]:
+    ) -> list[OHLCVBar]:
         """Fetch bars with configured behavior."""
         symbol_str = str(symbol)
 
@@ -339,7 +338,7 @@ class FakeMarketDataAdapter:
         # Return configured data or empty list
         return self._symbol_data.get(symbol_str, [])
 
-    async def get_supported_symbols(self) -> List[Symbol]:
+    async def get_supported_symbols(self) -> list[Symbol]:
         """Get supported symbols."""
         return [Symbol.from_string(s) for s in self.supported_symbols]
 
@@ -358,7 +357,7 @@ class FakeMarketDataAdapter:
             maximum_history_days=None,
         )
 
-    def get_request_history(self) -> List[Dict[str, Any]]:
+    def get_request_history(self) -> list[dict[str, Any]]:
         """Get request history for test verification."""
         return self._request_history.copy()
 
@@ -394,21 +393,19 @@ class FakeMarketDataProvider(IMarketDataProvider):
         return True
 
     def get_provider_metadata(self) -> ProviderMetadata:
-                 return ProviderMetadata(
-             provider_name="fake",
-             supports_real_time=False,
-             supports_historical=True,
-             rate_limit_per_minute=None,
-             minimum_time_resolution="1m",
-             maximum_history_days=None,
-         )
+        return ProviderMetadata(
+            provider_name="fake",
+            supports_real_time=False,
+            supports_historical=True,
+            rate_limit_per_minute=None,
+            minimum_time_resolution="1m",
+            maximum_history_days=None,
+        )
 
 
 def create_test_ohlcv_bars(
-    symbol: Symbol,
-    count: int = 10,
-    start_time: datetime = None
-) -> List[OHLCVBar]:
+    symbol: Symbol, count: int = 10, start_time: datetime = None
+) -> list[OHLCVBar]:
     """Create test OHLCV bars for testing purposes.
 
     Args:

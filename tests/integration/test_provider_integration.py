@@ -18,9 +18,8 @@ import asyncio
 import json
 import threading
 import time
-from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -37,7 +36,7 @@ class MockAlpacaAPIHandler(BaseHTTPRequestHandler):
     # Shared state across requests
     request_history = []
     response_configs = {}
-    rate_limit_state = {'requests': 0, 'window_start': time.time()}
+    rate_limit_state = {"requests": 0, "window_start": time.time()}
 
     def log_message(self, format, *args):
         # Suppress default logging
@@ -50,10 +49,10 @@ class MockAlpacaAPIHandler(BaseHTTPRequestHandler):
         query_params = parse_qs(parsed_url.query)
 
         request_info = {
-            'path': parsed_url.path,
-            'params': query_params,
-            'headers': dict(self.headers),
-            'timestamp': time.time()
+            "path": parsed_url.path,
+            "params": query_params,
+            "headers": dict(self.headers),
+            "timestamp": time.time(),
         }
         self.request_history.append(request_info)
 
@@ -63,7 +62,7 @@ class MockAlpacaAPIHandler(BaseHTTPRequestHandler):
             return
 
         # Route to appropriate handler
-        if parsed_url.path == '/v2/stocks/bars':
+        if parsed_url.path == "/v2/stocks/bars":
             self._handle_bars_request(query_params)
         else:
             self._send_error_response(404, "Not Found")
@@ -73,55 +72,54 @@ class MockAlpacaAPIHandler(BaseHTTPRequestHandler):
         current_time = time.time()
 
         # Reset rate limit window every 60 seconds
-        if current_time - self.rate_limit_state['window_start'] > 60:
-            self.rate_limit_state = {'requests': 0, 'window_start': current_time}
+        if current_time - self.rate_limit_state["window_start"] > 60:
+            self.rate_limit_state = {"requests": 0, "window_start": current_time}
 
-        self.rate_limit_state['requests'] += 1
+        self.rate_limit_state["requests"] += 1
 
         # Allow 10 requests per minute for testing
-        return self.rate_limit_state['requests'] > 10
+        return self.rate_limit_state["requests"] > 10
 
     def _send_rate_limit_response(self):
         """Send 429 rate limit response."""
         self.send_response(429)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Retry-After', '60')
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Retry-After", "60")
         self.end_headers()
 
-        response = {
-            'code': 42910000,
-            'message': 'rate limit exceeded'
-        }
-        self.wfile.write(json.dumps(response).encode('utf-8'))
+        response = {"code": 42910000, "message": "rate limit exceeded"}
+        self.wfile.write(json.dumps(response).encode("utf-8"))
 
-    def _handle_bars_request(self, params: Dict[str, List[str]]):
+    def _handle_bars_request(self, params: dict[str, list[str]]):
         """Handle /v2/stocks/bars requests."""
-        symbols = params.get('symbols', [''])[0].split(',')
-        start = params.get('start', [''])[0]
-        end = params.get('end', [''])[0]
-        page_token = params.get('page_token', [None])[0]
+        symbols = params.get("symbols", [""])[0].split(",")
+        start = params.get("start", [""])[0]
+        end = params.get("end", [""])[0]
+        page_token = params.get("page_token", [None])[0]
 
         # Check for configured responses
         config_key = f"bars_{symbols[0]}"
         if config_key in self.response_configs:
             config = self.response_configs[config_key]
 
-            if config.get('error'):
-                self._send_error_response(config['status'], config['message'])
+            if config.get("error"):
+                self._send_error_response(config["status"], config["message"])
                 return
 
-            if config.get('delay'):
-                time.sleep(config['delay'])
+            if config.get("delay"):
+                time.sleep(config["delay"])
 
         # Generate realistic response
         bars_data = self._generate_bars_response(symbols[0], start, end, page_token)
 
         self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
+        self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(bars_data).encode('utf-8'))
+        self.wfile.write(json.dumps(bars_data).encode("utf-8"))
 
-    def _generate_bars_response(self, symbol: str, start: str, end: str, page_token: Optional[str]) -> Dict[str, Any]:
+    def _generate_bars_response(
+        self, symbol: str, start: str, end: str, page_token: str | None
+    ) -> dict[str, Any]:
         """Generate realistic Alpaca bars response."""
         # Simple pagination simulation
         page_size = 5
@@ -135,38 +133,37 @@ class MockAlpacaAPIHandler(BaseHTTPRequestHandler):
             if bar_index >= 20:  # Limit total bars
                 break
 
-            bars.append({
-                't': '2024-01-15T09:30:00Z',
-                'o': 100.0 + i * 0.1,
-                'h': 101.0 + i * 0.1,
-                'l': 99.0 + i * 0.1,
-                'c': 100.5 + i * 0.1,
-                'v': 1000 + i * 100,
-            })
+            bars.append(
+                {
+                    "t": "2024-01-15T09:30:00Z",
+                    "o": 100.0 + i * 0.1,
+                    "h": 101.0 + i * 0.1,
+                    "l": 99.0 + i * 0.1,
+                    "c": 100.5 + i * 0.1,
+                    "v": 1000 + i * 100,
+                }
+            )
 
         response = {
-            'bars': {symbol: bars},
-            'symbol': symbol,
-            'timeframe': '1Min',
+            "bars": {symbol: bars},
+            "symbol": symbol,
+            "timeframe": "1Min",
         }
 
         # Add pagination token if more data
         if (current_page + 1) * page_size < 20:
-            response['next_page_token'] = str(current_page + 1)
+            response["next_page_token"] = str(current_page + 1)
 
         return response
 
     def _send_error_response(self, status: int, message: str):
         """Send error response."""
         self.send_response(status)
-        self.send_header('Content-Type', 'application/json')
+        self.send_header("Content-Type", "application/json")
         self.end_headers()
 
-        response = {
-            'code': status * 1000,
-            'message': message
-        }
-        self.wfile.write(json.dumps(response).encode('utf-8'))
+        response = {"code": status * 1000, "message": message}
+        self.wfile.write(json.dumps(response).encode("utf-8"))
 
     @classmethod
     def clear_history(cls):
@@ -183,7 +180,7 @@ class MockHTTPServer:
     """HTTP server wrapper for testing."""
 
     def __init__(self, port: int = 0):
-        self.server = HTTPServer(('localhost', port), MockAlpacaAPIHandler)
+        self.server = HTTPServer(("localhost", port), MockAlpacaAPIHandler)
         self.port = self.server.server_address[1]
         self.thread = None
 
@@ -213,7 +210,7 @@ class MockHTTPServer:
         """Configure response for symbol."""
         MockAlpacaAPIHandler.configure_response(symbol, **config)
 
-    def get_request_history(self) -> List[Dict[str, Any]]:
+    def get_request_history(self) -> list[dict[str, Any]]:
         """Get request history."""
         return MockAlpacaAPIHandler.request_history.copy()
 
@@ -238,7 +235,7 @@ class TestAlpacaClientIntegration:
             base_url=mock_server.get_url(),
             user_agent="MarketPipe-Test/1.0",
             timeout=5.0,
-            max_retries=3
+            max_retries=3,
         )
 
         auth = HeaderTokenAuth("APCA-API-KEY-ID", "APCA-API-SECRET-KEY")
@@ -260,19 +257,19 @@ class TestAlpacaClientIntegration:
 
         # Verify results
         assert len(bars) > 0
-        assert all(bar['symbol'] == 'AAPL' for bar in bars)
-        assert all(bar['source'] == 'alpaca' for bar in bars)
+        assert all(bar["symbol"] == "AAPL" for bar in bars)
+        assert all(bar["source"] == "alpaca" for bar in bars)
 
         # Verify actual HTTP request was made correctly
         requests = mock_server.get_request_history()
         assert len(requests) >= 1
 
         first_request = requests[0]
-        assert first_request['path'] == '/v2/stocks/bars'
-        assert 'APCA-API-KEY-ID' in first_request['headers']
-        assert first_request['params']['symbols'][0] == 'AAPL'
-        assert first_request['params']['feed'][0] == 'iex'
-        assert first_request['params']['timeframe'][0] == '1Min'
+        assert first_request["path"] == "/v2/stocks/bars"
+        assert "APCA-API-KEY-ID" in first_request["headers"]
+        assert first_request["params"]["symbols"][0] == "AAPL"
+        assert first_request["params"]["feed"][0] == "iex"
+        assert first_request["params"]["timeframe"][0] == "1Min"
 
     def test_pagination_with_real_http(self, alpaca_client, mock_server):
         """Test pagination handling with real HTTP requests.
@@ -290,11 +287,11 @@ class TestAlpacaClientIntegration:
         assert len(requests) == 4  # 20 bars / 5 per page = 4 pages
 
         # Verify pagination tokens were used
-        page_tokens = [req['params'].get('page_token', [None])[0] for req in requests]
+        page_tokens = [req["params"].get("page_token", [None])[0] for req in requests]
         assert page_tokens[0] is None  # First request has no token
-        assert page_tokens[1] == '1'   # Second request has token
-        assert page_tokens[2] == '2'   # Third request has token
-        assert page_tokens[3] == '3'   # Fourth request has token
+        assert page_tokens[1] == "1"  # Second request has token
+        assert page_tokens[2] == "2"  # Third request has token
+        assert page_tokens[3] == "3"  # Fourth request has token
 
     def test_rate_limiting_with_real_http(self, alpaca_client, mock_server):
         """Test rate limiting handling with real HTTP responses.
@@ -308,18 +305,18 @@ class TestAlpacaClientIntegration:
         for symbol in symbols:
             try:
                 bars = alpaca_client.fetch_batch(symbol, 1705312200000, 1705315800000)
-                results.append({'symbol': symbol, 'success': True, 'bars': len(bars)})
+                results.append({"symbol": symbol, "success": True, "bars": len(bars)})
             except Exception as e:
-                results.append({'symbol': symbol, 'success': False, 'error': str(e)})
+                results.append({"symbol": symbol, "success": False, "error": str(e)})
 
         # Some requests should succeed before rate limiting
-        successful_requests = [r for r in results if r['success']]
+        successful_requests = [r for r in results if r["success"]]
         assert len(successful_requests) > 0
 
         # Some requests should fail due to rate limiting
-        failed_requests = [r for r in results if not r['success']]
+        failed_requests = [r for r in results if not r["success"]]
         if failed_requests:  # Rate limiting might not always trigger in tests
-            assert any("rate limit" in r.get('error', '').lower() for r in failed_requests)
+            assert any("rate limit" in r.get("error", "").lower() for r in failed_requests)
 
         # Verify server received the requests
         requests = mock_server.get_request_history()
@@ -332,10 +329,7 @@ class TestAlpacaClientIntegration:
         """
         # Configure server to return error
         mock_server.configure_response(
-            "BADSTOCK",
-            error=True,
-            status=404,
-            message="Symbol not found"
+            "BADSTOCK", error=True, status=404, message="Symbol not found"
         )
 
         # Should raise exception for error response
@@ -348,7 +342,7 @@ class TestAlpacaClientIntegration:
         # Verify request was actually made
         requests = mock_server.get_request_history()
         assert len(requests) == 1
-        assert requests[0]['params']['symbols'][0] == 'BADSTOCK'
+        assert requests[0]["params"]["symbols"][0] == "BADSTOCK"
 
     def test_timeout_handling_with_real_http(self, alpaca_client, mock_server):
         """Test timeout handling with slow server responses.
@@ -364,7 +358,7 @@ class TestAlpacaClientIntegration:
 
         # Should be a timeout-related error
         error_msg = str(exc_info.value).lower()
-        assert any(keyword in error_msg for keyword in ['timeout', 'time out', 'timed out'])
+        assert any(keyword in error_msg for keyword in ["timeout", "time out", "timed out"])
 
     def test_retry_logic_with_real_http(self, alpaca_client, mock_server):
         """Test retry logic with intermittent server failures.
@@ -386,7 +380,7 @@ class TestAlpacaClientIntegration:
         # Verify request was made
         requests = mock_server.get_request_history()
         assert len(requests) >= 1
-        assert requests[0]['params']['symbols'][0] == 'RETRY_TEST'
+        assert requests[0]["params"]["symbols"][0] == "RETRY_TEST"
 
 
 class TestProviderIntegrationWithDependencyInjection:
@@ -407,18 +401,26 @@ class TestProviderIntegrationWithDependencyInjection:
                 "bars": {
                     "AAPL": [
                         {
-                            't': '2024-01-15T09:30:00Z',
-                            'o': 100.0, 'h': 101.0, 'l': 99.0, 'c': 100.5, 'v': 1000
+                            "t": "2024-01-15T09:30:00Z",
+                            "o": 100.0,
+                            "h": 101.0,
+                            "l": 99.0,
+                            "c": 100.5,
+                            "v": 1000,
                         },
                         {
-                            't': '2024-01-15T09:31:00Z',
-                            'o': 100.5, 'h': 101.5, 'l': 99.5, 'c': 101.0, 'v': 1200
-                        }
+                            "t": "2024-01-15T09:31:00Z",
+                            "o": 100.5,
+                            "h": 101.5,
+                            "l": 99.5,
+                            "c": 101.0,
+                            "v": 1200,
+                        },
                     ]
                 },
                 "symbol": "AAPL",
-                "timeframe": "1Min"
-            }
+                "timeframe": "1Min",
+            },
         )
 
         # Create client with injected HTTP client
@@ -429,9 +431,7 @@ class TestProviderIntegrationWithDependencyInjection:
         auth = HeaderTokenAuth("APCA-API-KEY-ID", "APCA-API-SECRET-KEY")
 
         client = AlpacaClient(
-            config=config,
-            auth=auth,
-            http_client=fake_http  # INJECTED DEPENDENCY!
+            config=config, auth=auth, http_client=fake_http  # INJECTED DEPENDENCY!
         )
 
         # Make request
@@ -439,16 +439,16 @@ class TestProviderIntegrationWithDependencyInjection:
 
         # Verify results
         assert len(bars) == 2
-        assert all(bar['symbol'] == 'AAPL' for bar in bars)
-        assert bars[0]['open'] == 100.0
-        assert bars[1]['open'] == 100.5
+        assert all(bar["symbol"] == "AAPL" for bar in bars)
+        assert bars[0]["open"] == 100.0
+        assert bars[1]["open"] == 100.5
 
         # Verify HTTP client was used correctly
         requests = fake_http.get_requests_made()
         assert len(requests) == 1
-        assert '/v2/stocks/bars' in requests[0].url
-        assert 'symbols=AAPL' in requests[0].url
-        assert requests[0].headers.get('APCA-API-KEY-ID') == 'test_key'
+        assert "/v2/stocks/bars" in requests[0].url
+        assert "symbols=AAPL" in requests[0].url
+        assert requests[0].headers.get("APCA-API-KEY-ID") == "test_key"
 
     def test_multiple_providers_with_different_http_behaviors(self):
         """Test multiple providers with different HTTP behaviors.
@@ -479,6 +479,7 @@ class TestProviderIntegrationWithDependencyInjection:
 
         # Test slow client
         import time
+
         start = time.perf_counter()
         slow_bars = slow_client.fetch_batch("GOOGL", 1705312200000, 1705315800000)
         duration = time.perf_counter() - start
@@ -499,7 +500,6 @@ class TestProviderPerformanceIntegration:
 
         IMPROVEMENT: Tests realistic concurrency patterns without mock coordination.
         """
-        import asyncio
 
         from marketpipe.ingestion.infrastructure.alpaca_client import AlpacaClient
 
@@ -508,9 +508,7 @@ class TestProviderPerformanceIntegration:
         for i in range(3):
             http_client = FakeHttpClient()
             http_client.configure_response(
-                r".*",
-                body={"bars": {f"STOCK{i}": []}},
-                delay=0.1 * i  # Different delays
+                r".*", body={"bars": {f"STOCK{i}": []}}, delay=0.1 * i  # Different delays
             )
             http_clients.append(http_client)
 
@@ -531,10 +529,7 @@ class TestProviderPerformanceIntegration:
         start_time = time.perf_counter()
 
         async def run_concurrent():
-            tasks = [
-                fetch_data(clients[i], f"STOCK{i}")
-                for i in range(3)
-            ]
+            tasks = [fetch_data(clients[i], f"STOCK{i}") for i in range(3)]
             return await asyncio.gather(*tasks)
 
         results = asyncio.run(run_concurrent())
@@ -554,6 +549,7 @@ class TestProviderPerformanceIntegration:
 
 
 # Performance comparison test
+
 
 class TestProviderTestingApproachComparison:
     """Compare old mock-based vs new integration-based provider testing."""
@@ -594,9 +590,7 @@ class TestProviderTestingApproachComparison:
         # Create realistic integration test
         fake_http = FakeHttpClient()
         fake_http.configure_response(
-            r".*stocks/bars.*",
-            status=200,
-            body={"bars": {"AAPL": []}, "symbol": "AAPL"}
+            r".*stocks/bars.*", status=200, body={"bars": {"AAPL": []}, "symbol": "AAPL"}
         )
 
         config = ClientConfig(api_key="real_key", base_url="https://real.api.com")
@@ -605,7 +599,7 @@ class TestProviderTestingApproachComparison:
         client = AlpacaClient(config=config, auth=auth, http_client=fake_http)
 
         # This tests REAL behavior:
-        bars = client.fetch_batch("AAPL", 1705312200000, 1705315800000)
+        client.fetch_batch("AAPL", 1705312200000, 1705315800000)
 
         # Can verify actual HTTP interaction
         requests = fake_http.get_requests_made()

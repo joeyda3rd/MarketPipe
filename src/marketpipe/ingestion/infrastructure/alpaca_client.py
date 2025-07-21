@@ -9,8 +9,6 @@ import time
 from collections.abc import Mapping
 from typing import Any
 
-import httpx
-
 from marketpipe.security.mask import safe_for_log
 
 from .base_api_client import BaseApiClient
@@ -209,9 +207,7 @@ class AlpacaClient(BaseApiClient):
                 if retry_after:
                     try:
                         retry_seconds = int(retry_after)
-                        self.log.warning(
-                            f"Rate limited, respecting Retry-After: {retry_seconds}s"
-                        )
+                        self.log.warning(f"Rate limited, respecting Retry-After: {retry_seconds}s")
                         await self.rate_limiter.notify_retry_after_async(retry_seconds)
                         continue  # Try again after retry-after period
                     except (ValueError, TypeError):
@@ -219,9 +215,7 @@ class AlpacaClient(BaseApiClient):
 
             retries += 1
             if retries > self.config.max_retries:
-                safe_error_msg = safe_for_log(
-                    "Alpaca async retry limit hit", self.config.api_key
-                )
+                safe_error_msg = safe_for_log("Alpaca async retry limit hit", self.config.api_key)
                 raise RuntimeError(safe_error_msg)
             sleep = self._backoff(retries)
             self.log.warning("Async retry %d sleeping %.2fs", retries, sleep)
