@@ -249,7 +249,7 @@ class TestLegacyCompatibility:
 
     def test_legacy_apply_pending_function(self, tmp_path):
         """Test that legacy apply_pending function still works."""
-        from marketpipe.bootstrap import apply_pending
+        from marketpipe.bootstrap import apply_pending_alembic as apply_pending
 
         db_path = tmp_path / "legacy_test.db"
 

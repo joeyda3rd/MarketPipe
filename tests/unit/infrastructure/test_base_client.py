@@ -75,6 +75,11 @@ def test_base_client_supports_symbol_data_pagination():
             self.calls += 1
             return result
 
+        async def _async_request(self, params):
+            result = pages[self.calls]
+            self.calls += 1
+            return result
+
     client = PagingClient(
         config=ClientConfig(api_key="t", base_url="http://x"),
         auth=DummyMarketDataAuth(),
