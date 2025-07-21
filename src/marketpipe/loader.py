@@ -1,12 +1,12 @@
 """Public data loader API for MarketPipe OHLCV data."""
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import datetime as dt
 import logging
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Optional, Union
 
 import duckdb
 import pandas as pd

@@ -2,11 +2,11 @@
 """Fake database implementations for testing with real SQLite behavior."""
 
 from __future__ import annotations
-from typing import Optional
 
 import os
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 import pytest
 

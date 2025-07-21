@@ -7,9 +7,9 @@ maintaining their identity.
 """
 
 from __future__ import annotations
-from typing import Optional
 
 from dataclasses import dataclass
+from typing import Optional
 from uuid import UUID, uuid4
 
 from .value_objects import Price, Symbol, Timestamp, Volume

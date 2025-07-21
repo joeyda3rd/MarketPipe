@@ -2,11 +2,11 @@
 """Infrastructure repository implementations for ingestion domain."""
 
 from __future__ import annotations
-from typing import Optional
 
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 import aiosqlite
 from prometheus_client import Counter, Histogram

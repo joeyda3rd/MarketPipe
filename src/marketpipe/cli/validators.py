@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import Optional, Union
 
 import datetime as dt
 import re
 from pathlib import Path
+from typing import Optional
 
 import typer
 import yaml

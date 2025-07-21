@@ -2,10 +2,10 @@
 """Validation infrastructure repositories."""
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import logging
 from pathlib import Path
+from typing import Optional, Union
 
 import pandas as pd
 

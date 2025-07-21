@@ -1,10 +1,10 @@
 """Symbols CLI commands for managing symbol master data."""
 
 from __future__ import annotations
-from typing import Optional
 
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console

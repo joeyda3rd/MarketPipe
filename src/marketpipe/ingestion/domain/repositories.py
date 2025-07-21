@@ -2,10 +2,10 @@
 """Ingestion domain repository interfaces."""
 
 from __future__ import annotations
-from typing import Optional
 
 from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import Optional
 
 from marketpipe.domain.value_objects import Symbol
 

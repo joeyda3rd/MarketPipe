@@ -2,10 +2,10 @@
 """Bootstrap orchestrator with dependency injection."""
 
 from __future__ import annotations
-from typing import Optional
 
 import logging
 import threading
+from typing import Optional
 
 from .interfaces import BootstrapResult, IEnvironmentProvider, IMigrationService, IServiceRegistry
 

@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
-from typing import Optional
 
 import asyncio
 import threading
 import time
+from typing import Optional
 
 from prometheus_client import Counter
 

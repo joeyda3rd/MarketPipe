@@ -7,12 +7,12 @@ characterized by their attributes rather than a unique identity.
 """
 
 from __future__ import annotations
-from typing import Union
 
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
+from typing import Union
 
 
 @dataclass(frozen=True)

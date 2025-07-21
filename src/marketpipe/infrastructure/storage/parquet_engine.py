@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
-from typing import Optional, Union
 
 import logging
 from datetime import date
 from pathlib import Path
+from typing import Optional, Union
 
 import fasteners
 import pandas as pd

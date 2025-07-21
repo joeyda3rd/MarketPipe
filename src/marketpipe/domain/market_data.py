@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # src/marketpipe/domain/market_data.py
 from __future__ import annotations
-from typing import Optional
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Optional
 
 from .entities import OHLCVBar
 from .value_objects import Symbol, TimeRange

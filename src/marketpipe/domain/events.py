@@ -11,7 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Any, Callable, Protocol, Optional
+from typing import Any, Callable, Optional, Protocol
 from uuid import UUID, uuid4
 
 from .value_objects import Symbol, Timestamp

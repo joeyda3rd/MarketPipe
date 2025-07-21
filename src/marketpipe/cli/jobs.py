@@ -2,12 +2,12 @@
 """Job management commands for MarketPipe."""
 
 from __future__ import annotations
-from typing import Optional
 
 import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Optional
 
 import typer
 

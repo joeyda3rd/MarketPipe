@@ -1,9 +1,9 @@
 """Security masking utilities for secrets and API keys."""
 
 from __future__ import annotations
-from typing import Optional
 
 import re
+from typing import Optional
 
 _RE_SECRET = re.compile(r"^([A-Za-z0-9]+)([A-Za-z0-9]{4})$")
 

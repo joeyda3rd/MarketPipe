@@ -12,7 +12,6 @@ This module extends Phase 3 of the CLI validation framework:
 """
 
 from __future__ import annotations
-from typing import Optional
 
 import os
 import subprocess
@@ -20,6 +19,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 import pytest
 

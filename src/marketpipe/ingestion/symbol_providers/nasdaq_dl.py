@@ -36,9 +36,9 @@ Usage:
 """
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import datetime as _dt
+from typing import Optional
 
 import httpx
 

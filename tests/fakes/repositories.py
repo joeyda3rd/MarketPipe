@@ -2,25 +2,18 @@
 """Fake repository implementations for testing."""
 
 from __future__ import annotations
-from typing import Optional
 
 from datetime import datetime
+from typing import Optional
 
 from marketpipe.domain.value_objects import Symbol
-from marketpipe.ingestion.domain.entities import (
-    IngestionJob,
-    IngestionJobId,
-    ProcessingState,
-)
+from marketpipe.ingestion.domain.entities import IngestionJob, IngestionJobId, ProcessingState
 from marketpipe.ingestion.domain.repositories import (
     IIngestionCheckpointRepository,
     IIngestionJobRepository,
     IIngestionMetricsRepository,
 )
-from marketpipe.ingestion.domain.value_objects import (
-    IngestionCheckpoint,
-    ProcessingMetrics,
-)
+from marketpipe.ingestion.domain.value_objects import IngestionCheckpoint, ProcessingMetrics
 
 
 class FakeIngestionJobRepository(IIngestionJobRepository):

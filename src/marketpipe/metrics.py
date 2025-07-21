@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
-from typing import Optional
 
 import asyncio
 import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from prometheus_client import Counter, Gauge, Histogram, Summary
 

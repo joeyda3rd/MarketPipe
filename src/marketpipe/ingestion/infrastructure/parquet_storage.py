@@ -2,10 +2,10 @@
 """Legacy ParquetDataStorage - re-exported from new storage engine."""
 
 from __future__ import annotations
-from typing import Union
 
 import logging
 from pathlib import Path
+from typing import Union
 
 from marketpipe.domain.entities import OHLCVBar
 

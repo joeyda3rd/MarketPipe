@@ -8,7 +8,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any, Callable, Optional, Union
 
 from .auth import AuthStrategy
-from .http_client_protocol import AsyncHttpClientProtocol, HttpClientProtocol
+from .http_client_protocol import HttpClientProtocol
 from .models import ClientConfig
 from .rate_limit import RateLimiter
 

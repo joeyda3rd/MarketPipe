@@ -2,10 +2,10 @@
 """Ingestion domain services."""
 
 from __future__ import annotations
-from typing import Optional
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Optional
 
 from marketpipe.domain.services import DomainService
 from marketpipe.domain.value_objects import Symbol, TimeRange

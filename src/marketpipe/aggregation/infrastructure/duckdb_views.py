@@ -2,11 +2,11 @@
 """DuckDB view helpers for fast querying of aggregated Parquet data."""
 
 from __future__ import annotations
-from typing import Union
 
 import logging
 from functools import lru_cache
 from pathlib import Path
+from typing import Union
 
 import duckdb
 import pandas as pd

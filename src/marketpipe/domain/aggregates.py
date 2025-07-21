@@ -7,18 +7,13 @@ for operations that span multiple domain objects.
 """
 
 from __future__ import annotations
-from typing import Optional
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Optional
 
 from .entities import OHLCVBar
-from .events import (
-    BarCollectionCompleted,
-    BarCollectionStarted,
-    DomainEvent,
-    MarketDataReceived,
-)
+from .events import BarCollectionCompleted, BarCollectionStarted, DomainEvent, MarketDataReceived
 from .value_objects import Price, Symbol, TimeRange, Timestamp, Volume
 
 

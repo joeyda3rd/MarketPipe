@@ -13,7 +13,7 @@ from collections.abc import AsyncIterator
 from datetime import date
 
 # Import concrete implementations (only in type checking to keep interfaces clean)
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from .aggregates import DailySummary, SymbolBarsAggregate, UniverseAggregate
 from .entities import OHLCVBar

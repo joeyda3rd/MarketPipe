@@ -2,12 +2,12 @@
 """Post-ingestion data verification service."""
 
 from __future__ import annotations
-from typing import Optional
 
 import logging
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 import duckdb
 

@@ -13,11 +13,11 @@ already takes care of repository wiring, validation, storage, etc.
 """
 
 from __future__ import annotations
-from typing import Optional
 
 import asyncio
 import datetime as dt
 from pathlib import Path
+from typing import Optional
 
 import typer
 

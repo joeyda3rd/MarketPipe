@@ -2,12 +2,12 @@
 """Ingestion domain entities."""
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Optional, Union
 from uuid import uuid4
 
 from marketpipe.domain.entities import Entity, EntityId

@@ -2,12 +2,12 @@
 """Utility commands for MarketPipe."""
 
 from __future__ import annotations
-from typing import Optional
 
 import asyncio
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import typer
 

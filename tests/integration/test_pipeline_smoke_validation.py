@@ -2,13 +2,13 @@
 """Pipeline smoke validation tests for end-to-end functionality."""
 
 from __future__ import annotations
-from typing import Optional
 
 import subprocess
 import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import pytest

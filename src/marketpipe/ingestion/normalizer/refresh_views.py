@@ -6,15 +6,16 @@ containing a symbols_master table.
 """
 
 from __future__ import annotations
-from typing import Optional, Union
 
 from pathlib import Path
+from typing import Optional, Union
 
 import duckdb
 
 
 def refresh(
-    db_path: Union[str, duckdb].DuckDBPyConnection, connection: duckdb.Optional[DuckDBPyConnection] = None
+    db_path: Union[str, duckdb.DuckDBPyConnection],
+    connection: Optional[duckdb.DuckDBPyConnection] = None,
 ) -> None:
     """Create or refresh symbol views against a DuckDB database.
 
