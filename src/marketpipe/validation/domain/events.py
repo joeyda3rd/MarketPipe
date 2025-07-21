@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
-from marketpipe.events import DomainEvent
+from marketpipe.domain.events import DomainEvent
 
 from .value_objects import ValidationResult
 

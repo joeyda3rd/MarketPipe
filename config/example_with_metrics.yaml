@@ -1,3 +1,7 @@
+# ⚠️  ALPHA SOFTWARE WARNING: MarketPipe is in alpha development.
+# Expect breaking changes and potential stability issues. This configuration
+# format may change in future releases. Not recommended for production use.
+
 alpaca:
   # Credentials are loaded from .env file automatically by the coordinator
   key: # Will be loaded from ALPACA_KEY in .env file

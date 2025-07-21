@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""Full test suite runner for MarketPipe.
+
+Runs comprehensive test suite with coverage reporting.
+This is the equivalent of `make test` for CI/CD environments.
+"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+
+def main():
+    """Run comprehensive test suite."""
+
+    # Get project root (parent of scripts directory)
+    project_root = Path(__file__).parent.parent
+
+    try:
+        cmd = [
+            sys.executable, "-m", "pytest",
+            "tests/",                      # All tests
+            "--cov=marketpipe",            # Coverage reporting
+            "--cov-branch",                # Branch coverage
+            "--cov-report=term-missing",   # Show missing lines
+            "--cov-report=html:htmlcov",   # HTML coverage report
+            "--tb=short",                  # Concise tracebacks
+            "-v",                          # Verbose output
+            "--durations=10",              # Show 10 slowest tests
+        ]
+
+        print("🧪 Running full test suite with coverage...")
+        print("This may take several minutes...")
+
+        result = subprocess.run(cmd, cwd=project_root)
+
+        if result.returncode == 0:
+            print("✅ All tests passed!")
+            print("📊 Coverage report: htmlcov/index.html")
+        else:
+            print("❌ Some tests failed!")
+
+        return result.returncode
+
+    except Exception as e:
+        print(f"❌ Error running tests: {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

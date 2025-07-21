@@ -1,0 +1,274 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0-alpha.1)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Dry run (do not publish to PyPI)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+          pip install -e '.[dev]'
+
+      - name: Validate version consistency
+        run: |
+          python -c "
+          import toml
+          from pathlib import Path
+
+          # Check pyproject.toml version
+          pyproject = toml.load('pyproject.toml')
+          pyproject_version = pyproject['project']['version']
+
+          # Check __init__.py version
+          init_file = Path('src/marketpipe/__init__.py').read_text()
+          import re
+          version_match = re.search(r'__version__\s*=\s*[\"\'](.*?)[\"\']', init_file)
+          if not version_match:
+              raise RuntimeError('Could not find __version__ in __init__.py')
+          init_version = version_match.group(1)
+
+          print(f'pyproject.toml version: {pyproject_version}')
+          print(f'__init__.py version: {init_version}')
+
+          if pyproject_version != init_version:
+              raise ValueError(f'Version mismatch: {pyproject_version} != {init_version}')
+
+          print('✅ Version consistency validated')
+          "
+
+      - name: Run full test suite
+        run: |
+          pytest -q --cov=marketpipe --maxfail=1
+
+      # Alpha release quality gates
+      - name: Alpha Release Quality Gates
+        run: |
+          echo "🚀 Running alpha release quality gates..."
+          python scripts/alpha-release-check --verbose
+
+      # Performance benchmarking (for baseline tracking)
+      - name: Performance Benchmark
+        run: |
+          echo "📊 Running performance benchmarks..."
+          python scripts/benchmark --output benchmark-release.json --verbose
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-release
+          path: benchmark-release.json
+          retention-days: 90
+
+      - name: Build package
+        run: |
+          python -m build
+
+      - name: Check package
+        run: |
+          python -m twine check dist/*
+
+      - name: Test installation
+        run: |
+          # Install from wheel and test basic import
+          pip install dist/*.whl
+          python -c "import marketpipe; print(f'✅ MarketPipe {marketpipe.__version__} installed successfully')"
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: success()
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for changelog
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build package
+        run: |
+          python -m build
+
+      - name: Extract version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          python -c "
+          import re
+          from pathlib import Path
+
+          changelog = Path('CHANGELOG.md').read_text()
+
+          # Extract the latest version section
+          version_pattern = r'## \[([^\]]+)\].*?(?=\n## \[|\n# |$)'
+          matches = re.findall(version_pattern, changelog, re.DOTALL)
+
+          if matches:
+              latest_section = matches[0]
+              print(f'Found changelog section for version: {latest_section}')
+
+              # Extract the content for the latest version
+              content_pattern = r'## \[[^\]]+\].*?\n(.*?)(?=\n## \[|\n# |$)'
+              content_match = re.search(content_pattern, changelog, re.DOTALL)
+
+              if content_match:
+                  content = content_match.group(1).strip()
+
+                  # Save to file for GitHub release
+                  Path('release_notes.md').write_text(content)
+                  print('✅ Extracted changelog content')
+              else:
+                  print('⚠️ Could not extract changelog content')
+                  Path('release_notes.md').write_text('See CHANGELOG.md for details.')
+          else:
+              print('⚠️ No changelog section found')
+              Path('release_notes.md').write_text('See CHANGELOG.md for details.')
+          "
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          release_name: MarketPipe v${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, 'alpha') || contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'rc') }}
+
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/
+          asset_name: marketpipe-${{ steps.version.outputs.version }}-dist
+          asset_content_type: application/zip
+
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [validate, release]
+    if: success() && !inputs.dry_run
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build package
+        run: |
+          python -m build
+
+      - name: Publish to Test PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+        run: |
+          python -m twine upload --repository testpypi dist/*
+
+      - name: Test installation from Test PyPI
+        run: |
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ marketpipe
+          python -c "import marketpipe; print(f'✅ Test PyPI installation successful: {marketpipe.__version__}')"
+
+      # Only publish to real PyPI for non-alpha releases (commented out for alpha)
+      # - name: Publish to PyPI
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      #   run: |
+      #     python -m twine upload dist/*
+
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [validate, release, publish]
+    if: always()
+
+    steps:
+      - name: Release Summary
+        run: |
+          echo "🚀 **MarketPipe Release Summary**"
+          echo ""
+          echo "**Version:** ${{ needs.release.outputs.version || 'Unknown' }}"
+          echo "**Validation:** ${{ needs.validate.result }}"
+          echo "**Release Creation:** ${{ needs.release.result }}"
+          echo "**PyPI Publication:** ${{ needs.publish.result }}"
+          echo ""
+          if [ "${{ needs.validate.result }}" == "success" ] && [ "${{ needs.release.result }}" == "success" ]; then
+            echo "✅ **Release completed successfully!**"
+            echo ""
+            echo "**What's included:**"
+            echo "- GitHub release with changelog"
+            echo "- Release assets"
+            echo "- Test PyPI publication (alpha releases)"
+            echo ""
+            echo "**Next steps for users:**"
+            echo '```bash'
+            echo "# Install from Test PyPI (alpha releases)"
+            echo "pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ marketpipe"
+            echo ""
+            echo "# Verify installation"
+            echo "python -c \"import marketpipe; print(marketpipe.__version__)\""
+            echo '```'
+          else
+            echo "❌ **Release failed**"
+            echo "Check the workflow logs for details."
+            exit 1
+          fi

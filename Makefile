@@ -41,7 +41,7 @@ test-all:
 test-unit:
 	@python -m pytest tests/ -m "unit" --tb=short
 
-# Integration tests only  
+# Integration tests only
 test-integration:
 	@python -m pytest tests/ -m "integration" --tb=short
 
@@ -112,7 +112,7 @@ arch-check:
 check:
 	@echo "🔧 Running code quality checks..."
 	@$(MAKE) fmt
-	@$(MAKE) lint  
+	@$(MAKE) lint
 	@$(MAKE) type-check
 	@$(MAKE) arch-check
 	@echo "✅ Code quality checks complete"
@@ -135,4 +135,4 @@ clean:
 
 # Install in development mode
 install:
-	@pip install -e . 
+	@pip install -e .

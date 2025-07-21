@@ -5,35 +5,35 @@
       { "name": "symbol",        "type": "string",                     "nullable": false, "description": "Ticker symbol (e.g. AAPL, MSFT)" },
       { "name": "timestamp",     "type": "timestamp[ns, tz=UTC]",      "nullable": false, "description": "Bar start time in UTC" },
       { "name": "date",          "type": "date32[day]",                "nullable": false, "description": "Trading date for partitioning" },
-  
+
       { "name": "open",          "type": "double",                     "nullable": false, "description": "Opening price",          "constraints": { "min": 0.0, "precision": 4 } },
       { "name": "high",          "type": "double",                     "nullable": false, "description": "Highest price",          "constraints": { "min": 0.0, "precision": 4 } },
       { "name": "low",           "type": "double",                     "nullable": false, "description": "Lowest price",           "constraints": { "min": 0.0, "precision": 4 } },
       { "name": "close",         "type": "double",                     "nullable": false, "description": "Closing price",          "constraints": { "min": 0.0, "precision": 4 } },
       { "name": "volume",        "type": "int64",                      "nullable": false, "description": "Total traded volume",    "constraints": { "min": 0 } },
-  
+
       { "name": "vwap",          "type": "double",                     "nullable": true,  "description": "Volume-weighted average price", "constraints": { "min": 0.0, "precision": 4 } },
       { "name": "trade_count",   "type": "int32",                      "nullable": true,  "description": "Number of trades in bar",      "constraints": { "min": 0 } },
-  
+
       { "name": "bid",           "type": "double",                     "nullable": true,  "description": "Best bid price at bar open/close" },
       { "name": "ask",           "type": "double",                     "nullable": true,  "description": "Best ask price at bar open/close" },
       { "name": "spread",        "type": "double",                     "nullable": true,  "description": "Bid-ask spread (ask − bid)" },
-  
+
       { "name": "source",        "type": "string",                     "nullable": true,  "description": "Raw data vendor or feed name" },
       { "name": "exchange",      "type": "string",                     "nullable": true,  "description": "Primary exchange for symbol/bar" },
       { "name": "frame",         "type": "string",                     "nullable": true,  "description": "Granularity: 1m, 5m, 15m, etc." },
-  
+
       { "name": "session",       "type": "string",                     "nullable": true,  "description": "Trading session: regular, pre, post" },
       { "name": "currency",      "type": "string",                     "nullable": true,  "description": "ISO 4217 currency code, e.g. USD, EUR" },
       { "name": "status",        "type": "string",                     "nullable": true,  "description": "Data-quality flag: ok, partial, suspect" },
-  
+
       { "name": "adjusted",      "type": "bool",                       "nullable": true,  "description": "True if price adjusted for splits/dividends" },
       { "name": "halted",        "type": "bool",                       "nullable": true,  "description": "True if bar was during a market halt or anomaly" },
-  
+
       { "name": "ingest_id",     "type": "string",                     "nullable": true,  "description": "Ingestion job or batch ID" },
       { "name": "schema_version","type": "int32",                      "nullable": false, "description": "Schema version for this record" }
     ],
-  
+
     "primary_key":     ["symbol", "timestamp"],
     "partition_keys":  ["symbol", "date"],
     "sort_order":      ["symbol", "timestamp"],
@@ -41,4 +41,3 @@
     "encoding":        "dictionary",
     "description":     "Schema for 1-minute bars"
   }
-  

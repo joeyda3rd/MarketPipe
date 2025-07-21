@@ -4,6 +4,15 @@ Thank you for your interest in contributing to MarketPipe! This document provide
 
 ## Development Setup
 
+### Quick Setup
+```bash
+# Clone and setup in one go
+git clone https://github.com/yourorg/marketpipe.git
+cd marketpipe
+scripts/setup    # One-command setup with dependencies and environment
+```
+
+### Manual Setup
 1. **Clone the repository**
    ```bash
    git clone https://github.com/yourorg/marketpipe.git
@@ -15,32 +24,151 @@ Thank you for your interest in contributing to MarketPipe! This document provide
    pip install -e '.[dev]'
    ```
 
-3. **Set up environment variables**
+3. **Install pre-commit hooks (recommended)**
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
+
+4. **Set up environment variables**
    ```bash
    cp .env.example .env
    # Edit .env with your API credentials
    ```
 
-4. **Run tests to verify setup**
+5. **Verify setup**
    ```bash
-   pytest
+   scripts/health-check
+   scripts/test-fast
    ```
 
 ## Code Quality
 
-MarketPipe maintains high code quality standards:
+MarketPipe maintains high code quality standards through automated checks:
 
-- **Formatting**: Use `black` for code formatting
-- **Linting**: Use `ruff` for linting
-- **Type checking**: Use `mypy` for static type analysis
-- **Testing**: Write tests for all new functionality
+### Pre-commit Hooks (Recommended)
+The easiest way to maintain code quality is through pre-commit hooks:
 
-Run quality checks:
 ```bash
+# Install pre-commit hooks
+pre-commit install
+
+# Now all checks run automatically on git commit
+git add .
+git commit -m "Your changes"  # Automatic formatting, linting, and tests
+```
+
+### Manual Quality Checks
+If you prefer to run checks manually:
+
+```bash
+# Code formatting
+scripts/format
+
+# All quality checks
 black src/ tests/
 ruff check src/ tests/
 mypy src/marketpipe/
-pytest
+
+# Testing
+scripts/test-fast        # Quick feedback during development
+scripts/test-full        # Complete suite before submitting PR
+```
+
+### Quality Standards
+- **Formatting**: Black (line length 100)
+- **Import sorting**: isort (compatible with Black)
+- **Linting**: Ruff (replaces flake8, pylint)
+- **Type checking**: MyPy for static analysis
+- **Security**: Bandit for vulnerability scanning
+- **Testing**: Comprehensive test suite with markers
+- **Documentation**: Docstrings for public APIs
+
+### Test Organization
+Tests are organized with pytest markers:
+
+```bash
+# Run different test categories
+pytest -m fast           # Ultra-fast tests (~2s)
+pytest -m unit            # Unit tests
+pytest -m integration     # Integration tests
+pytest -m api_client      # API client tests
+pytest -m config          # Configuration tests
+```
+
+## General Contribution Workflow
+
+### Making Changes
+
+1. **Create a feature branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Development cycle**
+   ```bash
+   # Make your changes
+   # ... edit files ...
+
+   # Quick feedback during development
+   scripts/test-fast
+
+   # Format and check code quality
+   scripts/format
+
+   # Commit (pre-commit hooks run automatically)
+   git add .
+   git commit -m "feat: your descriptive commit message"
+   ```
+
+3. **Before submitting**
+   ```bash
+   # Run full CI simulation locally
+   scripts/test-ci
+
+   # Or run components individually
+   scripts/test-full        # Complete test suite
+   pre-commit run --all-files  # All quality checks
+   ```
+
+### Testing Your Changes
+
+MarketPipe has multiple levels of testing:
+
+```bash
+# During development - quick feedback
+scripts/test-fast           # ~3 seconds
+
+# Pre-commit validation - ultra-fast
+scripts/pre-commit-tests    # ~2 seconds (runs automatically)
+
+# Before PR - comprehensive
+scripts/test-full           # Full suite with coverage
+scripts/test-ci            # Simulate CI environment
+
+# Specific test categories
+pytest -m fast             # Only fast tests
+pytest -m api_client       # API client tests
+pytest -m integration      # Integration tests
+```
+
+### Code Style
+
+All code style is enforced automatically through pre-commit hooks:
+- **Black** for formatting (line length 100)
+- **isort** for import sorting
+- **Ruff** for linting
+- **MyPy** for type checking
+- **Bandit** for security scanning
+
+### Commit Messages
+
+Use conventional commit format:
+```
+feat: add new provider integration
+fix: resolve rate limiting issue
+docs: update API documentation
+test: add integration tests for feature X
 ```
 
 ## Adding a Provider Adapter
@@ -87,21 +215,21 @@ Add a settings class in `src/marketpipe/settings/providers.py`:
 ```python
 class NewProviderSettings(BaseSettings):
     """New Provider API settings.
-    
+
     Brief description of the provider and what it offers.
-    
+
     Environment Variables:
         MP_NEWPROVIDER_API_KEY: API key from provider dashboard
         MP_NEWPROVIDER_API_SECRET: Secret key from provider dashboard
     """
-    
+
     api_key: str = Field(..., env="MP_NEWPROVIDER_API_KEY", description="New Provider API key")
     api_secret: str = Field(..., env="MP_NEWPROVIDER_API_SECRET", description="New Provider secret key")
     base_url: str = Field(
         default="https://api.newprovider.com",
         description="New Provider API base URL"
     )
-    
+
     class Config:
         env_prefix = ""
         case_sensitive = True
@@ -141,7 +269,7 @@ logger = logging.getLogger(__name__)
 class NewProviderMarketDataAdapter(IMarketDataProvider):
     """
     Market data adapter for New Provider API.
-    
+
     Provides access to New Provider's market data through their REST API.
     """
 
@@ -216,7 +344,7 @@ class TestNewProviderAdapter:
     def test_metadata(self):
         """Test provider metadata is correct."""
         adapter = NewProviderMarketDataAdapter(
-            api_key="test_key", 
+            api_key="test_key",
             api_secret="test_secret"
         )
         metadata = adapter.get_metadata()
@@ -270,30 +398,46 @@ python -c "from marketpipe.ingestion.infrastructure import list_providers; print
 
 ## Submitting Changes
 
-1. **Create a feature branch**
+### Pre-submission Checklist
+
+Before submitting your pull request:
+
+```bash
+# 1. Ensure all tests pass
+scripts/test-ci              # Full CI simulation
+
+# 2. Verify code quality
+pre-commit run --all-files   # All quality checks
+
+# 3. Check test coverage (if applicable)
+scripts/test-full            # Includes coverage report
+```
+
+### Pull Request Process
+
+1. **Push your feature branch**
    ```bash
-   git checkout -b feature/add-newprovider
+   git push origin feature/your-feature-name
    ```
 
-2. **Make your changes** following the guidelines above
+2. **Open a pull request** with:
+   - Clear description of changes
+   - Link to related issues
+   - Screenshots/examples if applicable
+   - Provider checklist table (if adding a provider)
 
-3. **Run all quality checks**
-   ```bash
-   pre-commit run --all-files
-   pytest
-   ```
+3. **Respond to feedback** and make requested changes
 
-4. **Commit with descriptive messages**
-   ```bash
-   git commit -m "feat: add NewProvider market data adapter
+4. **Final checks**: Ensure CI passes and conflicts are resolved
 
-   - Implement NewProviderMarketDataAdapter with OHLCV support
-   - Add standardized environment variable configuration
-   - Include comprehensive unit and contract tests
-   - Update documentation and .env.example"
-   ```
+### Quality Gates
 
-5. **Submit pull request** with the provider checklist table
+Your PR must pass:
+- ✅ **Pre-commit hooks** (formatting, linting, security)
+- ✅ **Fast tests** (core functionality)
+- ✅ **Full test suite** (comprehensive coverage)
+- ✅ **Type checking** (MyPy validation)
+- ✅ **Code review** (maintainer approval)
 
 ## Code Review Process
 

@@ -13,20 +13,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from marketpipe.aggregation.domain.events import (
-    AggregationCompleted,
-    AggregationFailed,
-)
-from marketpipe.domain.events import (
-    IngestionJobCompleted as DomainIngestionJobCompleted,
-)
-from marketpipe.domain.events import (
-    ValidationFailed as DomainValidationFailed,
-)
-from marketpipe.events import (
-    IngestionJobCompleted,
-    ValidationFailed,
-)
+from marketpipe.aggregation.domain.events import AggregationCompleted, AggregationFailed
+from marketpipe.domain.events import IngestionJobCompleted
+from marketpipe.domain.events import IngestionJobCompleted as DomainIngestionJobCompleted
+from marketpipe.domain.events import ValidationFailed
+from marketpipe.domain.events import ValidationFailed as DomainValidationFailed
 from marketpipe.metrics import (
     AGG_ROWS,
     ERRORS,

@@ -27,4 +27,4 @@ workers: 4             # Number of worker threads (1-32)
 
 # Environment variables are supported:
 # api_key: ${ALPACA_KEY}
-# api_secret: ${ALPACA_SECRET} 
+# api_secret: ${ALPACA_SECRET}

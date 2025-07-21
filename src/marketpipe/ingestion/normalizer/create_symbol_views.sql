@@ -34,4 +34,4 @@ FROM (
            ) AS rn
     FROM symbols_master
 ) AS t
-WHERE rn = 1 AND t.valid_to IS NULL; 
+WHERE rn = 1 AND t.valid_to IS NULL;

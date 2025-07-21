@@ -485,7 +485,9 @@ class TestDistributedSystemsEndToEnd:
         print(f"  Jobs per node: {node_job_counts}")
 
         # Verify that all jobs were processed successfully (distribution balance is less critical)
-        assert total_jobs_processed == 5, f"Expected 5 jobs to be processed, got {total_jobs_processed}"
+        assert (
+            total_jobs_processed == 5
+        ), f"Expected 5 jobs to be processed, got {total_jobs_processed}"
 
         # Verify distribution exists (at least one node got jobs)
         active_nodes = sum(1 for count in node_job_counts.values() if count > 0)

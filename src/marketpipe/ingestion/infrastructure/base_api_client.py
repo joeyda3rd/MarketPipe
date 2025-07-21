@@ -4,9 +4,10 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import Any, Callable, Optional
 
 from .auth import AuthStrategy
+from .http_client_protocol import AsyncHttpClientProtocol, HttpClientProtocol
 from .models import ClientConfig
 from .rate_limit import RateLimiter
 
@@ -25,9 +26,11 @@ class BaseApiClient(abc.ABC):
         config: ClientConfig,
         auth: AuthStrategy,
         rate_limiter: RateLimiter | None = None,
-        metrics_collector: callable | None = None,
-        state_backend: StateBackend | None = None,
+        metrics_collector: Callable | None = None,
+        state_backend: Any | None = None,
         logger: logging.Logger | None = None,
+        http_client: HttpClientProtocol | None = None,
+        async_http_client: AsyncHttpClientProtocol | None = None,
     ) -> None:
         self.config = config
         self.auth = auth
@@ -35,6 +38,19 @@ class BaseApiClient(abc.ABC):
         self.metrics = metrics_collector or (lambda *a, **k: None)
         self.state = state_backend
         self.log = logger or logging.getLogger(self.__class__.__name__)
+
+        # HTTP client dependency injection
+        self.http_client = http_client
+        self.async_http_client = async_http_client
+
+        # Lazy initialization of HTTP clients
+        if self.http_client is None:
+            from .http_client_protocol import get_default_http_client
+            self.http_client = get_default_http_client()
+
+        if self.async_http_client is None:
+            from .http_client_protocol import get_default_async_http_client
+            self.async_http_client = get_default_async_http_client()
 
     # ---------- URL / request helpers ----------
     @abc.abstractmethod

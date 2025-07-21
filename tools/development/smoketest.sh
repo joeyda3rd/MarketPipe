@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # MARKETPIPE SMOKE TEST — "GREEN/RED IN 90 SECONDS"
-# 
+#
 # Goal: Prove that a fresh checkout can ingest, write, aggregate, and query OHLCV data
 # If any step fails, exit 1 so CI goes red.
 #
@@ -89,7 +89,7 @@ try:
     # Look for files in various possible locations
     possible_patterns = [
         f"{root}/data/frame=1m/symbol=AAPL/**/*.parquet",
-        f"{root}/data/symbol=AAPL/**/*.parquet", 
+        f"{root}/data/symbol=AAPL/**/*.parquet",
         f"{root}/frame=1m/symbol=AAPL/**/*.parquet",
         f"{root}/symbol=AAPL/**/*.parquet",
         f"{root}/**/*.parquet"
@@ -101,7 +101,7 @@ try:
         if files:
             print(f"Found files with pattern: {pattern}")
             break
-        
+
     if not files:
         # List what's actually there for debugging
         print("Directory structure:")
@@ -123,29 +123,29 @@ try:
         bars = conn.execute(f"""
             SELECT COUNT(*) FROM read_parquet('{files[0]}')
         """).fetchone()[0]
-        
+
         # Also check the date range in the files (handle potential date issues)
         try:
             date_info = conn.execute(f"""
                 SELECT MIN(date) as min_date, MAX(date) as max_date, COUNT(*) as total_bars
                 FROM read_parquet('{files[0]}')
             """).fetchone()
-            
+
             print(f"File contents: {date_info[2]} bars from {date_info[0]} to {date_info[1]}")
         except Exception as e:
             print(f"Note: Could not read date info ({e}), but file has {bars} bars")
-        
+
         if bars <= 0:
             print("❌ Zero bars found in Parquet file")
             sys.exit(1)
-            
+
         print(f"✅ 1-minute bars: {bars}")
     except Exception as e:
         print(f"❌ Error reading Parquet file: {e}")
         sys.exit(1)
     finally:
         conn.close()
-        
+
 except Exception as e:
     print(f"❌ Error in Parquet verification: {e}")
     sys.exit(1)
@@ -222,4 +222,4 @@ else
 fi
 
 # Note: cleanup happens automatically via trap
-exit 0 
+exit 0

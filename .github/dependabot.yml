@@ -1,0 +1,78 @@
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "maintainers"
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    # Group related updates
+    groups:
+      security:
+        patterns:
+          - "bandit"
+          - "safety"
+          - "pip-audit"
+      testing:
+        patterns:
+          - "pytest*"
+          - "*test*"
+      formatting:
+        patterns:
+          - "black"
+          - "ruff"
+          - "isort"
+      typing:
+        patterns:
+          - "mypy"
+          - "types-*"
+      data:
+        patterns:
+          - "pandas"
+          - "pyarrow"
+          - "duckdb"
+      cli:
+        patterns:
+          - "typer"
+          - "rich"
+          - "click"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "ci"
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  # Docker (if we add Dockerfile dependencies)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 2
+    labels:
+      - "docker"
+      - "automated"
+    commit-message:
+      prefix: "docker"
+      include: "scope"

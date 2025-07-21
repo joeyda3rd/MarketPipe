@@ -20,10 +20,10 @@ check_docker() {
 # Function to start/create PostgreSQL container
 setup_postgres() {
     echo "🔍 Checking for existing PostgreSQL container..."
-    
+
     if docker ps -a --format "table {{.Names}}" | grep -q "marketpipe-postgres"; then
         echo "📦 Container 'marketpipe-postgres' exists"
-        
+
         if docker ps --format "table {{.Names}}" | grep -q "marketpipe-postgres"; then
             echo "✅ Container is already running"
         else
@@ -45,7 +45,7 @@ setup_postgres() {
             -e POSTGRES_DB=marketpipe \
             -p 5433:5432 \
             postgres:15
-        
+
         if [ $? -eq 0 ]; then
             echo "✅ Container created and started successfully"
             echo "⏳ Waiting for PostgreSQL to be ready..."
@@ -55,14 +55,14 @@ setup_postgres() {
             return 1
         fi
     fi
-    
+
     return 0
 }
 
 # Function to test connection
 test_connection() {
     echo "🧪 Testing PostgreSQL connection..."
-    
+
     # Test with docker exec first
     if docker exec marketpipe-postgres pg_isready -U marketpipe > /dev/null 2>&1; then
         echo "✅ PostgreSQL is ready inside container"
@@ -70,7 +70,7 @@ test_connection() {
         echo "❌ PostgreSQL is not ready inside container"
         return 1
     fi
-    
+
     # Test connection from host
     if command -v psql > /dev/null; then
         if PGPASSWORD=password psql -h localhost -p 5433 -U marketpipe -d marketpipe -c "SELECT version();" > /dev/null 2>&1; then
@@ -81,7 +81,7 @@ test_connection() {
     else
         echo "ℹ️ psql not available on host (that's okay, Python can still connect)"
     fi
-    
+
     return 0
 }
 
@@ -105,7 +105,7 @@ show_info() {
 # Function to install psycopg2 if needed
 install_dependencies() {
     echo "📦 Checking Python dependencies..."
-    
+
     if python -c "import psycopg2" 2>/dev/null; then
         echo "✅ psycopg2 is available"
     else
@@ -118,7 +118,7 @@ install_dependencies() {
             return 1
         fi
     fi
-    
+
     return 0
 }
 
@@ -137,24 +137,24 @@ main() {
         echo "  sudo docker start marketpipe-postgres"
         exit 1
     fi
-    
+
     if ! setup_postgres; then
         echo "❌ Failed to setup PostgreSQL container"
         exit 1
     fi
-    
+
     if ! test_connection; then
         echo "❌ PostgreSQL connection test failed"
         exit 1
     fi
-    
+
     if ! install_dependencies; then
         echo "❌ Failed to install dependencies"
         exit 1
     fi
-    
+
     show_info
-    
+
     echo "🎉 PostgreSQL setup completed successfully!"
     echo ""
     echo "Next steps:"
@@ -164,4 +164,4 @@ main() {
 }
 
 # Execute main function
-main "$@" 
+main "$@"

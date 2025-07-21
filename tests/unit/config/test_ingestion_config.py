@@ -10,10 +10,7 @@ from pathlib import Path
 import pytest
 
 from marketpipe.config import IngestionJobConfig
-from marketpipe.ingestion.infrastructure.provider_registry import (
-    is_registered,
-    register,
-)
+from marketpipe.ingestion.infrastructure.provider_registry import is_registered, register
 
 # Ensure polygon provider is available for config tests
 try:
@@ -27,6 +24,8 @@ except Exception:
 
 class TestIngestionJobConfig:
 
+    @pytest.mark.fast
+    @pytest.mark.config
     def test_valid_config_creation(self):
         """Test creating a valid config object."""
         config = IngestionJobConfig(
@@ -45,6 +44,8 @@ class TestIngestionJobConfig:
         assert config.provider == "alpaca"
         assert config.feed_type == "iex"
 
+    @pytest.mark.fast
+    @pytest.mark.config
     def test_default_values(self):
         """Test that default values are applied correctly."""
         config = IngestionJobConfig(symbols=["AAPL"], start=date(2025, 1, 1), end=date(2025, 1, 7))

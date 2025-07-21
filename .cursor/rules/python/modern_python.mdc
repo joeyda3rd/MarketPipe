@@ -46,7 +46,7 @@ class ClientConfig:
 from typing import List, Dict, Optional
 
 def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:  # Without future annotations
-    
+
 class ClientConfig:  # Use dataclass instead
     def __init__(self, api_key: str, base_url: str):
         self.api_key = api_key
@@ -65,7 +65,7 @@ class ClientConfig:
     user_agent: str = "MarketPipe/1.0"
     timeout: float = 30.0
     max_retries: int = 3
-    
+
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""
         if not self.api_key:
@@ -84,7 +84,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 class BaseApiClient(abc.ABC):
     """Abstract, vendor-agnostic API client."""
-    
+
     @abc.abstractmethod
     def build_request_params(
         self,
@@ -94,7 +94,7 @@ class BaseApiClient(abc.ABC):
         cursor: Optional[str] = None,
     ) -> Mapping[str, str]:
         """Return query parameters dict specific to this vendor."""
-        
+
     @abc.abstractmethod
     def parse_response(self, raw_json: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Convert vendor response to list of canonical OHLCV rows."""
@@ -181,7 +181,7 @@ class AlpacaClient(BaseApiClient):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.log = kwargs.get('logger') or logging.getLogger(self.__class__.__name__)
-        
+
     def _request(self, params: Mapping[str, str]) -> Dict[str, Any]:
         self.log.debug(f"Making request with params: {params}")
         try:
@@ -211,7 +211,7 @@ class DataFeed(str, Enum):
     """Alpaca data feed options."""
     IEX = "iex"      # Free tier
     SIP = "sip"      # Paid subscription
-    
+
 class SessionType(str, Enum):
     """Trading session types."""
     REGULAR = "regular"
@@ -230,7 +230,7 @@ from urllib.parse import urljoin
 def endpoint_url(self) -> str:
     """Build full endpoint URL."""
     return urljoin(self.config.base_url, self._PATH_TEMPLATE)
-    
+
 def output_path(self, symbol: str, date: str) -> Path:
     """Build output file path."""
     return Path(self.config.output_dir) / f"symbol={symbol}" / f"date={date}.parquet"
@@ -240,7 +240,7 @@ def output_path(self, symbol: str, date: str) -> Path:
 ```python
 def endpoint_url(self) -> str:
     return self.config.base_url + self._PATH_TEMPLATE  # String concatenation
-    
+
 def output_path(self, symbol: str, date: str) -> str:
     return f"{self.config.output_dir}/symbol={symbol}/date={date}.parquet"  # String paths
 ```
@@ -257,7 +257,7 @@ def fetch_batch(
     end_ts: int,
 ) -> List[Dict[str, Any]]:
     """High-level helper returning normalized OHLCV rows."""
-    
+
 def save_checkpoint(self, symbol: str, checkpoint: str | int) -> None:
     """Persist symbol checkpoint if state backend is configured."""
 ```

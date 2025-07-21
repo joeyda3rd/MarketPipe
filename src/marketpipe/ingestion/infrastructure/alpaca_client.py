@@ -65,7 +65,7 @@ class AlpacaClient(BaseApiClient):
     def _request(self, params: Mapping[str, str]) -> dict[str, Any]:
         # Local import to avoid circular dependency
         from marketpipe.metrics import ERRORS, LATENCY, REQUESTS
-        
+
         if self.rate_limiter:
             self.rate_limiter.acquire()
 
@@ -76,7 +76,7 @@ class AlpacaClient(BaseApiClient):
         retries = 0
         while True:
             start = time.perf_counter()
-            r = httpx.get(
+            r = self.http_client.get(
                 url,
                 params=params,  # Include all params including symbols
                 headers=headers,
@@ -147,7 +147,7 @@ class AlpacaClient(BaseApiClient):
     async def _async_request(self, params: Mapping[str, str]) -> dict[str, Any]:
         # Local import to avoid circular dependency
         from marketpipe.metrics import ERRORS, LATENCY, REQUESTS
-        
+
         if self.rate_limiter:
             await self.rate_limiter.async_acquire()
 
@@ -156,76 +156,76 @@ class AlpacaClient(BaseApiClient):
         self.auth.apply(headers, params={})
 
         retries = 0
-        async with httpx.AsyncClient(timeout=self.config.timeout) as client:
-            while True:
-                start = time.perf_counter()
-                r = await client.get(
-                    url,
-                    params=params,  # Include all params including symbols
-                    headers=headers,
-                )
-                duration = time.perf_counter() - start
-                LATENCY.labels(source="alpaca", provider="alpaca", feed=self.feed).observe(duration)
-                REQUESTS.labels(source="alpaca", provider="alpaca", feed=self.feed).inc()
-                if r.status_code >= 400:
-                    ERRORS.labels(
-                        source="alpaca", provider="alpaca", feed=self.feed, code=str(r.status_code)
-                    ).inc()
+        while True:
+            start = time.perf_counter()
+            r = await self.async_http_client.get(
+                url,
+                params=params,  # Include all params including symbols
+                headers=headers,
+                timeout=self.config.timeout,
+            )
+            duration = time.perf_counter() - start
+            LATENCY.labels(source="alpaca", provider="alpaca", feed=self.feed).observe(duration)
+            REQUESTS.labels(source="alpaca", provider="alpaca", feed=self.feed).inc()
+            if r.status_code >= 400:
+                ERRORS.labels(
+                    source="alpaca", provider="alpaca", feed=self.feed, code=str(r.status_code)
+                ).inc()
 
-                # Handle JSON parsing safely
-                try:
-                    response_json = r.json()
-                except (json.JSONDecodeError, ValueError) as e:
-                    # If JSON parsing fails, check if we should retry based on status code only
-                    safe_msg = safe_for_log(
-                        f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}",
-                        self.config.api_key,
-                    )
-                    self.log.warning(safe_msg)
-                    if self.should_retry(r.status_code, {}):
-                        retries += 1
-                        if retries > self.config.max_retries:
-                            safe_error_msg = safe_for_log(
-                                "Alpaca async retry limit hit", self.config.api_key
-                            )
-                            raise RuntimeError(safe_error_msg)
-                        sleep = self._backoff(retries)
-                        self.log.warning("Async retry %d sleeping %.2fs", retries, sleep)
-                        await asyncio.sleep(sleep)
-                        continue
-                    else:
+            # Handle JSON parsing safely
+            try:
+                response_json = r.json()
+            except (json.JSONDecodeError, ValueError) as e:
+                # If JSON parsing fails, check if we should retry based on status code only
+                safe_msg = safe_for_log(
+                    f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}",
+                    self.config.api_key,
+                )
+                self.log.warning(safe_msg)
+                if self.should_retry(r.status_code, {}):
+                    retries += 1
+                    if retries > self.config.max_retries:
                         safe_error_msg = safe_for_log(
-                            f"Failed to parse Alpaca API response as JSON: {r.text}",
-                            self.config.api_key,
+                            "Alpaca async retry limit hit", self.config.api_key
                         )
                         raise RuntimeError(safe_error_msg)
-
-                if not self.should_retry(r.status_code, response_json):
-                    return response_json
-
-                # Handle Retry-After header for 429 responses
-                if r.status_code == 429 and self.rate_limiter:
-                    retry_after = r.headers.get("Retry-After")
-                    if retry_after:
-                        try:
-                            retry_seconds = int(retry_after)
-                            self.log.warning(
-                                f"Rate limited, respecting Retry-After: {retry_seconds}s"
-                            )
-                            await self.rate_limiter.notify_retry_after_async(retry_seconds)
-                            continue  # Try again after retry-after period
-                        except (ValueError, TypeError):
-                            self.log.warning(f"Invalid Retry-After header: {retry_after}")
-
-                retries += 1
-                if retries > self.config.max_retries:
+                    sleep = self._backoff(retries)
+                    self.log.warning("Async retry %d sleeping %.2fs", retries, sleep)
+                    await asyncio.sleep(sleep)
+                    continue
+                else:
                     safe_error_msg = safe_for_log(
-                        "Alpaca async retry limit hit", self.config.api_key
+                        f"Failed to parse Alpaca API response as JSON: {r.text}",
+                        self.config.api_key,
                     )
                     raise RuntimeError(safe_error_msg)
-                sleep = self._backoff(retries)
-                self.log.warning("Async retry %d sleeping %.2fs", retries, sleep)
-                await asyncio.sleep(sleep)
+
+            if not self.should_retry(r.status_code, response_json):
+                return response_json
+
+            # Handle Retry-After header for 429 responses
+            if r.status_code == 429 and self.rate_limiter:
+                retry_after = r.headers.get("Retry-After")
+                if retry_after:
+                    try:
+                        retry_seconds = int(retry_after)
+                        self.log.warning(
+                            f"Rate limited, respecting Retry-After: {retry_seconds}s"
+                        )
+                        await self.rate_limiter.notify_retry_after_async(retry_seconds)
+                        continue  # Try again after retry-after period
+                    except (ValueError, TypeError):
+                        self.log.warning(f"Invalid Retry-After header: {retry_after}")
+
+            retries += 1
+            if retries > self.config.max_retries:
+                safe_error_msg = safe_for_log(
+                    "Alpaca async retry limit hit", self.config.api_key
+                )
+                raise RuntimeError(safe_error_msg)
+            sleep = self._backoff(retries)
+            self.log.warning("Async retry %d sleeping %.2fs", retries, sleep)
+            await asyncio.sleep(sleep)
 
     # ---------- parsing ----------
     def parse_response(self, raw_json: dict[str, Any]) -> list[dict[str, Any]]:

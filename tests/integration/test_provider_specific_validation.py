@@ -215,7 +215,7 @@ class ProviderValidator:
                     "--output",
                     str(temp_path / "data"),
                 ]
-                
+
                 # Add feed-type for providers that require it
                 if config.name in ["alpaca", "iex", "polygon"]:
                     cmd.extend(["--feed-type", "iex"])
@@ -230,21 +230,25 @@ class ProviderValidator:
                 #    (errors like "No data found", "Rate limit", etc. indicate auth worked)
                 if result.returncode == 0:
                     return True
-                
+
                 # Check for authentication-related failures
                 error_output = (result.stdout + result.stderr).lower()
-                
+
                 # These indicate authentication failure
                 auth_failure_indicators = [
-                    "unauthorized", "invalid key", "invalid secret", 
-                    "authentication failed", "invalid credentials",
-                    "forbidden", "access denied"
+                    "unauthorized",
+                    "invalid key",
+                    "invalid secret",
+                    "authentication failed",
+                    "invalid credentials",
+                    "forbidden",
+                    "access denied",
                 ]
-                
+
                 # If any auth failure indicators are found, auth failed
                 if any(indicator in error_output for indicator in auth_failure_indicators):
                     return False
-                
+
                 # If we get here, the command failed but not due to authentication
                 # This suggests auth worked but some other business rule failed
                 # (e.g., "No data found", "Symbol not supported", etc.)
@@ -262,7 +266,7 @@ class ProviderValidator:
             # Clean up any existing persistent database files that could cause job conflicts
             persistent_db_files = [
                 self.base_dir / "data" / "ingestion_jobs.db",
-                self.base_dir / "data" / "metrics.db", 
+                self.base_dir / "data" / "metrics.db",
                 self.base_dir / "data" / "db" / "core.db",
             ]
             for db_file in persistent_db_files:
@@ -601,7 +605,7 @@ class TestProviderSpecificValidation:
     def test_authenticated_providers(self, provider_validator):
         """Test providers that require authentication (skip if credentials not available)."""
         auth_providers = ["alpaca", "iex", "polygon", "finnhub"]
-        
+
         # Collect providers that have credentials available
         testable_providers = []
         skipped_providers = []
@@ -614,16 +618,20 @@ class TestProviderSpecificValidation:
             if missing_vars:
                 skipped_providers.append(f"{provider} (missing: {missing_vars})")
                 continue
-            
+
             testable_providers.append(provider)
-        
+
         # Skip entire test only if NO providers have credentials
         if not testable_providers:
-            pytest.skip(f"No authentication credentials available for any provider. Skipped: {skipped_providers}")
-        
+            pytest.skip(
+                f"No authentication credentials available for any provider. Skipped: {skipped_providers}"
+            )
+
         print(f"Testing {len(testable_providers)} providers with credentials: {testable_providers}")
         if skipped_providers:
-            print(f"Skipped {len(skipped_providers)} providers without credentials: {skipped_providers}")
+            print(
+                f"Skipped {len(skipped_providers)} providers without credentials: {skipped_providers}"
+            )
 
         # Test each provider that has credentials
         for provider in testable_providers:
@@ -657,7 +665,7 @@ class TestProviderSpecificValidation:
                     "--output",
                     "/tmp/test",
                 ]
-                
+
                 # Add feed-type for providers that require it
                 if provider in ["alpaca", "iex", "polygon"]:
                     cmd.extend(["--feed-type", "iex"])

@@ -13,10 +13,10 @@ DROP TABLE IF EXISTS symbols_master;
 -- Step 2: Validate required columns exist
 -- This will fail fast if provider column is missing
 CREATE TEMP TABLE validation_check AS
-SELECT 
-    CASE WHEN COUNT(*) = 0 THEN 'OK' 
+SELECT
+    CASE WHEN COUNT(*) = 0 THEN 'OK'
          WHEN COUNT(*) > 0 AND MIN(provider) IS NOT NULL THEN 'OK'
-         ELSE 'MISSING_PROVIDER' 
+         ELSE 'MISSING_PROVIDER'
     END as validation_result
 FROM symbols_stage;
 
@@ -79,4 +79,4 @@ assigned AS (
 
 -- Final selection with all columns including surrogate ID
 SELECT *
-FROM assigned; 
+FROM assigned;

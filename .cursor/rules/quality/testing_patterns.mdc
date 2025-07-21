@@ -155,7 +155,7 @@ def test_alpaca_retry_on_429(monkeypatch):
     def mock_get(url, params=None, headers=None, timeout=None):
         nonlocal call_count
         call_count += 1
-        
+
         if call_count == 1:
             # First call returns rate limit error
             return types.SimpleNamespace(
@@ -177,7 +177,7 @@ def test_alpaca_retry_on_429(monkeypatch):
     # Mock sleep to avoid actual delays
     sleep_calls = []
     monkeypatch.setattr("time.sleep", lambda s: sleep_calls.append(s))
-    
+
     # Mock backoff to return predictable value
     monkeypatch.setattr(
         "marketpipe.ingestion.connectors.alpaca_client.AlpacaClient._backoff",
@@ -213,26 +213,26 @@ def test_coordinator_processes_multiple_symbols(tmp_path, monkeypatch):
                 "volume": 1000, "schema_version": 1,
             }
         ]
-    
+
     # Setup coordinator with mocked client
     mock_client = Mock()
     mock_client.fetch_batch = mock_fetch_batch
-    
+
     validator = SchemaValidator("schema/schema_v1.json")
     writer = ParquetWriter(str(tmp_path))
     coordinator = IngestionCoordinator(mock_client, validator, writer, max_workers=2)
-    
+
     # Run ingestion
     symbols = ["AAPL", "GOOGL", "MSFT"]
     date_ranges = [(1640995800000, 1641082200000)]  # One day
-    
+
     results = coordinator.ingest_batch(symbols, date_ranges)
-    
+
     # Verify results
     assert results["success"] == 3
     assert results["failed"] == 0
     assert len(results["errors"]) == 0
-    
+
     # Verify files were created
     for symbol in symbols:
         symbol_dir = tmp_path / f"symbol={symbol}"
@@ -249,7 +249,7 @@ Test schema validation and data quality checks:
 def test_schema_validator_rejects_invalid_data():
     """Schema validator should reject rows with missing required fields."""
     validator = SchemaValidator("schema/schema_v1.json")
-    
+
     # Valid row
     valid_row = {
         "symbol": "AAPL",
@@ -259,7 +259,7 @@ def test_schema_validator_rejects_invalid_data():
         "volume": 1000,
         "schema_version": 1,
     }
-    
+
     # Invalid rows
     invalid_rows = [
         {},  # Empty row
@@ -267,10 +267,10 @@ def test_schema_validator_rejects_invalid_data():
         {**valid_row, "open": -1},  # Invalid price
         {**valid_row, "volume": -100},  # Invalid volume
     ]
-    
+
     all_rows = [valid_row] + invalid_rows
     valid_data, errors = validator.validate_batch(all_rows, "AAPL")
-    
+
     assert len(valid_data) == 1
     assert len(errors) == len(invalid_rows)
     assert valid_data[0] == valid_row
@@ -289,7 +289,7 @@ def test_metrics_are_recorded():
     # Clear metrics before test
     REQUESTS._value.clear()
     ERRORS._value.clear()
-    
+
     # Setup client with mocked response
     def mock_get(url, params=None, headers=None, timeout=None):
         return types.SimpleNamespace(
@@ -297,14 +297,14 @@ def test_metrics_are_recorded():
             json=lambda: {"bars": {"AAPL": []}},
             text="success"
         )
-    
+
     with patch('httpx.get', mock_get):
         config = ClientConfig(api_key="test", base_url="https://api.test.com")
         auth = HeaderTokenAuth("id", "secret")
         client = AlpacaClient(config=config, auth=auth)
-        
+
         client.fetch_batch("AAPL", 0, 1000)
-    
+
     # Verify metrics were recorded
     request_samples = REQUESTS.collect()[0].samples
     alpaca_requests = [s for s in request_samples if 'alpaca' in str(s.labels)]
@@ -324,7 +324,7 @@ def test_config_validation_rejects_invalid_dates():
         {"start": "invalid-date", "end": "2022-01-02"},  # Invalid format
         {"start": "2022-01-01", "end": "not-a-date"},   # Invalid format
     ]
-    
+
     for config_data in invalid_configs:
         with pytest.raises(ValueError):
             validate_date_range(config_data["start"], config_data["end"])
@@ -333,14 +333,14 @@ def test_config_loads_from_environment(monkeypatch):
     """Configuration should load credentials from environment variables."""
     monkeypatch.setenv("ALPACA_KEY", "test-key")
     monkeypatch.setenv("ALPACA_SECRET", "test-secret")
-    
+
     config_data = {
         "base_url": "https://api.test.com",
         "feed": "iex"
     }
-    
+
     config = load_alpaca_config(config_data)
-    
+
     assert config.api_key == "test-key"
     assert config.secret == "test-secret"
     assert config.base_url == "https://api.test.com"

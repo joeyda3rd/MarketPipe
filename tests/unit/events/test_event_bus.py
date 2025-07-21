@@ -6,7 +6,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from marketpipe.events import DomainEvent, EventBus
+from marketpipe.domain.events import DomainEvent
+from marketpipe.infrastructure.messaging.in_memory_bus import EventBus
 
 
 class SampleEvent(DomainEvent):

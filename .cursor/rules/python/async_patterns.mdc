@@ -109,16 +109,16 @@ async def _async_request(self, params: Mapping[str, str]) -> Dict[str, Any]:
             start = time.perf_counter()
             response = await client.get(url, params=params, headers=headers)
             duration = time.perf_counter() - start
-            
+
             # Metrics and error handling...
-            
+
             if not self.should_retry(response.status_code, response_json):
                 return response_json
-            
+
             retries += 1
             if retries > self.config.max_retries:
                 raise RuntimeError("Async retry limit hit")
-            
+
             sleep_time = self._backoff(retries)
             await asyncio.sleep(sleep_time)
 ```
@@ -134,23 +134,23 @@ class RateLimiter:
         self.window_seconds = window_seconds
         self._requests = []
         self._lock = asyncio.Lock()  # For async safety
-        
+
     async def async_acquire(self) -> None:
         """Async rate limit acquisition."""
         async with self._lock:
             now = time.time()
             # Remove old requests
-            self._requests = [req_time for req_time in self._requests 
+            self._requests = [req_time for req_time in self._requests
                            if now - req_time < self.window_seconds]
-            
+
             if len(self._requests) >= self.requests_per_window:
                 sleep_time = self.window_seconds - (now - self._requests[0])
                 if sleep_time > 0:
                     await asyncio.sleep(sleep_time)
                     return await self.async_acquire()  # Retry
-            
+
             self._requests.append(now)
-    
+
     def acquire(self) -> None:
         """Synchronous rate limit acquisition."""
         # Sync implementation without async/await
@@ -187,7 +187,7 @@ import pytest
 
 def test_alpaca_async(monkeypatch):
     """Test async client functionality."""
-    
+
     class DummyAsyncClient:
         async def __aenter__(self):
             return self
@@ -195,9 +195,9 @@ def test_alpaca_async(monkeypatch):
             pass
         async def get(self, url, params=None, headers=None):
             return mock_response
-    
+
     monkeypatch.setattr(httpx, "AsyncClient", DummyAsyncClient)
-    
+
     client = AlpacaClient(config=cfg, auth=auth)
     rows = asyncio.run(client.async_fetch_batch("AAPL", 0, 1))
     assert len(rows) == 2
@@ -220,7 +220,7 @@ async def gather_symbol_data(
         for symbol in symbols
     ]
     results = await asyncio.gather(*tasks, return_exceptions=True)
-    
+
     symbol_data = {}
     for symbol, result in zip(symbols, results):
         if isinstance(result, Exception):
@@ -228,7 +228,7 @@ async def gather_symbol_data(
             symbol_data[symbol] = []
         else:
             symbol_data[symbol] = result
-    
+
     return symbol_data
 ```
 

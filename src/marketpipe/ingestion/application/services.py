@@ -17,16 +17,9 @@ from ..domain.repositories import (
     IIngestionMetricsRepository,
     IngestionJobNotFoundError,
 )
-from ..domain.services import (
-    IngestionDomainService,
-    IngestionProgressTracker,
-    JobCreationRequest,
-)
+from ..domain.services import IngestionDomainService, IngestionProgressTracker, JobCreationRequest
 from ..domain.storage import IDataStorage
-from ..domain.value_objects import (
-    IngestionCheckpoint,
-    IngestionPartition,
-)
+from ..domain.value_objects import IngestionCheckpoint, IngestionPartition
 from .commands import (
     CancelJobCommand,
     CompleteJobCommand,
@@ -35,12 +28,7 @@ from .commands import (
     RestartJobCommand,
     StartJobCommand,
 )
-from .queries import (
-    GetActiveJobsQuery,
-    GetJobHistoryQuery,
-    GetJobMetricsQuery,
-    GetJobStatusQuery,
-)
+from .queries import GetActiveJobsQuery, GetJobHistoryQuery, GetJobMetricsQuery, GetJobStatusQuery
 
 
 class IngestionJobService:

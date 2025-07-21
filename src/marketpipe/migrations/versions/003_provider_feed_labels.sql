@@ -20,7 +20,7 @@ CREATE TABLE metrics_temp (
 
 -- Copy data from existing table (only the columns that exist in the original schema)
 INSERT INTO metrics_temp (ts, name, value, created_at)
-SELECT 
+SELECT
     ts,
     name,
     value,
@@ -41,4 +41,4 @@ CREATE INDEX IF NOT EXISTS idx_metrics_name_provider_feed ON metrics(name, provi
 
 -- Recreate the original indexes with correct names from migration 002
 CREATE INDEX IF NOT EXISTS idx_metrics_name_ts ON metrics(name, ts);
-CREATE INDEX IF NOT EXISTS idx_metrics_name ON metrics(name); 
+CREATE INDEX IF NOT EXISTS idx_metrics_name ON metrics(name);

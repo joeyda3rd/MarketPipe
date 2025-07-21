@@ -1,0 +1,199 @@
+name: Security
+
+on:
+  push:
+    branches: [main, develop, stability-*]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6 AM UTC
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for secret scanning
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit bandit safety
+          pip install -e .
+
+      # Dependency vulnerability scanning
+      - name: Audit Python dependencies
+        run: |
+          echo "🔍 Scanning Python dependencies for vulnerabilities..."
+          pip-audit --format=json --output=audit-results.json --progress-spinner=off
+          pip-audit --format=text
+        continue-on-error: true
+
+      # Security linting
+      - name: Run Bandit security linter
+        run: |
+          echo "🔒 Running Bandit security analysis..."
+          bandit -r src/ -f json -o bandit-results.json || true
+          bandit -r src/ -f txt
+          echo "Bandit scan completed"
+        continue-on-error: true
+
+      # Check for common security issues
+      - name: Safety check for known vulnerabilities
+        run: |
+          echo "🛡️ Checking for known security vulnerabilities..."
+          safety check --json --output safety-results.json || true
+          safety check
+        continue-on-error: true
+
+      # Secret scanning (basic patterns)
+      - name: Scan for secrets and sensitive data
+        run: |
+          echo "🔐 Scanning for potential secrets..."
+
+          # Check for common secret patterns
+          echo "Checking for API keys, tokens, and credentials..."
+
+          # Look for potential secrets in code
+          grep -r -n -i \
+            -E "(api[_-]?key|secret|token|password|credential)" \
+            --include="*.py" \
+            --include="*.yaml" \
+            --include="*.yml" \
+            --include="*.json" \
+            --exclude-dir=".git" \
+            --exclude-dir="__pycache__" \
+            . || true
+
+          # Check for hardcoded credentials (more specific patterns)
+          echo "Checking for hardcoded values..."
+          grep -r -n \
+            -E "(['\"][A-Za-z0-9]{20,}['\"])" \
+            --include="*.py" \
+            --exclude-dir=".git" \
+            --exclude-dir="__pycache__" \
+            --exclude-dir="tests" \
+            src/ || echo "No suspicious hardcoded values found"
+
+      # Check configuration files for placeholders
+      - name: Validate configuration integrity
+        run: |
+          echo "📝 Validating configuration files..."
+
+          # Check that .env.example doesn't have real values
+          if [ -f ".env.example" ]; then
+            if grep -q -E "^[^#]*=[^<][^>]*[^<][^>]*$" .env.example; then
+              echo "⚠️ Warning: .env.example may contain real values instead of placeholders"
+              grep -E "^[^#]*=[^<][^>]*[^<][^>]*$" .env.example || true
+            else
+              echo "✅ .env.example uses proper placeholders"
+            fi
+          fi
+
+      # Financial data specific checks
+      - name: Financial data compliance checks
+        run: |
+          echo "💰 Running financial data compliance checks..."
+
+          # Check for potential PII or sensitive financial data patterns
+          echo "Checking for potential PII patterns..."
+          grep -r -n -i \
+            -E "(ssn|social.security|account.number|routing.number|credit.card)" \
+            --include="*.py" \
+            --exclude-dir=".git" \
+            --exclude-dir="__pycache__" \
+            . || echo "No PII patterns detected"
+
+          # Check for TODO/FIXME related to security
+          echo "Checking for security-related TODOs..."
+          grep -r -n -i \
+            -E "(todo|fixme|hack).*[sS]ecur" \
+            --include="*.py" \
+            --include="*.md" \
+            . || echo "No security TODOs found"
+
+      # Upload security scan results
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-scan-results
+          path: |
+            audit-results.json
+            bandit-results.json
+            safety-results.json
+          retention-days: 30
+
+      # Summary report
+      - name: Security scan summary
+        if: always()
+        run: |
+          echo "📊 Security Scan Summary"
+          echo "=========================="
+          echo ""
+
+          echo "🔍 Dependency Audit:"
+          if [ -f "audit-results.json" ]; then
+            echo "  - Results saved to audit-results.json"
+            # Count vulnerabilities if any
+            vuln_count=$(jq -r '.vulnerabilities | length' audit-results.json 2>/dev/null || echo "0")
+            echo "  - Vulnerabilities found: $vuln_count"
+          else
+            echo "  - No audit results file generated"
+          fi
+
+          echo ""
+          echo "🔒 Bandit Security Analysis:"
+          if [ -f "bandit-results.json" ]; then
+            issue_count=$(jq -r '.results | length' bandit-results.json 2>/dev/null || echo "0")
+            echo "  - Security issues found: $issue_count"
+          else
+            echo "  - No bandit results file generated"
+          fi
+
+          echo ""
+          echo "🛡️ Safety Check:"
+          if [ -f "safety-results.json" ]; then
+            echo "  - Results saved to safety-results.json"
+          else
+            echo "  - No safety results file generated"
+          fi
+
+          echo ""
+          echo "✅ Security scan completed"
+          echo "Review artifacts for detailed results"
+
+  # Separate job for dependency updates check
+  dependency-check:
+    name: Dependency Freshness Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check for outdated dependencies
+        run: |
+          pip install pip-tools
+          echo "📦 Checking for outdated dependencies..."
+          pip list --outdated || echo "All dependencies up to date"
+
+      - name: Dependency summary
+        run: |
+          echo "📋 Dependency Summary:"
+          echo "- Total packages: $(pip list | wc -l)"
+          echo "- Outdated packages: $(pip list --outdated | wc -l)"

@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""Pre-commit test runner for MarketPipe.
+
+Runs a curated subset of fast tests before each commit to provide quick feedback
+without running the full test suite.
+
+For comprehensive testing, use `make test` or `pytest` directly.
+"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+
+def main():
+    """Run fast tests suitable for pre-commit validation."""
+
+    # Get project root (parent of scripts directory)
+    project_root = Path(__file__).parent.parent
+
+    try:
+        # Run tests marked as 'fast' - these should complete in <2 seconds total
+        cmd = [
+            sys.executable, "-m", "pytest",
+            "-m", "fast",               # Only run fast tests
+            "-x",                       # Stop on first failure
+            "--tb=line",               # Very short traceback format
+            "-q",                      # Quiet output
+            "--disable-warnings",      # Suppress warnings for cleaner output
+            "--maxfail=1",            # Stop after first failure for speed
+            "--no-cov",               # Disable coverage for speed
+        ]
+
+        print("🧪 Running pre-commit tests...")
+        result = subprocess.run(cmd, cwd=project_root)
+
+        if result.returncode == 0:
+            print("✅ Pre-commit tests passed!")
+            return 0
+        else:
+            print("❌ Pre-commit tests failed!")
+            return result.returncode
+
+    except Exception as e:
+        print(f"❌ Error running pre-commit tests: {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

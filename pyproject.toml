@@ -4,12 +4,37 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "marketpipe"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 description = "Modern, Python-native ETL framework for financial market data workflows with Domain-Driven Design"
 readme = "README.md"
 license = {text = "Apache-2.0"}
-authors = [{name = "MarketPipe"}]
+authors = [{name = "MarketPipe Team", email = "maintainers@marketpipe.dev"}]
+maintainers = [{name = "MarketPipe Team", email = "maintainers@marketpipe.dev"}]
 requires-python = ">=3.9"
+keywords = [
+    "etl", "finance", "market-data", "trading", "data-pipeline",
+    "financial-data", "ohlcv", "time-series", "alpaca", "domain-driven-design"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Typing :: Typed",
+    "Environment :: Console",
+    "Framework :: AsyncIO",
+]
+
 dependencies = [
     # CLI framework
     "typer>=0.9.0",
@@ -43,6 +68,14 @@ dependencies = [
     # Utilities
     "fasteners>=0.18.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/your-org/marketpipe"
+Repository = "https://github.com/your-org/marketpipe"
+Issues = "https://github.com/your-org/marketpipe/issues"
+Discussions = "https://github.com/your-org/marketpipe/discussions"
+Changelog = "https://github.com/your-org/marketpipe/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/your-org/marketpipe#documentation"
 
 [project.optional-dependencies]
 # Core testing dependencies - required for basic test suite
@@ -79,6 +112,12 @@ quality = [
     "black>=23.0.0",
     "mypy>=1.5.0",
     "ruff>=0.1.0",
+    "pre-commit>=3.5.0",
+    "isort>=5.12.0",
+    "bandit>=1.7.0",
+    "pip-audit>=2.6.0",   # Dependency vulnerability scanning
+    "safety>=2.3.0",      # Known security issues database
+    "psutil>=5.8.0",      # For benchmarking system metrics
 ]
 
 # Development utilities
@@ -110,6 +149,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["*.sql"]
+"marketpipe" = ["py.typed"]
 
 # Coverage configuration moved to .coveragerc to support parallel mode
 
@@ -173,3 +213,95 @@ strict_equality = true
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
+
+# Import linter configuration for architecture validation
+[tool.importlinter]
+root_package = "marketpipe"
+include_external_packages = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+    "--maxfail=3",
+    "--disable-warnings",
+    "-ra"
+]
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::FutureWarning",
+    "ignore::RuntimeWarning"
+]
+markers = [
+    # Speed-based markers for test organization
+    "fast: Fast tests suitable for pre-commit hooks (<2s total)",
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (slower, external dependencies)",
+    "slow: Tests that take longer than 5 seconds",
+
+    # Test reliability markers
+    "flaky: Tests that are known to be flaky",
+    "auth_required: Tests that require authentication credentials",
+
+    # Domain-specific markers
+    "database: Database interaction tests",
+    "sqlite_only: Tests that only run on SQLite",
+    "postgres: PostgreSQL-specific tests",
+    "api_client: API client and connector tests",
+    "config: Configuration and validation tests",
+    "cli: Command-line interface tests",
+
+    # Quality and validation markers
+    "boundary: Boundary condition tests",
+    "security: Security-related tests",
+    "data_quality: Data quality validation tests",
+
+    # System and infrastructure markers
+    "production_simulation: Production simulation tests",
+    "chaos_engineering: Chaos engineering tests",
+    "distributed: Distributed systems tests",
+    "deployment: Deployment and rollback tests",
+    "monitoring: Monitoring and alerting tests",
+    "multi_provider: Multi-provider integration tests",
+    "orchestration: Orchestration and reporting tests"
+]
+asyncio_mode = "auto"
+timeout = 60
+
+[tool.importlinter.contracts.domain_forbidden_infrastructure]
+name = "Domain layer must not import infrastructure"
+type = "forbidden"
+source_modules = [
+    "marketpipe.domain"
+]
+forbidden_modules = [
+    "marketpipe.infrastructure",
+    "prometheus_client",
+    "httpx",
+    "sqlite3",
+    "requests",
+    "duckdb",
+    "pandas",
+    "pyarrow",
+]
+
+[tool.importlinter.contracts.domain_forbidden_application]
+name = "Domain layer must not import application layer"
+type = "forbidden"
+source_modules = [
+    "marketpipe.domain"
+]
+forbidden_modules = [
+    "marketpipe.ingestion.application",
+    "marketpipe.validation.application",
+    "marketpipe.aggregation.application",
+]

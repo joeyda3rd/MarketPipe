@@ -662,7 +662,11 @@ class TestEnhancedCLIMatrix:
                     "--end": "2024-01-10",
                 },
                 expected_exit_code=0,
-                expected_success_patterns=["post-ingestion", "verification", "completed successfully"],
+                expected_success_patterns=[
+                    "post-ingestion",
+                    "verification",
+                    "completed successfully",
+                ],
                 category="combinations",
             ),
             EdgeCaseTest(

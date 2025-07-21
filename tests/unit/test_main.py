@@ -4,7 +4,11 @@ import subprocess
 import sys
 from unittest.mock import patch
 
+import pytest
 
+
+@pytest.mark.fast
+@pytest.mark.cli
 def test_main_module_entry_point():
     """Test that the main module can be executed via python -m."""
     # Test that the module can be executed as a script
@@ -20,6 +24,8 @@ def test_main_module_entry_point():
     assert "Usage:" in result.stdout or "usage:" in result.stdout.lower()
 
 
+@pytest.mark.fast
+@pytest.mark.cli
 def test_main_module_cli_execution():
     """Test that the CLI app is available for execution."""
     # Test that the app can be imported and is callable

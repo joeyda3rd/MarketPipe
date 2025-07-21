@@ -67,11 +67,11 @@ state:
 AlpacaConfig:
   ApiKey: "hardcoded-key"  # Don't hardcode credentials
   BaseURL: "https://api.alpaca.markets"
-  
+
 GlobalSettings:
   Symbols: ["AAPL", "GOOGL"]  # Use lowercase keys
   OutputDirectory: "./data"
-  
+
 MetricsSettings:
   Enable: true  # Use "enabled" for consistency
 ```
@@ -94,7 +94,7 @@ class ClientConfig:
     timeout: float = 30.0
     max_retries: int = 3
     rate_limit_per_min: Optional[int] = None
-    
+
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""
         if not self.api_key:
@@ -111,7 +111,7 @@ class AlpacaConfig(ClientConfig):
     """Alpaca-specific configuration."""
     secret: str = ""
     feed: str = "iex"  # "iex" or "sip"
-    
+
     def __post_init__(self) -> None:
         super().__post_init__()
         if not self.secret:
@@ -128,11 +128,11 @@ class PipelineConfig:
     output_path: str
     compression: str = "snappy"
     workers: int = 3
-    
+
     # Optional configurations
     metrics: Optional['MetricsConfig'] = None
     state: Optional['StateConfig'] = None
-    
+
     def __post_init__(self) -> None:
         """Validate pipeline configuration."""
         if not self.symbols:
@@ -141,7 +141,7 @@ class PipelineConfig:
             raise ValueError("compression must be 'snappy', 'zstd', or 'lz4'")
         if self.workers <= 0:
             raise ValueError("workers must be positive")
-        
+
         # Create output directory if it doesn't exist
         Path(self.output_path).mkdir(parents=True, exist_ok=True)
 ```
@@ -159,16 +159,16 @@ def load_alpaca_config(config_dict: dict) -> AlpacaConfig:
     """Load Alpaca configuration with environment variable support."""
     # Load .env file if it exists
     load_dotenv()
-    
+
     # Get credentials from environment or config
     api_key = os.getenv("ALPACA_KEY") or config_dict.get("key", "")
     secret = os.getenv("ALPACA_SECRET") or config_dict.get("secret", "")
-    
+
     if not api_key:
         raise ValueError("Alpaca API key not found in environment (ALPACA_KEY) or config")
     if not secret:
         raise ValueError("Alpaca secret not found in environment (ALPACA_SECRET) or config")
-    
+
     return AlpacaConfig(
         api_key=api_key,
         secret=secret,
@@ -192,24 +192,24 @@ from typing import Dict, Any
 def load_config(config_path: str) -> PipelineConfig:
     """Load and validate configuration from YAML file."""
     config_file = Path(config_path)
-    
+
     if not config_file.exists():
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
-    
+
     try:
         with open(config_file, 'r') as f:
             config_data = yaml.safe_load(f)
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML in configuration file: {e}")
-    
+
     if not isinstance(config_data, dict):
         raise ValueError("Configuration file must contain a YAML dictionary")
-    
+
     # Extract vendor configurations
     vendor_configs = {}
     if "alpaca" in config_data:
         vendor_configs["alpaca"] = load_alpaca_config(config_data["alpaca"])
-    
+
     # Build pipeline configuration
     pipeline_config = PipelineConfig(
         symbols=config_data.get("symbols", []),
@@ -219,14 +219,14 @@ def load_config(config_path: str) -> PipelineConfig:
         compression=config_data.get("compression", "snappy"),
         workers=config_data.get("workers", 3),
     )
-    
+
     # Add optional configurations
     if "metrics" in config_data:
         pipeline_config.metrics = MetricsConfig(**config_data["metrics"])
-    
+
     if "state" in config_data:
         pipeline_config.state = StateConfig(**config_data["state"])
-    
+
     return pipeline_config, vendor_configs
 ```
 
@@ -238,16 +238,16 @@ Validate configuration at multiple levels:
 def validate_date_range(start: str, end: str) -> None:
     """Validate date range format and logic."""
     from datetime import datetime
-    
+
     try:
         start_date = datetime.fromisoformat(start)
         end_date = datetime.fromisoformat(end)
     except ValueError as e:
         raise ValueError(f"Invalid date format (use YYYY-MM-DD): {e}")
-    
+
     if start_date >= end_date:
         raise ValueError("start date must be before end date")
-    
+
     # Check if date range is reasonable (not too far in future/past)
     now = datetime.now()
     if start_date > now:
@@ -257,7 +257,7 @@ def validate_symbols(symbols: List[str]) -> None:
     """Validate symbol format and availability."""
     if not symbols:
         raise ValueError("symbols list cannot be empty")
-    
+
     for symbol in symbols:
         if not symbol.isalpha() or len(symbol) > 10:
             raise ValueError(f"Invalid symbol format: {symbol}")

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from unittest.mock import patch
 
 import pytest
 
@@ -324,7 +323,7 @@ class TestSymbolBarsAggregate:
 
     def test_get_bars_in_range(self, aggregate, sample_bar, sample_bar_2):
         """Test getting bars within a time range."""
-        from src.marketpipe.domain.value_objects import TimeRange
+        from marketpipe.domain.value_objects import TimeRange
 
         aggregate.add_bar(sample_bar)
         aggregate.add_bar(sample_bar_2)
@@ -357,29 +356,13 @@ class TestSymbolBarsAggregate:
 
         assert aggregate.has_gaps()  # Should detect gaps with only 3 bars
 
-    def test_event_commitment(self, aggregate, sample_bar):
-        """Test event commitment mechanism."""
-        aggregate.add_bar(sample_bar)
-
-        # Should have uncommitted events
-        events = aggregate.get_uncommitted_events()
-        assert len(events) > 0
-
-        # Mark events as committed
-        aggregate.mark_events_committed()
-
-        # Should have no uncommitted events
-        events = aggregate.get_uncommitted_events()
-        assert len(events) == 0
-
-    @patch("src.marketpipe.events.EventBus.publish")
-    def test_event_bus_integration(self, mock_publish, aggregate, sample_bar):
-        """Test integration with EventBus for event emission."""
-        # This test would verify that events are published to the EventBus
-        # For now, we just test that events are created correctly
+    def test_event_creation_and_commitment(self, aggregate, sample_bar):
+        """Test that events are created correctly and can be committed."""
+        # Add bar and complete collection
         aggregate.add_bar(sample_bar)
         aggregate.complete_collection()
 
+        # Check that events were created
         events = aggregate.get_uncommitted_events()
         assert len(events) >= 2  # At least BarCollectionStarted and MarketDataReceived
 
@@ -388,3 +371,7 @@ class TestSymbolBarsAggregate:
         assert "BarCollectionStarted" in event_types
         assert "MarketDataReceived" in event_types
         assert "BarCollectionCompleted" in event_types
+
+        # Verify events can be committed
+        aggregate.mark_events_committed()
+        assert len(aggregate.get_uncommitted_events()) == 0

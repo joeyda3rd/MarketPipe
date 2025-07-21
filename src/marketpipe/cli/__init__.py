@@ -45,7 +45,8 @@ import warnings
 
 # Main CLI app
 app = typer.Typer(
-    add_completion=False, help="MarketPipe ETL commands for financial data processing"
+    add_completion=False,
+    help="MarketPipe ETL commands for financial data processing\n\n⚠️  ALPHA SOFTWARE: Expect breaking changes and stability issues. Not recommended for production use.",
 )
 
 # OHLCV sub-app for pipeline commands
@@ -87,22 +88,10 @@ if not _USING_TYER_STUB:
     from .factory_reset import factory_reset
     from .health_check import health_check_command
     from .jobs import jobs_app
-    from .ohlcv_aggregate import (
-        aggregate_deprecated,
-        aggregate_ohlcv,
-        aggregate_ohlcv_convenience,
-    )
+    from .ohlcv_aggregate import aggregate_deprecated, aggregate_ohlcv, aggregate_ohlcv_convenience
     from .ohlcv_backfill import app as backfill_app
-    from .ohlcv_ingest import (
-        ingest_deprecated,
-        ingest_ohlcv,
-        ingest_ohlcv_convenience,
-    )
-    from .ohlcv_validate import (
-        validate_deprecated,
-        validate_ohlcv,
-        validate_ohlcv_convenience,
-    )
+    from .ohlcv_ingest import ingest_deprecated, ingest_ohlcv, ingest_ohlcv_convenience
+    from .ohlcv_validate import validate_deprecated, validate_ohlcv, validate_ohlcv_convenience
     from .prune import prune_app
     from .query import query
     from .symbols import app as symbols_app
@@ -110,12 +99,12 @@ if not _USING_TYER_STUB:
 
     # Register OHLCV sub-app commands
     ohlcv_app.command(name="ingest", add_help_option=False)(ingest_ohlcv)
-    ohlcv_app.command(name="validate")(validate_ohlcv)
+    ohlcv_app.command(name="validate", add_help_option=False)(validate_ohlcv)
     ohlcv_app.command(name="aggregate")(aggregate_ohlcv)
 
     # Convenience commands
     app.command(name="ingest-ohlcv", add_help_option=False)(ingest_ohlcv_convenience)
-    app.command(name="validate-ohlcv")(validate_ohlcv_convenience)
+    app.command(name="validate-ohlcv", add_help_option=False)(validate_ohlcv_convenience)
     app.command(name="aggregate-ohlcv")(aggregate_ohlcv_convenience)
 
     # Deprecated aliases
