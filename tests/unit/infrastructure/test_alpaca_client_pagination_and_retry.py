@@ -126,6 +126,7 @@ class TestAlpacaClientPaginationHandling:
 class TestAlpacaClientAsyncOperations:
     """Test Alpaca client async operations work correctly."""
 
+    @pytest.mark.skip(reason="Makes real HTTP requests - should use mocks for unit tests")
     def test_async_client_retrieves_symbol_data_correctly(self, monkeypatch):
         """Test that async client retrieves symbol data correctly."""
         pages = [
