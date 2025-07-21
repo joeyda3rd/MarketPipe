@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 from functools import lru_cache
 from pathlib import Path
+from typing import Union
 
 import duckdb
 import pandas as pd
@@ -186,7 +187,7 @@ def validate_views() -> dict[str, bool]:
     return status
 
 
-def set_agg_root(path: str | Path) -> None:
+def set_agg_root(path: Union[str, Path]) -> None:
     """Set the aggregation root path for testing or custom configurations.
 
     Args:

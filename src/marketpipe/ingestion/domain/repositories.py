@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import Optional
 
 from marketpipe.domain.value_objects import Symbol
 
@@ -21,7 +22,7 @@ class IIngestionJobRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_id(self, job_id: IngestionJobId) -> IngestionJob | None:
+    async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
         """Retrieve an ingestion job by its ID."""
         pass
 
@@ -71,7 +72,7 @@ class IIngestionCheckpointRepository(ABC):
     @abstractmethod
     async def get_checkpoint(
         self, job_id: IngestionJobId, symbol: Symbol
-    ) -> IngestionCheckpoint | None:
+    ) -> Optional[IngestionCheckpoint]:
         """Get the latest checkpoint for a job and symbol."""
         pass
 
@@ -86,7 +87,7 @@ class IIngestionCheckpointRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_global_checkpoint(self, symbol: Symbol) -> IngestionCheckpoint | None:
+    async def get_global_checkpoint(self, symbol: Symbol) -> Optional[IngestionCheckpoint]:
         """Get the most recent checkpoint for a symbol across all jobs."""
         pass
 
@@ -105,7 +106,7 @@ class IIngestionMetricsRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_metrics(self, job_id: IngestionJobId) -> ProcessingMetrics | None:
+    async def get_metrics(self, job_id: IngestionJobId) -> Optional[ProcessingMetrics]:
         """Get metrics for a specific job."""
         pass
 
@@ -119,7 +120,7 @@ class IIngestionMetricsRepository(ABC):
     @abstractmethod
     async def get_average_metrics(
         self, start_date: datetime, end_date: datetime
-    ) -> ProcessingMetrics | None:
+    ) -> Optional[ProcessingMetrics]:
         """Calculate average metrics across jobs in a date range."""
         pass
 

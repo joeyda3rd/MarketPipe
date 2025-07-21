@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Optional
 
 from .entities import OHLCVBar
 from .value_objects import Symbol, TimeRange
@@ -24,9 +25,9 @@ class ProviderMetadata:
     provider_name: str
     supports_real_time: bool
     supports_historical: bool
-    rate_limit_per_minute: int | None
+    rate_limit_per_minute: Optional[int]
     minimum_time_resolution: str  # e.g. "1m"
-    maximum_history_days: int | None
+    maximum_history_days: Optional[int]
 
 
 # ---------- domain port ----------

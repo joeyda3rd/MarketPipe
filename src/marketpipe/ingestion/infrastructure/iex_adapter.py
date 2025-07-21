@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 
@@ -37,7 +37,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
         self,
         api_token: str,
         is_sandbox: bool = False,
-        base_url: str | None = None,
+        base_url: Optional[str] = None,
         timeout: float = 30.0,
     ):
         self._api_token = api_token
@@ -53,7 +53,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
                 else "https://cloud.iexapis.com/stable"
             )
 
-        self._client: httpx.AsyncClient | None = None
+        self._client: Optional[httpx.AsyncClient] = None
         logger.info(f"Initialized IEX adapter (sandbox={is_sandbox})")
 
     @classmethod

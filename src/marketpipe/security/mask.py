@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import re
+from typing import Optional
 
 _RE_SECRET = re.compile(r"^([A-Za-z0-9]+)([A-Za-z0-9]{4})$")
 
 
-def mask(value: str | None, show: int = 4) -> str:
+def mask(value: Optional[str], show: int = 4) -> str:
     """Mask a secret string, showing only the last `show` characters.
 
     Args:

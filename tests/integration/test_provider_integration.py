@@ -19,7 +19,7 @@ import json
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -118,7 +118,7 @@ class MockAlpacaAPIHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(bars_data).encode("utf-8"))
 
     def _generate_bars_response(
-        self, symbol: str, start: str, end: str, page_token: str | None
+        self, symbol: str, start: str, end: str, page_token: Optional[str]
     ) -> dict[str, Any]:
         """Generate realistic Alpaca bars response."""
         # Simple pagination simulation

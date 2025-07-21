@@ -13,7 +13,7 @@ from collections.abc import AsyncIterator
 from datetime import date
 
 # Import concrete implementations (only in type checking to keep interfaces clean)
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from .aggregates import DailySummary, SymbolBarsAggregate, UniverseAggregate
 from .entities import OHLCVBar
@@ -33,7 +33,7 @@ class ISymbolBarsRepository(ABC):
     @abstractmethod
     async def get_by_symbol_and_date(
         self, symbol: Symbol, trading_date: date
-    ) -> SymbolBarsAggregate | None:
+    ) -> Optional[SymbolBarsAggregate]:
         """Load aggregate for symbol and trading date.
 
         Args:
@@ -164,7 +164,7 @@ class IOHLCVRepository(ABC):
         ...
 
     @abstractmethod
-    async def count_bars(self, symbol: Symbol, time_range: TimeRange | None = None) -> int:
+    async def count_bars(self, symbol: Symbol, time_range: Optional[TimeRange] = None) -> int:
         """Count bars for symbol in optional time range.
 
         Args:
@@ -177,7 +177,7 @@ class IOHLCVRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_latest_timestamp(self, symbol: Symbol) -> Timestamp | None:
+    async def get_latest_timestamp(self, symbol: Symbol) -> Optional[Timestamp]:
         """Get the latest timestamp for a symbol.
 
         Args:
@@ -189,7 +189,7 @@ class IOHLCVRepository(ABC):
         ...
 
     @abstractmethod
-    async def delete_bars(self, symbol: Symbol, time_range: TimeRange | None = None) -> int:
+    async def delete_bars(self, symbol: Symbol, time_range: Optional[TimeRange] = None) -> int:
         """Delete bars for symbol in optional time range.
 
         Args:
@@ -209,7 +209,7 @@ class IUniverseRepository(ABC):
     """
 
     @abstractmethod
-    async def get_by_id(self, universe_id: str) -> UniverseAggregate | None:
+    async def get_by_id(self, universe_id: str) -> Optional[UniverseAggregate]:
         """Load universe by ID.
 
         Args:
@@ -255,7 +255,7 @@ class IDailySummaryRepository(ABC):
     """
 
     @abstractmethod
-    async def get_summary(self, symbol: Symbol, trading_date: date) -> DailySummary | None:
+    async def get_summary(self, symbol: Symbol, trading_date: date) -> Optional[DailySummary]:
         """Get daily summary for symbol and date.
 
         Args:
@@ -332,7 +332,7 @@ class ICheckpointRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_checkpoint(self, symbol: Symbol) -> dict[str, Any] | None:
+    async def get_checkpoint(self, symbol: Symbol) -> Optional[dict[str, Any]]:
         """Get ingestion checkpoint for symbol.
 
         Args:
@@ -372,7 +372,7 @@ class IMarketDataProviderRepository(ABC):
     """
 
     @abstractmethod
-    async def get_provider_config(self, provider_id: str) -> dict[str, Any] | None:
+    async def get_provider_config(self, provider_id: str) -> Optional[dict[str, Any]]:
         """Get configuration for market data provider.
 
         Args:

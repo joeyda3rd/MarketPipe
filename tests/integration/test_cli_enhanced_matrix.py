@@ -17,7 +17,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 
@@ -31,7 +31,7 @@ class EdgeCaseTest:
     options: dict[str, Any] = field(default_factory=dict)
     positional_args: list[str] = field(default_factory=list)  # For positional arguments
     env_vars: dict[str, str] = field(default_factory=dict)
-    config_content: str | None = None
+    config_content: Optional[str] = None
     expected_exit_code: int = 0
     expected_error_patterns: list[str] = field(default_factory=list)
     expected_success_patterns: list[str] = field(default_factory=list)
@@ -56,7 +56,7 @@ class EdgeCaseResult:
 class EnhancedCLITester:
     """Enhanced CLI testing with edge cases and error scenarios."""
 
-    def __init__(self, base_dir: Path | None = None):
+    def __init__(self, base_dir: Optional[Path] = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
         self.test_results: list[EdgeCaseResult] = []
 

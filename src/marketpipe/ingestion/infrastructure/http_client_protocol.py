@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Optional, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -31,9 +31,9 @@ class HttpClientProtocol(Protocol):
     def get(
         self,
         url: str,
-        params: dict[str, Any] | None = None,
-        headers: dict[str, str] | None = None,
-        timeout: float | None = None,
+        params: Optional[dict[str, Any]] = None,
+        headers: Optional[dict[str, str]] = None,
+        timeout: Optional[float] = None,
     ) -> HttpResponse:
         """Make a synchronous GET request.
 
@@ -56,9 +56,9 @@ class AsyncHttpClientProtocol(Protocol):
     async def get(
         self,
         url: str,
-        params: dict[str, Any] | None = None,
-        headers: dict[str, str] | None = None,
-        timeout: float | None = None,
+        params: Optional[dict[str, Any]] = None,
+        headers: Optional[dict[str, str]] = None,
+        timeout: Optional[float] = None,
     ) -> HttpResponse:
         """Make an asynchronous GET request.
 
@@ -110,9 +110,9 @@ class HttpxClientAdapter:
     def get(
         self,
         url: str,
-        params: dict[str, Any] | None = None,
-        headers: dict[str, str] | None = None,
-        timeout: float | None = None,
+        params: Optional[dict[str, Any]] = None,
+        headers: Optional[dict[str, str]] = None,
+        timeout: Optional[float] = None,
     ) -> HttpResponse:
         """Make GET request using httpx."""
         response = self._client.get(
@@ -135,9 +135,9 @@ class AsyncHttpxClientAdapter:
     async def get(
         self,
         url: str,
-        params: dict[str, Any] | None = None,
-        headers: dict[str, str] | None = None,
-        timeout: float | None = None,
+        params: Optional[dict[str, Any]] = None,
+        headers: Optional[dict[str, str]] = None,
+        timeout: Optional[float] = None,
     ) -> HttpResponse:
         """Make async GET request using httpx."""
         response = await self._client.get(

@@ -28,7 +28,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import typer
 import yaml
@@ -46,7 +46,7 @@ class TestResult:
     command: str
     status: str  # PASS, FAIL, SKIP, ERROR
     duration: float
-    exit_code: int | None
+    exit_code: Optional[int]
     stdout: str
     stderr: str
     error_message: str = ""
@@ -60,7 +60,7 @@ class ValidationReport:
     """Complete validation report."""
 
     start_time: datetime = field(default_factory=datetime.now)
-    end_time: datetime | None = None
+    end_time: Optional[datetime] = None
     mode: str = "critical"
     results: list[TestResult] = field(default_factory=list)
     test_environment: dict[str, Any] = field(default_factory=dict)

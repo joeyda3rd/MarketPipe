@@ -19,6 +19,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -30,9 +31,9 @@ class ProviderTestConfig:
     name: str
     auth_required: bool
     supported_feed_types: list[str]
-    rate_limit_per_minute: int | None
+    rate_limit_per_minute: Optional[int]
     supports_batch: bool
-    max_batch_size: int | None
+    max_batch_size: Optional[int]
     auth_env_vars: list[str] = field(default_factory=list)
     special_features: list[str] = field(default_factory=list)
 
@@ -56,7 +57,7 @@ class ProviderTestResult:
 class ProviderValidator:
     """Validates individual market data providers."""
 
-    def __init__(self, base_dir: Path | None = None):
+    def __init__(self, base_dir: Optional[Path] = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
         self.provider_configs = self._get_provider_configs()
 

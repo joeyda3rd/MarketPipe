@@ -7,24 +7,17 @@ import asyncio
 import json
 import logging
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Optional
 
 import asyncpg
 
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
-from marketpipe.ingestion.domain.entities import (
-    IngestionJob,
-    IngestionJobId,
-    ProcessingState,
-)
+from marketpipe.ingestion.domain.entities import IngestionJob, IngestionJobId, ProcessingState
 from marketpipe.ingestion.domain.repositories import (
     IIngestionJobRepository,
     IngestionRepositoryError,
 )
-from marketpipe.ingestion.domain.value_objects import (
-    IngestionConfiguration,
-    IngestionPartition,
-)
+from marketpipe.ingestion.domain.value_objects import IngestionConfiguration, IngestionPartition
 
 # Import shared metrics from repositories module
 from .repositories import REPO_LATENCY, REPO_QUERIES
@@ -45,7 +38,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
             max_size: Maximum pool connections
         """
         self._dsn = dsn
-        self._pool: asyncpg.Pool | None = None
+        self._pool: Optional[asyncpg.Pool] = None
         self._min_size = min_size
         self._max_size = max_size
         self._pool_lock = asyncio.Lock()  # Prevent race conditions on pool creation
@@ -105,7 +98,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 logger.error(f"Failed to save job {job.job_id}: {e}")
                 raise IngestionRepositoryError(f"Failed to save job: {e}") from e
 
-    async def get_by_id(self, job_id: IngestionJobId) -> IngestionJob | None:
+    async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
         """Retrieve an ingestion job by its ID."""
         with REPO_LATENCY.labels("get_by_id", "postgres").time():
             REPO_QUERIES.labels("get_by_id", "postgres").inc()

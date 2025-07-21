@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Union
 
 from marketpipe.domain.entities import OHLCVBar
 
@@ -18,7 +19,7 @@ from ..domain.value_objects import IngestionConfiguration, IngestionPartition
 class ParquetDataStorageAdapter(IDataStorage):
     """Adapter that implements IDataStorage using ParquetStorageEngine."""
 
-    def __init__(self, root: Path | str, compression: str = "snappy"):
+    def __init__(self, root: Union[Path, str], compression: str = "snappy"):
         self._engine = ParquetStorageEngine(root, compression)
         self.log = logging.getLogger(self.__class__.__name__)
 

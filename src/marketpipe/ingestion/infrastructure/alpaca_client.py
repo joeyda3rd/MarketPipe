@@ -7,7 +7,7 @@ import json
 import random
 import time
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Optional
 
 from marketpipe.security.mask import safe_for_log
 
@@ -40,7 +40,7 @@ class AlpacaClient(BaseApiClient):
         symbol: str,
         start_ts: int,
         end_ts: int,
-        cursor: str | None = None,
+        cursor: Optional[str] = None,
     ) -> Mapping[str, str]:
         start = dt.datetime.utcfromtimestamp(start_ts / 1_000).strftime(ISO_FMT)
         end = dt.datetime.utcfromtimestamp(end_ts / 1_000).strftime(ISO_FMT)
@@ -56,7 +56,7 @@ class AlpacaClient(BaseApiClient):
             qp["page_token"] = cursor
         return qp
 
-    def next_cursor(self, raw_json: dict[str, Any]) -> str | None:
+    def next_cursor(self, raw_json: dict[str, Any]) -> Optional[str]:
         return raw_json.get("next_page_token")
 
     # ---------- sync request ----------

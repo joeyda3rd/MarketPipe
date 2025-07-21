@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Optional
 
 from marketpipe.domain.services import DomainService
 from marketpipe.domain.value_objects import Symbol, TimeRange
@@ -81,7 +82,7 @@ class IngestionDomainService(DomainService):
         self,
         symbols: list[Symbol],
         available_workers: int,
-        rate_limit_per_minute: int | None = None,
+        rate_limit_per_minute: Optional[int] = None,
     ) -> int:
         """
         Calculate optimal batch size based on symbols count and constraints.
@@ -109,8 +110,8 @@ class IngestionDomainService(DomainService):
         return min(base_batch_size, 50)
 
     def estimate_job_duration(
-        self, job: IngestionJob, historical_metrics: ProcessingMetrics | None = None
-    ) -> float | None:
+        self, job: IngestionJob, historical_metrics: Optional[ProcessingMetrics] = None
+    ) -> Optional[float]:
         """
         Estimate job completion time based on historical performance.
 
@@ -176,7 +177,7 @@ class IngestionDomainService(DomainService):
 
     def determine_retry_strategy(
         self, job: IngestionJob, failure_reason: str
-    ) -> tuple[bool, str | None]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Determine if and how a failed job should be retried.
 
@@ -301,7 +302,7 @@ class IngestionProgressTracker(DomainService):
 
         return progress
 
-    def calculate_throughput_metrics(self, job: IngestionJob) -> dict | None:
+    def calculate_throughput_metrics(self, job: IngestionJob) -> Optional[dict]:
         """Calculate throughput metrics for a job."""
         if not job.started_at or job.total_bars_processed == 0:
             return None

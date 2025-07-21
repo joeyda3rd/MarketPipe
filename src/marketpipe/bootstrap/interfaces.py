@@ -6,7 +6,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass
@@ -15,7 +15,7 @@ class BootstrapResult:
 
     success: bool
     was_already_bootstrapped: bool = False
-    error_message: str | None = None
+    error_message: Optional[str] = None
     services_registered: list[str] = None
 
     def __post_init__(self):

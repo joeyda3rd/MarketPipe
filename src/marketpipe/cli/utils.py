@@ -7,6 +7,7 @@ import asyncio
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import typer
 
@@ -277,7 +278,7 @@ def migrate(
         raise typer.Exit(1) from e
 
 
-def _parse_time_window(window_str: str) -> int | None:
+def _parse_time_window(window_str: str) -> Optional[int]:
     """Parse time window string to seconds."""
     import re
 

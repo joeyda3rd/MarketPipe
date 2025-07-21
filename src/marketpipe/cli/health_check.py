@@ -21,7 +21,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import typer
 import yaml
@@ -56,7 +56,7 @@ class MarketPipeHealthChecker:
         self.results: list[HealthCheckResult] = []
 
     def run_all_checks(
-        self, config_path: Path | None = None, verbose: bool = False
+        self, config_path: Optional[Path] = None, verbose: bool = False
     ) -> list[HealthCheckResult]:
         """
         Run all health checks.
@@ -215,7 +215,7 @@ class MarketPipeHealthChecker:
         self.results.append(result)
         return result
 
-    def check_configuration(self, config_path: Path | None) -> HealthCheckResult:
+    def check_configuration(self, config_path: Optional[Path]) -> HealthCheckResult:
         """Check configuration file validity."""
         start_time = time.time()
 
@@ -535,9 +535,9 @@ class MarketPipeHealthChecker:
 
 
 def health_check_command(
-    config: Path | None = typer.Option(None, "--config", "-c", help="Configuration file path"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Configuration file path"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
-    output_file: Path | None = typer.Option(None, "--output", "-o", help="Save report to file"),
+    output_file: Optional[Path] = typer.Option(None, "--output", "-o", help="Save report to file"),
 ) -> None:
     """
     Run comprehensive health check of MarketPipe installation and configuration.

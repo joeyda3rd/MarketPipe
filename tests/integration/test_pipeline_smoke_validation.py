@@ -8,6 +8,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import pytest
@@ -50,7 +51,7 @@ class PipelineTestResult:
 class PipelineSmokeValidator:
     """Validates end-to-end pipeline functionality."""
 
-    def __init__(self, base_dir: Path | None = None):
+    def __init__(self, base_dir: Optional[Path] = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
         self.test_results: list[PipelineTestResult] = []
 

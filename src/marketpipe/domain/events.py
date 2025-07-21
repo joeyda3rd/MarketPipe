@@ -11,7 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Optional, Protocol
 from uuid import UUID, uuid4
 
 from .value_objects import Symbol, Timestamp
@@ -176,7 +176,7 @@ class ValidationFailed(DomainEvent):
     symbol: Symbol
     timestamp: Timestamp
     error_message: str
-    rule_id: str | None = None
+    rule_id: Optional[str] = None
     severity: str = "error"
     event_id: UUID = None
     occurred_at: datetime = None
@@ -251,8 +251,8 @@ class IngestionJobCompleted(DomainEvent):
     trading_date: date
     bars_processed: int
     success: bool
-    error_message: str | None = None
-    duration_seconds: float | None = None
+    error_message: Optional[str] = None
+    duration_seconds: Optional[float] = None
     event_id: UUID = None
     occurred_at: datetime = None
     version: int = 1

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Optional
 
 from marketpipe.domain.entities import OHLCVBar
 
@@ -9,8 +10,8 @@ from marketpipe.domain.entities import OHLCVBar
 @dataclass
 class ValidationResult:
     is_valid: bool
-    errors: list[str] | None = None
-    valid_bars: list[OHLCVBar] | None = None
+    errors: Optional[list[str]] = None
+    valid_bars: Optional[list[OHLCVBar]] = None
 
 
 class FakeDataValidator:

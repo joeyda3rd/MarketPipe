@@ -19,7 +19,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 import yaml
@@ -54,7 +54,7 @@ class OptionValidationResult:
 class CLIOptionValidator:
     """Validates CLI options and their combinations."""
 
-    def __init__(self, base_dir: Path | None = None):
+    def __init__(self, base_dir: Optional[Path] = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
         self.test_results: list[OptionValidationResult] = []
 

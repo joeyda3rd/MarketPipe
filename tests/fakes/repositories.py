@@ -4,22 +4,16 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from marketpipe.domain.value_objects import Symbol
-from marketpipe.ingestion.domain.entities import (
-    IngestionJob,
-    IngestionJobId,
-    ProcessingState,
-)
+from marketpipe.ingestion.domain.entities import IngestionJob, IngestionJobId, ProcessingState
 from marketpipe.ingestion.domain.repositories import (
     IIngestionCheckpointRepository,
     IIngestionJobRepository,
     IIngestionMetricsRepository,
 )
-from marketpipe.ingestion.domain.value_objects import (
-    IngestionCheckpoint,
-    ProcessingMetrics,
-)
+from marketpipe.ingestion.domain.value_objects import IngestionCheckpoint, ProcessingMetrics
 
 
 class FakeIngestionJobRepository(IIngestionJobRepository):
@@ -34,7 +28,7 @@ class FakeIngestionJobRepository(IIngestionJobRepository):
         self._jobs[job.job_id] = job
         self._save_calls.append(job.job_id)
 
-    async def get_by_id(self, job_id: IngestionJobId) -> IngestionJob | None:
+    async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
         """Retrieve an ingestion job by its ID."""
         return self._jobs.get(job_id)
 
@@ -105,7 +99,7 @@ class FakeIngestionCheckpointRepository(IIngestionCheckpointRepository):
 
     async def get_checkpoint(
         self, job_id: IngestionJobId, symbol: Symbol
-    ) -> IngestionCheckpoint | None:
+    ) -> Optional[IngestionCheckpoint]:
         """Get the latest checkpoint for a job and symbol."""
         key = (job_id, symbol)
         return self._checkpoints.get(key)
@@ -122,7 +116,7 @@ class FakeIngestionCheckpointRepository(IIngestionCheckpointRepository):
         for key in keys_to_delete:
             del self._checkpoints[key]
 
-    async def get_global_checkpoint(self, symbol: Symbol) -> IngestionCheckpoint | None:
+    async def get_global_checkpoint(self, symbol: Symbol) -> Optional[IngestionCheckpoint]:
         """Get the most recent checkpoint for a symbol across all jobs."""
         symbol_checkpoints = [
             checkpoint for (job_id, sym), checkpoint in self._checkpoints.items() if sym == symbol
@@ -171,7 +165,7 @@ class FakeIngestionMetricsRepository(IIngestionMetricsRepository):
         self._metrics[job_id] = metrics
         self._save_calls.append((job_id, metrics))
 
-    async def get_metrics(self, job_id: IngestionJobId) -> ProcessingMetrics | None:
+    async def get_metrics(self, job_id: IngestionJobId) -> Optional[ProcessingMetrics]:
         """Get metrics for a specific job."""
         return self._metrics.get(job_id)
 
@@ -184,7 +178,7 @@ class FakeIngestionMetricsRepository(IIngestionMetricsRepository):
 
     async def get_average_metrics(
         self, start_date: datetime, end_date: datetime
-    ) -> ProcessingMetrics | None:
+    ) -> Optional[ProcessingMetrics]:
         """Calculate average metrics across jobs in a date range."""
         if not self._metrics:
             return None

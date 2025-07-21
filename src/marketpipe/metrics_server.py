@@ -6,6 +6,7 @@ import logging
 import os
 import time
 from contextlib import asynccontextmanager
+from typing import Optional
 from wsgiref.simple_server import make_server
 
 from prometheus_client import (
@@ -42,8 +43,8 @@ class AsyncMetricsServer:
         self.port = port
         self.host = host
         self.max_connections = max_connections
-        self.server: asyncio.Server | None = None
-        self._lag_monitor_task: asyncio.Task | None = None
+        self.server: Optional[asyncio.Server] = None
+        self._lag_monitor_task: Optional[asyncio.Task] = None
         self._registry = CollectorRegistry()
 
         # Setup multiprocess collector if available
@@ -236,7 +237,7 @@ class AsyncMetricsServer:
 
 
 # Global server instance for CLI integration
-_async_server_instance: AsyncMetricsServer | None = None
+_async_server_instance: Optional[AsyncMetricsServer] = None
 
 
 async def start_async_server(port: int = 8000, host: str = "localhost") -> AsyncMetricsServer:

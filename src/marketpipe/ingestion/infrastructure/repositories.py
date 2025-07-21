@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 import aiosqlite
 from prometheus_client import Counter, Histogram
@@ -35,7 +36,7 @@ REPO_LATENCY = Histogram(
 class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
     """SQLite implementation of ingestion job repository."""
 
-    def __init__(self, db_path: Path | None = None):
+    def __init__(self, db_path: Optional[Path] = None):
         self._db_path = db_path or Path("ingestion_jobs.db")
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
@@ -84,7 +85,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to save job {job.job_id}: {e}") from e
 
-    async def get_by_id(self, job_id: IngestionJobId) -> IngestionJob | None:
+    async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
         """Retrieve an ingestion job by its ID."""
         try:
             async with self._conn() as db:
@@ -519,7 +520,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
 class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepository):
     """SQLite implementation of checkpoint repository."""
 
-    def __init__(self, db_path: Path | None = None):
+    def __init__(self, db_path: Optional[Path] = None):
         self._db_path = db_path or Path("ingestion_checkpoints.db")
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
@@ -577,7 +578,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
 
     async def get_checkpoint(
         self, job_id: IngestionJobId, symbol: Symbol
-    ) -> IngestionCheckpoint | None:
+    ) -> Optional[IngestionCheckpoint]:
         """Get the latest checkpoint for a job and symbol."""
         try:
             async with self._conn() as db:
@@ -652,7 +653,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
                 f"Failed to delete checkpoints for job {job_id}: {e}"
             ) from e
 
-    async def get_global_checkpoint(self, symbol: Symbol) -> IngestionCheckpoint | None:
+    async def get_global_checkpoint(self, symbol: Symbol) -> Optional[IngestionCheckpoint]:
         """Get the most recent checkpoint for a symbol across all jobs."""
         try:
             async with self._conn() as db:
@@ -702,7 +703,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
 class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
     """SQLite implementation of metrics repository."""
 
-    def __init__(self, db_path: Path | None = None):
+    def __init__(self, db_path: Optional[Path] = None):
         self._db_path = db_path or Path("ingestion_metrics.db")
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
@@ -759,7 +760,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
         except aiosqlite.Error as e:
             raise IngestionRepositoryError(f"Failed to save metrics: {e}") from e
 
-    async def get_metrics(self, job_id: IngestionJobId) -> ProcessingMetrics | None:
+    async def get_metrics(self, job_id: IngestionJobId) -> Optional[ProcessingMetrics]:
         """Get processing metrics for a specific job."""
         try:
             async with self._conn() as db:
@@ -834,7 +835,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
 
     async def get_average_metrics(
         self, start_date: datetime, end_date: datetime
-    ) -> ProcessingMetrics | None:
+    ) -> Optional[ProcessingMetrics]:
         """Get average processing metrics over a date range."""
         try:
             async with self._conn() as db:

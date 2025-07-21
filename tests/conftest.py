@@ -21,7 +21,7 @@ from __future__ import annotations
 import tempfile
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 
@@ -160,7 +160,7 @@ class DomainObjectFactory:
         self,
         symbol: str = "AAPL",
         count: int = 10,
-        start_time: datetime | None = None,
+        start_time: Optional[datetime] = None,
         **overrides,
     ):
         """Create multiple OHLCV bars with sequential timestamps.
@@ -207,7 +207,7 @@ class DomainObjectFactory:
         return bars
 
     def create_ingestion_job(
-        self, symbols: list[str] | None = None, trading_date: date | None = None, **overrides
+        self, symbols: Optional[list[str]] = None, trading_date: Optional[date] = None, **overrides
     ):
         """Create valid ingestion job with overrides.
 
@@ -233,7 +233,7 @@ class DomainObjectFactory:
             **overrides,
         }
 
-    def create_time_range(self, start: datetime | None = None, duration_minutes: int = 30):
+    def create_time_range(self, start: Optional[datetime] = None, duration_minutes: int = 30):
         """Create TimeRange for testing.
 
         Args:

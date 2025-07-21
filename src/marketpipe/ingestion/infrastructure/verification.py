@@ -7,6 +7,7 @@ import logging
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 import duckdb
 
@@ -21,12 +22,12 @@ class VerificationResult:
     provider: str
     requested_start: date
     requested_end: date
-    actual_start: date | None
-    actual_end: date | None
+    actual_start: Optional[date]
+    actual_end: Optional[date]
     total_bars: int
     passed: bool
-    error_message: str | None = None
-    suggested_providers: list[str] | None = None
+    error_message: Optional[str] = None
+    suggested_providers: Optional[list[str]] = None
 
 
 @dataclass
@@ -168,7 +169,7 @@ class IngestionVerificationService:
 
     def _query_symbol_bounds(
         self, symbol: str, output_path: Path
-    ) -> tuple[date | None, date | None, int]:
+    ) -> tuple[Optional[date], Optional[date], int]:
         """Query the min/max dates and bar count for a symbol."""
 
         # Construct glob pattern for symbol data
@@ -213,8 +214,8 @@ class IngestionVerificationService:
         self,
         requested_start: date,
         requested_end: date,
-        actual_start: date | None,
-        actual_end: date | None,
+        actual_start: Optional[date],
+        actual_end: Optional[date],
     ) -> bool:
         """Check if actual date boundaries are within tolerance of requested."""
         if actual_start is None or actual_end is None:

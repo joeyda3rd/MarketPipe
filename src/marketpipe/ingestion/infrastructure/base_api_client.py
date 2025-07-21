@@ -5,10 +5,10 @@ import abc
 import logging
 from abc import abstractmethod
 from collections.abc import Iterable, Mapping
-from typing import Any, Callable
+from typing import Any, Callable, Optional, Union
 
 from .auth import AuthStrategy
-from .http_client_protocol import AsyncHttpClientProtocol, HttpClientProtocol
+from .http_client_protocol import HttpClientProtocol
 from .models import ClientConfig
 from .rate_limit import RateLimiter
 
@@ -26,12 +26,12 @@ class BaseApiClient(abc.ABC):
         self,
         config: ClientConfig,
         auth: AuthStrategy,
-        rate_limiter: RateLimiter | None = None,
-        metrics_collector: Callable | None = None,
-        state_backend: Any | None = None,
-        logger: logging.Logger | None = None,
-        http_client: HttpClientProtocol | None = None,
-        async_http_client: AsyncHttpClientProtocol | None = None,
+        rate_limiter: Optional[RateLimiter] = None,
+        metrics_collector: Optional[Callable] = None,
+        state_backend: Optional[Any] = None,
+        logger: Optional[logging.Logger] = None,
+        http_client: Optional[HttpClientProtocol] = None,
+        async_http_client: Optional[HttpClientProtocol] = None,
     ) -> None:
         self.config = config
         self.auth = auth
@@ -62,7 +62,7 @@ class BaseApiClient(abc.ABC):
         symbol: str,
         start_ts: int,
         end_ts: int,
-        cursor: str | None = None,
+        cursor: Optional[str] = None,
     ) -> Mapping[str, str]:
         """Return query parameters dict specific to this vendor."""
 
@@ -88,7 +88,7 @@ class BaseApiClient(abc.ABC):
         Yields:
             Raw JSON pages from the vendor API.
         """
-        cursor: str | None = None
+        cursor: Optional[str] = None
         while True:
             params = self.build_request_params(symbol, start_ts, end_ts, cursor)
             raw_json = self._request(params)
@@ -98,7 +98,7 @@ class BaseApiClient(abc.ABC):
                 break
 
     @abc.abstractmethod
-    def next_cursor(self, raw_json: dict[str, Any]) -> str | None:
+    def next_cursor(self, raw_json: dict[str, Any]) -> Optional[str]:
         """Extract pagination cursor/offset from response JSON."""
 
     # ---------- Low-level request ----------
@@ -144,7 +144,7 @@ class BaseApiClient(abc.ABC):
         **kwargs: Any,
     ):
         """Async generator version of :meth:`paginate`."""
-        cursor: str | None = None
+        cursor: Optional[str] = None
         while True:
             params = self.build_request_params(symbol, start_ts, end_ts, cursor)
             raw_json = await self._async_request(params)
@@ -164,12 +164,12 @@ class BaseApiClient(abc.ABC):
         """Return True if the request should be retried."""
 
     # ---------- State checkpointing ----------
-    def save_checkpoint(self, symbol: str, checkpoint: str | int) -> None:
+    def save_checkpoint(self, symbol: str, checkpoint: Union[str, int]) -> None:
         """Persist symbol checkpoint if a state backend is configured."""
         if self.state:
             self.state.set(symbol, checkpoint)
 
-    def load_checkpoint(self, symbol: str) -> str | int | None:
+    def load_checkpoint(self, symbol: str) -> str | Optional[int]:
         """Load the last saved checkpoint for a symbol."""
         return self.state.get(symbol) if self.state else None
 

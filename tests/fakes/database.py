@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -20,7 +21,7 @@ class FakeDatabase:
     without mocking, while ensuring isolation between test runs.
     """
 
-    def __init__(self, db_path: Path | None = None):
+    def __init__(self, db_path: Optional[Path] = None):
         if db_path is None:
             # Use in-memory database by default for speed
             self.db_path = ":memory:"
@@ -32,7 +33,7 @@ class FakeDatabase:
             self.db_path = str(db_path)
             self._temp_file = None
 
-        self._connection_string: str | None = None
+        self._connection_string: Optional[str] = None
         self._is_setup = False
 
     @classmethod

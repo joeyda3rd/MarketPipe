@@ -37,7 +37,7 @@ Usage:
 from __future__ import annotations
 
 import datetime as _dt
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 
@@ -114,8 +114,8 @@ class PolygonSymbolProvider(SymbolProviderBase):
         all_records: list[dict[str, Any]] = []
 
         async with httpx.AsyncClient(timeout=30) as client:
-            next_url: str | None = url
-            current_params: dict[str, Any] | None = base_params.copy()
+            next_url: Optional[str] = url
+            current_params: Optional[dict[str, Any]] = base_params.copy()
 
             while next_url:
                 # Make API request

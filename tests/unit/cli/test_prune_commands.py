@@ -135,7 +135,12 @@ class TestParquetPruning:
             result = runner.invoke(prune_app, ["parquet", "1y", "--root", "/nonexistent/path"])
 
         assert result.exit_code == 1
-        assert "Directory does not exist" in result.stderr
+        # Check output - it may be in stderr or stdout depending on Click version
+        try:
+            error_text = result.stderr
+        except (AttributeError, ValueError):
+            error_text = result.output
+        assert "Directory does not exist" in error_text
 
 
 class TestSQLitePruning:
@@ -231,7 +236,12 @@ class TestSQLitePruning:
                 result = runner.invoke(prune_app, ["database", "18m"])
 
         assert result.exit_code == 1
-        assert "Failed to delete old records" in result.stderr
+        # Check output - it may be in stderr or stdout depending on Click version
+        try:
+            error_text = result.stderr
+        except (AttributeError, ValueError):
+            error_text = result.output
+        assert "Failed to delete old records" in error_text
 
 
 class TestMetricsIntegration:
