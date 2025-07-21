@@ -23,11 +23,7 @@ import pytest
 from marketpipe.domain.entities import OHLCVBar
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.application.services import IngestionCoordinatorService
-from tests.fakes.adapters import (
-    FakeHttpClient,
-    FakeMarketDataAdapter,
-    create_test_ohlcv_bars,
-)
+from tests.fakes.adapters import FakeHttpClient, FakeMarketDataAdapter, create_test_ohlcv_bars
 from tests.fakes.database import FakeDatabase
 from tests.fakes.metrics import FakeMetricsCollector
 

@@ -27,9 +27,7 @@ def query(
     bootstrap()
 
     try:
-        from marketpipe.aggregation.infrastructure.duckdb_views import (
-            query as run_query,
-        )
+        from marketpipe.aggregation.infrastructure.duckdb_views import query as run_query
 
         # Execute the query
         df = run_query(sql)

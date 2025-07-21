@@ -12,11 +12,7 @@ import pytest
 import pytest_asyncio
 
 from marketpipe.metrics import EVENT_LOOP_LAG, REQUESTS
-from marketpipe.metrics_server import (
-    AsyncMetricsServer,
-    start_async_server,
-    stop_async_server,
-)
+from marketpipe.metrics_server import AsyncMetricsServer, start_async_server, stop_async_server
 
 
 def find_free_port() -> int:

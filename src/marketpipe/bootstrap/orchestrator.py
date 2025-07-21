@@ -6,12 +6,7 @@ from __future__ import annotations
 import logging
 import threading
 
-from .interfaces import (
-    BootstrapResult,
-    IEnvironmentProvider,
-    IMigrationService,
-    IServiceRegistry,
-)
+from .interfaces import BootstrapResult, IEnvironmentProvider, IMigrationService, IServiceRegistry
 
 logger = logging.getLogger(__name__)
 

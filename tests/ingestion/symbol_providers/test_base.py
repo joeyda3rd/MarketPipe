@@ -6,12 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from marketpipe.domain import SymbolRecord
-from marketpipe.ingestion.symbol_providers import (
-    SymbolProviderBase,
-    get,
-    list_providers,
-    register,
-)
+from marketpipe.ingestion.symbol_providers import SymbolProviderBase, get, list_providers, register
 from marketpipe.ingestion.symbol_providers.dummy import DummyProvider
 
 

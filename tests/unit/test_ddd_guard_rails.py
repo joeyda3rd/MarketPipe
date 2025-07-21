@@ -184,9 +184,7 @@ class TestApplicationLayerIntegration:
 
     def test_ingestion_application_service_coordination(self):
         """Verify ingestion application service coordinates properly."""
-        from marketpipe.ingestion.application.services import (
-            IngestionCoordinatorService,
-        )
+        from marketpipe.ingestion.application.services import IngestionCoordinatorService
 
         # Service should be importable and have expected methods
         assert hasattr(IngestionCoordinatorService, "execute_job")

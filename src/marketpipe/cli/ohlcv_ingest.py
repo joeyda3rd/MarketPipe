@@ -36,14 +36,8 @@ from marketpipe.ingestion.application.services import (
     IngestionCoordinatorService,
     IngestionJobService,
 )
-from marketpipe.ingestion.domain.services import (
-    IngestionDomainService,
-    IngestionProgressTracker,
-)
-from marketpipe.ingestion.domain.value_objects import (
-    BatchConfiguration,
-    IngestionConfiguration,
-)
+from marketpipe.ingestion.domain.services import IngestionDomainService, IngestionProgressTracker
+from marketpipe.ingestion.domain.value_objects import BatchConfiguration, IngestionConfiguration
 from marketpipe.ingestion.infrastructure.provider_loader import build_provider
 from marketpipe.ingestion.infrastructure.repositories import (
     SqliteCheckpointRepository,

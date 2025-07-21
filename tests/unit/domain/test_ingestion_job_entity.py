@@ -8,21 +8,14 @@ from datetime import datetime, timezone
 import pytest
 
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
-from marketpipe.ingestion.domain.entities import (
-    IngestionJob,
-    IngestionJobId,
-    ProcessingState,
-)
+from marketpipe.ingestion.domain.entities import IngestionJob, IngestionJobId, ProcessingState
 from marketpipe.ingestion.domain.events import (
     IngestionBatchProcessed,
     IngestionJobCompleted,
     IngestionJobFailed,
     IngestionJobStarted,
 )
-from marketpipe.ingestion.domain.value_objects import (
-    IngestionConfiguration,
-    IngestionPartition,
-)
+from marketpipe.ingestion.domain.value_objects import IngestionConfiguration, IngestionPartition
 
 
 def create_test_ingestion_configuration() -> IngestionConfiguration:

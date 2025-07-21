@@ -10,11 +10,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from marketpipe.config import (
-    CURRENT_CONFIG_VERSION,
-    MIN_SUPPORTED_VERSION,
-    IngestionJobConfig,
-)
+from marketpipe.config import CURRENT_CONFIG_VERSION, MIN_SUPPORTED_VERSION, IngestionJobConfig
 from marketpipe.config.loader import ConfigVersionError, load_config
 
 
