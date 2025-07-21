@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # src/marketpipe/domain/market_data.py
 from __future__ import annotations
+from typing import Optional
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -24,9 +25,9 @@ class ProviderMetadata:
     provider_name: str
     supports_real_time: bool
     supports_historical: bool
-    rate_limit_per_minute: int | None
+    rate_limit_per_minute: Optional[int]
     minimum_time_resolution: str  # e.g. "1m"
-    maximum_history_days: int | None
+    maximum_history_days: Optional[int]
 
 
 # ---------- domain port ----------

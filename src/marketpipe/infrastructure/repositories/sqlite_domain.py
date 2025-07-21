@@ -11,7 +11,7 @@ import json
 from collections.abc import AsyncIterator
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import aiosqlite
 
@@ -46,7 +46,7 @@ class SqliteSymbolBarsRepository(SqliteAsyncMixin, ISymbolBarsRepository):
 
     async def get_by_symbol_and_date(
         self, symbol: Symbol, trading_date: date
-    ) -> SymbolBarsAggregate | None:
+    ) -> Optional[SymbolBarsAggregate]:
         """Load aggregate for symbol and trading date."""
         try:
             async with self._conn() as db:
@@ -338,7 +338,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to check if bar exists: {e}") from e
 
-    async def count_bars(self, symbol: Symbol, time_range: TimeRange | None = None) -> int:
+    async def count_bars(self, symbol: Symbol, time_range: Optional[TimeRange] = None) -> int:
         """Count bars for symbol in optional time range."""
         try:
             async with self._conn() as db:
@@ -368,7 +368,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to count bars: {e}") from e
 
-    async def get_latest_timestamp(self, symbol: Symbol) -> Timestamp | None:
+    async def get_latest_timestamp(self, symbol: Symbol) -> Optional[Timestamp]:
         """Get the latest timestamp for a symbol."""
         try:
             async with self._conn() as db:
@@ -386,7 +386,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to get latest timestamp: {e}") from e
 
-    async def delete_bars(self, symbol: Symbol, time_range: TimeRange | None = None) -> int:
+    async def delete_bars(self, symbol: Symbol, time_range: Optional[TimeRange] = None) -> int:
         """Delete bars for symbol in optional time range."""
         try:
             async with self._conn() as db:
@@ -448,7 +448,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, ICheckpointRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to save checkpoint: {e}") from e
 
-    async def get_checkpoint(self, symbol: Symbol) -> dict[str, Any] | None:
+    async def get_checkpoint(self, symbol: Symbol) -> Optional[dict[str, Any]]:
         """Get checkpoint data for a symbol."""
         try:
             async with self._conn() as db:

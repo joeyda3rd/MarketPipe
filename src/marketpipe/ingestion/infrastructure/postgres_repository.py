@@ -7,7 +7,7 @@ import asyncio
 import json
 import logging
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Optional
 
 import asyncpg
 
@@ -45,7 +45,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
             max_size: Maximum pool connections
         """
         self._dsn = dsn
-        self._pool: asyncpg.Pool | None = None
+        self._pool: asyncpg.Optional[Pool] = None
         self._min_size = min_size
         self._max_size = max_size
         self._pool_lock = asyncio.Lock()  # Prevent race conditions on pool creation
@@ -105,7 +105,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 logger.error(f"Failed to save job {job.job_id}: {e}")
                 raise IngestionRepositoryError(f"Failed to save job: {e}") from e
 
-    async def get_by_id(self, job_id: IngestionJobId) -> IngestionJob | None:
+    async def get_by_id(self, job_id: IngestionJobId) -> Optional[IngestionJob]:
         """Retrieve an ingestion job by its ID."""
         with REPO_LATENCY.labels("get_by_id", "postgres").time():
             REPO_QUERIES.labels("get_by_id", "postgres").inc()

@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 import yaml
@@ -54,7 +54,7 @@ class CompatibilityTestResult:
 class BackwardCompatibilityValidator:
     """Validates backward compatibility of CLI commands."""
 
-    def __init__(self, base_dir: Path | None = None):
+    def __init__(self, base_dir: Optional[Path] = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
 
     def validate_deprecated_command(
@@ -318,7 +318,7 @@ class DeprecationTestGenerator:
 class ConfigurationCompatibilityValidator:
     """Validates configuration file backward compatibility."""
 
-    def __init__(self, base_dir: Path | None = None):
+    def __init__(self, base_dir: Optional[Path] = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
 
     def validate_config_schema_compatibility(self) -> list[str]:

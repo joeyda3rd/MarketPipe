@@ -13,6 +13,7 @@ already takes care of repository wiring, validation, storage, etc.
 """
 
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 import datetime as dt
@@ -38,7 +39,7 @@ app = typer.Typer(name="backfill", help="Detect and ingest missing daily gaps")
 @app.command("backfill")
 def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
     # NOTE: Typer automatically converts YYYY-MM-DD string to datetime.date
-    config: Path | None = typer.Option(
+    config: Optional[Path] = typer.Option(
         None,
         "--config",
         "-c",
@@ -47,12 +48,12 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
         file_okay=True,
         dir_okay=False,
     ),
-    lookback: int | None = typer.Option(
+    lookback: Optional[int] = typer.Option(
         None,
         "--lookback",
         help="Look-back window in days (default 365). Ignored if --from is given.",
     ),
-    since: str | None = typer.Option(
+    since: Optional[str] = typer.Option(
         None,
         "--from",
         help="Start date (YYYY-MM-DD) overriding --lookback.",
@@ -63,7 +64,7 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
         "-s",
         help="Repeatable symbol filter. When omitted the configured universe is used.",
     ),
-    provider: str | None = typer.Option(
+    provider: Optional[str] = typer.Option(
         None,
         "--provider",
         help="Provider override passed through to ingestion command.",

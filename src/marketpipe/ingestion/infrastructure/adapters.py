@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Optional
 
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
@@ -35,7 +35,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         api_secret: str,
         base_url: str,
         feed_type: str = "iex",
-        rate_limit_per_min: int | None = None,
+        rate_limit_per_min: Optional[int] = None,
     ):
         self._api_key = api_key
         self._api_secret = api_secret
@@ -359,7 +359,7 @@ class MarketDataProviderFactory:
         api_secret: str,
         base_url: str,
         feed_type: str = "iex",
-        rate_limit_per_min: int | None = None,
+        rate_limit_per_min: Optional[int] = None,
     ) -> AlpacaMarketDataAdapter:
         """Create an Alpaca market data adapter."""
         return AlpacaMarketDataAdapter(

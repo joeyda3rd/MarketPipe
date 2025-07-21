@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 import logging
@@ -42,8 +43,8 @@ class AsyncMetricsServer:
         self.port = port
         self.host = host
         self.max_connections = max_connections
-        self.server: asyncio.Server | None = None
-        self._lag_monitor_task: asyncio.Task | None = None
+        self.server: asyncio.Optional[Server] = None
+        self._lag_monitor_task: asyncio.Optional[Task] = None
         self._registry = CollectorRegistry()
 
         # Setup multiprocess collector if available
@@ -236,7 +237,7 @@ class AsyncMetricsServer:
 
 
 # Global server instance for CLI integration
-_async_server_instance: AsyncMetricsServer | None = None
+_async_server_instance: AsyncMetricsOptional[Server] = None
 
 
 async def start_async_server(port: int = 8000, host: str = "localhost") -> AsyncMetricsServer:

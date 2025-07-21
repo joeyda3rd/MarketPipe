@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 import threading
@@ -44,13 +45,13 @@ class RateLimiter:
 
         # Sync/async coordination primitives
         self._sync_condition = threading.Condition()
-        self._async_condition: asyncio.Condition | None = None
+        self._async_condition: asyncio.Optional[Condition] = None
 
         # Provider name for metrics (set by clients)
         self._provider_name = "unknown"
 
         # Retry-After state
-        self._retry_after_until: float | None = None
+        self._retry_after_until: Optional[float] = None
 
     def set_provider_name(self, provider_name: str) -> None:
         """Set provider name for metrics labeling."""
@@ -244,10 +245,10 @@ class RateLimiter:
 
 
 def create_rate_limiter_from_config(
-    rate_limit_per_min: int | None = None,
-    burst_size: int | None = None,
+    rate_limit_per_min: Optional[int] = None,
+    burst_size: Optional[int] = None,
     provider_name: str = "unknown",
-) -> RateLimiter | None:
+) -> Optional[RateLimiter]:
     """Create a RateLimiter from configuration values.
 
     Args:

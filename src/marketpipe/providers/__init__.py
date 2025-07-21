@@ -17,7 +17,7 @@ class ProviderFeature:
     supports_historical: bool = False  # Can provide data older than 1 year
     supports_real_time: bool = False  # Provides real-time/live data
     free_tier_available: bool = False  # Has free tier
-    max_historical_days: int | None = None  # Maximum days of historical data
+    max_historical_days: Optional[int] = None  # Maximum days of historical data
     typical_lag_hours: int = 24  # Typical data lag in hours
 
 
@@ -69,7 +69,7 @@ class ProviderFeatureMatrix:
     }
 
     @classmethod
-    def get_features(cls, provider: str) -> ProviderFeature | None:
+    def get_features(cls, provider: str) -> Optional[ProviderFeature]:
         """Get feature information for a provider."""
         return cls.FEATURES.get(provider)
 
@@ -79,7 +79,7 @@ class ProviderFeatureMatrix:
         failed_provider: str,
         requested_start_date: date,
         requested_end_date: date,
-        exclude_providers: set[str] | None = None,
+        exclude_providers: Optional[set[str]] = None,
     ) -> list[str]:
         """Suggest alternative providers based on date range requirements.
 

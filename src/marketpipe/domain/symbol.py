@@ -30,7 +30,7 @@ from __future__ import annotations
 import datetime
 import logging
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
@@ -66,14 +66,14 @@ class SymbolRecord(BaseModel):
     """
 
     # Core identifiers
-    id: int | None = Field(default=None, description="System-assigned surrogate key")
+    id: Optional[int] = Field(default=None, description="System-assigned surrogate key")
     ticker: str = Field(description="Security ticker symbol")
-    figi: str | None = Field(default=None, description="Financial Instrument Global Identifier")
-    cusip: str | None = Field(default=None, description="CUSIP identifier")
-    isin: str | None = Field(
+    figi: Optional[str] = Field(default=None, description="Financial Instrument Global Identifier")
+    cusip: Optional[str] = Field(default=None, description="CUSIP identifier")
+    isin: Optional[str] = Field(
         default=None, description="International Securities Identification Number"
     )
-    cik: str | None = Field(default=None, description="SEC Central Index Key")
+    cik: Optional[str] = Field(default=None, description="SEC Central Index Key")
 
     # Exchange and classification
     exchange_mic: str = Field(description="Market Identifier Code (4 chars)")
@@ -81,22 +81,22 @@ class SymbolRecord(BaseModel):
     currency: str = Field(description="Trading currency (3-letter ISO)")
 
     # Optional metadata
-    country: str | None = Field(default=None, description="Country code (2-letter ISO)")
-    sector: str | None = Field(default=None, description="Business sector")
-    industry: str | None = Field(default=None, description="Industry classification")
+    country: Optional[str] = Field(default=None, description="Country code (2-letter ISO)")
+    sector: Optional[str] = Field(default=None, description="Business sector")
+    industry: Optional[str] = Field(default=None, description="Industry classification")
 
     # Lifecycle dates
-    first_trade_date: datetime.date | None = Field(default=None, description="First trading date")
-    delist_date: datetime.date | None = Field(default=None, description="Delisting date")
+    first_trade_date: Optional[date] = Field(default=None, description="First trading date")
+    delist_date: Optional[date] = Field(default=None, description="Delisting date")
     status: Status = Field(description="Current trading status")
 
     # Financial metrics
-    shares_outstanding: int | None = Field(default=None, description="Total shares outstanding")
-    free_float: int | None = Field(default=None, description="Free-floating shares")
+    shares_outstanding: Optional[int] = Field(default=None, description="Total shares outstanding")
+    free_float: Optional[int] = Field(default=None, description="Free-floating shares")
 
     # Company information
-    company_name: str | None = Field(default=None, description="Company legal name")
-    meta: dict[str, Any] | None = Field(default=None, description="Provider-specific metadata")
+    company_name: Optional[str] = Field(default=None, description="Company legal name")
+    meta: Optional[dict[str, Any]] = Field(default=None, description="Provider-specific metadata")
 
     # Temporal tracking
     as_of: datetime.date = Field(description="Snapshot effective date")
@@ -111,7 +111,7 @@ class SymbolRecord(BaseModel):
 
     @field_validator("figi")
     @classmethod
-    def validate_figi(cls, v: str | None) -> str | None:
+    def validate_figi(cls, v: Optional[str]) -> Optional[str]:
         """Validate FIGI format (12 characters) or convert empty/N/A string to None."""
         if v is None or v == "":
             return None
@@ -126,7 +126,7 @@ class SymbolRecord(BaseModel):
 
     @field_validator("cusip")
     @classmethod
-    def validate_cusip(cls, v: str | None) -> str | None:
+    def validate_cusip(cls, v: Optional[str]) -> Optional[str]:
         """Validate CUSIP format (9 characters) or convert empty/N/A string to None."""
         if v is None or v == "":
             return None
@@ -141,7 +141,7 @@ class SymbolRecord(BaseModel):
 
     @field_validator("isin")
     @classmethod
-    def validate_isin(cls, v: str | None) -> str | None:
+    def validate_isin(cls, v: Optional[str]) -> Optional[str]:
         """Validate ISIN format (12 characters) or convert empty/N/A string to None."""
         if v is None or v == "":
             return None
@@ -156,7 +156,7 @@ class SymbolRecord(BaseModel):
 
     @field_validator("cik")
     @classmethod
-    def validate_cik(cls, v: str | None) -> str | None:
+    def validate_cik(cls, v: Optional[str]) -> Optional[str]:
         """Validate CIK contains only digits and zero-pad to length 10."""
         if v is None or v == "":
             return None
@@ -193,7 +193,7 @@ class SymbolRecord(BaseModel):
 
     @field_validator("country")
     @classmethod
-    def validate_country(cls, v: str | None) -> str | None:
+    def validate_country(cls, v: Optional[str]) -> Optional[str]:
         """Convert to uppercase 2-letter ISO country code or None."""
         if v == "" or v is None:
             return None
@@ -204,7 +204,7 @@ class SymbolRecord(BaseModel):
 
     @field_validator("sector", "industry", "company_name")
     @classmethod
-    def validate_text_field(cls, v: str | None) -> str | None:
+    def validate_text_field(cls, v: Optional[str]) -> Optional[str]:
         """Trim whitespace and convert empty/N/A strings to None."""
         if v is None or v == "":
             return None
@@ -217,7 +217,7 @@ class SymbolRecord(BaseModel):
 
     @field_validator("shares_outstanding")
     @classmethod
-    def validate_shares_outstanding(cls, v: int | None) -> int | None:
+    def validate_shares_outstanding(cls, v: Optional[int]) -> Optional[int]:
         """Validate shares outstanding is positive."""
         if v is None:
             return None
@@ -227,7 +227,7 @@ class SymbolRecord(BaseModel):
 
     @field_validator("free_float")
     @classmethod
-    def validate_free_float(cls, v: int | None) -> int | None:
+    def validate_free_float(cls, v: Optional[int]) -> Optional[int]:
         """Validate free float is non-negative."""
         if v is None:
             return None
@@ -381,7 +381,7 @@ class SymbolRecord(BaseModel):
 _val_logger = logging.getLogger("marketpipe.symbols.validation")
 
 
-def safe_create(record_kwargs: dict, *, provider: str) -> SymbolRecord | None:
+def safe_create(record_kwargs: dict, *, provider: str) -> Optional[SymbolRecord]:
     """Safely create a SymbolRecord with structured validation error logging.
 
     Wraps SymbolRecord instantiation to catch ValidationError exceptions and emit

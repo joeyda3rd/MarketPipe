@@ -2,6 +2,7 @@
 """DuckDB view helpers for fast querying of aggregated Parquet data."""
 
 from __future__ import annotations
+from typing import Union
 
 import logging
 from functools import lru_cache
@@ -186,7 +187,7 @@ def validate_views() -> dict[str, bool]:
     return status
 
 
-def set_agg_root(path: str | Path) -> None:
+def set_agg_root(path: Union[str, Path]) -> None:
     """Set the aggregation root path for testing or custom configurations.
 
     Args:

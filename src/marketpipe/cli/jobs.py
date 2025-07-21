@@ -2,6 +2,7 @@
 """Job management commands for MarketPipe."""
 
 from __future__ import annotations
+from typing import Optional
 
 import os
 import sqlite3
@@ -14,7 +15,7 @@ import typer
 jobs_app = typer.Typer(name="jobs", help="Ingestion job management commands", add_completion=False)
 
 
-def _get_db_path() -> str | None:
+def _get_db_path() -> Optional[str]:
     """Get the path to the ingestion jobs database."""
     # Check environment variables first (for test isolation)
     env_db_path = os.getenv("MARKETPIPE_INGESTION_DB_PATH")
@@ -32,14 +33,14 @@ def _get_db_path() -> str | None:
 
 @jobs_app.command()
 def list(
-    state: str | None = typer.Option(
+    state: Optional[str] = typer.Option(
         None,
         "--state",
         "-s",
         help="Filter by job state (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)",
     ),
     limit: int = typer.Option(20, "--limit", "-l", help="Number of jobs to show"),
-    symbol: str | None = typer.Option(None, "--symbol", help="Filter by symbol"),
+    symbol: Optional[str] = typer.Option(None, "--symbol", help="Filter by symbol"),
 ):
     """List ingestion jobs with filtering options.
 
@@ -109,7 +110,7 @@ def list(
 
 @jobs_app.command()
 def status(
-    job_id: int | None = typer.Argument(
+    job_id: Optional[int] = typer.Argument(
         None, help="Job ID to check (optional - shows summary if not provided)"
     ),
 ):

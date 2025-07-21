@@ -2,6 +2,7 @@
 """Validation infrastructure repositories."""
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import logging
 from pathlib import Path
@@ -14,7 +15,7 @@ from ..domain.value_objects import ValidationResult
 class CsvReportRepository:
     """Repository for saving validation reports as CSV files."""
 
-    def __init__(self, root: Path | str = Path("data/validation_reports")):
+    def __init__(self, root: Union[Path, str] = Path("data/validation_reports")):
         self.root = Path(root)  # Ensure root is always a Path object
         self.log = logging.getLogger(self.__class__.__name__)
 
@@ -57,7 +58,7 @@ class CsvReportRepository:
 
         return path
 
-    def list_reports(self, job_id: str | None = None) -> list[Path]:
+    def list_reports(self, job_id: Optional[str] = None) -> list[Path]:
         """List all validation report files.
 
         Args:

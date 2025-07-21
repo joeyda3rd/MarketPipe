@@ -36,6 +36,7 @@ Usage:
 """
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import datetime as _dt
 
@@ -78,7 +79,7 @@ class NasdaqDailyListProvider(SymbolProviderBase):
         - Rare edge case: embedded pipes in company names may cause parsing issues
     """
 
-    def __init__(self, *, as_of: _dt.date | None = None, **provider_cfg):
+    def __init__(self, *, as_of: _dt.Optional[date] = None, **provider_cfg):
         # Store whether as_of was explicitly provided by the user
         self._user_provided_as_of = as_of is not None
         super().__init__(as_of=as_of, **provider_cfg)
@@ -184,7 +185,7 @@ class NasdaqDailyListProvider(SymbolProviderBase):
         as_of: _dt.date,
         include_etfs: bool,
         skip_test_issues: bool,
-    ) -> SymbolRecord | None:
+    ) -> Optional[SymbolRecord]:
         """Parse a single row from the Nasdaq Daily List.
 
         Args:

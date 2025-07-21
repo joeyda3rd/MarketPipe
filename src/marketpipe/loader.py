@@ -1,6 +1,7 @@
 """Public data loader API for MarketPipe OHLCV data."""
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import datetime as dt
 import logging
@@ -25,14 +26,14 @@ logger = logging.getLogger(__name__)
 
 
 def load_ohlcv(
-    symbols: str | Sequence[str],
-    start: str | dt.datetime | None = None,
-    end: str | dt.datetime | None = None,
+    symbols: Union[str, Sequence[str]],
+    start: Union[str, dt].Optional[datetime] = None,
+    end: Union[str, dt].Optional[datetime] = None,
     timeframe: str = "1m",
     *,
     as_polars: bool = False,
-    root: str | Path | None = None,
-) -> pd.DataFrame | pl.DataFrame:
+    root: str | Optional[Path] = None,
+) -> pd.Union[DataFrame, pl].DataFrame:
     """
     Load OHLCV bars from the local Parquet lake.
 
@@ -40,14 +41,14 @@ def load_ohlcv(
     ----------
     symbols : str or list[str]
         One ticker or a list/tuple of tickers.
-    start, end : str | datetime
+    start, end : Union[str, datetime]
         Inclusive bounds; accepts 'YYYY-MM-DD', RFC 3339, or datetime.
         None = unbounded.
     timeframe : {"1m","5m","15m","1h","1d"}
         Granularity of bars to load.
     as_polars : bool
         Return a Polars DataFrame instead of pandas if True.
-    root : Path | str
+    root : Union[Path, str]
         Override parquet root (defaults to "data").
 
     Returns
@@ -210,7 +211,7 @@ def _load_symbol_data(
         return pd.DataFrame()
 
 
-def _to_ns(ts_like: str | dt.datetime) -> int:
+def _to_ns(ts_like: Union[str, dt].datetime) -> int:
     """Convert timestamp-like input to nanoseconds since epoch."""
     ts: pd.Timestamp
     if isinstance(ts_like, str):

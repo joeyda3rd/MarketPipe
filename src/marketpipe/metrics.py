@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 import os
@@ -130,7 +131,7 @@ class TrendPoint:
 class SqliteMetricsRepository(SqliteAsyncMixin):
     """SQLite-based repository for storing and querying metric history."""
 
-    def __init__(self, db_path: str | None = None):
+    def __init__(self, db_path: Optional[str] = None):
         # Check environment variable first, then use provided path, then default
         if db_path is None:
             db_path = os.environ.get("METRICS_DB_PATH", "data/db/core.db")
@@ -155,7 +156,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
             await db.commit()
 
     async def get_metrics_history(
-        self, metric: str, *, since: datetime | None = None
+        self, metric: str, *, since: Optional[datetime] = None
     ) -> list[MetricPoint]:
         """Get metric history, optionally filtered by time."""
         async with self._conn() as db:
@@ -255,7 +256,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
 
 
 # Global repository instance for record_metric function
-_metrics_repo: SqliteMetricsRepository | None = None
+_metrics_repo: Optional[SqliteMetricsRepository] = None
 
 
 def get_metrics_repository() -> SqliteMetricsRepository:

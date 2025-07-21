@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional, Union
 
 import datetime as dt
 import re
@@ -40,7 +41,7 @@ def _parse_iso(date_str: str) -> dt.date:
         raise ValueError("invalid date format") from exc
 
 
-def validate_date_range(start: str | None, end: str | None) -> None:
+def validate_date_range(start: Optional[str], end: Optional[str]) -> None:
     """Validate ISO date strings and logical ordering.
 
     - Both must be ISO-8601 YYYY-MM-DD.
@@ -70,7 +71,7 @@ def validate_date_range(start: str | None, end: str | None) -> None:
 _SYMBOL_RE = re.compile(r"^[A-Z0-9\.]{1,10}$")
 
 
-def validate_symbols(symbols_csv: str | None) -> list[str]:
+def validate_symbols(symbols_csv: Optional[str]) -> list[str]:
     if symbols_csv is None:
         return []
 
@@ -89,7 +90,7 @@ def validate_symbols(symbols_csv: str | None) -> list[str]:
     return raw
 
 
-def validate_output_dir(output: Path | str | None) -> None:
+def validate_output_dir(output: Path | Optional[str]) -> None:
     if output is None:
         return
 
@@ -122,7 +123,7 @@ def validate_output_dir(output: Path | str | None) -> None:
             cli_error(f"parent directory is not writable: {parent}", code=2)
 
 
-def validate_workers(workers: int | None) -> None:
+def validate_workers(workers: Optional[int]) -> None:
     if workers is None:
         return
     if workers < 1:
@@ -131,7 +132,7 @@ def validate_workers(workers: int | None) -> None:
         cli_error("--workers exceeds maximum (64)", code=2)
 
 
-def validate_batch_size(size: int | None) -> None:
+def validate_batch_size(size: Optional[int]) -> None:
     if size is None:
         return
     if size < 1:
@@ -184,7 +185,7 @@ def validate_provider(provider: str) -> None:
         cli_error(f"invalid provider: {provider}")
 
 
-def validate_feed_type(provider: str, feed_type: str | None) -> None:
+def validate_feed_type(provider: str, feed_type: Optional[str]) -> None:
     """Validate feed type for provider."""
     if provider == "alpaca":
         if not feed_type:

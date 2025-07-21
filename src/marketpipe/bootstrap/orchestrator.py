@@ -2,6 +2,7 @@
 """Bootstrap orchestrator with dependency injection."""
 
 from __future__ import annotations
+from typing import Optional
 
 import logging
 import threading
@@ -119,7 +120,7 @@ class BootstrapOrchestrator:
 
 
 # Global orchestrator instance for backward compatibility
-_global_orchestrator: BootstrapOrchestrator | None = None
+_global_orchestrator: Optional[BootstrapOrchestrator] = None
 _global_lock = threading.Lock()
 
 

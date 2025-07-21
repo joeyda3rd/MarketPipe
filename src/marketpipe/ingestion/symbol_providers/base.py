@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as _dt
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 from marketpipe.domain import SymbolRecord
 
@@ -20,7 +20,7 @@ class SymbolProviderBase(ABC):
     #: override in subclasses: provider identifier used on CLI and registry
     name: str
 
-    def __init__(self, *, as_of: _dt.date | None = None, **provider_cfg: Any) -> None:
+    def __init__(self, *, as_of: _dt.Optional[date] = None, **provider_cfg: Any) -> None:
         self.as_of = as_of or _dt.date.today()
         self.cfg = provider_cfg  # token, base_url, etc.
 

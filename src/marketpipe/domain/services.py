@@ -7,6 +7,7 @@ across multiple domain objects or provide stateless business operations.
 """
 
 from __future__ import annotations
+from typing import Optional
 
 from collections.abc import Iterable
 from datetime import date, datetime
@@ -319,7 +320,7 @@ class OHLCVCalculationService(DomainService):
 
         return sma_values
 
-    def calculate_volatility(self, bars: list[OHLCVBar], period: int) -> list[float | None]:
+    def calculate_volatility(self, bars: list[OHLCVBar], period: int) -> list[Optional[float]]:
         """Calculate rolling volatility (standard deviation of returns).
 
         Args:
@@ -534,7 +535,7 @@ class MarketDataValidationService(DomainService):
         return self._validate_trading_hours_window(bar)
 
     def validate_price_movements(
-        self, current_bar: OHLCVBar, previous_bar: OHLCVBar | None
+        self, current_bar: OHLCVBar, previous_bar: Optional[OHLCVBar]
     ) -> list[str]:
         """Validate price movements for reasonableness.
 

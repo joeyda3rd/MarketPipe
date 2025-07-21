@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
+from typing import Optional, Union
 
 import logging
 from datetime import date
@@ -30,7 +31,7 @@ class ParquetStorageEngine:
     - Job-based file organization
     """
 
-    def __init__(self, root: Path | str, compression: str = "zstd"):
+    def __init__(self, root: Union[Path, str], compression: str = "zstd"):
         """Initialize storage engine.
 
         Args:
@@ -387,8 +388,8 @@ class ParquetStorageEngine:
         self,
         symbol: str,
         frame: str,
-        start_date: date | None = None,
-        end_date: date | None = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
     ) -> pd.DataFrame:
         """Load data for a symbol across multiple dates.
 

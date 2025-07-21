@@ -2,6 +2,7 @@
 """Ingestion domain entities."""
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import re
 from dataclasses import dataclass
@@ -43,7 +44,7 @@ class IngestionJobId:
 
     _raw: str
 
-    def __init__(self, value_or_symbol: str | Symbol, day: str | None = None):
+    def __init__(self, value_or_symbol: Union[str, Symbol], day: Optional[str] = None):
         """Create a new *IngestionJobId*.
 
         Args:
@@ -91,7 +92,7 @@ class IngestionJobId:
 
     _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}$")
 
-    def _decompose(self) -> tuple[str | None, str | None]:
+    def _decompose(self) -> tuple[Optional[str], Optional[str]]:
         """Return `(symbol_str, day_str)` if identifier is composite, else `(None, None)`."""
         parts = self._raw.rsplit("_", 1)
         if len(parts) != 2:
@@ -108,7 +109,7 @@ class IngestionJobId:
         return symbol_part, day_part
 
     @property
-    def symbol(self) -> Symbol | None:
+    def symbol(self) -> Optional[Symbol]:
         """Extract the *symbol* component if available (composite IDs only)."""
         symbol_part, _ = self._decompose()
         if symbol_part is None:
@@ -122,7 +123,7 @@ class IngestionJobId:
             return None
 
     @property
-    def day(self) -> str | None:
+    def day(self) -> Optional[str]:
         """Extract the *day* (``YYYY-MM-DD``) component if available."""
         _, day_part = self._decompose()
         return day_part
@@ -159,10 +160,10 @@ class IngestionJob(Entity):
         self._time_range = time_range
         self._state = ProcessingState.PENDING
         self._created_at = datetime.now(timezone.utc)
-        self._started_at: datetime | None = None
-        self._completed_at: datetime | None = None
-        self._failed_at: datetime | None = None
-        self._error_message: str | None = None
+        self._started_at: Optional[datetime] = None
+        self._completed_at: Optional[datetime] = None
+        self._failed_at: Optional[datetime] = None
+        self._error_message: Optional[str] = None
         self._processed_symbols: set[Symbol] = set()
         self._completed_partitions: list[IngestionPartition] = []
         self._total_bars_processed = 0
@@ -203,22 +204,22 @@ class IngestionJob(Entity):
         return self._created_at
 
     @property
-    def started_at(self) -> datetime | None:
+    def started_at(self) -> Optional[datetime]:
         """Get when the job was started."""
         return self._started_at
 
     @property
-    def completed_at(self) -> datetime | None:
+    def completed_at(self) -> Optional[datetime]:
         """Get when the job was completed."""
         return self._completed_at
 
     @property
-    def failed_at(self) -> datetime | None:
+    def failed_at(self) -> Optional[datetime]:
         """Get when the job failed."""
         return self._failed_at
 
     @property
-    def error_message(self) -> str | None:
+    def error_message(self) -> Optional[str]:
         """Get the error message if job failed."""
         return self._error_message
 
@@ -378,7 +379,7 @@ class IngestionJob(Entity):
         if self.can_complete:
             self.complete()
 
-    def estimate_remaining_time(self, average_processing_time_per_symbol: float) -> float | None:
+    def estimate_remaining_time(self, average_processing_time_per_symbol: float) -> Optional[float]:
         """Estimate remaining processing time in seconds."""
         if self._state != ProcessingState.IN_PROGRESS:
             return None

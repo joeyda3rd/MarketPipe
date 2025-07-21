@@ -1,4 +1,4 @@
-# MarketPipe 🚀
+# MarketPipe
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -10,40 +10,40 @@
 
 MarketPipe transforms how you collect, validate, and store financial market data. Built with modern Python patterns, it provides a robust, scalable foundation for financial data workflows with enterprise-grade observability and monitoring.
 
-## ✨ Features
+## Features
 
-### 🏗️ **Modern Architecture**
+### **Modern Architecture**
 - **Domain-Driven Design** with enforced boundaries and clean separation of concerns
 - **Plugin-based providers** for easy integration with any market data source
 - **Async/sync dual APIs** for maximum flexibility
 - **Type-safe configuration** with comprehensive validation
 
-### 📊 **Data Providers**
+### **Data Providers**
 - **Alpaca Markets** - Real-time and historical market data
 - **IEX Cloud** - Professional-grade financial data
 - **Fake Provider** - Generate realistic test data for development
 - **Extensible Plugin System** - Add your own providers easily
 
-### 🔧 **ETL Pipeline**
+### **ETL Pipeline**
 - **Parallel ingestion** across multiple symbols and timeframes
 - **Schema validation** with business rule enforcement
 - **Incremental loading** with checkpoint/resume capability
 - **Data quality monitoring** with comprehensive error reporting
 - **Partitioned storage** in Parquet format for optimal performance
 
-### 📈 **Observability**
+### **Observability**
 - **Prometheus metrics** with multiprocess support
 - **Grafana dashboards** for real-time monitoring
 - **Structured logging** with configurable levels
 - **Performance tracking** and error alerting
 
-### 🐳 **Deployment Ready**
+### **Deployment Ready**
 - **Docker Compose** stack with monitoring included
 - **Database migrations** with Alembic
 - **Health checks** and readiness probes
 - **Production-ready configuration**
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -81,7 +81,7 @@ marketpipe validate --symbol AAPL --start 2024-01-01
 marketpipe aggregate --symbol AAPL --timeframe 5m --start 2024-01-01
 ```
 
-## 📖 Documentation
+## Documentation
 
 ### Core Commands
 
@@ -114,7 +114,7 @@ marketpipe ingest --provider iex --symbols AAPL
 marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2024-01-01
 ```
 
-## 🏗️ Development
+## Development
 
 ### Quick Setup
 
@@ -168,7 +168,7 @@ MarketPipe enforces Domain-Driven Design boundaries:
 import-linter --config setup.cfg
 ```
 
-## 🗄️ Database Setup
+## Database Setup
 
 MarketPipe uses Alembic for database schema management:
 
@@ -183,7 +183,7 @@ alembic revision --autogenerate -m "description"
 ./tools/database/setup_postgres.sh
 ```
 
-## 📊 Monitoring & Observability
+## Monitoring & Observability
 
 ### Metrics Server
 
@@ -209,7 +209,7 @@ Pre-built dashboards for monitoring ingestion performance, data quality, and sys
 - **Ingestion throughput** and **backlog** monitoring
 - **System resources** and **error rates**
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 Complete containerized stack with monitoring:
 
@@ -225,7 +225,7 @@ docker compose up -d
 
 For production deployment, see `docker/README.md`.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 src/marketpipe/           # Source code
@@ -244,7 +244,7 @@ docker/                  # Containerized deployment
 config/                  # Configuration templates
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -273,7 +273,7 @@ monitoring:
   port: 8000
 ```
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
@@ -285,7 +285,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 4. Check architecture: `import-linter --config setup.cfg`
 5. Submit a pull request
 
-## 📝 Alpha Release Notes
+## Alpha Release Notes
 
 ### Current Capabilities (v0.1.0-alpha.1)
 
@@ -299,13 +299,13 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - Data validation and quality checks
 - Database migrations
 
-🚧 **Known Limitations:**
+ **Known Limitations:**
 - API may change during alpha phase
 - Limited error recovery in edge cases
 - Documentation is still evolving
 - Performance optimizations ongoing
 
-⚠️ **Production Readiness:**
+ **Production Readiness:**
 - Suitable for development and testing
 - Use caution in production environments
 - Monitor resource usage and error rates
@@ -315,12 +315,10 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
 
-## 🆘 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/your-org/marketpipe/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-org/marketpipe/discussions)
 - **Security**: See [SECURITY.md](SECURITY.md) for security policy
 
 ---
-
-**Made with ❤️ by the MarketPipe team**

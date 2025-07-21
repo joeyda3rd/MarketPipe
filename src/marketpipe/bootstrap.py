@@ -20,7 +20,7 @@ __all__ = [
 import logging
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from alembic import command
 from alembic.config import Config
@@ -33,7 +33,7 @@ _BOOTSTRAPPED = False
 _BOOTSTRAP_LOCK = threading.Lock()
 
 # Global event bus instance
-_EVENT_BUS: IEventBus | None = None
+_EVENT_BUS: Optional[IEventBus] = None
 
 logger = logging.getLogger(__name__)
 

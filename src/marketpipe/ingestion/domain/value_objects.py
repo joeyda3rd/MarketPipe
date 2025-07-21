@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from marketpipe.domain.value_objects import Symbol
 
@@ -19,7 +19,7 @@ class IngestionConfiguration:
     compression: str
     max_workers: int
     batch_size: int
-    rate_limit_per_minute: int | None
+    rate_limit_per_minute: Optional[int]
     feed_type: str
 
     def __post_init__(self):
@@ -106,7 +106,7 @@ class IngestionPartition:
     record_count: int
     file_size_bytes: int
     created_at: datetime
-    checksum: str | None = None
+    checksum: Optional[str] = None
 
     def __post_init__(self):
         """Validate partition data."""
@@ -153,7 +153,7 @@ class ProcessingMetrics:
     total_bars_ingested: int
     total_processing_time_seconds: float
     average_processing_time_per_symbol: float
-    peak_memory_usage_mb: float | None = None
+    peak_memory_usage_mb: Optional[float] = None
 
     def __post_init__(self):
         """Validate metrics."""

@@ -7,6 +7,7 @@ for operations that span multiple domain objects.
 """
 
 from __future__ import annotations
+from typing import Optional
 
 from dataclasses import dataclass
 from datetime import date
@@ -38,8 +39,8 @@ class SymbolBarsAggregate:
         self._is_complete = False
         self._collection_started = False
         # Running totals for efficient calculations
-        self._running_high: Price | None = None
-        self._running_low: Price | None = None
+        self._running_high: Optional[Price] = None
+        self._running_low: Optional[Price] = None
         self._running_volume: Volume = Volume(0)
 
     @property
@@ -144,7 +145,7 @@ class SymbolBarsAggregate:
         )
         self._events.append(event)
 
-    def get_bar(self, timestamp: Timestamp) -> OHLCVBar | None:
+    def get_bar(self, timestamp: Timestamp) -> Optional[OHLCVBar]:
         """Retrieve a specific bar by timestamp.
 
         Args:
@@ -486,7 +487,7 @@ class DailySummary:
     low_price: Price
     close_price: Price
     volume: Volume
-    vwap: Price | None
+    vwap: Optional[Price]
     bar_count: int
     first_bar_time: Timestamp
     last_bar_time: Timestamp

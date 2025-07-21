@@ -13,7 +13,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional, Union
 
 import pytest
 
@@ -25,7 +25,7 @@ class E2ETestResult:
     name: str
     status: str  # "PASS", "FAIL", "SKIP", "ERROR"
     duration_seconds: float
-    error_message: str | None = None
+    error_message: Optional[str] = None
     metadata: dict[str, Any] = None
 
     def __post_init__(self):
@@ -74,8 +74,8 @@ class E2ETestOrchestrator:
         self,
         suite_name: str,
         test_functions: list[Callable],
-        setup_func: Callable | None = None,
-        teardown_func: Callable | None = None,
+        setup_func: Optional[Callable] = None,
+        teardown_func: Optional[Callable] = None,
     ) -> E2ETestSuiteResult:
         """Run a complete test suite with setup/teardown."""
 
@@ -438,7 +438,7 @@ Total Duration:  {total_duration:.1f} seconds
             report += f"""
 {suite.suite_name}:
   Tests: {suite.total_tests} | Passed: {suite.passed} | Failed: {suite.failed} | Skipped: {suite.skipped} | Errors: {suite.errors}
-  Duration: {suite.duration_seconds:.1f}s | Success Rate: {suite.success_rate:.1f}%
+  Duration: {suite.duration_seconds:.1f}Union[s, Success] Rate: {suite.success_rate:.1f}%
 """
 
         # Add failed tests details

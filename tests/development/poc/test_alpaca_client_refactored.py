@@ -8,7 +8,7 @@ fragile mocks with reusable, realistic fakes.
 from __future__ import annotations
 
 import unittest
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 import pytest

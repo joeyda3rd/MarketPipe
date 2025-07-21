@@ -9,6 +9,7 @@ type validation and documentation for required credentials.
 """
 
 from __future__ import annotations
+from typing import Optional
 
 from pydantic import Field
 
@@ -54,11 +55,11 @@ class IEXSettings(BaseSettings):
     """
 
     # Support legacy token name for backward compatibility
-    secret_token: str | None = Field(None, alias="IEX_TOKEN", description="Legacy IEX token")
-    mp_secret_token: str | None = Field(
+    secret_token: Optional[str] = Field(None, alias="IEX_TOKEN", description="Legacy IEX token")
+    mp_secret_token: Optional[str] = Field(
         None, alias="MP_IEX_SECRET_TOKEN", description="IEX secret token"
     )
-    mp_pub_token: str | None = Field(
+    mp_pub_token: Optional[str] = Field(
         None, alias="MP_IEX_PUB_TOKEN", description="IEX publishable token"
     )
 

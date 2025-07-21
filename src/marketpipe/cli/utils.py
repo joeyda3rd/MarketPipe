@@ -2,6 +2,7 @@
 """Utility commands for MarketPipe."""
 
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 import os
@@ -277,7 +278,7 @@ def migrate(
         raise typer.Exit(1) from e
 
 
-def _parse_time_window(window_str: str) -> int | None:
+def _parse_time_window(window_str: str) -> Optional[int]:
     """Parse time window string to seconds."""
     import re
 

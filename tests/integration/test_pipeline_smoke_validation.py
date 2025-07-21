@@ -2,6 +2,7 @@
 """Pipeline smoke validation tests for end-to-end functionality."""
 
 from __future__ import annotations
+from typing import Optional
 
 import subprocess
 import tempfile
@@ -50,7 +51,7 @@ class PipelineTestResult:
 class PipelineSmokeValidator:
     """Validates end-to-end pipeline functionality."""
 
-    def __init__(self, base_dir: Path | None = None):
+    def __init__(self, base_dir: Optional[Path] = None):
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
         self.test_results: list[PipelineTestResult] = []
 

@@ -8,7 +8,7 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
@@ -23,7 +23,7 @@ class RequestCapture:
     method: str = "GET"
     headers: dict[str, str] = None
     params: dict[str, Any] = None
-    body: str | None = None
+    body: Optional[str] = None
     timestamp: datetime = None
 
     def __post_init__(self):
@@ -43,8 +43,8 @@ class ResponseSpec:
     status: int = 200
     body: dict[str, Any] = None
     headers: dict[str, str] = None
-    delay: float | None = None
-    error: Exception | None = None
+    delay: Optional[float] = None
+    error: Optional[Exception] = None
 
     def __post_init__(self):
         if self.body is None:
@@ -84,8 +84,8 @@ class FakeHttpClient:
     def __init__(self):
         self.response_specs: list[ResponseSpec] = []
         self.requests_made: list[RequestCapture] = []
-        self.default_delay: float | None = None
-        self._rate_limit_delay: float | None = None
+        self.default_delay: Optional[float] = None
+        self._rate_limit_delay: Optional[float] = None
         self._request_count = 0
 
     def configure_response(
@@ -94,7 +94,7 @@ class FakeHttpClient:
         status: int = 200,
         body: dict[str, Any] = None,
         headers: dict[str, str] = None,
-        delay: float | None = None,
+        delay: Optional[float] = None,
     ):
         """Configure expected response for URL pattern.
 
@@ -141,14 +141,14 @@ class FakeHttpClient:
         self.response_specs.clear()
         self._request_count = 0
 
-    def _find_matching_spec(self, url: str) -> ResponseSpec | None:
+    def _find_matching_spec(self, url: str) -> Optional[ResponseSpec]:
         """Find response spec matching the URL."""
         for spec in self.response_specs:
             if re.search(spec.url_pattern, url):
                 return spec
         return None
 
-    def _simulate_delay(self, spec: ResponseSpec | None = None):
+    def _simulate_delay(self, spec: Optional[ResponseSpec] = None):
         """Simulate network delay."""
         delay = None
 
@@ -169,7 +169,7 @@ class FakeHttpClient:
 
             time.sleep(delay)
 
-    async def _async_simulate_delay(self, spec: ResponseSpec | None = None):
+    async def _async_simulate_delay(self, spec: Optional[ResponseSpec] = None):
         """Simulate network delay for async calls."""
         delay = None
 
@@ -281,8 +281,8 @@ class FakeMarketDataAdapter:
         self.supported_symbols = supported_symbols or ["AAPL", "GOOGL", "MSFT"]
         self._symbol_data: dict[str, list[OHLCVBar]] = {}
         self._error_configs: dict[str, Exception] = {}
-        self._rate_limit_config: dict[str, Any] | None = None
-        self._pagination_config: dict[str, Any] | None = None
+        self._rate_limit_config: Optional[dict[str, Any]] = None
+        self._pagination_config: Optional[dict[str, Any]] = None
         self._request_history: list[dict[str, Any]] = []
 
     def configure_symbol_data(self, symbol: str, bars: list[OHLCVBar]):

@@ -7,7 +7,7 @@ import asyncio
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 
@@ -36,7 +36,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
         rate_limit_per_minute: int = 5,  # Free tier limit
         timeout: float = 30.0,
         max_retries: int = 3,
-        logger: logging.Logger | None = None,
+        logger: logging.Optional[Logger] = None,
     ):
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")

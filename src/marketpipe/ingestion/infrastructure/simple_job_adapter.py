@@ -170,7 +170,7 @@ class SimpleJobRepository:
             logger.error(f"Failed to mark job {symbol} {day} as {status}: {e}")
             raise
 
-    async def get_status(self, symbol: str, day: str) -> str | None:
+    async def get_status(self, symbol: str, day: str) -> Optional[str]:
         """
         Get simple status string for a job.
 
@@ -195,7 +195,7 @@ class SimpleJobRepository:
             logger.error(f"Failed to get status for {symbol} {day}: {e}")
             raise
 
-    async def list_jobs(self, status: str | None = None) -> list[tuple[str, str, str]]:
+    async def list_jobs(self, status: Optional[str] = None) -> list[tuple[str, str, str]]:
         """
         List jobs with optional status filter.
 
@@ -235,7 +235,7 @@ class SimpleJobRepository:
         if hasattr(self._repo, "close"):
             await self._repo.close()
 
-    async def _find_job_by_symbol_day(self, symbol: Symbol, day: date) -> IngestionJob | None:
+    async def _find_job_by_symbol_day(self, symbol: Symbol, day: date) -> Optional[IngestionJob]:
         """Find job by symbol and day across all jobs."""
         # Since we don't have a direct symbol+day lookup, we need to search
         # This is not optimal but works for the simple API

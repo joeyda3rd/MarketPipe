@@ -31,7 +31,7 @@ import traceback
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 
@@ -64,10 +64,10 @@ class ValidationResult:
     command: str
     status: str  # PASS, FAIL, SKIP, ERROR
     duration: float
-    exit_code: int | None
+    exit_code: Optional[int]
     stdout: str
     stderr: str
-    error_message: str | None = None
+    error_message: Optional[str] = None
     details: dict[str, Any] = field(default_factory=dict)
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -96,8 +96,8 @@ class PipelineValidator:
         self,
         mode: str = "critical",
         output_dir: str = "./validation_output",
-        config_file: str | None = None,
-        skip_tests: list[str] | None = None,
+        config_file: Optional[str] = None,
+        skip_tests: Optional[list[str]] = None,
         verbose: bool = False,
         dry_run: bool = False,
     ):
@@ -636,8 +636,8 @@ class PipelineValidator:
 def main(
     mode: str = typer.Option("critical", help="Validation mode: full, quick, critical"),
     output_dir: str = typer.Option("./validation_output", help="Output directory"),
-    config_file: str | None = typer.Option(None, help="Test configuration file"),
-    skip_tests: str | None = typer.Option(None, help="Comma-separated test categories to skip"),
+    config_file: Optional[str] = typer.Option(None, help="Test configuration file"),
+    skip_tests: Optional[str] = typer.Option(None, help="Comma-separated test categories to skip"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
     dry_run: bool = typer.Option(False, help="Show what would be tested"),
     report_format: str = typer.Option("json", help="Report format: json, yaml, html"),

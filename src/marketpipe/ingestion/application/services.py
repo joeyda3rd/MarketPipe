@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 from marketpipe.domain.events import IEventPublisher
 from marketpipe.domain.value_objects import Symbol
@@ -185,7 +185,7 @@ class IngestionJobService:
 
         return new_job.job_id
 
-    async def get_job_status(self, query: GetJobStatusQuery) -> dict[str, Any] | None:
+    async def get_job_status(self, query: GetJobStatusQuery) -> Optional[dict[str, Any]]:
         """Get the current status of a job."""
         job = await self._job_repository.get_by_id(query.job_id)
         if not job:
@@ -225,7 +225,7 @@ class IngestionJobService:
             for job in jobs
         ]
 
-    async def get_job_metrics(self, query: GetJobMetricsQuery) -> dict[str, Any] | None:
+    async def get_job_metrics(self, query: GetJobMetricsQuery) -> Optional[dict[str, Any]]:
         """Get performance metrics for jobs."""
         if query.job_id:
             metrics = await self._metrics_repository.get_metrics(query.job_id)

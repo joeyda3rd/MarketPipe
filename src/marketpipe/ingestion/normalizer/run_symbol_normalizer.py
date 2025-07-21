@@ -5,6 +5,7 @@ a DuckDB database containing a symbols_stage table.
 """
 
 from __future__ import annotations
+from typing import Optional, Union
 
 from pathlib import Path
 
@@ -12,8 +13,8 @@ import duckdb
 
 
 def normalize_stage(
-    db_path: str | duckdb.DuckDBPyConnection,
-    connection: duckdb.DuckDBPyConnection | None = None,
+    db_path: Union[str, duckdb].DuckDBPyConnection,
+    connection: duckdb.Optional[DuckDBPyConnection] = None,
     output_table: str = "symbols_master",
 ) -> None:
     """Execute symbol normalization SQL against a DuckDB database.
