@@ -285,7 +285,10 @@ def prune_database(
                 if deleted > 0:
                     # Record metrics
                     try:
-                        from marketpipe.metrics import DATA_PRUNED_ROWS_TOTAL, record_metric
+                        from marketpipe.metrics import (
+                            DATA_PRUNED_ROWS_TOTAL,
+                            record_metric,
+                        )
 
                         metric_type = backend_type.lower()
                         DATA_PRUNED_ROWS_TOTAL.labels(type=metric_type).inc(deleted)

@@ -257,7 +257,10 @@ def test_multiple_symbols_pipeline(tmp_path):
 
     # Mock validator to return different results for each symbol
     def mock_validate_bars(symbol_name, bars):
-        from marketpipe.validation.domain.value_objects import BarError, ValidationResult
+        from marketpipe.validation.domain.value_objects import (
+            BarError,
+            ValidationResult,
+        )
 
         if symbol_name == "AAPL":
             return ValidationResult(

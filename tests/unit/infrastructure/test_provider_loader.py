@@ -9,7 +9,10 @@ from marketpipe.ingestion.infrastructure.provider_loader import (
     get_available_providers,
     validate_provider_config,
 )
-from marketpipe.ingestion.infrastructure.provider_registry import clear_registry, register
+from marketpipe.ingestion.infrastructure.provider_registry import (
+    clear_registry,
+    register,
+)
 
 
 class MockProvider(IMarketDataProvider):
@@ -231,7 +234,9 @@ class TestRealProviders:
 
         # Manually register built-in providers for testing
         from marketpipe.ingestion.infrastructure.adapters import AlpacaMarketDataAdapter
-        from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
+        from marketpipe.ingestion.infrastructure.fake_adapter import (
+            FakeMarketDataAdapter,
+        )
         from marketpipe.ingestion.infrastructure.iex_adapter import IEXMarketDataAdapter
 
         register("fake", FakeMarketDataAdapter)
@@ -249,7 +254,9 @@ class TestRealProviders:
         provider = build_provider(config)
 
         # Should be the actual FakeMarketDataAdapter
-        from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
+        from marketpipe.ingestion.infrastructure.fake_adapter import (
+            FakeMarketDataAdapter,
+        )
 
         assert isinstance(provider, FakeMarketDataAdapter)
 

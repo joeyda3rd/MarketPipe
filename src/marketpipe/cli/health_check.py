@@ -29,7 +29,9 @@ import yaml
 # Import MarketPipe components for testing
 try:
     from marketpipe import __version__ as mp_version
-    from marketpipe.ingestion.infrastructure.provider_loader import get_available_providers
+    from marketpipe.ingestion.infrastructure.provider_loader import (
+        get_available_providers,
+    )
 
     MARKETPIPE_AVAILABLE = True
 except ImportError:

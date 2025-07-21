@@ -9,7 +9,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from marketpipe.ingestion.domain.entities import ProcessingState
-from marketpipe.ingestion.infrastructure.repository_factory import create_ingestion_job_repository
+from marketpipe.ingestion.infrastructure.repository_factory import (
+    create_ingestion_job_repository,
+)
 from marketpipe.ingestion.infrastructure.simple_job_adapter import SimpleJobRepository
 
 

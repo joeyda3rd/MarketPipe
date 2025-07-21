@@ -500,7 +500,10 @@ class TestDataQualityValidationEndToEnd:
             # Simulate validation service (simplified)
             from unittest.mock import Mock
 
-            from marketpipe.validation.domain.value_objects import BarError, ValidationResult
+            from marketpipe.validation.domain.value_objects import (
+                BarError,
+                ValidationResult,
+            )
 
             # Mock validator to simulate real validation results
             validator = Mock()
@@ -609,7 +612,9 @@ class TestDataQualityValidationEndToEnd:
         # Test aggregation and quality preservation
         from marketpipe.aggregation.application.services import AggregationRunnerService
         from marketpipe.aggregation.domain.services import AggregationDomainService
-        from marketpipe.aggregation.infrastructure.duckdb_engine import DuckDBAggregationEngine
+        from marketpipe.aggregation.infrastructure.duckdb_engine import (
+            DuckDBAggregationEngine,
+        )
         from marketpipe.domain.events import IngestionJobCompleted
 
         duckdb_engine = DuckDBAggregationEngine(raw_root=raw_dir, agg_root=agg_dir)

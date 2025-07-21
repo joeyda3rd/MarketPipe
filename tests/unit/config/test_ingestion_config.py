@@ -10,7 +10,10 @@ from pathlib import Path
 import pytest
 
 from marketpipe.config import IngestionJobConfig
-from marketpipe.ingestion.infrastructure.provider_registry import is_registered, register
+from marketpipe.ingestion.infrastructure.provider_registry import (
+    is_registered,
+    register,
+)
 
 # Ensure polygon provider is available for config tests
 try:

@@ -16,7 +16,11 @@ import pytest
 
 from marketpipe.domain.aggregates import SymbolBarsAggregate
 from marketpipe.domain.entities import EntityId, OHLCVBar
-from marketpipe.domain.repositories import ConcurrencyError, DuplicateKeyError, RepositoryError
+from marketpipe.domain.repositories import (
+    ConcurrencyError,
+    DuplicateKeyError,
+    RepositoryError,
+)
 from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
 from marketpipe.infrastructure.repositories.sqlite_domain import (
     SqliteCheckpointRepository,
