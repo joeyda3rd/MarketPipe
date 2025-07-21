@@ -7,9 +7,10 @@ import os
 import tempfile
 from pathlib import Path
 
+import pytest
+
 # Import from the legacy bootstrap module, not the new bootstrap package
 import marketpipe.bootstrap as legacy_bootstrap
-import pytest
 
 
 class FakeDatabase:

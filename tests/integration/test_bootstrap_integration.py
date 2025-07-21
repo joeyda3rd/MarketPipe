@@ -19,13 +19,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
 from marketpipe.bootstrap import (
     BootstrapOrchestrator,
     reset_bootstrap_state,
     set_global_orchestrator,
 )
 from marketpipe.bootstrap.interfaces import AlembicMigrationService, EnvironmentProvider
-
 from tests.fakes.bootstrap import (
     FakeEnvironmentProvider,
     FakeServiceRegistry,

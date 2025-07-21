@@ -151,7 +151,6 @@ class PipelineTestCase(IntegrationTestCase):
 
         # Use the existing create_test_ohlcv_bars function
         from marketpipe.domain.value_objects import Symbol
-
         from tests.fakes.adapters import create_test_ohlcv_bars
 
         bars = create_test_ohlcv_bars(symbol=Symbol(symbol), count=bar_count)

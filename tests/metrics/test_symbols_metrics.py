@@ -5,16 +5,11 @@ from __future__ import annotations
 import datetime as dt
 from unittest.mock import Mock, patch
 
+from prometheus_client import REGISTRY, CollectorRegistry, Counter, Gauge, generate_latest
+
 from marketpipe.ingestion.pipeline.symbol_pipeline import (
     _update_null_ratio_metrics,
     run_symbol_pipeline,
-)
-from prometheus_client import (
-    REGISTRY,
-    CollectorRegistry,
-    Counter,
-    Gauge,
-    generate_latest,
 )
 
 

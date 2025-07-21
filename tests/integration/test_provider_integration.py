@@ -23,10 +23,10 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+
 from marketpipe.ingestion.infrastructure.alpaca_client import AlpacaClient
 from marketpipe.ingestion.infrastructure.auth import HeaderTokenAuth
 from marketpipe.ingestion.infrastructure.models import ClientConfig
-
 from tests.fakes.adapters import FakeHttpClient
 
 

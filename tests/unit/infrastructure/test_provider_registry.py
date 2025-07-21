@@ -4,6 +4,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
+
 from marketpipe.domain.entities import OHLCVBar
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
 from marketpipe.domain.value_objects import Symbol, TimeRange
@@ -195,9 +196,7 @@ class TestBuiltinProviders:
 
         # Manually register built-in providers for testing
         from marketpipe.ingestion.infrastructure.adapters import AlpacaMarketDataAdapter
-        from marketpipe.ingestion.infrastructure.fake_adapter import (
-            FakeMarketDataAdapter,
-        )
+        from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
         from marketpipe.ingestion.infrastructure.iex_adapter import IEXMarketDataAdapter
 
         register("fake", FakeMarketDataAdapter)
@@ -270,9 +269,7 @@ class TestProviderInstantiation:
 
     def test_fake_provider_from_config(self):
         """Test fake provider creation from config."""
-        from marketpipe.ingestion.infrastructure.fake_adapter import (
-            FakeMarketDataAdapter,
-        )
+        from marketpipe.ingestion.infrastructure.fake_adapter import FakeMarketDataAdapter
 
         config = {
             "base_price": 150.0,
