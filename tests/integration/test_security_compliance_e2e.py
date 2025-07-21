@@ -268,7 +268,7 @@ class ComplianceValidator:
         retention_issues = []
 
         current_time = time.time()
-        min_retention_seconds = self.compliance_rules["data_retention"]["min_days"] * 24 * 3600
+        self.compliance_rules["data_retention"]["min_days"] * 24 * 3600
         max_retention_seconds = self.compliance_rules["data_retention"]["max_days"] * 24 * 3600
 
         for file_path in files:

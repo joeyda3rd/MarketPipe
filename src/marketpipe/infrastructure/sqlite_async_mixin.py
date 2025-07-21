@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import weakref
-from typing import AsyncContextManager
+from contextlib import AbstractAsyncContextManager
 
 import aiosqlite
 
@@ -50,7 +50,7 @@ class SqliteAsyncMixin:
     db_path: str
 
     @contextlib.asynccontextmanager
-    async def _conn(self) -> AsyncContextManager[aiosqlite.Connection]:
+    async def _conn(self) -> AbstractAsyncContextManager[aiosqlite.Connection]:
         """Async context manager for SQLite connections.
 
         Provides a configured aiosqlite connection with:

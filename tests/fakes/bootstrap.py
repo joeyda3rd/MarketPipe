@@ -4,8 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import Mock
+from typing import Any
 
 from marketpipe.bootstrap.interfaces import (
     IEnvironmentProvider,
@@ -18,7 +17,7 @@ class FakeMigrationService(IMigrationService):
     """Fake migration service that records operations instead of performing them."""
 
     def __init__(self):
-        self.migrations_applied: List[Path] = []
+        self.migrations_applied: list[Path] = []
         self.should_fail = False
         self.failure_message = "Simulated migration failure"
 
@@ -29,12 +28,14 @@ class FakeMigrationService(IMigrationService):
 
         self.migrations_applied.append(db_path)
 
-    def configure_failure(self, should_fail: bool = True, message: str = "Simulated migration failure"):
+    def configure_failure(
+        self, should_fail: bool = True, message: str = "Simulated migration failure"
+    ):
         """Configure migration to fail."""
         self.should_fail = should_fail
         self.failure_message = message
 
-    def get_migrations_applied(self) -> List[Path]:
+    def get_migrations_applied(self) -> list[Path]:
         """Get list of database paths that migrations were applied to."""
         return self.migrations_applied.copy()
 
@@ -47,39 +48,49 @@ class FakeServiceRegistry(IServiceRegistry):
     """Fake service registry that records registrations instead of performing them."""
 
     def __init__(self):
-        self.services_registered: List[str] = []
+        self.services_registered: list[str] = []
         self.failing_services: set[str] = set()
-        self.failure_messages: Dict[str, str] = {}
+        self.failure_messages: dict[str, str] = {}
 
     def register_validation_service(self) -> None:
         """Record validation service registration."""
         service_name = "validation_service"
         if service_name in self.failing_services:
-            raise RuntimeError(self.failure_messages.get(service_name, "Validation service registration failed"))
+            raise RuntimeError(
+                self.failure_messages.get(service_name, "Validation service registration failed")
+            )
         self.services_registered.append(service_name)
 
     def register_aggregation_service(self) -> None:
         """Record aggregation service registration."""
         service_name = "aggregation_service"
         if service_name in self.failing_services:
-            raise RuntimeError(self.failure_messages.get(service_name, "Aggregation service registration failed"))
+            raise RuntimeError(
+                self.failure_messages.get(service_name, "Aggregation service registration failed")
+            )
         self.services_registered.append(service_name)
 
     def register_monitoring_handlers(self) -> None:
         """Record monitoring handlers registration."""
         service_name = "monitoring_handlers"
         if service_name in self.failing_services:
-            raise RuntimeError(self.failure_messages.get(service_name, "Monitoring handlers registration failed"))
+            raise RuntimeError(
+                self.failure_messages.get(service_name, "Monitoring handlers registration failed")
+            )
         self.services_registered.append(service_name)
 
     def register_logging_handlers(self) -> None:
         """Record logging handlers registration."""
         service_name = "logging_handlers"
         if service_name in self.failing_services:
-            raise RuntimeError(self.failure_messages.get(service_name, "Logging handlers registration failed"))
+            raise RuntimeError(
+                self.failure_messages.get(service_name, "Logging handlers registration failed")
+            )
         self.services_registered.append(service_name)
 
-    def configure_service_failure(self, service_name: str, should_fail: bool = True, message: str = None):
+    def configure_service_failure(
+        self, service_name: str, should_fail: bool = True, message: str = None
+    ):
         """Configure specific service to fail registration."""
         if should_fail:
             self.failing_services.add(service_name)
@@ -89,7 +100,7 @@ class FakeServiceRegistry(IServiceRegistry):
             self.failing_services.discard(service_name)
             self.failure_messages.pop(service_name, None)
 
-    def get_registered_services(self) -> List[str]:
+    def get_registered_services(self) -> list[str]:
         """Get list of services that were registered."""
         return self.services_registered.copy()
 
@@ -101,7 +112,7 @@ class FakeServiceRegistry(IServiceRegistry):
 class FakeEnvironmentProvider(IEnvironmentProvider):
     """Fake environment provider with configurable values."""
 
-    def __init__(self, database_path: Path = None, config_values: Dict[str, Any] = None):
+    def __init__(self, database_path: Path = None, config_values: dict[str, Any] = None):
         self.database_path = database_path or Path("test_db.db")
         self.config_values = config_values or {}
 
@@ -128,10 +139,11 @@ class FakeEnvironmentProvider(IEnvironmentProvider):
 
 # Helper functions for creating test orchestrators
 
+
 def create_fake_bootstrap_orchestrator(
     database_path: Path = None,
     migration_should_fail: bool = False,
-    failing_services: List[str] = None
+    failing_services: list[str] = None,
 ):
     """Create a BootstrapOrchestrator with fake services for testing.
 
@@ -175,7 +187,7 @@ def get_fake_services_from_orchestrator(orchestrator):
         Dict containing the fake services keyed by type
     """
     return {
-        'migration_service': orchestrator.migration_service,
-        'service_registry': orchestrator.service_registry,
-        'environment_provider': orchestrator.environment_provider,
+        "migration_service": orchestrator.migration_service,
+        "service_registry": orchestrator.service_registry,
+        "environment_provider": orchestrator.environment_provider,
     }

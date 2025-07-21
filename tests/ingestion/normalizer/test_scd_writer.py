@@ -21,11 +21,11 @@ def _drop_symbols_master_safe(db: duckdb.DuckDBPyConnection):
     """Safely drop symbols_master whether it's a table or view."""
     try:
         db.execute("DROP TABLE IF EXISTS symbols_master")
-    except:
+    except Exception:
         pass
     try:
         db.execute("DROP VIEW IF EXISTS symbols_master")
-    except:
+    except Exception:
         pass
 
 

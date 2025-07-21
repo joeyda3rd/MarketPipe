@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -22,19 +22,19 @@ class FakeMetricsCollector:
 
     def __init__(self):
         # Store metric values with labels
-        self.counters: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
-        self.histograms: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
-        self.gauges: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
+        self.counters: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+        self.histograms: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+        self.gauges: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
 
         # Track metric metadata
-        self.counter_metadata: Dict[str, Dict[str, Any]] = {}
-        self.histogram_metadata: Dict[str, Dict[str, Any]] = {}
-        self.gauge_metadata: Dict[str, Dict[str, Any]] = {}
+        self.counter_metadata: dict[str, dict[str, Any]] = {}
+        self.histogram_metadata: dict[str, dict[str, Any]] = {}
+        self.gauge_metadata: dict[str, dict[str, Any]] = {}
 
         # Track all observations for verification
-        self.observations: List[Dict[str, Any]] = []
+        self.observations: list[dict[str, Any]] = []
 
-    def increment_counter(self, name: str, labels: Dict[str, str] = None, value: float = 1.0):
+    def increment_counter(self, name: str, labels: dict[str, str] = None, value: float = 1.0):
         """Record counter increment."""
         label_key = self._label_key(labels)
         self.counters[name][label_key] += value
@@ -50,7 +50,7 @@ class FakeMetricsCollector:
             }
         )
 
-    def observe_histogram(self, name: str, labels: Dict[str, str] = None, value: float = 0.0):
+    def observe_histogram(self, name: str, labels: dict[str, str] = None, value: float = 0.0):
         """Record histogram observation."""
         label_key = self._label_key(labels)
         self.histograms[name][label_key].append(value)
@@ -66,7 +66,7 @@ class FakeMetricsCollector:
             }
         )
 
-    def set_gauge(self, name: str, labels: Dict[str, str] = None, value: float = 0.0):
+    def set_gauge(self, name: str, labels: dict[str, str] = None, value: float = 0.0):
         """Set gauge value."""
         label_key = self._label_key(labels)
         self.gauges[name][label_key] = value
@@ -82,7 +82,7 @@ class FakeMetricsCollector:
             }
         )
 
-    def increment_gauge(self, name: str, labels: Dict[str, str] = None, value: float = 1.0):
+    def increment_gauge(self, name: str, labels: dict[str, str] = None, value: float = 1.0):
         """Increment gauge value."""
         label_key = self._label_key(labels)
         self.gauges[name][label_key] += value
@@ -98,7 +98,7 @@ class FakeMetricsCollector:
             }
         )
 
-    def decrement_gauge(self, name: str, labels: Dict[str, str] = None, value: float = 1.0):
+    def decrement_gauge(self, name: str, labels: dict[str, str] = None, value: float = 1.0):
         """Decrement gauge value."""
         label_key = self._label_key(labels)
         self.gauges[name][label_key] -= value
@@ -114,22 +114,22 @@ class FakeMetricsCollector:
             }
         )
 
-    def get_counter_value(self, name: str, labels: Dict[str, str] = None) -> float:
+    def get_counter_value(self, name: str, labels: dict[str, str] = None) -> float:
         """Get counter value for test verification."""
         label_key = self._label_key(labels)
         return self.counters[name].get(label_key, 0.0)
 
-    def get_histogram_values(self, name: str, labels: Dict[str, str] = None) -> List[float]:
+    def get_histogram_values(self, name: str, labels: dict[str, str] = None) -> list[float]:
         """Get histogram observations for test verification."""
         label_key = self._label_key(labels)
         return self.histograms[name].get(label_key, []).copy()
 
-    def get_gauge_value(self, name: str, labels: Dict[str, str] = None) -> float:
+    def get_gauge_value(self, name: str, labels: dict[str, str] = None) -> float:
         """Get gauge value for test verification."""
         label_key = self._label_key(labels)
         return self.gauges[name].get(label_key, 0.0)
 
-    def get_histogram_stats(self, name: str, labels: Dict[str, str] = None) -> Dict[str, float]:
+    def get_histogram_stats(self, name: str, labels: dict[str, str] = None) -> dict[str, float]:
         """Get histogram statistics."""
         values = self.get_histogram_values(name, labels)
         if not values:
@@ -143,15 +143,15 @@ class FakeMetricsCollector:
             "avg": sum(values) / len(values),
         }
 
-    def get_all_observations(self) -> List[Dict[str, Any]]:
+    def get_all_observations(self) -> list[dict[str, Any]]:
         """Get all metric observations for test verification."""
         return self.observations.copy()
 
-    def get_observations_by_name(self, name: str) -> List[Dict[str, Any]]:
+    def get_observations_by_name(self, name: str) -> list[dict[str, Any]]:
         """Get observations for specific metric name."""
         return [obs for obs in self.observations if obs["name"] == name]
 
-    def get_observations_by_type(self, metric_type: str) -> List[Dict[str, Any]]:
+    def get_observations_by_type(self, metric_type: str) -> list[dict[str, Any]]:
         """Get observations for specific metric type."""
         return [obs for obs in self.observations if obs["type"] == metric_type]
 
@@ -171,14 +171,14 @@ class FakeMetricsCollector:
         # Remove observations for this metric
         self.observations = [obs for obs in self.observations if obs["name"] != name]
 
-    def _label_key(self, labels: Dict[str, str] = None) -> str:
+    def _label_key(self, labels: dict[str, str] = None) -> str:
         """Convert labels dict to string key."""
         if not labels:
             return ""
         return ",".join(f"{k}={v}" for k, v in sorted(labels.items()))
 
     def assert_counter_incremented(
-        self, name: str, labels: Dict[str, str] = None, expected_count: int = 1
+        self, name: str, labels: dict[str, str] = None, expected_count: int = 1
     ):
         """Assert that counter was incremented specific number of times."""
         observations = [
@@ -197,7 +197,7 @@ class FakeMetricsCollector:
         ), f"Expected {expected_count} increments for {name}, got {actual_count}"
 
     def assert_histogram_observed(
-        self, name: str, labels: Dict[str, str] = None, min_observations: int = 1
+        self, name: str, labels: dict[str, str] = None, min_observations: int = 1
     ):
         """Assert that histogram received minimum number of observations."""
         observations = [
@@ -216,7 +216,7 @@ class FakeMetricsCollector:
         ), f"Expected >= {min_observations} observations for {name}, got {actual_count}"
 
     def assert_gauge_set(
-        self, name: str, labels: Dict[str, str] = None, expected_value: float = None
+        self, name: str, labels: dict[str, str] = None, expected_value: float = None
     ):
         """Assert that gauge was set to expected value."""
         if expected_value is not None:
@@ -244,7 +244,7 @@ class PrometheusTestDouble:
     def __init__(self, collector: FakeMetricsCollector):
         self.collector = collector
 
-    def create_counter_mock(self, name: str, description: str, labelnames: List[str] = None):
+    def create_counter_mock(self, name: str, description: str, labelnames: list[str] = None):
         """Create mock Counter that integrates with collector."""
         counter_mock = Mock()
 
@@ -261,7 +261,7 @@ class PrometheusTestDouble:
 
         return counter_mock
 
-    def create_histogram_mock(self, name: str, description: str, labelnames: List[str] = None):
+    def create_histogram_mock(self, name: str, description: str, labelnames: list[str] = None):
         """Create mock Histogram that integrates with collector."""
         histogram_mock = Mock()
 
@@ -278,7 +278,7 @@ class PrometheusTestDouble:
 
         return histogram_mock
 
-    def create_gauge_mock(self, name: str, description: str, labelnames: List[str] = None):
+    def create_gauge_mock(self, name: str, description: str, labelnames: list[str] = None):
         """Create mock Gauge that integrates with collector."""
         gauge_mock = Mock()
 
@@ -364,7 +364,7 @@ def patch_prometheus_metrics(collector: FakeMetricsCollector):
 # Helper functions for common testing patterns
 
 
-def assert_metrics_collected(collector: FakeMetricsCollector, expected_metrics: Dict[str, Any]):
+def assert_metrics_collected(collector: FakeMetricsCollector, expected_metrics: dict[str, Any]):
     """Assert that expected metrics were collected."""
     for metric_name, expected_data in expected_metrics.items():
         metric_type = expected_data["type"]

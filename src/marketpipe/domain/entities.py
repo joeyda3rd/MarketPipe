@@ -8,7 +8,6 @@ maintaining their identity.
 
 from __future__ import annotations
 
-from abc import ABC
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
@@ -30,7 +29,7 @@ class EntityId:
         return str(self.value)
 
 
-class Entity(ABC):
+class Entity:
     """Base class for all domain entities.
 
     Entities are objects that have identity and can change over time.

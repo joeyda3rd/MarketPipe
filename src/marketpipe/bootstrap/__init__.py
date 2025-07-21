@@ -49,7 +49,7 @@ except Exception:
 
         # Get alembic directory
         project_root = Path(__file__).parent.parent.parent.parent
-        alembic_dir = project_root / "alembic"
+        project_root / "alembic"
         alembic_ini_path = project_root / "alembic.ini"
 
         if alembic_ini_path.exists():

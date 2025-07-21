@@ -10,8 +10,6 @@ type validation and documentation for required credentials.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import Field
 
 try:
@@ -56,11 +54,11 @@ class IEXSettings(BaseSettings):
     """
 
     # Support legacy token name for backward compatibility
-    secret_token: Optional[str] = Field(None, alias="IEX_TOKEN", description="Legacy IEX token")
-    mp_secret_token: Optional[str] = Field(
+    secret_token: str | None = Field(None, alias="IEX_TOKEN", description="Legacy IEX token")
+    mp_secret_token: str | None = Field(
         None, alias="MP_IEX_SECRET_TOKEN", description="IEX secret token"
     )
-    mp_pub_token: Optional[str] = Field(
+    mp_pub_token: str | None = Field(
         None, alias="MP_IEX_PUB_TOKEN", description="IEX publishable token"
     )
 
@@ -459,14 +457,14 @@ def list_provider_settings() -> dict[str, list[str]]:
         if hasattr(settings_class, "model_fields"):
             # Pydantic v2
             fields = settings_class.model_fields
-            for field_name, field_info in fields.items():
+            for _field_name, field_info in fields.items():
                 # In Pydantic v2, alias is directly accessible from FieldInfo
                 if hasattr(field_info, "alias") and field_info.alias:
                     env_vars.append(field_info.alias)
         else:
             # Pydantic v1
             fields = getattr(settings_class, "__fields__", {})
-            for field_name, field_info in fields.items():
+            for _field_name, field_info in fields.items():
                 # In Pydantic v1, check for alias in field_info
                 if hasattr(field_info, "alias") and field_info.alias:
                     env_vars.append(field_info.alias)

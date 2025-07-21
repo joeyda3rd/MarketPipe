@@ -8,9 +8,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from alembic import command
 from alembic.config import Config
+
 from marketpipe.bootstrap import apply_pending_alembic
 
 # Mark all tests in this file as potentially SQLite-specific

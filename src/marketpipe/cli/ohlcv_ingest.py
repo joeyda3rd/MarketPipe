@@ -438,7 +438,7 @@ def _ingest_impl(
                     job_config = load_config(config)
                 except ConfigVersionError as e:
                     print(f"❌ Configuration version error: {e}")
-                    raise typer.Exit(1)
+                    raise typer.Exit(1) from e
 
                 # Apply CLI overrides if provided
                 overrides = {
@@ -589,13 +589,13 @@ def _ingest_impl(
                 except SystemExit:
                     # _check_boundaries calls sys.exit(1) on failure
                     print(f"❌ Post-ingestion verification failed for {symbol}")
-                    raise typer.Exit(1)
+                    raise typer.Exit(1) from None
 
             print("✅ Post-ingestion verification completed successfully!")
 
         except Exception as e:
             print(f"❌ Ingestion failed: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
 
 # NOTE: we disable Typer's default --help so that we can perform validation even when

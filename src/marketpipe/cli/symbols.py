@@ -7,13 +7,7 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
 from marketpipe.ingestion.pipeline.symbol_pipeline import run_symbol_pipeline
 from marketpipe.ingestion.symbol_providers import list_providers
@@ -32,7 +26,7 @@ def validate_date_format(date_string: str, flag_name: str) -> date:
         console.print(
             f"❌ Invalid date format for {flag_name}: {date_string}. Use YYYY-MM-DD.", style="red"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 def validate_backfill_range(backfill_date: date, snapshot_date: date) -> None:
@@ -89,7 +83,7 @@ def check_diff_only_precondition(db_path: Path) -> None:
             console.print(
                 "Run without --diff-only first to create initial snapshot.", style="yellow"
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
         else:
             # Re-raise other database errors
             raise
@@ -299,4 +293,4 @@ def update(
 
     except Exception as e:
         console.print(f"❌ Pipeline failed: {e}", style="red")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e

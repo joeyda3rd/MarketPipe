@@ -15,7 +15,6 @@ IMPROVEMENTS OVER MOCK-BASED TESTS:
 from __future__ import annotations
 
 import os
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -23,19 +22,12 @@ import pytest
 
 from marketpipe.bootstrap import (
     BootstrapOrchestrator,
-    get_global_orchestrator,
-    is_bootstrapped,
     reset_bootstrap_state,
     set_global_orchestrator,
 )
-from marketpipe.bootstrap.interfaces import (
-    AlembicMigrationService,
-    EnvironmentProvider,
-    MarketPipeServiceRegistry,
-)
+from marketpipe.bootstrap.interfaces import AlembicMigrationService, EnvironmentProvider
 from tests.fakes.bootstrap import (
     FakeEnvironmentProvider,
-    FakeMigrationService,
     FakeServiceRegistry,
     create_fake_bootstrap_orchestrator,
     get_fake_services_from_orchestrator,
@@ -70,8 +62,8 @@ class TestBootstrapIntegrationWithRealDatabase:
         # Create orchestrator with real migration service + fake service registry
         orchestrator = BootstrapOrchestrator(
             migration_service=AlembicMigrationService(),  # REAL migrations!
-            service_registry=FakeServiceRegistry(),       # Fake for easy verification
-            environment_provider=env_provider
+            service_registry=FakeServiceRegistry(),  # Fake for easy verification
+            environment_provider=env_provider,
         )
 
         # Execute bootstrap
@@ -87,7 +79,7 @@ class TestBootstrapIntegrationWithRealDatabase:
 
         # Verify services were registered via fake registry
         fake_services = get_fake_services_from_orchestrator(orchestrator)
-        service_registry = fake_services['service_registry']
+        service_registry = fake_services["service_registry"]
         registered_services = service_registry.get_registered_services()
 
         assert "validation_service" in registered_services
@@ -107,7 +99,7 @@ class TestBootstrapIntegrationWithRealDatabase:
         orchestrator = BootstrapOrchestrator(
             migration_service=AlembicMigrationService(),
             service_registry=FakeServiceRegistry(),
-            environment_provider=env_provider
+            environment_provider=env_provider,
         )
 
         # First bootstrap
@@ -131,7 +123,7 @@ class TestBootstrapIntegrationWithRealDatabase:
 
         # Verify service registry was only called once
         fake_services = get_fake_services_from_orchestrator(orchestrator)
-        service_registry = fake_services['service_registry']
+        service_registry = fake_services["service_registry"]
         registered_services = service_registry.get_registered_services()
 
         # Should have exactly 4 services registered (not 8 from double registration)
@@ -154,7 +146,7 @@ class TestBootstrapIntegrationWithRealDatabase:
         orchestrator = BootstrapOrchestrator(
             migration_service=AlembicMigrationService(),
             service_registry=FakeServiceRegistry(),
-            environment_provider=env_provider
+            environment_provider=env_provider,
         )
 
         # Make the test directory read-only to cause migration failure
@@ -173,7 +165,7 @@ class TestBootstrapIntegrationWithRealDatabase:
 
             # No services should be registered after migration failure
             fake_services = get_fake_services_from_orchestrator(orchestrator)
-            service_registry = fake_services['service_registry']
+            service_registry = fake_services["service_registry"]
             assert len(service_registry.get_registered_services()) == 0
 
         finally:
@@ -194,7 +186,7 @@ class TestBootstrapIntegrationWithRealDatabase:
         orchestrator = BootstrapOrchestrator(
             migration_service=AlembicMigrationService(),
             service_registry=FakeServiceRegistry(),
-            environment_provider=env_provider
+            environment_provider=env_provider,
         )
 
         result = orchestrator.bootstrap()
@@ -221,9 +213,7 @@ class TestBootstrapServiceFailures:
 
         IMPROVEMENT: Easy error scenario testing with configurable fake services.
         """
-        orchestrator = create_fake_bootstrap_orchestrator(
-            failing_services=["validation_service"]
-        )
+        orchestrator = create_fake_bootstrap_orchestrator(failing_services=["validation_service"])
 
         result = orchestrator.bootstrap()
 
@@ -232,8 +222,8 @@ class TestBootstrapServiceFailures:
 
         # Verify migration succeeded but service registration failed
         fake_services = get_fake_services_from_orchestrator(orchestrator)
-        migration_service = fake_services['migration_service']
-        service_registry = fake_services['service_registry']
+        migration_service = fake_services["migration_service"]
+        service_registry = fake_services["service_registry"]
 
         # Migration should have been attempted
         assert len(migration_service.get_migrations_applied()) == 1
@@ -243,9 +233,7 @@ class TestBootstrapServiceFailures:
 
     def test_aggregation_service_failure(self):
         """Test bootstrap handles aggregation service registration failure."""
-        orchestrator = create_fake_bootstrap_orchestrator(
-            failing_services=["aggregation_service"]
-        )
+        orchestrator = create_fake_bootstrap_orchestrator(failing_services=["aggregation_service"])
 
         result = orchestrator.bootstrap()
 
@@ -254,9 +242,7 @@ class TestBootstrapServiceFailures:
 
     def test_monitoring_handlers_failure(self):
         """Test bootstrap handles monitoring handlers registration failure."""
-        orchestrator = create_fake_bootstrap_orchestrator(
-            failing_services=["monitoring_handlers"]
-        )
+        orchestrator = create_fake_bootstrap_orchestrator(failing_services=["monitoring_handlers"])
 
         result = orchestrator.bootstrap()
 
@@ -299,7 +285,7 @@ class TestBootstrapLegacyCompatibility:
             test_orchestrator = BootstrapOrchestrator(
                 migration_service=AlembicMigrationService(),
                 service_registry=FakeServiceRegistry(),
-                environment_provider=EnvironmentProvider()
+                environment_provider=EnvironmentProvider(),
             )
 
             # Inject it as global orchestrator
@@ -316,7 +302,7 @@ class TestBootstrapLegacyCompatibility:
 
             # Verify services were registered via fake registry
             fake_services = get_fake_services_from_orchestrator(test_orchestrator)
-            service_registry = fake_services['service_registry']
+            service_registry = fake_services["service_registry"]
             registered_services = service_registry.get_registered_services()
             assert len(registered_services) == 4
 
@@ -332,7 +318,7 @@ class TestBootstrapLegacyCompatibility:
             test_orchestrator = BootstrapOrchestrator(
                 migration_service=AlembicMigrationService(),
                 service_registry=FakeServiceRegistry(),
-                environment_provider=EnvironmentProvider()
+                environment_provider=EnvironmentProvider(),
             )
             set_global_orchestrator(test_orchestrator)
 
@@ -351,7 +337,7 @@ class TestBootstrapLegacyCompatibility:
 
             # Service registry should show services only registered once
             fake_services = get_fake_services_from_orchestrator(test_orchestrator)
-            service_registry = fake_services['service_registry']
+            service_registry = fake_services["service_registry"]
             assert len(service_registry.get_registered_services()) == 4
 
 
@@ -372,7 +358,7 @@ class TestBootstrapEnvironmentConfiguration:
             orchestrator = BootstrapOrchestrator(
                 migration_service=AlembicMigrationService(),
                 service_registry=FakeServiceRegistry(),
-                environment_provider=EnvironmentProvider()  # Real environment provider
+                environment_provider=EnvironmentProvider(),  # Real environment provider
             )
 
             result = orchestrator.bootstrap()
@@ -397,7 +383,7 @@ class TestBootstrapEnvironmentConfiguration:
                 orchestrator = BootstrapOrchestrator(
                     migration_service=AlembicMigrationService(),
                     service_registry=FakeServiceRegistry(),
-                    environment_provider=EnvironmentProvider()
+                    environment_provider=EnvironmentProvider(),
                 )
 
                 result = orchestrator.bootstrap()
@@ -412,6 +398,7 @@ class TestBootstrapEnvironmentConfiguration:
 
 
 # Comparison test showing the improvement
+
 
 class TestComparisonOldVsNewBootstrapTesting:
     """Side-by-side comparison showing integration test benefits."""
@@ -451,10 +438,8 @@ class TestComparisonOldVsNewBootstrapTesting:
 
         orchestrator = BootstrapOrchestrator(
             migration_service=AlembicMigrationService(),  # Real database operations
-            service_registry=FakeServiceRegistry(),       # Controlled service behavior
-            environment_provider=FakeEnvironmentProvider(
-                database_path=custom_db
-            )
+            service_registry=FakeServiceRegistry(),  # Controlled service behavior
+            environment_provider=FakeEnvironmentProvider(database_path=custom_db),
         )
 
         result = orchestrator.bootstrap()
@@ -466,7 +451,7 @@ class TestComparisonOldVsNewBootstrapTesting:
 
         # Can verify service interactions
         fake_services = get_fake_services_from_orchestrator(orchestrator)
-        service_registry = fake_services['service_registry']
+        service_registry = fake_services["service_registry"]
         registered_services = service_registry.get_registered_services()
         assert len(registered_services) == 4  # Real service count
 

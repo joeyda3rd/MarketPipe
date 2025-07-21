@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -11,10 +11,10 @@ class HttpResponse(Protocol):
     """Protocol for HTTP response objects."""
 
     status_code: int
-    headers: Dict[str, str]
+    headers: dict[str, str]
     text: str
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         """Parse response as JSON."""
         ...
 
@@ -31,9 +31,9 @@ class HttpClientProtocol(Protocol):
     def get(
         self,
         url: str,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        timeout: float | None = None,
     ) -> HttpResponse:
         """Make a synchronous GET request.
 
@@ -56,9 +56,9 @@ class AsyncHttpClientProtocol(Protocol):
     async def get(
         self,
         url: str,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        timeout: float | None = None,
     ) -> HttpResponse:
         """Make an asynchronous GET request.
 
@@ -76,6 +76,7 @@ class AsyncHttpClientProtocol(Protocol):
 
 # Adapter classes to make httpx compatible with the protocol
 
+
 class HttpxResponseAdapter:
     """Adapter to make httpx.Response compatible with HttpResponse protocol."""
 
@@ -87,14 +88,14 @@ class HttpxResponseAdapter:
         return self._response.status_code
 
     @property
-    def headers(self) -> Dict[str, str]:
+    def headers(self) -> dict[str, str]:
         return dict(self._response.headers)
 
     @property
     def text(self) -> str:
         return self._response.text
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         return self._response.json()
 
 
@@ -103,14 +104,15 @@ class HttpxClientAdapter:
 
     def __init__(self, httpx_client=None):
         import httpx
+
         self._client = httpx_client or httpx
 
     def get(
         self,
         url: str,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        timeout: float | None = None,
     ) -> HttpResponse:
         """Make GET request using httpx."""
         response = self._client.get(
@@ -127,14 +129,15 @@ class AsyncHttpxClientAdapter:
 
     def __init__(self, httpx_client=None):
         import httpx
+
         self._client = httpx_client or httpx
 
     async def get(
         self,
         url: str,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        timeout: float | None = None,
     ) -> HttpResponse:
         """Make async GET request using httpx."""
         response = await self._client.get(
@@ -147,6 +150,7 @@ class AsyncHttpxClientAdapter:
 
 
 # Default implementations
+
 
 def get_default_http_client() -> HttpClientProtocol:
     """Get default HTTP client implementation."""

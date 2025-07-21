@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, Type
 
 from .base import SymbolProviderBase
 
@@ -49,7 +48,7 @@ def get(name: str, **kwargs) -> SymbolProviderBase:
     try:
         cls = _REGISTRY[name]
     except KeyError:
-        raise ValueError(f"Unknown symbol provider '{name}'")
+        raise ValueError(f"Unknown symbol provider '{name}'") from None
     return cls(**kwargs)
 
 
@@ -63,7 +62,7 @@ def list_providers() -> list[str]:
 
 
 # Import providers to trigger registration
-from . import dummy, nasdaq_dl, polygon
+from . import dummy, nasdaq_dl, polygon  # noqa: E402
 
 __all__ = [
     "SymbolProviderBase",

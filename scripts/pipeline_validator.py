@@ -31,7 +31,7 @@ import traceback
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -66,11 +66,11 @@ class ValidationResult:
     command: str
     status: str  # PASS, FAIL, SKIP, ERROR
     duration: float
-    exit_code: Optional[int]
+    exit_code: int | None
     stdout: str
     stderr: str
-    error_message: Optional[str] = None
-    details: Dict[str, Any] = field(default_factory=dict)
+    error_message: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
 
@@ -86,9 +86,9 @@ class ValidationReport:
     skipped: int = 0
     errors: int = 0
     total_duration: float = 0.0
-    results: List[ValidationResult] = field(default_factory=list)
-    environment: Dict[str, Any] = field(default_factory=dict)
-    summary: Dict[str, Any] = field(default_factory=dict)
+    results: list[ValidationResult] = field(default_factory=list)
+    environment: dict[str, Any] = field(default_factory=dict)
+    summary: dict[str, Any] = field(default_factory=dict)
 
 
 class PipelineValidator:
@@ -98,8 +98,8 @@ class PipelineValidator:
         self,
         mode: str = "critical",
         output_dir: str = "./validation_output",
-        config_file: Optional[str] = None,
-        skip_tests: Optional[List[str]] = None,
+        config_file: str | None = None,
+        skip_tests: list[str] | None = None,
         verbose: bool = False,
         dry_run: bool = False,
     ):
@@ -190,7 +190,7 @@ class PipelineValidator:
         os.environ["ALPACA_KEY"] = "test_key_for_validation"
         os.environ["ALPACA_SECRET"] = "test_secret_for_validation"
 
-    def get_test_categories(self) -> Dict[str, List[str]]:
+    def get_test_categories(self) -> dict[str, list[str]]:
         """Define test categories and their associated tests."""
         categories = {
             "help": [
@@ -448,7 +448,7 @@ class PipelineValidator:
 
         return self.report
 
-    def _generate_summary(self) -> Dict[str, Any]:
+    def _generate_summary(self) -> dict[str, Any]:
         """Generate validation summary."""
         total = self.report.total_tests
         if total == 0:
@@ -638,8 +638,8 @@ class PipelineValidator:
 def main(
     mode: str = typer.Option("critical", help="Validation mode: full, quick, critical"),
     output_dir: str = typer.Option("./validation_output", help="Output directory"),
-    config_file: Optional[str] = typer.Option(None, help="Test configuration file"),
-    skip_tests: Optional[str] = typer.Option(None, help="Comma-separated test categories to skip"),
+    config_file: str | None = typer.Option(None, help="Test configuration file"),
+    skip_tests: str | None = typer.Option(None, help="Comma-separated test categories to skip"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
     dry_run: bool = typer.Option(False, help="Show what would be tested"),
     report_format: str = typer.Option("json", help="Report format: json, yaml, html"),
@@ -665,7 +665,7 @@ def main(
         validator.print_summary()
 
         # Save report
-        report_file = validator.save_report(report_format)
+        validator.save_report(report_format)
 
         # Exit with appropriate code
         if report.summary["overall_status"] == "CRITICAL":

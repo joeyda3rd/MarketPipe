@@ -65,9 +65,7 @@ def metrics(
                         await start_async_server(port=port, host="localhost")
 
                         # Start the human-friendly dashboard on port+1
-                        from marketpipe.cli.metrics_dashboard import (
-                            serve_metrics_dashboard,
-                        )
+                        from marketpipe.cli.metrics_dashboard import serve_metrics_dashboard
 
                         dashboard_task = asyncio.create_task(
                             serve_metrics_dashboard(
@@ -106,7 +104,7 @@ def metrics(
             except ValueError:
                 print(f"❌ Invalid timestamp format: {since}")
                 print("💡 Use format: 'YYYY-MM-DD HH:MM' or 'YYYY-MM-DD'")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
         if list_metrics:
             # List all available metrics
@@ -240,7 +238,7 @@ def metrics(
 
     except Exception as e:
         print(f"❌ Error querying metrics: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def providers():
@@ -260,7 +258,7 @@ def providers():
 
     except Exception as e:
         print(f"❌ Failed to list providers: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def migrate(
@@ -276,7 +274,7 @@ def migrate(
         typer.echo("✅ Migrations up-to-date")
     except Exception as e:
         typer.echo(f"❌ Migration failed: {e}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def _parse_time_window(window_str: str) -> int | None:

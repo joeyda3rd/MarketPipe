@@ -28,7 +28,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import typer
 import yaml
@@ -46,7 +46,7 @@ class TestResult:
     command: str
     status: str  # PASS, FAIL, SKIP, ERROR
     duration: float
-    exit_code: Optional[int]
+    exit_code: int | None
     stdout: str
     stderr: str
     error_message: str = ""
@@ -60,11 +60,11 @@ class ValidationReport:
     """Complete validation report."""
 
     start_time: datetime = field(default_factory=datetime.now)
-    end_time: Optional[datetime] = None
+    end_time: datetime | None = None
     mode: str = "critical"
-    results: List[TestResult] = field(default_factory=list)
-    test_environment: Dict[str, Any] = field(default_factory=dict)
-    summary: Dict[str, Any] = field(default_factory=dict)
+    results: list[TestResult] = field(default_factory=list)
+    test_environment: dict[str, Any] = field(default_factory=dict)
+    summary: dict[str, Any] = field(default_factory=dict)
 
     @property
     def total_duration(self) -> float:
@@ -187,7 +187,7 @@ class ComprehensivePipelineValidator:
             "mode": self.mode,
         }
 
-    def get_test_suite(self) -> Dict[str, List[Dict[str, Any]]]:
+    def get_test_suite(self) -> dict[str, list[dict[str, Any]]]:
         """Get test suite based on validation mode."""
 
         # Core tests that always run
@@ -381,7 +381,7 @@ class ComprehensivePipelineValidator:
         else:
             return core_tests
 
-    def run_command(self, test_config: Dict[str, Any]) -> TestResult:
+    def run_command(self, test_config: dict[str, Any]) -> TestResult:
         """Run a single test command and capture results."""
         test_name = test_config["name"]
         command = test_config["command"]
@@ -476,7 +476,7 @@ class ComprehensivePipelineValidator:
             )
 
     def _analyze_test_result(
-        self, result: subprocess.CompletedProcess, expect_failure: bool, test_config: Dict[str, Any]
+        self, result: subprocess.CompletedProcess, expect_failure: bool, test_config: dict[str, Any]
     ) -> str:
         """Analyze command result to determine test status."""
 
@@ -938,7 +938,7 @@ def main():
             report = validator.run_validation()
 
             # Save report
-            report_path = validator.save_report(format=report_format)
+            validator.save_report(format=report_format)
 
             # Cleanup if requested
             if cleanup and not dry_run:

@@ -113,10 +113,9 @@ def run_tests():
                 else:
                     print("✅ psycopg2-binary installed successfully")
 
-            from sqlalchemy import create_engine, text
-
             from alembic import command
             from alembic.config import Config
+            from sqlalchemy import create_engine, text
 
             postgres_url = os.environ["POSTGRES_TEST_URL"]
 

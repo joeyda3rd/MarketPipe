@@ -8,7 +8,6 @@ across multiple domain objects or provide stateless business operations.
 
 from __future__ import annotations
 
-from abc import ABC
 from collections.abc import Iterable
 from datetime import date, datetime
 from decimal import Decimal
@@ -18,7 +17,7 @@ from .entities import OHLCVBar
 from .value_objects import Price, Timestamp, Volume
 
 
-class DomainService(ABC):
+class DomainService:
     """Base class for domain services.
 
     Domain services are stateless and contain business logic that
