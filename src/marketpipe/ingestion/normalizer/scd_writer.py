@@ -47,7 +47,7 @@ def run_scd_update(
                 raise ValueError(f"Invalid snapshot_date type: {type(snapshot_date)}")
 
     except Exception as e:
-        raise ValueError(f"Failed to determine snapshot_date: {e}")
+        raise ValueError(f"Failed to determine snapshot_date: {e}") from e
 
     logger.info(f"Processing SCD-2 update for snapshot_date: {snapshot_date}")
 
@@ -66,7 +66,7 @@ def run_scd_update(
             return stats
 
     except Exception as e:
-        raise RuntimeError(f"Failed to read diff tables: {e}")
+        raise RuntimeError(f"Failed to read diff tables: {e}") from e
 
     # Step 1: Assign IDs to insert rows
     if insert_count > 0:
@@ -98,7 +98,7 @@ def run_scd_update(
             logger.info(f"Assigned IDs {max_id + 1} to {max_id + insert_count} for new inserts")
 
         except Exception as e:
-            raise RuntimeError(f"Failed to assign IDs to insert rows: {e}")
+            raise RuntimeError(f"Failed to assign IDs to insert rows: {e}") from e
 
         # Step 2: Prepare all data (existing + new) for single write operation
     close_date = snapshot_date - dt.timedelta(days=1) if update_count > 0 else None
@@ -181,7 +181,7 @@ def run_scd_update(
                 logger.info(f"[DRY RUN] Would close {closed_count} existing rows")
 
         except Exception as e:
-            raise RuntimeError(f"Failed to process existing rows: {e}")
+            raise RuntimeError(f"Failed to process existing rows: {e}") from e
     else:
         # No updates, just read existing data as-is
         try:
@@ -280,7 +280,7 @@ def run_scd_update(
             return stats
 
     except Exception as e:
-        raise RuntimeError(f"Failed to build new rows table: {e}")
+        raise RuntimeError(f"Failed to build new rows table: {e}") from e
 
     # Step 4: Write combined dataset (existing + new) to partitioned Parquet
     if len(all_data_to_write) > 0:
@@ -350,7 +350,7 @@ def run_scd_update(
             )
 
         except Exception as e:
-            raise RuntimeError(f"Failed to write Parquet dataset: {e}")
+            raise RuntimeError(f"Failed to write Parquet dataset: {e}") from e
 
     # Step 5: Optional - Update table statistics
     try:
@@ -450,11 +450,11 @@ def attach_symbols_master(db: duckdb.DuckDBPyConnection, data_dir: str) -> None:
             # Safely drop both table and view (one might not exist)
             try:
                 db.execute("DROP TABLE IF EXISTS symbols_master")
-            except:
+            except Exception:
                 pass
             try:
                 db.execute("DROP VIEW IF EXISTS symbols_master")
-            except:
+            except Exception:
                 pass
 
             db.execute(

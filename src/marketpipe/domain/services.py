@@ -8,7 +8,6 @@ across multiple domain objects or provide stateless business operations.
 
 from __future__ import annotations
 
-from abc import ABC
 from collections.abc import Iterable
 from datetime import date, datetime
 from decimal import Decimal

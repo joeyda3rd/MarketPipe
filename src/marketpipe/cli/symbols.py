@@ -7,13 +7,7 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
 from marketpipe.ingestion.pipeline.symbol_pipeline import run_symbol_pipeline
 from marketpipe.ingestion.symbol_providers import list_providers

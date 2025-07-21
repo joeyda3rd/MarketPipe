@@ -8,7 +8,6 @@ maintaining their identity.
 
 from __future__ import annotations
 
-from abc import ABC
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 

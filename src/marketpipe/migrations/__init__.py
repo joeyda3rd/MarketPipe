@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import sqlite3
 from pathlib import Path
-from typing import List
 
 logger = logging.getLogger(__name__)
 

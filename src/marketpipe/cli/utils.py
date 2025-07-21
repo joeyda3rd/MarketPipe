@@ -65,9 +65,7 @@ def metrics(
                         await start_async_server(port=port, host="localhost")
 
                         # Start the human-friendly dashboard on port+1
-                        from marketpipe.cli.metrics_dashboard import (
-                            serve_metrics_dashboard,
-                        )
+                        from marketpipe.cli.metrics_dashboard import serve_metrics_dashboard
 
                         dashboard_task = asyncio.create_task(
                             serve_metrics_dashboard(

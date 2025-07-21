@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import abc
-from abc import abstractmethod
 import logging
+from abc import abstractmethod
 from collections.abc import Iterable, Mapping
 from typing import Any, Callable
 
