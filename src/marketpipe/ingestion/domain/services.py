@@ -260,7 +260,7 @@ class IngestionDomainService(DomainService):
         try:
             config.output_path.mkdir(parents=True, exist_ok=True)
         except (OSError, PermissionError) as e:
-            raise ValueError(f"Cannot access output path {config.output_path}: {e}")
+            raise ValueError(f"Cannot access output path {config.output_path}: {e}") from e
 
         # Business rule: Reasonable worker limits
         if config.max_workers > 20:

@@ -59,4 +59,4 @@ def query(
 
     except Exception as e:
         print(f"❌ Query failed: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e

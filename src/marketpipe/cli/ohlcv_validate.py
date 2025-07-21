@@ -138,7 +138,7 @@ def _validate_impl(
                 print("📄 Check 'data/validation_reports/' for generated reports")
             except Exception as e:
                 print(f"❌ Validation failed: {e}")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from e
         else:
             # Show validation status and recent activity
             print("📊 Validation Status:")
@@ -166,7 +166,7 @@ def _validate_impl(
 
     except Exception as e:
         print(f"❌ Validation failed: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def validate_ohlcv(

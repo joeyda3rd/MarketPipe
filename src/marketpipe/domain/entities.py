@@ -30,7 +30,7 @@ class EntityId:
         return str(self.value)
 
 
-class Entity(ABC):
+class Entity:
     """Base class for all domain entities.
 
     Entities are objects that have identity and can change over time.

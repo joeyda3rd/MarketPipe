@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import abc
+from abc import abstractmethod
 import logging
 from collections.abc import Iterable, Mapping
 from typing import Any, Callable
@@ -101,10 +102,12 @@ class BaseApiClient(abc.ABC):
         """Extract pagination cursor/offset from response JSON."""
 
     # ---------- Low-level request ----------
+    @abstractmethod
     def _request(self, params: Mapping[str, str]) -> dict[str, Any]:
         """Blocking HTTP request with rate-limit, retry, and auth handling."""
         ...
 
+    @abstractmethod
     async def _async_request(self, params: Mapping[str, str]) -> dict[str, Any]:
         """Async HTTP request (same semantics as :meth:`_request`)."""
         ...

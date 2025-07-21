@@ -18,7 +18,7 @@ from .entities import OHLCVBar
 from .value_objects import Price, Timestamp, Volume
 
 
-class DomainService(ABC):
+class DomainService:
     """Base class for domain services.
 
     Domain services are stateless and contain business logic that
