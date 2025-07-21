@@ -101,13 +101,14 @@ class BaseApiClient(abc.ABC):
         """Extract pagination cursor/offset from response JSON."""
 
     # ---------- Low-level request ----------
+    @abc.abstractmethod
     def _request(self, params: Mapping[str, str]) -> dict[str, Any]:
         """Blocking HTTP request with rate-limit, retry, and auth handling."""
-        ...
 
+    @abc.abstractmethod
     async def _async_request(self, params: Mapping[str, str]) -> dict[str, Any]:
         """Async HTTP request (same semantics as :meth:`_request`)."""
-        ...
+        pass
 
     # ---------- Public batch fetch ----------
     def fetch_batch(

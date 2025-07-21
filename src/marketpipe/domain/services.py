@@ -8,7 +8,7 @@ across multiple domain objects or provide stateless business operations.
 
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from datetime import date, datetime
 from decimal import Decimal
@@ -25,7 +25,10 @@ class DomainService(ABC):
     doesn't naturally fit within entities or value objects.
     """
 
-    pass
+    @abstractmethod
+    def __init__(self):
+        """Initialize the domain service."""
+        pass
 
 
 class OHLCVCalculationService(DomainService):

@@ -130,10 +130,10 @@ class IngestionJobId:
     # ------------------------------------------------------------------
     # String / representation helpers
     # ------------------------------------------------------------------
-    def __str__(self) -> str:  # noqa: DunderStr
+    def __str__(self) -> str:  # noqa: D105
         return self._raw
 
-    def __repr__(self) -> str:  # noqa: DunderRepr
+    def __repr__(self) -> str:  # noqa: D105
         return f"IngestionJobId('{self._raw}')"
 
 

@@ -8,7 +8,7 @@ maintaining their identity.
 
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
@@ -37,7 +37,10 @@ class Entity(ABC):
     They are distinguished by their identity rather than their attributes.
     """
 
+    @abstractmethod
     def __init__(self, id: EntityId):
+        """Initialize the entity with an ID."""
+
         self._id = id
         self._version = 1
 
