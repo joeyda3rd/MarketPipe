@@ -45,9 +45,9 @@ class TestPostgresMigrations:
         sync_url = postgres_url.replace("+asyncpg", "")
 
         # Skip if psycopg2 is not available
-        try:
-            import psycopg2
-        except ImportError:
+        import importlib.util
+
+        if importlib.util.find_spec("psycopg2") is None:
             pytest.skip("psycopg2 not available for sync operations")
 
         engine = create_engine(sync_url)
@@ -68,9 +68,9 @@ class TestPostgresMigrations:
         sync_url = postgres_url.replace("+asyncpg", "")
 
         # Skip if psycopg2 is not available
-        try:
-            import psycopg2
-        except ImportError:
+        import importlib.util
+
+        if importlib.util.find_spec("psycopg2") is None:
             pytest.skip("psycopg2 not available for sync operations")
 
         engine = create_engine(sync_url)
@@ -164,9 +164,9 @@ class TestPostgresMigrations:
         sync_url = db_url.replace("+asyncpg", "")
 
         # Skip if psycopg2 is not available
-        try:
-            import psycopg2
-        except ImportError:
+        import importlib.util
+
+        if importlib.util.find_spec("psycopg2") is None:
             pytest.skip("psycopg2 not available for sync operations")
 
         engine = create_engine(sync_url)

@@ -41,7 +41,7 @@ def test_abstract_base_client_enforces_complete_implementation():
 @pytest.mark.config
 def test_client_config_validates_required_parameters():
     """Test that client config validates required parameters."""
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         ClientConfig(api_key=123, base_url=None)  # type: ignore
 
 
@@ -71,6 +71,11 @@ def test_base_client_supports_symbol_data_pagination():
             return False
 
         def _request(self, params):
+            result = pages[self.calls]
+            self.calls += 1
+            return result
+
+        async def _async_request(self, params):
             result = pages[self.calls]
             self.calls += 1
             return result

@@ -73,7 +73,7 @@ async def test_basic_endpoints():
                         )
                         if isinstance(data, dict) and len(data) < 10:  # Small response, show it
                             print(f"   📄 Data: {data}")
-                    except:
+                    except Exception:
                         print(f"   ✅ SUCCESS! (Non-JSON response: {response.text[:100]})")
                 else:
                     content = response.text[:150]

@@ -174,17 +174,17 @@ class DataQualityAnalyzer:
         issues = []
 
         for i, row in df.iterrows():
-            o, h, l, c = row["open"], row["high"], row["low"], row["close"]
+            o, h, low, c = row["open"], row["high"], row["low"], row["close"]
 
             # Check basic OHLC rules
             if h < max(o, c):
                 issues.append(f"Row {i}: High ({h}) < max(Open({o}), Close({c}))")
 
-            if l > min(o, c):
-                issues.append(f"Row {i}: Low ({l}) > min(Open({o}), Close({c}))")
+            if low > min(o, c):
+                issues.append(f"Row {i}: Low ({low}) > min(Open({o}), Close({c}))")
 
-            if h < l:
-                issues.append(f"Row {i}: High ({h}) < Low ({l})")
+            if h < low:
+                issues.append(f"Row {i}: High ({h}) < Low ({low})")
 
         return {
             "total_bars": len(df),

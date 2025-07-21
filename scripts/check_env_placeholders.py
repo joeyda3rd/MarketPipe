@@ -51,7 +51,7 @@ def extract_env_vars_from_settings() -> dict[str, list[str]]:
             fields = settings_class.model_fields
         else:
             fields = getattr(settings_class, "__fields__", {})
-        for field_name, field_info in fields.items():
+        for _field_name, field_info in fields.items():
             env_name = None
 
             # Check for alias (pydantic-settings style)

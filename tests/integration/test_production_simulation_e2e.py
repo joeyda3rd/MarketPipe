@@ -474,7 +474,7 @@ class TestProductionSimulationEndToEnd:
 
                 symbols = [f"{scenario['name'].upper()}{i:03d}" for i in range(scenario["symbols"])]
 
-                async def run_capacity_test():
+                async def run_capacity_test(scenario=scenario, symbols=symbols):
                     result = await simulator.simulate_production_ingestion_job(
                         job_id=f"capacity-{scenario['name']}",
                         symbols=symbols,

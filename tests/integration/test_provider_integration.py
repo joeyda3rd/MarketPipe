@@ -517,7 +517,7 @@ class TestProviderPerformanceIntegration:
         config = ClientConfig(api_key="test", base_url="https://api.test.com")
         auth = HeaderTokenAuth("key", "secret")
 
-        for i, http_client in enumerate(http_clients):
+        for _i, http_client in enumerate(http_clients):
             client = AlpacaClient(config=config, auth=auth, http_client=http_client)
             clients.append(client)
 
