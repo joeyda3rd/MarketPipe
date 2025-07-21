@@ -99,7 +99,7 @@ jobs:
           python -m marketpipe ingest-ohlcv --symbols AAPL --start 2023-01-01 --end 2023-01-01 --provider fake --feed-type iex --help
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         if: success()
         with:
           fail_ci_if_error: false
