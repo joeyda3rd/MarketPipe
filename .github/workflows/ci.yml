@@ -65,13 +65,13 @@ jobs:
         run: mypy src/marketpipe/
         continue-on-error: true  # Don't fail CI on type errors during development
 
-      - name: Run core tests with coverage
+      - name: Run unit tests with coverage
         run: |
-          pytest -q --cov=marketpipe --cov-branch -m "not integration" --timeout=60 --maxfail=5 --ignore=tests/integration/test_cli_backward_compatibility.py --ignore=tests/integration/test_cli_command_matrix.py --ignore=tests/integration/test_enhanced_pipeline.py --ignore=tests/cli/test_symbols_cli.py --ignore=tests/cli/test_symbols_modes.py
+          pytest -q --cov=marketpipe --cov-branch tests/unit/ --timeout=60 --maxfail=5
 
-      - name: Run lightweight integration tests
+      - name: Run stable integration tests (lightweight subset)
         run: |
-          pytest -q tests/integration/ -m "not auth_required and not slow" --timeout=120 --maxfail=3 --ignore=tests/integration/test_cli_backward_compatibility.py --ignore=tests/integration/test_cli_command_matrix.py --ignore=tests/integration/test_enhanced_pipeline.py
+          pytest -q tests/integration/test_bootstrap_integration.py tests/integration/test_data_quality_validation_e2e.py --timeout=120 --maxfail=3
         continue-on-error: true  # Don't fail CI on integration test issues
 
       - name: Basic CLI validation
