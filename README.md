@@ -17,6 +17,8 @@ See features and development notes below.
 ### Installation
 
 ```bash
+git clone https://github.com/joeyda3rd/marketpipe.git
+cd marketpipe
 pip install marketpipe
 ```
 
