@@ -10,109 +10,8 @@
 
 MarketPipe transforms how you collect, validate, and store financial market data. Built with modern Python patterns, it provides a robust, scalable foundation for financial data workflows with enterprise-grade observability and monitoring.
 
-## Features
+See features and development notes below.
 
-### **Modern Architecture**
-- **Domain-Driven Design** with enforced boundaries and clean separation of concerns
-- **Plugin-based providers** for easy integration with any market data source
-- **Async/sync dual APIs** for maximum flexibility
-- **Type-safe configuration** with comprehensive validation
-
-### **Data Providers**
-- **Alpaca Markets** - Real-time and historical market data
-- **IEX Cloud** - Professional-grade financial data
-- **Fake Provider** - Generate realistic test data for development
-- **Extensible Plugin System** - Add your own providers easily
-
-### **ETL Pipeline**
-- **Parallel ingestion** across multiple symbols and timeframes
-- **Schema validation** with business rule enforcement
-- **Incremental loading** with checkpoint/resume capability
-- **Data quality monitoring** with comprehensive error reporting
-- **Partitioned storage** in Parquet format for optimal performance
-
-### **Observability**
-- **Prometheus metrics** with multiprocess support
-- **Grafana dashboards** for real-time monitoring
-- **Structured logging** with configurable levels
-- **Performance tracking** and error alerting
-
-### **Deployment Ready**
-- **Docker Compose** stack with monitoring included
-- **Database migrations** with Alembic
-- **Health checks** and readiness probes
-- **Production-ready configuration**
-
-## Roadmap
-
-MarketPipe's development focuses exclusively on enhancing ETL capabilities within our Domain-Driven Design architecture for financial market data with enterprise-grade reliability.
-
-### Near-term (Next Releases)
-
-#### **Universe Builder/Manager**
-- CLI commands for managing symbol universes (domain models exist)
-- Import/export universe definitions
-- Universe validation and health checks
-- Programmatic universe management API
-
-#### **Enhanced Programmatic API**
-- Expanded Python API beyond basic `load_ohlcv()`
-- Better integration with Jupyter notebooks and research environments
-- Direct access to ingestion and validation services
-- Rich data access patterns for analysis workflows
-
-#### **Enhanced Data Loader**
-- Advanced filtering and aggregation capabilities
-- Multiple export formats (CSV, JSON, Arrow, etc.)
-- Custom query interface with complex predicates
-- Streaming data access for large datasets
-
-#### **Additional Data Providers**
-**Immediate targets (8 providers):** FRED (Economic Data), Binance (Crypto), Finnhub, Polygon, Tiingo, Twelve Data, plus enhanced IEX and Alpaca integrations
-
-**Extended ecosystem:** Alpha Vantage, CME DataMine, Coinbase, Quandl, Refinitiv, Yahoo Finance, Kraken, Tradier, and more
-
-**Community contributions:** See our [Contributing Guide](#contributing) for adding new data provider integrations
-
-### Medium-term (Later Releases)
-
-#### **Schema Registry**
-- Handle schema evolution from data providers
-- Version management for data structures
-- Backward compatibility tools
-- Automated migration assistance
-
-#### **Incremental ETL Engine**
-- Enhanced change detection and delta processing
-- Efficient backfill strategies
-- Checkpoint recovery improvements
-- Conflict resolution for overlapping data
-
-#### **Advanced Transform Engine**
-- Data normalization and standardization pipelines
-- Custom transformation rules and business logic
-- Cross-provider data harmonization
-- Real-time data transformation capabilities
-
-#### **ETL Observability Suite**
-- Data lineage tracking through the pipeline
-- Enhanced pipeline health monitoring
-- Data quality trend analysis
-- Performance optimization insights
-
-#### **Load Optimization**
-- Advanced partitioning strategies
-- Compression and storage format options
-- Multi-destination loading (multiple databases, cloud storage)
-- Parallel loading with automatic scaling
-
-#### **Data Catalog**
-- Metadata management for all ETL assets
-- Data discovery and documentation
-- Usage analytics and lineage visualization
-- Data governance and quality tracking
-
-=======
 ## Quick Start
 
 ### Installation
@@ -342,6 +241,110 @@ monitoring:
   enabled: true
   port: 8000
 ```
+
+## Features
+
+### **Modern Architecture**
+- **Domain-Driven Design** with enforced boundaries and clean separation of concerns
+- **Plugin-based providers** for easy integration with any market data source
+- **Async/sync dual APIs** for maximum flexibility
+- **Type-safe configuration** with comprehensive validation
+
+### **Data Providers**
+- **Alpaca Markets** - Real-time and historical market data
+- **IEX Cloud** - Professional-grade financial data
+- **Fake Provider** - Generate realistic test data for development
+- **Extensible Plugin System** - Add your own providers easily
+
+### **ETL Pipeline**
+- **Parallel ingestion** across multiple symbols and timeframes
+- **Schema validation** with business rule enforcement
+- **Incremental loading** with checkpoint/resume capability
+- **Data quality monitoring** with comprehensive error reporting
+- **Partitioned storage** in Parquet format for optimal performance
+
+### **Observability**
+- **Prometheus metrics** with multiprocess support
+- **Grafana dashboards** for real-time monitoring
+- **Structured logging** with configurable levels
+- **Performance tracking** and error alerting
+
+### **Deployment Ready**
+- **Docker Compose** stack with monitoring included
+- **Database migrations** with Alembic
+- **Health checks** and readiness probes
+- **Production-ready configuration**
+
+## Roadmap
+
+MarketPipe's development focuses exclusively on enhancing ETL capabilities within our Domain-Driven Design architecture for financial market data with enterprise-grade reliability.
+
+### Near-term (Next Releases)
+
+#### **Universe Builder/Manager**
+- CLI commands for managing symbol universes (domain models exist)
+- Import/export universe definitions
+- Universe validation and health checks
+- Programmatic universe management API
+
+#### **Enhanced Programmatic API**
+- Expanded Python API beyond basic `load_ohlcv()`
+- Better integration with Jupyter notebooks and research environments
+- Direct access to ingestion and validation services
+- Rich data access patterns for analysis workflows
+
+#### **Enhanced Data Loader**
+- Advanced filtering and aggregation capabilities
+- Multiple export formats (CSV, JSON, Arrow, etc.)
+- Custom query interface with complex predicates
+- Streaming data access for large datasets
+
+#### **Additional Data Providers**
+**Immediate targets (8 providers):** FRED (Economic Data), Binance (Crypto), Finnhub, Polygon, Tiingo, Twelve Data, plus enhanced IEX and Alpaca integrations
+
+**Extended ecosystem:** Alpha Vantage, CME DataMine, Coinbase, Quandl, Refinitiv, Yahoo Finance, Kraken, Tradier, and more
+
+**Community contributions:** See our [Contributing Guide](#contributing) for adding new data provider integrations
+
+### Medium-term (Later Releases)
+
+#### **Schema Registry**
+- Handle schema evolution from data providers
+- Version management for data structures
+- Backward compatibility tools
+- Automated migration assistance
+
+#### **Incremental ETL Engine**
+- Enhanced change detection and delta processing
+- Efficient backfill strategies
+- Checkpoint recovery improvements
+- Conflict resolution for overlapping data
+
+#### **Advanced Transform Engine**
+- Data normalization and standardization pipelines
+- Custom transformation rules and business logic
+- Cross-provider data harmonization
+- Real-time data transformation capabilities
+
+#### **ETL Observability Suite**
+- Data lineage tracking through the pipeline
+- Enhanced pipeline health monitoring
+- Data quality trend analysis
+- Performance optimization insights
+
+#### **Load Optimization**
+- Advanced partitioning strategies
+- Compression and storage format options
+- Multi-destination loading (multiple databases, cloud storage)
+- Parallel loading with automatic scaling
+
+#### **Data Catalog**
+- Metadata management for all ETL assets
+- Data discovery and documentation
+- Usage analytics and lineage visualization
+- Data governance and quality tracking
+
+=======
 
 ## Contributing
 
