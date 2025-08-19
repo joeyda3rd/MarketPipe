@@ -114,10 +114,19 @@ MarketPipe's development focuses exclusively on enhancing ETL capabilities withi
 
 ## Quick Start
 
-### Installation
+### Installation (End Users)
 
 ```bash
+# Recommended: in a fresh virtualenv (or use pipx)
+python -m venv .venv && source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+python -m pip install --upgrade pip
 pip install marketpipe
+
+# Optional extras (e.g., PostgreSQL support)
+# pip install "marketpipe[postgres]"
+
+# Verify install
+marketpipe --help
 ```
 
 ### Basic Usage
@@ -185,56 +194,65 @@ marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2025-01-01
 
 ## Development
 
-### Quick Setup
+### Quick Setup (From Source)
 
 ```bash
 git clone https://github.com/joeyda3rd/marketpipe.git
 cd marketpipe
-scripts/setup    # One-command development setup
+
+# Create a virtual environment (recommended)
+python -m venv .venv && source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+python -m pip install --upgrade pip
+
+# Install with dev tools for contributors
+pip install -e .[dev]
+
+# One-command dev setup
+scripts/setup.sh
 
 # Install pre-commit hooks (recommended)
-pip install pre-commit
 pre-commit install
 
-scripts/demo     # Run a quick demo
+# Run a quick demo
+scripts/demo.sh
 ```
 
 ### Development Commands
 
 ```bash
-scripts/format   # Format code
-scripts/lint     # Run linters
-scripts/test     # Run tests
-scripts/check    # Health check
+make fmt         # Format code (Black)
+make lint        # Lint (Ruff)
+make test        # Run tests (pytest)
+make check       # Format + lint + mypy + arch check
 ```
 
 ### Testing
 
 ```bash
 # Fast tests for development feedback (~3s)
-scripts/test-fast
+scripts/test-fast.sh
 
 # Pre-commit tests (ultra-fast, ~2s)
 scripts/pre-commit-tests
 
 # Full test suite with coverage
-scripts/test-full
+scripts/test-full.sh
 
 # Simulate CI environment locally
-scripts/test-ci
+scripts/test-ci.sh
 
-# Legacy make commands (still work)
-make test
-make test-all
+# Make targets
+make test         # fast default
+make test-all     # full suite
 ```
 
 ### Architecture Validation
 
-MarketPipe enforces Domain-Driven Design boundaries:
+MarketPipe enforces Domain-Driven Design boundaries (see `[tool.importlinter]` in `pyproject.toml`).
 
 ```bash
 # Check architecture compliance
-import-linter --config setup.cfg
+make arch-check
 ```
 
 ## Database Setup
