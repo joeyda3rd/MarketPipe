@@ -15,19 +15,28 @@ def query(
 ):
     """Run an ad-hoc query on aggregated data.
 
-    Available views: bars_5m, bars_15m, bars_1h, bars_1d
+    Available views: bars_5m, bars_15m, bars_1h, bars_4h, bars_1d
 
     Examples:
         marketpipe query "SELECT * FROM bars_5m WHERE symbol='AAPL' LIMIT 10"
         marketpipe query "SELECT symbol, COUNT(*) FROM bars_1d GROUP BY symbol" --csv
         marketpipe query "SELECT MAX(high), MIN(low) FROM bars_1h WHERE symbol='MSFT'"
+        marketpipe query "SELECT COUNT(*) FROM bars_4h WHERE symbol='GOOGL'"
     """
     from marketpipe.bootstrap import bootstrap
 
     bootstrap()
 
     try:
+        import os as _os
+
         from marketpipe.aggregation.infrastructure.duckdb_views import query as run_query
+        from marketpipe.aggregation.infrastructure.duckdb_views import set_agg_root as _set_agg_root
+
+        # Allow overriding aggregation root via environment variable for end-to-end testing
+        _agg_root_env = _os.environ.get("MARKETPIPE_AGG_ROOT")
+        if _agg_root_env:
+            _set_agg_root(_agg_root_env)
 
         # Execute the query
         df = run_query(sql)
