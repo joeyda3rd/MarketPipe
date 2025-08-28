@@ -16,7 +16,7 @@ repos:
 
   # Linting
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.2.2
+    rev: v0.4.8
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
@@ -55,15 +55,18 @@ repos:
           - types-requests
         args: [--ignore-missing-imports, --show-error-codes]
         files: ^src/
-        # Only run on src/ to keep it fast
+        stages: [pre-push]
+        # Only run on src/ and only on pre-push for speed
 
   # Security checks
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.7
     hooks:
       - id: bandit
-        args: [-r, src/, -f, txt, --skip, B101,B601]
+        args: [-r, src/, -f, txt, -s, B101]
+        pass_filenames: false
         exclude: ^tests/
+        stages: [pre-push]
 
   # Local hooks (project-specific)
   - repo: local

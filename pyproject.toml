@@ -129,8 +129,37 @@ dev-tools = [
 
 # Complete development environment - includes everything
 dev = [
-    # Include all other dependency groups
-    "marketpipe[test,integration,performance,postgres,quality,dev-tools]",
+    # Testing
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=5.0.0",
+    "pytest-mock>=3.11.0",
+    "pytest-timeout>=2.0.0",
+    "pytest-xdist>=3.0.0",
+    "coverage>=7.5.0",
+    "respx>=0.20.0",
+
+    # Integration & performance
+    "psutil>=5.8.0",
+    "memory-profiler>=0.60.0",
+
+    # PostgreSQL support
+    "asyncpg>=0.28.0",
+    "psycopg2-binary>=2.9.0",
+
+    # Code quality
+    "black>=23.0.0",
+    "mypy>=1.5.0",
+    "ruff>=0.1.0",
+    "pre-commit>=3.5.0",
+    "isort>=5.12.0",
+    "bandit>=1.7.0",
+    "pip-audit>=2.6.0",
+    "safety>=2.3.0",
+
+    # Dev tools
+    "import-linter>=2.0.0",
+    "vulture>=2.14",
 ]
 
 [project.scripts]
@@ -191,7 +220,6 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
     "I",     # disable isort in ruff - handled by isort tool instead
     "UP007", # Use `X | Y` for type annotations (conflicts with Python 3.9 compatibility)
-    "UP045", # Use `X | None` for type annotations (conflicts with Python 3.9 compatibility)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -293,12 +321,10 @@ markers = [
 asyncio_mode = "auto"
 timeout = 60
 
-[tool.importlinter.contracts.domain_forbidden_infrastructure]
+[[tool.importlinter.contracts]]
 name = "Domain layer must not import infrastructure"
 type = "forbidden"
-source_modules = [
-    "marketpipe.domain"
-]
+source_modules = ["marketpipe.domain"]
 forbidden_modules = [
     "marketpipe.infrastructure",
     "prometheus_client",
@@ -310,12 +336,10 @@ forbidden_modules = [
     "pyarrow",
 ]
 
-[tool.importlinter.contracts.domain_forbidden_application]
+[[tool.importlinter.contracts]]
 name = "Domain layer must not import application layer"
 type = "forbidden"
-source_modules = [
-    "marketpipe.domain"
-]
+source_modules = ["marketpipe.domain"]
 forbidden_modules = [
     "marketpipe.ingestion.application",
     "marketpipe.validation.application",
