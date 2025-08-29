@@ -31,8 +31,8 @@ def _get_db_path() -> Optional[str]:
     return None
 
 
-@jobs_app.command()
-def list(
+@jobs_app.command(name="list")
+def list_jobs(
     state: Optional[str] = typer.Option(
         None,
         "--state",
@@ -64,7 +64,7 @@ def list(
 
             # Build query based on filters
             query = "SELECT * FROM ingestion_jobs WHERE 1=1"
-            params = []
+            params: list[object] = []
 
             if state:
                 query += " AND state = ?"

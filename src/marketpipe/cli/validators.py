@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 __all__ = [
     "cli_error",

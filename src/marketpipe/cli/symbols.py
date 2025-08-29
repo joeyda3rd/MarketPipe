@@ -69,7 +69,7 @@ def check_diff_only_precondition(db_path: Path) -> None:
         with duckdb.connect(str(db_path)) as conn:
             # Check if symbols_snapshot table exists and has data
             result = conn.execute("SELECT COUNT(*) FROM symbols_snapshot").fetchone()
-            if result[0] == 0:
+            if not result or result[0] == 0:
                 console.print(
                     "❌ --diff-only requires existing symbols_snapshot table with data.",
                     style="red",
@@ -181,6 +181,8 @@ def update(
         db_path = Path(os.getenv("MP_DB", "data/db/warehouse.duckdb"))
     if data_dir is None:
         data_dir = Path(os.getenv("MP_DATA_DIR", "./data"))
+
+    # No provider credential checks here; failures are handled inside the pipeline
 
     # Handle --execute precedence over --dry-run
     show_precedence_preview = False

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 import typer
 
@@ -12,9 +13,9 @@ from marketpipe.validation.infrastructure.repositories import CsvReportRepositor
 
 
 def _validate_impl(
-    job_id: str = None,
+    job_id: Optional[str] = None,
     list_reports: bool = False,
-    show: Path = None,
+    show: Optional[Path] = None,
 ):
     """Implementation of the validate functionality."""
     from marketpipe.bootstrap import bootstrap
@@ -40,7 +41,7 @@ def _validate_impl(
                 return
 
             # Group by job_id
-            jobs = {}
+            jobs: dict[str, list[Path]] = {}
             for report in reports:
                 job_id_part = report.stem.split("_")[0]  # Extract job_id prefix
                 if job_id_part not in jobs:
@@ -170,9 +171,9 @@ def _validate_impl(
 
 
 def validate_ohlcv(
-    job_id: str = typer.Option(None, "--job-id", help="Re-run validation for job"),
+    job_id: Optional[str] = typer.Option(None, "--job-id", help="Re-run validation for job"),
     list_reports: bool = typer.Option(False, "--list", help="List available reports"),
-    show: Path = typer.Option(None, "--show", help="Show a report CSV"),
+    show: Optional[Path] = typer.Option(None, "--show", help="Show a report CSV"),
     help_flag: bool = typer.Option(
         False,
         "--help",
@@ -203,9 +204,9 @@ Options:
 
 
 def validate_ohlcv_convenience(
-    job_id: str = typer.Option(None, "--job-id", help="Re-run validation for job"),
+    job_id: Optional[str] = typer.Option(None, "--job-id", help="Re-run validation for job"),
     list_reports: bool = typer.Option(False, "--list", help="List available reports"),
-    show: Path = typer.Option(None, "--show", help="Show a report CSV"),
+    show: Optional[Path] = typer.Option(None, "--show", help="Show a report CSV"),
     help_flag: bool = typer.Option(
         False,
         "--help",
@@ -236,9 +237,9 @@ Options:
 
 
 def validate_deprecated(
-    job_id: str = typer.Option(None, "--job-id", help="Re-run validation for job"),
+    job_id: Optional[str] = typer.Option(None, "--job-id", help="Re-run validation for job"),
     list_reports: bool = typer.Option(False, "--list", help="List available reports"),
-    show: Path = typer.Option(None, "--show", help="Show a report CSV"),
+    show: Optional[Path] = typer.Option(None, "--show", help="Show a report CSV"),
 ):
     """[DEPRECATED] Use 'validate-ohlcv' or 'ohlcv validate' instead."""
     print("⚠️  Warning: 'validate' is deprecated. Use 'validate-ohlcv' or 'ohlcv validate' instead.")

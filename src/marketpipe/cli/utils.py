@@ -17,15 +17,19 @@ from marketpipe.metrics_server import start_async_server, stop_async_server
 
 
 def metrics(
-    port: int = typer.Option(None, "--port", "-p", help="Port to run Prometheus metrics server"),
+    port: Optional[int] = typer.Option(
+        None, "--port", "-p", help="Port to run Prometheus metrics server"
+    ),
     legacy_metrics: bool = typer.Option(
         False, "--legacy-metrics", help="Use legacy blocking metrics server"
     ),
-    metric: str = typer.Option(None, "--metric", "-m", help="Show specific metric history"),
-    since: str = typer.Option(
+    metric: Optional[str] = typer.Option(
+        None, "--metric", "-m", help="Show specific metric history"
+    ),
+    since: Optional[str] = typer.Option(
         None, "--since", help="Show metrics since timestamp (e.g., '2024-01-01 10:00')"
     ),
-    avg: str = typer.Option(
+    avg: Optional[str] = typer.Option(
         None, "--avg", help="Show average metrics over window (e.g., '1h', '1d')"
     ),
     plot: bool = typer.Option(False, "--plot", help="Show ASCII sparkline plots"),
@@ -94,7 +98,7 @@ def metrics(
                     print("📊 Async metrics server stopped")
             return
 
-        # Setup metrics repository
+        # Setup metrics repository (only reached when port is None)
         metrics_repo = SqliteMetricsRepository(os.getenv("METRICS_DB_PATH", "data/metrics.db"))
 
         # Parse since timestamp if provided
@@ -130,31 +134,14 @@ def metrics(
                 print(f"❌ Invalid time window: {avg}")
                 print("💡 Use format: '1h', '30m', '1d', etc.")
                 raise typer.Exit(1)
+            window_minutes = int(window_seconds // 60)
 
             if metric:
                 # Show average for specific metric
-                averages = asyncio.run(
-                    metrics_repo.get_average_metrics(metric, window_seconds, since_ts)
+                average_value = asyncio.run(
+                    metrics_repo.get_average_metrics(metric, window_minutes=window_minutes)
                 )
-                if not averages:
-                    print(f"📊 No data found for metric: {metric}")
-                    return
-
-                print(f"📊 Average {metric} (over {avg} windows):")
-                print("=" * 50)
-
-                if plot:
-                    values = [p.value for p in averages]
-                    sparkline = _create_sparkline(values)
-                    print(f"Sparkline: {sparkline}")
-                    print()
-
-                for point in averages[-20:]:  # Last 20 averages
-                    timestamp_str = point.timestamp.strftime("%Y-%m-%d %H:%M")
-                    print(f"  {timestamp_str}: {point.value:.2f}")
-
-                if len(averages) > 20:
-                    print(f"... and {len(averages) - 20} earlier averages")
+                print(f"📊 Average {metric} over {avg}: {average_value:.2f}")
             else:
                 # Show averages for all metrics
                 metrics_list = asyncio.run(metrics_repo.list_metric_names())
@@ -162,13 +149,10 @@ def metrics(
                 print("=" * 50)
 
                 for metric_name in sorted(metrics_list)[:10]:
-                    averages = asyncio.run(
-                        metrics_repo.get_average_metrics(metric_name, window_seconds, since_ts)
+                    average_value = asyncio.run(
+                        metrics_repo.get_average_metrics(metric_name, window_minutes=window_minutes)
                     )
-                    if averages:
-                        latest_avg = averages[-1]
-                        timestamp_str = latest_avg.timestamp.strftime("%Y-%m-%d %H:%M")
-                        print(f"{metric_name:30s}: {latest_avg.value:>8.1f} ({timestamp_str})")
+                    print(f"{metric_name:30s}: {average_value:>8.2f}")
 
                 if len(metrics_list) > 10:
                     print(f"... and {len(metrics_list) - 10} more metrics")
