@@ -133,9 +133,14 @@ class IngestionVerificationService:
 
             if not passed:
                 # Generate error message with provider suggestions
-                error_message = ProviderFeatureMatrix.get_suggestion_message(
-                    provider, actual_start, actual_end, requested_start, requested_end
-                )
+                if actual_start is not None and actual_end is not None:
+                    error_message = ProviderFeatureMatrix.get_suggestion_message(
+                        provider, actual_start, actual_end, requested_start, requested_end
+                    )
+                else:
+                    error_message = (
+                        "Insufficient data to verify boundaries; try a different provider or range."
+                    )
                 suggested_providers = ProviderFeatureMatrix.suggest_alternatives(
                     provider, requested_start, requested_end
                 )

@@ -3,16 +3,24 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Protocol, runtime_checkable
+from typing import Any, Optional, Protocol, cast, runtime_checkable
 
 
 @runtime_checkable
 class HttpResponse(Protocol):
     """Protocol for HTTP response objects."""
 
-    status_code: int
-    headers: dict[str, str]
-    text: str
+    @property
+    def status_code(self) -> int:  # read-only
+        ...
+
+    @property
+    def headers(self) -> dict[str, str]:  # read-only
+        ...
+
+    @property
+    def text(self) -> str:  # read-only
+        ...
 
     def json(self) -> dict[str, Any]:
         """Parse response as JSON."""
@@ -85,18 +93,19 @@ class HttpxResponseAdapter:
 
     @property
     def status_code(self) -> int:
-        return self._response.status_code
+        return int(self._response.status_code)
 
     @property
     def headers(self) -> dict[str, str]:
-        return dict(self._response.headers)
+        # Ensure keys/values are strings for type safety
+        return {str(k): str(v) for k, v in dict(self._response.headers).items()}
 
     @property
     def text(self) -> str:
-        return self._response.text
+        return str(self._response.text)
 
     def json(self) -> dict[str, Any]:
-        return self._response.json()
+        return cast(dict[str, Any], self._response.json())
 
 
 class HttpxClientAdapter:

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Union
+from typing import Union, cast
 
 from marketpipe.domain.entities import OHLCVBar
 
@@ -31,7 +31,7 @@ class ParquetDataStorageAdapter(IDataStorage):
             raise ValueError("Cannot store empty list of bars")
 
         # Use the engine's store_bars method which properly handles multi-day data
-        return await self._engine.store_bars(bars, config)
+        return cast(IngestionPartition, await self._engine.store_bars(bars, config))
 
 
 # Use the adapter as ParquetDataStorage for backward compatibility

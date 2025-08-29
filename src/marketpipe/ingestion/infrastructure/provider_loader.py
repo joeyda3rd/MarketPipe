@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from marketpipe.domain.market_data import IMarketDataProvider
 
@@ -45,7 +45,7 @@ def build_provider(config: dict[str, Any]) -> IMarketDataProvider:
     # Try to use from_config class method if available
     if hasattr(provider_cls, "from_config"):
         logger.debug(f"Creating {provider_name} provider using from_config method")
-        return provider_cls.from_config(config)
+        return cast(IMarketDataProvider, provider_cls.from_config(config))
 
     # Fallback to direct instantiation with config as kwargs
     logger.debug(f"Creating {provider_name} provider using direct instantiation")

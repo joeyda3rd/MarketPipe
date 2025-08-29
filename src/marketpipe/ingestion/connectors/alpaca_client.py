@@ -5,7 +5,7 @@ import datetime as dt
 import random
 import time
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import httpx
 
@@ -63,8 +63,9 @@ class AlpacaClient(BaseApiClient):
                 headers=headers,
                 timeout=self.config.timeout,
             )
-            if not self.should_retry(r.status_code, r.json()):
-                return r.json()
+            parsed = cast(dict[str, Any], r.json())
+            if not self.should_retry(r.status_code, parsed):
+                return parsed
 
             retries += 1
             if retries > self.config.max_retries:
@@ -90,8 +91,9 @@ class AlpacaClient(BaseApiClient):
                     params={k: v for k, v in params.items() if k != "symbol"},
                     headers=headers,
                 )
-                if not self.should_retry(r.status_code, r.json()):
-                    return r.json()
+                parsed = cast(dict[str, Any], r.json())
+                if not self.should_retry(r.status_code, parsed):
+                    return parsed
 
                 retries += 1
                 if retries > self.config.max_retries:

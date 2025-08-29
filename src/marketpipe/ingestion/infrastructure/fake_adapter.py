@@ -6,7 +6,7 @@ from __future__ import annotations
 import random
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Any, Optional
 
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import (
@@ -33,7 +33,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         base_price: float = 100.0,
         volatility: float = 0.02,
         fail_probability: float = 0.0,
-        supported_symbols: list[str] = None,
+        supported_symbols: Optional[list[str]] = None,
     ):
         self._base_price = base_price
         self._volatility = volatility

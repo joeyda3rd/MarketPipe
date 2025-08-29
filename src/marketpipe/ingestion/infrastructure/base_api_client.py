@@ -8,7 +8,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any, Callable, Optional, Union
 
 from .auth import AuthStrategy
-from .http_client_protocol import HttpClientProtocol
+from .http_client_protocol import AsyncHttpClientProtocol, HttpClientProtocol
 from .models import ClientConfig
 from .rate_limit import RateLimiter
 
@@ -31,7 +31,7 @@ class BaseApiClient(abc.ABC):
         state_backend: Optional[Any] = None,
         logger: Optional[logging.Logger] = None,
         http_client: Optional[HttpClientProtocol] = None,
-        async_http_client: Optional[HttpClientProtocol] = None,
+        async_http_client: Optional[AsyncHttpClientProtocol] = None,
     ) -> None:
         self.config = config
         self.auth = auth

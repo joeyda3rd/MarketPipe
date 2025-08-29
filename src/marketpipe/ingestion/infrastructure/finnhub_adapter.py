@@ -132,8 +132,12 @@ class FinnhubMarketDataAdapter(IMarketDataProvider):
 
             response_data = await self._make_request(url, params)
 
+            from typing import cast
+
+            rows = cast(list[dict[str, Any]], response_data)
+
             symbols = []
-            for stock_info in response_data:
+            for stock_info in rows:
                 if "symbol" in stock_info:
                     symbols.append(Symbol.from_string(stock_info["symbol"]))
 
@@ -235,7 +239,9 @@ class FinnhubMarketDataAdapter(IMarketDataProvider):
                         response.raise_for_status()
 
                     # Parse JSON response
-                    data = response.json()
+                    from typing import cast
+
+                    data = cast(dict[str, Any], response.json())
                     return data
 
             except httpx.TimeoutException:

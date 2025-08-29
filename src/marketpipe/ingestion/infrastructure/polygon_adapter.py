@@ -269,7 +269,9 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                         response.raise_for_status()
 
                     # Parse JSON response
-                    data = response.json()
+                    from typing import cast
+
+                    data = cast(dict[str, Any], response.json())
 
                     # Check API status
                     if data.get("status") == "ERROR":

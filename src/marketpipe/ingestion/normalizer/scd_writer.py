@@ -53,9 +53,12 @@ def run_scd_update(
 
     # Check if diff tables exist and get counts
     try:
-        insert_count = db.sql("SELECT COUNT(*) FROM diff_insert").fetchone()[0]
-        update_count = db.sql("SELECT COUNT(*) FROM diff_update").fetchone()[0]
-        unchanged_count = db.sql("SELECT COUNT(*) FROM diff_unchanged").fetchone()[0]
+        tup = db.sql("SELECT COUNT(*) FROM diff_insert").fetchone()
+        insert_count = int(tup[0]) if tup and tup[0] is not None else 0
+        tup = db.sql("SELECT COUNT(*) FROM diff_update").fetchone()
+        update_count = int(tup[0]) if tup and tup[0] is not None else 0
+        tup = db.sql("SELECT COUNT(*) FROM diff_unchanged").fetchone()
+        unchanged_count = int(tup[0]) if tup and tup[0] is not None else 0
 
         logger.info(
             f"Diff summary - Insert: {insert_count}, Update: {update_count}, Unchanged: {unchanged_count}"
@@ -123,14 +126,15 @@ def run_scd_update(
                 ).arrow()
 
                 # Count rows that were closed
-                closed_count = db.execute(
+                tup = db.execute(
                     """
                     SELECT COUNT(*)
                     FROM symbols_master
                     WHERE id IN (SELECT id FROM diff_update)
                       AND valid_to IS NULL
                 """
-                ).fetchone()[0]
+                ).fetchone()
+                closed_count = int(tup[0]) if tup and tup[0] is not None else 0
 
                 stats["rows_closed"] = closed_count
                 logger.info(f"Will close {closed_count} existing rows with valid_to = {close_date}")
@@ -169,14 +173,15 @@ def run_scd_update(
                     all_data_to_write.append(existing_df)
             else:
                 # Dry run - just count what would be closed
-                closed_count = db.execute(
+                tup = db.execute(
                     """
                     SELECT COUNT(*)
                     FROM symbols_master
                     WHERE id IN (SELECT id FROM diff_update)
                       AND valid_to IS NULL
                 """
-                ).fetchone()[0]
+                ).fetchone()
+                closed_count = int(tup[0]) if tup and tup[0] is not None else 0
                 stats["rows_closed"] = closed_count
                 logger.info(f"[DRY RUN] Would close {closed_count} existing rows")
 
