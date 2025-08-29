@@ -26,6 +26,11 @@ class EntityId:
         """Generate a new unique entity ID."""
         return cls(uuid4())
 
+    @classmethod
+    def from_string(cls, id_str: str) -> EntityId:
+        """Create an EntityId from its string representation."""
+        return cls(UUID(id_str))
+
     def __str__(self) -> str:
         return str(self.value)
 

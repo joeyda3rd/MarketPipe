@@ -9,7 +9,7 @@ bounded contexts and support event-driven architecture patterns.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from typing import Any, Callable, Optional, Protocol
 from uuid import UUID, uuid4
@@ -61,23 +61,9 @@ class DomainEvent(ABC):
         """Identifier of the aggregate that generated this event."""
         pass
 
-    @property
-    @abstractmethod
-    def event_id(self) -> UUID:
-        """Unique identifier for this event instance."""
-        pass
-
-    @property
-    @abstractmethod
-    def occurred_at(self) -> datetime:
-        """Timestamp when the event occurred."""
-        pass
-
-    @property
-    @abstractmethod
-    def version(self) -> int:
-        """Event schema version."""
-        pass
+    # Note: Concrete event classes typically define fields for event_id, occurred_at,
+    # and version via dataclass declarations. We intentionally avoid declaring these
+    # as abstract properties here to permit simple dataclass-based subclasses.
 
     @abstractmethod
     def _get_event_data(self) -> dict[str, Any]:
@@ -107,16 +93,9 @@ class BarCollectionStarted(DomainEvent):
 
     symbol: Symbol
     trading_date: date
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -141,16 +120,9 @@ class BarCollectionCompleted(DomainEvent):
     trading_date: date
     bar_count: int
     has_gaps: bool = False
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -178,16 +150,9 @@ class ValidationFailed(DomainEvent):
     error_message: str
     rule_id: Optional[str] = None
     severity: str = "error"
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -215,16 +180,9 @@ class IngestionJobStarted(DomainEvent):
     job_id: str
     symbol: Symbol
     trading_date: date
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -253,16 +211,9 @@ class IngestionJobCompleted(DomainEvent):
     success: bool
     error_message: Optional[str] = None
     duration_seconds: Optional[float] = None
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -293,16 +244,9 @@ class MarketDataReceived(DomainEvent):
     timestamp: Timestamp
     record_count: int
     data_feed: str
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -334,16 +278,9 @@ class DataStored(DomainEvent):
     file_size_bytes: int
     storage_format: str = "parquet"
     compression: str = "snappy"
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -374,16 +311,9 @@ class RateLimitExceeded(DomainEvent):
     current_usage: int
     limit_value: int
     reset_time: datetime
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -409,16 +339,9 @@ class SymbolActivated(DomainEvent):
 
     universe_id: str
     symbol: Symbol
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -441,16 +364,9 @@ class SymbolDeactivated(DomainEvent):
 
     universe_id: str
     symbol: Symbol
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -474,15 +390,9 @@ class BackfillJobCompleted(DomainEvent):
     symbol: Symbol
     trading_date: date
     duration_seconds: float
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:  # noqa: D401
@@ -507,15 +417,9 @@ class BackfillJobFailed(DomainEvent):
     symbol: Symbol
     trading_date: date
     error_message: str
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:  # noqa: D401
@@ -540,15 +444,9 @@ class DataPruned(DomainEvent):
     data_type: str  # "parquet", "sqlite", etc.
     amount: int  # bytes for files, rows for database records
     cutoff: date  # cutoff date used for pruning
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
