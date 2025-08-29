@@ -7,6 +7,7 @@ import os
 
 # Import legacy functions from the original bootstrap module
 import sys
+from typing import Any, Optional
 
 # Export main interfaces
 from .interfaces import (  # Concrete implementations
@@ -23,19 +24,47 @@ from .interfaces import (  # Concrete implementations
 from .orchestrator import BootstrapOrchestrator, get_global_orchestrator, set_global_orchestrator
 
 sys.path.insert(0, os.path.dirname(__file__))
+
+
+class _NullEventBus:
+    """No-op event bus used when legacy bus is unavailable.
+
+    Provides subscribe() and publish() to satisfy callers and type-checker.
+    """
+
+    def subscribe(self, *_a: Any, **_k: Any) -> None:  # pragma: no cover - no-op
+        return
+
+    def publish(self, *_a: Any, **_k: Any) -> None:  # pragma: no cover - no-op
+        return
+
+
+def _wrap_get_event_bus(func: Optional[Any]) -> Any:
+    def _get() -> Any:
+        try:
+            bus = func() if callable(func) else None
+        except Exception:
+            bus = None
+        return bus if bus is not None else _NullEventBus()
+
+    return _get
+
+
 try:
     # Import bootstrap.py as a module, not the package
     import importlib.util
 
     bootstrap_module_path = os.path.join(os.path.dirname(__file__), "..", "bootstrap.py")
     spec = importlib.util.spec_from_file_location("legacy_bootstrap", bootstrap_module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError("Could not load legacy bootstrap module")
     legacy_bootstrap = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(legacy_bootstrap)
     apply_pending_alembic = legacy_bootstrap.apply_pending_alembic
     reset_bootstrap_state = legacy_bootstrap.reset_bootstrap_state
     is_bootstrapped = legacy_bootstrap.is_bootstrapped
     bootstrap = legacy_bootstrap.bootstrap
-    get_event_bus = getattr(legacy_bootstrap, "get_event_bus", lambda: None)
+    get_event_bus = _wrap_get_event_bus(getattr(legacy_bootstrap, "get_event_bus", None))
 except Exception:
     # Fallback - define a simple version
     def apply_pending_alembic(db_path):
@@ -72,9 +101,9 @@ except Exception:
         global _bootstrapped
         _bootstrapped = True
 
-    def get_event_bus():
-        """Simple fallback get_event_bus implementation."""
-        return None
+    # Provide a fallback callable without redefining the symbol
+    def get_event_bus() -> Any:
+        return _NullEventBus()
 
 
 __all__ = [

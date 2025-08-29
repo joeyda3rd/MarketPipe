@@ -16,7 +16,7 @@ class BootstrapResult:
     success: bool
     was_already_bootstrapped: bool = False
     error_message: Optional[str] = None
-    services_registered: list[str] = None
+    services_registered: Optional[list[str]] = None
 
     def __post_init__(self):
         if self.services_registered is None:

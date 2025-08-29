@@ -6,11 +6,12 @@ import datetime as dt
 import logging
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import duckdb
 import pandas as pd
 
+pl: Any
 try:
     import polars as pl
 
@@ -211,7 +212,7 @@ def _load_symbol_data(
         return pd.DataFrame()
 
 
-def _to_ns(ts_like: Union[str, dt].datetime) -> int:
+def _to_ns(ts_like: Union[str, dt.datetime]) -> int:
     """Convert timestamp-like input to nanoseconds since epoch."""
     ts: pd.Timestamp
     if isinstance(ts_like, str):

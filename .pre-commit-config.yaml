@@ -83,7 +83,7 @@ repos:
       # Configuration validation
       - id: config-check
         name: Configuration Check
-        entry: bash scripts/health-check
+        entry: bash scripts/health-check.sh
         language: system
         files: ^(config/|src/marketpipe/config/)
         pass_filenames: false
