@@ -270,15 +270,22 @@ class FakeAsyncHttpClient(FakeHttpClient):
 
 
 class FakeMarketDataAdapter:
-    """Enhanced fake market data adapter for testing various scenarios."""
+    """Enhanced fake market data adapter for testing various scenarios.
+
+    Backwards-compatible with earlier tests by accepting optional parameters and
+    exposing legacy helper methods used across integration suites.
+    """
 
     def __init__(
         self,
         provider_name: str = "fake_provider",
         supported_symbols: list[str] = None,
+        http_client: Any = None,  # accepted for compatibility; not used directly
+        **_kwargs: Any,
     ):
         self.provider_name = provider_name
         self.supported_symbols = supported_symbols or ["AAPL", "GOOGL", "MSFT"]
+        self.http_client = http_client
         self._symbol_data: dict[str, list[OHLCVBar]] = {}
         self._error_configs: dict[str, Exception] = {}
         self._rate_limit_config: Optional[dict[str, Any]] = None
@@ -337,6 +344,60 @@ class FakeMarketDataAdapter:
 
         # Return configured data or empty list
         return self._symbol_data.get(symbol_str, [])
+
+    # ----- Backward-compatibility helpers used by other tests -----
+    def set_bars_data(self, symbol: Symbol | str, bars: list[OHLCVBar]) -> None:
+        """Alias for configure_symbol_data accepting Symbol or str."""
+        sym = str(symbol)
+        self.configure_symbol_data(sym, bars)
+
+    def set_symbol_failure(self, symbol: Symbol | str, error: Exception | None = None) -> None:
+        """Configure a symbol to raise an error when fetched."""
+        sym = str(symbol)
+        self.configure_error(sym, error or RuntimeError(f"Fetch failed for {sym}"))
+
+    def get_fetch_calls(self) -> list[tuple[Symbol, TimeRange]]:
+        """Return recorded fetch call tuples for verification."""
+        calls: list[tuple[Symbol, TimeRange]] = []
+        for rec in self._request_history:
+            calls.append((Symbol(rec["symbol"]), rec["time_range"]))
+        return calls
+
+    def configure_streaming(self, **_kw: Any) -> None:  # no-op for compatibility
+        return
+
+    # Compatibility with application service that calls `fetch_bars` with timestamps
+    async def fetch_bars(
+        self,
+        symbol: Symbol,
+        start_timestamp: int,
+        end_timestamp: int,
+        batch_size: int = 1000,
+    ) -> list[OHLCVBar]:
+        """Fetch bars using nanosecond timestamps; returns configured data.
+
+        For simplicity in tests, this returns the preconfigured bars for the symbol.
+        """
+        # Record request
+        self._request_history.append(
+            {
+                "symbol": str(symbol),
+                "time_range": TimeRange(
+                    Timestamp.from_nanoseconds(start_timestamp),
+                    Timestamp.from_nanoseconds(end_timestamp),
+                ),
+                "max_bars": batch_size,
+                "timestamp": datetime.now(),
+            }
+        )
+
+        # Simulate configured error for this symbol
+        sym_str = str(symbol)
+        if sym_str in self._error_configs:
+            raise self._error_configs[sym_str]
+
+        # Return configured bars (ignore range for test simplicity)
+        return self._symbol_data.get(sym_str, [])
 
     async def get_supported_symbols(self) -> list[Symbol]:
         """Get supported symbols."""

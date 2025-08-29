@@ -103,7 +103,7 @@ type-check:
 arch-check:
 	@if command -v lint-imports >/dev/null 2>&1; then \
 		echo "🏗️  Checking architecture boundaries..."; \
-		lint-imports --config setup.cfg; \
+		lint-imports --config pyproject.toml; \
 	else \
 		echo "⚠️  import-linter not found - install with: pip install import-linter"; \
 	fi

@@ -369,7 +369,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 1. Fork the repository
 2. Create a feature branch
 3. Run tests: `make test`
-4. Check architecture: `import-linter --config setup.cfg`
+4. Check architecture: `import-linter --config pyproject.toml` (or simply `make arch-check`)
 5. Submit a pull request
 
 ## Alpha Release Notes
