@@ -728,18 +728,7 @@ Options:
     # Date and symbol validation
     validate_date_range(start, end)
     validate_symbols(symbols)
-    # Fast-path in test harness to avoid long ingestion when provider is fake
-    import os as _os
-
-    if _os.environ.get("PYTEST_CURRENT_TEST") and provider == "fake":
-        print("Test mode: skipping full ingestion for fake provider.")
-        return
-    # Fast-path in test harness to avoid long ingestion when provider is fake
-    import os as _os
-
-    if _os.environ.get("PYTEST_CURRENT_TEST") and provider == "fake":
-        print("Test mode: skipping full ingestion for fake provider.")
-        return
+    # (no PYTEST env short-circuit; allow real execution in provider tests)
     # All good – run the actual implementation
     # Fast-path in CI option validation subprocess: if isolated DB env vars are set and
     # provider is fake, skip heavy ingestion to keep tests responsive.

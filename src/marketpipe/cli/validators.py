@@ -131,9 +131,9 @@ def validate_workers(workers: Optional[int]) -> None:
     if workers is None:
         return
     if workers < 1:
-        cli_error("--workers must be positive", code=2)
-    if workers > 64:
-        cli_error("--workers exceeds maximum (64)", code=2)
+        cli_error("invalid number of workers; must be >= 1", code=2)
+    if workers > 20:
+        cli_error("invalid number of workers; maximum is 20", code=2)
 
 
 def validate_batch_size(size: Optional[int]) -> None:
