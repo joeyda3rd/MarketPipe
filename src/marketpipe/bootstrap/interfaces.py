@@ -129,8 +129,16 @@ class EnvironmentProvider(IEnvironmentProvider):
         self._env = os.environ
 
     def get_database_path(self) -> Path:
-        """Get database path from MP_DB environment variable."""
-        return Path(self._env.get("MP_DB", "data/db/core.db"))
+        """Get database path from environment.
+
+        Honors multiple env var names for compatibility with tests and older configs:
+        - MARKETPIPE_DB_PATH (preferred)
+        - MP_DB (legacy)
+        Falls back to 'data/db/core.db'.
+        """
+        return Path(
+            self._env.get("MARKETPIPE_DB_PATH") or self._env.get("MP_DB") or "data/db/core.db"
+        )
 
     def get_config_value(self, key: str, default: Any = None) -> Any:
         """Get configuration value from environment."""
