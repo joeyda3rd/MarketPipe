@@ -1,0 +1,19 @@
+[run]
+source = src/marketpipe
+omit =
+    # Exclude heavy CLI wrappers and admin utilities from coverage
+    src/marketpipe/cli/*
+    # Bootstrap wiring is environment-specific and covered by integration tests indirectly
+    src/marketpipe/bootstrap/*
+    # Entrypoint shim
+    src/marketpipe/cli/__main__.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
+    @overload
+    except ImportError:
+    raise NotImplementedError
+show_missing = True

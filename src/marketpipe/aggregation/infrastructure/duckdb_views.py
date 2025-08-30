@@ -75,9 +75,9 @@ def _attach_partition(frame: str) -> None:
 def ensure_views() -> None:
     """Ensure all timeframe views are created.
 
-    Creates views for all standard timeframes: 5m, 15m, 1h, 4h, 1d
+    Creates views for all standard timeframes: 5m, 15m, 1h, 1d
     """
-    frames = ["5m", "15m", "1h", "4h", "1d"]
+    frames = ["5m", "15m", "1h", "1d"]
 
     logger.debug(f"Ensuring views for frames: {frames}")
 
@@ -141,8 +141,6 @@ def get_available_data() -> pd.DataFrame:
         UNION ALL
         SELECT '1h' as frame, symbol, date, COUNT(*) as row_count FROM bars_1h GROUP BY symbol, date
         UNION ALL
-        SELECT '4h' as frame, symbol, date, COUNT(*) as row_count FROM bars_4h GROUP BY symbol, date
-        UNION ALL
         SELECT '1d' as frame, symbol, date, COUNT(*) as row_count FROM bars_1d GROUP BY symbol, date
     )
     SELECT
@@ -170,7 +168,7 @@ def validate_views() -> dict[str, bool]:
     Returns:
         Dictionary mapping view names to availability status
     """
-    frames = ["5m", "15m", "1h", "4h", "1d"]
+    frames = ["5m", "15m", "1h", "1d"]
     status = {}
 
     ensure_views()
