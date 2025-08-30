@@ -67,7 +67,7 @@ class CsvReportRepository:
         Returns:
             List of paths to CSV report files
         """
-        reports = []
+        reports: list[Path] = []
 
         if job_id is not None:
             # List reports for specific job
