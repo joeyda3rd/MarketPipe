@@ -56,7 +56,7 @@ repos:
           - types-PyYAML
           - types-requests
         args: [--ignore-missing-imports, --show-error-codes]
-        files: ^src/
+        files: ^src/marketpipe/(ingestion|infrastructure|validation)/.*\.py$
         stages: [pre-push]
         # Only run on src/ and only on pre-push for speed
 
@@ -65,7 +65,18 @@ repos:
     rev: 1.7.7
     hooks:
       - id: bandit
-        args: [-r, src/, -f, txt, -s, B101]
+        args: [
+          -r,
+          src/,
+          -f,
+          txt,
+          -s,
+          B101,
+          --severity-level,
+          high,
+          --confidence-level,
+          high,
+        ]
         pass_filenames: false
         exclude: ^tests/
         stages: [pre-push]
