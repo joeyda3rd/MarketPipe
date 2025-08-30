@@ -174,6 +174,7 @@ elif not _USING_TYER_STUB and (CLI_LIGHT or _HELP_MODE):
         feed_type: _Opt[str] = _ty.Option(None, "--feed-type"),
         help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False),
     ) -> None:
+        """Ingest OHLCV data from market data providers (light mode)."""
         if help_flag:
             _ty.echo(
                 """
@@ -231,7 +232,30 @@ Options:
         workers: _Opt[int] = _ty.Option(None, "--workers"),
         provider: _Opt[str] = _ty.Option(None, "--provider"),
         feed_type: _Opt[str] = _ty.Option(None, "--feed-type"),
+        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False),
     ) -> None:
+        """Ingest OHLCV data from market data providers (light mode)."""
+        if help_flag:
+            _ty.echo(
+                """
+Usage: ohlcv ingest [OPTIONS]
+
+Ingest OHLCV data from market data providers (light mode).
+
+Options:
+  -c, --config PATH           Path to YAML configuration file
+  -s, --symbols TEXT          Comma-separated tickers, e.g. AAPL,MSFT
+  --start TEXT                Start date (YYYY-MM-DD)
+  --end TEXT                  End date (YYYY-MM-DD)
+  --batch-size INTEGER        Bars per request (overrides config)
+  --output PATH               Output directory (overrides config)
+  --workers INTEGER           Number of worker threads (overrides config)
+  --provider TEXT             Market data provider (overrides config)
+  --feed-type TEXT            Data feed type (overrides config)
+  -h, --help                  Show this message and exit
+                """.strip()
+            )
+            raise _ty.Exit(0)
         # Delegate to the light ingest handler behaviorally (without re-validating)
         _ty.echo("Fast validation: skipping full ingestion for fake provider.")
         return
@@ -254,12 +278,42 @@ Options:
         _ty.echo("Health check not executed in light mode.")
 
     # Additional lightweight placeholders to cover CLI matrix
-    @app.command(name="validate-ohlcv", add_help_option=True)
-    def _light_validate_ohlcv() -> None:
+    @app.command(name="validate-ohlcv", add_help_option=False)
+    def _light_validate_ohlcv(
+        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False)
+    ) -> None:
+        """Validate OHLCV data quality and generate reports (light mode)."""
+        if help_flag:
+            _ty.echo(
+                """
+Usage: validate-ohlcv [OPTIONS]
+
+Validate OHLCV data quality and generate reports (light mode).
+
+Options:
+  -h, --help                  Show this message and exit
+                """.strip()
+            )
+            raise _ty.Exit(0)
         _ty.echo("Validation not executed in light mode.")
 
-    @app.command(name="aggregate-ohlcv", add_help_option=True)
-    def _light_aggregate_ohlcv() -> None:
+    @app.command(name="aggregate-ohlcv", add_help_option=False)
+    def _light_aggregate_ohlcv(
+        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False)
+    ) -> None:
+        """Aggregate OHLCV data to multiple timeframes (light mode)."""
+        if help_flag:
+            _ty.echo(
+                """
+Usage: aggregate-ohlcv [OPTIONS]
+
+Aggregate OHLCV data to multiple timeframes (light mode).
+
+Options:
+  -h, --help                  Show this message and exit
+                """.strip()
+            )
+            raise _ty.Exit(0)
         _ty.echo("Aggregation not executed in light mode.")
 
     @app.command(name="query", add_help_option=True)
@@ -276,11 +330,41 @@ Options:
 
     # OHLCV subcommands
     @ohlcv_light.command(name="validate")
-    def _light_ohlcv_validate() -> None:
+    def _light_ohlcv_validate(
+        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False)
+    ) -> None:
+        """Validate OHLCV data quality and generate reports (light mode)."""
+        if help_flag:
+            _ty.echo(
+                """
+Usage: ohlcv validate [OPTIONS]
+
+Validate OHLCV data quality and generate reports (light mode).
+
+Options:
+  -h, --help                  Show this message and exit
+                """.strip()
+            )
+            raise _ty.Exit(0)
         _ty.echo("Validation (ohlcv) not executed in light mode.")
 
     @ohlcv_light.command(name="aggregate")
-    def _light_ohlcv_aggregate() -> None:
+    def _light_ohlcv_aggregate(
+        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False)
+    ) -> None:
+        """Aggregate OHLCV data to multiple timeframes (light mode)."""
+        if help_flag:
+            _ty.echo(
+                """
+Usage: ohlcv aggregate [OPTIONS]
+
+Aggregate OHLCV data to multiple timeframes (light mode).
+
+Options:
+  -h, --help                  Show this message and exit
+                """.strip()
+            )
+            raise _ty.Exit(0)
         _ty.echo("Aggregation (ohlcv) not executed in light mode.")
 
     # Backfill app placeholder under both paths
@@ -334,14 +418,17 @@ Options:
     # Deprecated aliases
     @app.command(name="ingest")
     def _light_ingest_deprecated() -> None:
+        """[DEPRECATED] Use 'ingest-ohlcv' or 'ohlcv ingest' instead."""
         _ty.echo("Deprecated: use 'ingest-ohlcv' or 'ohlcv ingest'.")
 
     @app.command(name="validate")
     def _light_validate_deprecated() -> None:
+        """[DEPRECATED] Use 'validate-ohlcv' or 'ohlcv validate' instead."""
         _ty.echo("Deprecated: use 'validate-ohlcv' or 'ohlcv validate'.")
 
     @app.command(name="aggregate")
     def _light_aggregate_deprecated() -> None:
+        """[DEPRECATED] Use 'aggregate-ohlcv' or 'ohlcv aggregate' instead."""
         _ty.echo("Deprecated: use 'aggregate-ohlcv' or 'ohlcv aggregate'.")
 
 
