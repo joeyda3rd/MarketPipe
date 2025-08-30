@@ -54,7 +54,7 @@ try:
     # Import bootstrap.py as a module, not the package
     import importlib.util
 
-    bootstrap_module_path = os.path.join(os.path.dirname(__file__), "..", "bootstrap.py")
+    bootstrap_module_path = os.path.join(os.path.dirname(__file__), "..", "legacy_bootstrap.py")
     spec = importlib.util.spec_from_file_location("legacy_bootstrap", bootstrap_module_path)
     if spec is None or spec.loader is None:
         raise ImportError("Could not load legacy bootstrap module")
