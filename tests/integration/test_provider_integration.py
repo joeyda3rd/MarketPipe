@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -28,8 +29,6 @@ from marketpipe.ingestion.infrastructure.alpaca_client import AlpacaClient
 from marketpipe.ingestion.infrastructure.auth import HeaderTokenAuth
 from marketpipe.ingestion.infrastructure.models import ClientConfig
 from tests.fakes.adapters import FakeHttpClient
-import os
-import pytest
 
 # Skip this module when network-restricted (e.g., local sandbox without loopback)
 NETWORK_ENABLED = os.environ.get("MP_ENABLE_NETWORK_TESTS", "").lower() in {"1", "true", "yes"}
