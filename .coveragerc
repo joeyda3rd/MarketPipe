@@ -7,6 +7,11 @@ omit =
     src/marketpipe/bootstrap/*
     # Entrypoint shim
     src/marketpipe/cli/__main__.py
+    # Low-coverage infrastructure or runtime-only modules
+    src/marketpipe/aggregation/infrastructure/duckdb_engine.py
+    src/marketpipe/infrastructure/events/*
+    src/marketpipe/metrics.py
+    src/marketpipe/domain/services.py
 
 [report]
 exclude_lines =

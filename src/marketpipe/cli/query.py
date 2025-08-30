@@ -15,13 +15,13 @@ def query(
 ):
     """Run an ad-hoc query on aggregated data.
 
-    Available views: bars_5m, bars_15m, bars_1h, bars_4h, bars_1d
+    Available views: bars_5m, bars_15m, bars_1h, bars_1d
 
     Examples:
         marketpipe query "SELECT * FROM bars_5m WHERE symbol='AAPL' LIMIT 10"
         marketpipe query "SELECT symbol, COUNT(*) FROM bars_1d GROUP BY symbol" --csv
         marketpipe query "SELECT MAX(high), MIN(low) FROM bars_1h WHERE symbol='MSFT'"
-        marketpipe query "SELECT COUNT(*) FROM bars_4h WHERE symbol='GOOGL'"
+
     """
     from marketpipe.bootstrap import bootstrap
 

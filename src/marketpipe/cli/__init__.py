@@ -128,7 +128,16 @@ if not _USING_TYER_STUB and not (CLI_LIGHT or _HELP_MODE):
     app.command(name="aggregate")(aggregate_deprecated)
 
     # Utility commands
-    app.command()(query)
+    app.command(
+        help=(
+            "Run an ad-hoc query on aggregated data.\n\n"
+            "Available views: bars_5m, bars_15m, bars_1h, bars_1d\n\n"
+            "Examples:\n"
+            "  marketpipe query \"SELECT * FROM bars_5m WHERE symbol='AAPL' LIMIT 10\"\n"
+            '  marketpipe query "SELECT symbol, COUNT(*) FROM bars_1d GROUP BY symbol" --csv\n'
+            "  marketpipe query \"SELECT MAX(high), MIN(low) FROM bars_1h WHERE symbol='MSFT'\"\n"
+        )
+    )(query)
     app.command()(metrics)
     app.command()(providers)
     app.command()(migrate)
