@@ -44,9 +44,7 @@ def _aggregate_impl(job_id: str):
 
             # Refresh DuckDB views
             try:
-                from marketpipe.aggregation.infrastructure.duckdb_views import (
-                    refresh_views,
-                )
+                from marketpipe.aggregation.infrastructure.duckdb_views import refresh_views
 
                 refresh_views()
                 print("🔄 DuckDB views refreshed")

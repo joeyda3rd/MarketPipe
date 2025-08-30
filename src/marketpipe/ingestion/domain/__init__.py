@@ -8,11 +8,7 @@ from .events import IngestionBatchProcessed, IngestionJobCompleted, IngestionJob
 from .repositories import IIngestionCheckpointRepository, IIngestionJobRepository
 from .services import IngestionDomainService
 from .storage import IDataStorage
-from .value_objects import (
-    BatchConfiguration,
-    IngestionConfiguration,
-    IngestionPartition,
-)
+from .value_objects import BatchConfiguration, IngestionConfiguration, IngestionPartition
 
 __all__ = [
     # Entities
