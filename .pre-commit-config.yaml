@@ -57,8 +57,8 @@ repos:
           - types-requests
         args: [--ignore-missing-imports, --show-error-codes]
         files: ^src/marketpipe/(ingestion|infrastructure|validation)/.*\.py$
-        stages: [pre-push]
-        # Only run on src/ and only on pre-push for speed
+        stages: [manual]
+        # Optional locally; run manually or in CI
 
   # Security checks
   - repo: https://github.com/PyCQA/bandit
