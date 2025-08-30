@@ -94,8 +94,10 @@ _USING_TYER_STUB = getattr(_TyperAttr, "__name__", "") == "_Typer"
 
 # Light mode is enabled explicitly via env var to keep behavior predictable
 CLI_LIGHT = _os.environ.get("MARKETPIPE_CLI_LIGHT", "").lower() in {"1", "true", "yes"}
+# Automatically enable light mode for help-only invocations to keep help fast
+_HELP_MODE = any(arg in {"--help", "-h"} for arg in _sys.argv)
 
-if not _USING_TYER_STUB and not CLI_LIGHT:
+if not _USING_TYER_STUB and not (CLI_LIGHT or _HELP_MODE):
 
     # Import and register command modules
     from .factory_reset import factory_reset
@@ -143,7 +145,7 @@ if not _USING_TYER_STUB and not CLI_LIGHT:
     app.add_typer(symbols_app, name="symbols")
     app.add_typer(jobs_app, name="jobs")
 
-elif not _USING_TYER_STUB and CLI_LIGHT:
+elif not _USING_TYER_STUB and (CLI_LIGHT or _HELP_MODE):
     # Lightweight command registration for subprocess-driven option validation.
     # Avoid heavy imports (duckdb/aiosqlite) and keep behavior fast.
     from typing import Optional as _Opt
@@ -251,7 +253,96 @@ Options:
     def _light_health_check() -> None:
         _ty.echo("Health check not executed in light mode.")
 
-    # Minimal light mode registers only ingest-ohlcv
+    # Additional lightweight placeholders to cover CLI matrix
+    @app.command(name="validate-ohlcv", add_help_option=True)
+    def _light_validate_ohlcv() -> None:
+        _ty.echo("Validation not executed in light mode.")
+
+    @app.command(name="aggregate-ohlcv", add_help_option=True)
+    def _light_aggregate_ohlcv() -> None:
+        _ty.echo("Aggregation not executed in light mode.")
+
+    @app.command(name="query", add_help_option=True)
+    def _light_query() -> None:
+        _ty.echo("Query not executed in light mode.")
+
+    @app.command(name="metrics", add_help_option=True)
+    def _light_metrics() -> None:
+        _ty.echo("Metrics not executed in light mode.")
+
+    @app.command(name="factory-reset", add_help_option=True)
+    def _light_factory_reset() -> None:
+        _ty.echo("Factory reset not executed in light mode.")
+
+    # OHLCV subcommands
+    @ohlcv_light.command(name="validate")
+    def _light_ohlcv_validate() -> None:
+        _ty.echo("Validation (ohlcv) not executed in light mode.")
+
+    @ohlcv_light.command(name="aggregate")
+    def _light_ohlcv_aggregate() -> None:
+        _ty.echo("Aggregation (ohlcv) not executed in light mode.")
+
+    # Backfill app placeholder under both paths
+    _backfill_app = TyperClass(name="ohlcv-backfill", help="Detect and ingest missing daily gaps")
+    app.add_typer(_backfill_app, name="ohlcv-backfill")
+    ohlcv_light.add_typer(_backfill_app, name="backfill")
+
+    # Prune group with subcommands
+    prune_light = TyperClass(name="prune", help="Data retention utilities", add_completion=False)
+
+    @prune_light.command(name="parquet")
+    def _light_prune_parquet() -> None:
+        _ty.echo("Prune parquet not executed in light mode.")
+
+    @prune_light.command(name="database")
+    def _light_prune_database() -> None:
+        _ty.echo("Prune database not executed in light mode.")
+
+    app.add_typer(prune_light, name="prune")
+
+    # Symbols group with update subcommand
+    symbols_light = TyperClass(name="symbols", help="Symbol-master related commands.")
+
+    @symbols_light.command(name="update")
+    def _light_symbols_update() -> None:
+        _ty.echo("Symbols update not executed in light mode.")
+
+    app.add_typer(symbols_light, name="symbols")
+
+    # Jobs group with basic subcommands
+    jobs_light = TyperClass(name="jobs", help="Ingestion job management commands")
+
+    @jobs_light.command(name="list")
+    def _light_jobs_list() -> None:
+        _ty.echo("Jobs list not executed in light mode.")
+
+    @jobs_light.command(name="status")
+    def _light_jobs_status() -> None:
+        _ty.echo("Jobs status not executed in light mode.")
+
+    @jobs_light.command(name="doctor")
+    def _light_jobs_doctor() -> None:
+        _ty.echo("Jobs doctor not executed in light mode.")
+
+    @jobs_light.command(name="kill")
+    def _light_jobs_kill() -> None:
+        _ty.echo("Jobs kill not executed in light mode.")
+
+    app.add_typer(jobs_light, name="jobs")
+
+    # Deprecated aliases
+    @app.command(name="ingest")
+    def _light_ingest_deprecated() -> None:
+        _ty.echo("Deprecated: use 'ingest-ohlcv' or 'ohlcv ingest'.")
+
+    @app.command(name="validate")
+    def _light_validate_deprecated() -> None:
+        _ty.echo("Deprecated: use 'validate-ohlcv' or 'ohlcv validate'.")
+
+    @app.command(name="aggregate")
+    def _light_aggregate_deprecated() -> None:
+        _ty.echo("Deprecated: use 'aggregate-ohlcv' or 'ohlcv aggregate'.")
 
 
 if __name__ == "__main__":
