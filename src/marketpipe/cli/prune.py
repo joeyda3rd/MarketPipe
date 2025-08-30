@@ -65,8 +65,6 @@ def prune_parquet(
         from marketpipe.cli.validators import cli_error
 
         cli_error("age format invalid")
-    bootstrap()
-
     # Initialize variables outside try block for exception handler access
     bytes_pruned = 0
     files_found = 0
@@ -81,6 +79,9 @@ def prune_parquet(
         if not parquet_root.exists():
             typer.echo(f"❌ Directory does not exist: {parquet_root}", err=True)
             raise typer.Exit(1)
+
+        # Bootstrap only after validating filesystem state to avoid noisy DB errors on fast-fail paths
+        bootstrap()
 
         # Search for parquet files and extract dates from path structure
         for file in parquet_root.rglob("*.parquet"):

@@ -23,9 +23,7 @@ def query(
         marketpipe query "SELECT MAX(high), MIN(low) FROM bars_1h WHERE symbol='MSFT'"
 
     """
-    from marketpipe.bootstrap import bootstrap
-
-    bootstrap()
+    # Querying aggregated parquet views does not require database bootstrap.
 
     try:
         import os as _os
