@@ -60,15 +60,19 @@ def validate_date_range(start: Optional[str], end: Optional[str]) -> None:
     except ValueError:
         cli_error("invalid date format; use YYYY-MM-DD", code=2)
 
-    if end_date < start_date:
-        cli_error("end date must not be before start date", code=2)
+    if end_date <= start_date:
+        cli_error("start date must be before end date", code=2)
 
     today = dt.date.today()
     if start_date > today or end_date > today:
         cli_error("date range cannot be in the future", code=2)
 
+    # Prevent very old ranges to keep quick tests and sensible defaults
+    if (today - end_date).days > 730:
+        cli_error("date range is older than 730 days", code=2)
 
-_SYMBOL_RE = re.compile(r"^[A-Z0-9\.]{1,10}$")
+
+_SYMBOL_RE = re.compile(r"^[A-Z][A-Z0-9\.]{0,9}$")
 
 
 def validate_symbols(symbols_csv: Optional[str]) -> list[str]:
