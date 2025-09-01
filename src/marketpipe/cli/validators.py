@@ -67,9 +67,9 @@ def validate_date_range(start: Optional[str], end: Optional[str]) -> None:
     if start_date > today or end_date > today:
         cli_error("date range cannot be in the future", code=2)
 
-    # Prevent very old ranges to keep quick tests and sensible defaults
+    # Prevent very old ranges for CLI option validation (2 years)
     if (today - end_date).days > 730:
-        cli_error("date range is older than 730 days", code=2)
+        cli_error("date range older than 730 days", code=2)
 
 
 _SYMBOL_RE = re.compile(r"^[A-Z][A-Z0-9\.]{0,9}$")

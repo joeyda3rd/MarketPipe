@@ -11,9 +11,17 @@ from typing import Optional
 
 import typer
 
-from marketpipe.ingestion.infrastructure.provider_registry import list_providers
-from marketpipe.metrics_server import run as metrics_server_run
-from marketpipe.metrics_server import start_async_server, stop_async_server
+# Lazy-import heavy modules inside commands to keep CLI startup fast
+
+# Back-compat shim for tests that monkeypatch utils.list_providers
+try:  # pragma: no cover - simple alias for tests
+    from marketpipe.ingestion.infrastructure.provider_registry import (
+        list_providers as list_providers,
+    )
+except Exception:  # pragma: no cover
+
+    def list_providers() -> list[str]:  # type: ignore[redef]
+        return []
 
 
 def metrics(
@@ -57,13 +65,18 @@ def metrics(
                 print(f"📊 Starting legacy metrics server on http://localhost:{port}/metrics")
                 print(f"📋 Human-friendly dashboard will be available at http://localhost:{port+1}")
                 print("Press Ctrl+C to stop the server")
-                metrics_server_run(port=port, legacy=True)
+                from marketpipe.metrics_server import run as _run_legacy
+
+                _run_legacy(port=port, legacy=True)
             else:
                 print(f"📊 Starting metrics server on http://localhost:{port}/metrics")
                 print(f"📋 Human-friendly dashboard: http://localhost:{port+1}")
                 print("Press Ctrl+C to stop both servers")
 
                 # Run async server with dashboard
+                # Lazy import server only when needed
+                from marketpipe.metrics_server import start_async_server, stop_async_server
+
                 async def run_async_server():
                     try:
                         # Start the Prometheus metrics server
@@ -229,6 +242,7 @@ def metrics(
 def providers():
     """List available market data providers."""
     try:
+        # Use module-level alias so tests can monkeypatch utils.list_providers
         available_providers = list_providers()
         if not available_providers:
             print("❌ No providers registered")
