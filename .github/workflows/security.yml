@@ -125,7 +125,7 @@ jobs:
 
       # Upload security scan results
       - name: Upload security scan results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: security-scan-results
