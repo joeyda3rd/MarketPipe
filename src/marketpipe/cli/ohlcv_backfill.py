@@ -21,13 +21,7 @@ from typing import Optional
 
 import typer
 
-from marketpipe.bootstrap import bootstrap
-from marketpipe.cli.ohlcv_ingest import _ingest_impl  # pylint: disable=protected-access
-from marketpipe.config import ConfigVersionError, load_config
-from marketpipe.domain.events import BackfillJobCompleted, BackfillJobFailed
-from marketpipe.infrastructure.events import InMemoryEventPublisher
-from marketpipe.ingestion.services.gap_detector import GapDetectorService
-from marketpipe.metrics import BACKFILL_GAP_LATENCY_SECONDS, BACKFILL_GAPS_FOUND_TOTAL
+# Heavy imports moved inside functions to optimize --help performance
 
 # ---------------------------------------------------------------------------
 # Typer sub-app will be attached from ``marketpipe.cli.__init__``
@@ -71,6 +65,15 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
     ),
 ) -> None:
     """Fill historical gaps by (re-)ingesting only the missing days."""
+    # Lazy imports for performance optimization
+    from marketpipe.bootstrap import bootstrap
+    from marketpipe.cli.ohlcv_ingest import _ingest_impl  # pylint: disable=protected-access
+    from marketpipe.config import ConfigVersionError, load_config
+    from marketpipe.domain.events import BackfillJobCompleted, BackfillJobFailed
+    from marketpipe.infrastructure.events import InMemoryEventPublisher
+    from marketpipe.ingestion.services.gap_detector import GapDetectorService
+    from marketpipe.metrics import BACKFILL_GAP_LATENCY_SECONDS, BACKFILL_GAPS_FOUND_TOTAL
+
     bootstrap()
 
     # ------------------------------------------------------------------

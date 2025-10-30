@@ -11,7 +11,7 @@ from pathlib import Path
 import humanize
 import typer
 
-from marketpipe.bootstrap import bootstrap
+# Heavy imports moved inside functions to optimize --help performance
 
 
 def _parse_age(expr: str) -> dt.date:
@@ -81,6 +81,8 @@ def prune_parquet(
             raise typer.Exit(1)
 
         # Bootstrap only after validating filesystem state to avoid noisy DB errors on fast-fail paths
+        from marketpipe.bootstrap import bootstrap
+
         bootstrap()
 
         # Search for parquet files and extract dates from path structure
@@ -239,6 +241,8 @@ def prune_database(
         marketpipe prune database 18m          # Delete jobs older than 18 months
         marketpipe prune database 90d --dry-run # Preview 90-day cleanup
     """
+    from marketpipe.bootstrap import bootstrap
+
     bootstrap()
 
     try:
