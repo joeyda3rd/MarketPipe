@@ -310,8 +310,7 @@ class TestErrorPropagationEndToEnd:
                 app,
                 [
                     "validate",
-                    "--job-id",
-                    "test-validation-job",
+                    "test-validation-job",  # JOB_ID is now a positional argument
                 ],
                 catch_exceptions=True,
             )

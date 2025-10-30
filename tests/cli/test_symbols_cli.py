@@ -184,7 +184,7 @@ class TestSymbolsUpdateCommand:
         assert "diff_only: True" in result.output
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
+    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.run_symbol_pipeline")
     def test_execute_flag_triggers_pipeline(self, mock_run_pipeline, mock_list_providers):
         """Test that --execute flag bypasses preview mode and triggers pipeline."""
         mock_list_providers.return_value = ["polygon"]
@@ -283,7 +283,7 @@ class TestSymbolsUpdateCommand:
         assert "dummy" in result.output
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
+    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.run_symbol_pipeline")
     def test_execute_overrides_dry_run(self, mock_run_pipeline, mock_list_providers):
         """Test that --execute flag overrides --dry-run with warning."""
         mock_list_providers.return_value = ["polygon"]

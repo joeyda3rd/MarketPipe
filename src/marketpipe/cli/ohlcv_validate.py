@@ -185,7 +185,7 @@ def _validate_impl(
             print(f"🔍 Finding all completed jobs from last {days} days...")
             job_ids = _get_recent_jobs(symbol=symbol, days=days if days != 7 else 30)
             if not job_ids:
-                print(f"ℹ️  No completed jobs found")
+                print("ℹ️  No completed jobs found")
                 return
             print(f"🔍 Found {len(job_ids)} job(s) to validate")
         elif not list_reports and not show:
@@ -193,8 +193,8 @@ def _validate_impl(
             print(f"🔍 Finding recent completed jobs from last {days} days...")
             job_ids = _get_recent_jobs(symbol=symbol, days=days)
             if not job_ids:
-                print(f"ℹ️  No completed jobs found")
-                print(f"💡 Tip: Use --all to validate all recent jobs, or specify a JOB_ID")
+                print("ℹ️  No completed jobs found")
+                print("💡 Tip: Use --all to validate all recent jobs, or specify a JOB_ID")
                 # Show status as fallback
                 job_ids = []
             else:
@@ -213,11 +213,11 @@ def _validate_impl(
                     failed_count += 1
 
             # Print summary
-            print(f"\n🔍 Validation Summary:")
+            print("\n🔍 Validation Summary:")
             print(f"  ✅ Successful: {success_count}")
             if failed_count > 0:
                 print(f"  ❌ Failed: {failed_count}")
-            print(f"📄 Check 'data/validation_reports/' for generated reports")
+            print("📄 Check 'data/validation_reports/' for generated reports")
 
             if failed_count > 0:
                 raise typer.Exit(1)

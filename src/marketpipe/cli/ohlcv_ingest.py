@@ -174,8 +174,31 @@ class CleanAsyncExecution:
 def _build_ingestion_services(
     provider_config: Optional[dict[str, Any]] = None,
     output_path: str = "data/raw",
-) -> tuple[IngestionJobService, IngestionCoordinatorService]:
+) -> tuple:
     """Build and wire the DDD ingestion services with shared storage engine."""
+    # Lazy imports for performance optimization
+    from marketpipe.infrastructure.events import InMemoryEventPublisher
+    from marketpipe.infrastructure.repositories.sqlite_domain import (
+        SqliteOHLCVRepository,
+        SqliteSymbolBarsRepository,
+    )
+    from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
+    from marketpipe.ingestion.application.services import (
+        IngestionCoordinatorService,
+        IngestionJobService,
+    )
+    from marketpipe.ingestion.domain.services import (
+        IngestionDomainService,
+        IngestionProgressTracker,
+    )
+    from marketpipe.ingestion.infrastructure.provider_loader import build_provider
+    from marketpipe.ingestion.infrastructure.repositories import (
+        SqliteCheckpointRepository,
+        SqliteIngestionJobRepository,
+        SqliteMetricsRepository,
+    )
+    from marketpipe.validation.domain.services import ValidationDomainService
+
     # Separate concerns: output files can go anywhere, but databases stay in project
     output_path_path = Path(output_path)
 
@@ -413,29 +436,8 @@ def _ingest_impl(
     # Lazy imports for performance optimization (only load when command executes)
     from marketpipe.config import ConfigVersionError, IngestionJobConfig, load_config
     from marketpipe.domain.value_objects import Symbol, TimeRange
-    from marketpipe.infrastructure.events import InMemoryEventPublisher
-    from marketpipe.infrastructure.repositories.sqlite_domain import (
-        SqliteOHLCVRepository,
-        SqliteSymbolBarsRepository,
-    )
-    from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
     from marketpipe.ingestion.application.commands import CreateIngestionJobCommand
-    from marketpipe.ingestion.application.services import (
-        IngestionCoordinatorService,
-        IngestionJobService,
-    )
-    from marketpipe.ingestion.domain.services import (
-        IngestionDomainService,
-        IngestionProgressTracker,
-    )
     from marketpipe.ingestion.domain.value_objects import BatchConfiguration, IngestionConfiguration
-    from marketpipe.ingestion.infrastructure.provider_loader import build_provider
-    from marketpipe.ingestion.infrastructure.repositories import (
-        SqliteCheckpointRepository,
-        SqliteIngestionJobRepository,
-        SqliteMetricsRepository,
-    )
-    from marketpipe.validation.domain.services import ValidationDomainService
 
     # Configure logging to show adapter progress messages
     logging.basicConfig(

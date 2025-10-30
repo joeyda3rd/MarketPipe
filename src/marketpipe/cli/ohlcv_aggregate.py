@@ -81,7 +81,7 @@ def _aggregate_impl(
             print(f"📊 Finding all completed jobs from last {days} days...")
             job_ids = _get_recent_jobs(symbol=symbol, days=days if days != 7 else 30)
             if not job_ids:
-                print(f"ℹ️  No completed jobs found")
+                print("ℹ️  No completed jobs found")
                 return
             print(f"📊 Found {len(job_ids)} job(s) to aggregate")
         else:
@@ -89,8 +89,8 @@ def _aggregate_impl(
             print(f"📊 Finding recent completed jobs from last {days} days...")
             job_ids = _get_recent_jobs(symbol=symbol, days=days)
             if not job_ids:
-                print(f"ℹ️  No completed jobs found")
-                print(f"💡 Tip: Use --all to aggregate all recent jobs, or specify a JOB_ID")
+                print("ℹ️  No completed jobs found")
+                print("💡 Tip: Use --all to aggregate all recent jobs, or specify a JOB_ID")
                 return
             print(f"📊 Found {len(job_ids)} job(s) to aggregate")
 
@@ -113,11 +113,11 @@ def _aggregate_impl(
             print(f"⚠️  Warning: Failed to refresh DuckDB views: {e}")
 
         # Print summary
-        print(f"\n📊 Aggregation Summary:")
+        print("\n📊 Aggregation Summary:")
         print(f"  ✅ Successful: {success_count}")
         if failed_count > 0:
             print(f"  ❌ Failed: {failed_count}")
-        print(f"📄 Check 'data/agg/' for aggregated data")
+        print("📄 Check 'data/agg/' for aggregated data")
 
         if failed_count > 0:
             raise typer.Exit(1)

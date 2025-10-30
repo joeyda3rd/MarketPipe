@@ -74,7 +74,7 @@ class TestSymbolsModes:
         gc.collect()
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
+    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.run_symbol_pipeline")
     def test_dry_run_with_execute_precedence(
         self,
         mock_run_pipeline,
@@ -144,7 +144,7 @@ class TestSymbolsModes:
         assert "Back-fill requires provider fetch -> cannot use --diff-only." in result.output
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
+    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.run_symbol_pipeline")
     def test_backfill_runs_multiple_days(
         self,
         mock_run_pipeline,

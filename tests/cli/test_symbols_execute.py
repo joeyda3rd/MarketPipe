@@ -28,7 +28,7 @@ class TestSymbolsExecuteIntegration:
         self.runner = CliRunner()
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
+    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.run_symbol_pipeline")
     def test_full_execute_dummy(
         self,
         mock_run_pipeline,
@@ -90,7 +90,7 @@ class TestSymbolsExecuteIntegration:
         assert "✅ Pipeline complete." not in result.output
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
+    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.run_symbol_pipeline")
     def test_execute_creates_database_views(
         self,
         mock_run_pipeline,
@@ -124,7 +124,7 @@ class TestSymbolsExecuteIntegration:
         mock_run_pipeline.assert_called_once()
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
-    @patch("marketpipe.cli.symbols.run_symbol_pipeline")
+    @patch("marketpipe.ingestion.pipeline.symbol_pipeline.run_symbol_pipeline")
     def test_rerun_same_snapshot_adds_zero_rows(self, mock_run_pipeline, mock_list_providers):
         """Test that rerunning the same snapshot is idempotent."""
         # Setup mocks

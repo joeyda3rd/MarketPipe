@@ -151,6 +151,9 @@ class CLIOptionValidator:
             # Skip alembic migration INFO logs
             if "INFO  [alembic.runtime.migration]" in line:
                 continue
+            # Skip marketpipe migration logs
+            if "INFO  [marketpipe.migrations]" in line:
+                continue
             # Skip other known operational logs
             if any(
                 pattern in line
