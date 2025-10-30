@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import os
 import sqlite3
 from pathlib import Path
 
@@ -57,6 +56,6 @@ def cleanup_stuck_jobs_after_test():
     yield  # Let the test run first
 
     # Clean up after the test
-    rows = _cleanup_in_progress_jobs()
+    _cleanup_in_progress_jobs()
     # Don't print for every test, only if we actually cleaned something
     # and only in verbose mode

@@ -220,7 +220,6 @@ def test_timestamp_precision_maintained(tmp_path):
     storage_dir.mkdir()
     storage = ParquetStorageEngine(storage_dir)
 
-    symbol = Symbol.from_string("PRECISE")
     trading_day = date(2025, 1, 15)
 
     # Create bars with precise nanosecond timestamps
@@ -275,7 +274,6 @@ def test_volume_totals_accurate(tmp_path):
     storage_dir.mkdir()
     storage = ParquetStorageEngine(storage_dir)
 
-    symbol = Symbol.from_string("VOLUME")
     trading_day = date(2025, 1, 15)
 
     # Create bars with specific volumes that sum to a known total
