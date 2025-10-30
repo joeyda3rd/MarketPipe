@@ -7,9 +7,15 @@ import asyncio
 import json
 import logging
 from datetime import date, datetime
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, TYPE_CHECKING
 
-import asyncpg
+if TYPE_CHECKING:
+    import asyncpg
+else:
+    try:
+        import asyncpg
+    except ImportError:
+        asyncpg = None  # type: ignore
 
 from marketpipe.domain.value_objects import Symbol, TimeRange, Timestamp
 from marketpipe.ingestion.domain.entities import IngestionJob, IngestionJobId, ProcessingState
@@ -37,8 +43,13 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
             min_size: Minimum pool connections
             max_size: Maximum pool connections
         """
+        if asyncpg is None:
+            raise ImportError(
+                "asyncpg is required for PostgreSQL support. "
+                "Install it with: pip install asyncpg"
+            )
         self._dsn = dsn
-        self._pool: Optional[asyncpg.Pool] = None
+        self._pool: Optional[asyncpg.Pool] = None  # type: ignore
         self._min_size = min_size
         self._max_size = max_size
         self._pool_lock = asyncio.Lock()  # Prevent race conditions on pool creation
