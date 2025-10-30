@@ -220,11 +220,13 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
     "I",     # disable isort in ruff - handled by isort tool instead
     "UP007", # Use `X | Y` for type annotations (conflicts with Python 3.9 compatibility)
+    "UP045", # Use `X | None` for type annotations (conflicts with Python 3.9 compatibility)
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Allow unused imports in __init__.py
 "tests/**/*" = ["B018"]   # Allow "useless" expressions in tests
+"tests/integration/test_enhanced_pipeline.py" = ["E402"]  # Conditional imports after pytest setup
 
 [tool.mypy]
 python_version = "3.9"
