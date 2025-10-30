@@ -32,7 +32,6 @@ from __future__ import annotations
 
 import subprocess
 from datetime import date, datetime, timedelta, timezone
-from pathlib import Path
 
 import pandas as pd
 import pytest

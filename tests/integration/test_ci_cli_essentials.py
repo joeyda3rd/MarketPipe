@@ -26,7 +26,6 @@ EXECUTION TIME: Target <20 seconds for CI
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
 
 import pytest
 
