@@ -149,7 +149,5 @@ if not _USING_TYER_STUB:
     app.add_typer(jobs_app, name="jobs")
 
 
-
-
 if __name__ == "__main__":
     app()
