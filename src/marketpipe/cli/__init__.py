@@ -289,18 +289,38 @@ Options:
     # Additional lightweight placeholders to cover CLI matrix
     @app.command(name="validate-ohlcv", add_help_option=False)
     def _light_validate_ohlcv(
-        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False)
+        job_id: _Opt[str] = _ty.Argument(None),
+        symbol: _Opt[str] = _ty.Option(None, "--symbol", "-s"),
+        days: int = _ty.Option(7, "--days", "-d"),
+        all_jobs: bool = _ty.Option(False, "--all", "-a"),
+        list_reports: bool = _ty.Option(False, "--list"),
+        show: _Opt[str] = _ty.Option(None, "--show"),
+        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False),
     ) -> None:
         """Validate OHLCV data quality and generate reports (light mode)."""
         if help_flag:
             _ty.echo(
                 """
-Usage: validate-ohlcv [OPTIONS]
+Usage: validate-ohlcv [JOB_ID] [OPTIONS]
 
-Validate OHLCV data quality and generate reports (light mode).
+Validate OHLCV data quality and generate reports.
+
+Arguments:
+  JOB_ID  Specific job ID (format: SYMBOL_YYYY-MM-DD). If omitted, validates recent completed jobs.
 
 Options:
-  -h, --help                  Show this message and exit
+  -s, --symbol TEXT    Filter jobs by symbol
+  -d, --days INTEGER   Look back N days for jobs (default: 7)
+  -a, --all            Validate all recent jobs
+  --list               List available reports
+  --show PATH          Show a report CSV
+  -h, --help           Show this message and exit
+
+Examples:
+  marketpipe validate-ohlcv              # Validate recent jobs (last 7 days)
+  marketpipe validate-ohlcv --all        # Validate all jobs (last 30 days)
+  marketpipe validate-ohlcv --symbol AAPL  # Validate AAPL jobs only
+  marketpipe validate-ohlcv AAPL_2024-01-15  # Validate specific job
                 """.strip()
             )
             raise _ty.Exit(0)
@@ -308,18 +328,34 @@ Options:
 
     @app.command(name="aggregate-ohlcv", add_help_option=False)
     def _light_aggregate_ohlcv(
-        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False)
+        job_id: _Opt[str] = _ty.Argument(None),
+        symbol: _Opt[str] = _ty.Option(None, "--symbol", "-s"),
+        days: int = _ty.Option(7, "--days", "-d"),
+        all_jobs: bool = _ty.Option(False, "--all", "-a"),
+        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False),
     ) -> None:
         """Aggregate OHLCV data to multiple timeframes (light mode)."""
         if help_flag:
             _ty.echo(
                 """
-Usage: aggregate-ohlcv [OPTIONS]
+Usage: aggregate-ohlcv [JOB_ID] [OPTIONS]
 
-Aggregate OHLCV data to multiple timeframes (light mode).
+Aggregate OHLCV data to multiple timeframes.
+
+Arguments:
+  JOB_ID  Specific job ID (format: SYMBOL_YYYY-MM-DD). If omitted, aggregates recent completed jobs.
 
 Options:
-  -h, --help                  Show this message and exit
+  -s, --symbol TEXT    Filter jobs by symbol
+  -d, --days INTEGER   Look back N days for jobs (default: 7)
+  -a, --all            Aggregate all recent jobs
+  -h, --help           Show this message and exit
+
+Examples:
+  marketpipe aggregate-ohlcv              # Aggregate recent jobs (last 7 days)
+  marketpipe aggregate-ohlcv --all        # Aggregate all jobs (last 30 days)
+  marketpipe aggregate-ohlcv --symbol AAPL  # Aggregate AAPL jobs only
+  marketpipe aggregate-ohlcv AAPL_2024-01-15  # Aggregate specific job
                 """.strip()
             )
             raise _ty.Exit(0)
@@ -340,18 +376,38 @@ Options:
     # OHLCV subcommands
     @ohlcv_light.command(name="validate")
     def _light_ohlcv_validate(
-        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False)
+        job_id: _Opt[str] = _ty.Argument(None),
+        symbol: _Opt[str] = _ty.Option(None, "--symbol", "-s"),
+        days: int = _ty.Option(7, "--days", "-d"),
+        all_jobs: bool = _ty.Option(False, "--all", "-a"),
+        list_reports: bool = _ty.Option(False, "--list"),
+        show: _Opt[str] = _ty.Option(None, "--show"),
+        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False),
     ) -> None:
         """Validate OHLCV data quality and generate reports (light mode)."""
         if help_flag:
             _ty.echo(
                 """
-Usage: ohlcv validate [OPTIONS]
+Usage: ohlcv validate [JOB_ID] [OPTIONS]
 
-Validate OHLCV data quality and generate reports (light mode).
+Validate OHLCV data quality and generate reports.
+
+Arguments:
+  JOB_ID  Specific job ID (format: SYMBOL_YYYY-MM-DD). If omitted, validates recent completed jobs.
 
 Options:
-  -h, --help                  Show this message and exit
+  -s, --symbol TEXT    Filter jobs by symbol
+  -d, --days INTEGER   Look back N days for jobs (default: 7)
+  -a, --all            Validate all recent jobs
+  --list               List available reports
+  --show PATH          Show a report CSV
+  -h, --help           Show this message and exit
+
+Examples:
+  marketpipe ohlcv validate              # Validate recent jobs (last 7 days)
+  marketpipe ohlcv validate --all        # Validate all jobs (last 30 days)
+  marketpipe ohlcv validate --symbol AAPL  # Validate AAPL jobs only
+  marketpipe ohlcv validate AAPL_2024-01-15  # Validate specific job
                 """.strip()
             )
             raise _ty.Exit(0)
@@ -359,18 +415,34 @@ Options:
 
     @ohlcv_light.command(name="aggregate")
     def _light_ohlcv_aggregate(
-        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False)
+        job_id: _Opt[str] = _ty.Argument(None),
+        symbol: _Opt[str] = _ty.Option(None, "--symbol", "-s"),
+        days: int = _ty.Option(7, "--days", "-d"),
+        all_jobs: bool = _ty.Option(False, "--all", "-a"),
+        help_flag: bool = _ty.Option(False, "--help", "-h", is_flag=True, show_default=False),
     ) -> None:
         """Aggregate OHLCV data to multiple timeframes (light mode)."""
         if help_flag:
             _ty.echo(
                 """
-Usage: ohlcv aggregate [OPTIONS]
+Usage: ohlcv aggregate [JOB_ID] [OPTIONS]
 
-Aggregate OHLCV data to multiple timeframes (light mode).
+Aggregate OHLCV data to multiple timeframes.
+
+Arguments:
+  JOB_ID  Specific job ID (format: SYMBOL_YYYY-MM-DD). If omitted, aggregates recent completed jobs.
 
 Options:
-  -h, --help                  Show this message and exit
+  -s, --symbol TEXT    Filter jobs by symbol
+  -d, --days INTEGER   Look back N days for jobs (default: 7)
+  -a, --all            Aggregate all recent jobs
+  -h, --help           Show this message and exit
+
+Examples:
+  marketpipe ohlcv aggregate              # Aggregate recent jobs (last 7 days)
+  marketpipe ohlcv aggregate --all        # Aggregate all jobs (last 30 days)
+  marketpipe ohlcv aggregate --symbol AAPL  # Aggregate AAPL jobs only
+  marketpipe ohlcv aggregate AAPL_2024-01-15  # Aggregate specific job
                 """.strip()
             )
             raise _ty.Exit(0)
