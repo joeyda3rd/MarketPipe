@@ -15,10 +15,11 @@ def _get_recent_jobs(symbol: Optional[str] = None, days: int = 7) -> list[str]:
     """Get recent completed jobs from the repository."""
     import asyncio
 
+    from marketpipe.bootstrap import get_repository_adapter
     from marketpipe.ingestion.domain.entities import ProcessingState
-    from marketpipe.ingestion.infrastructure.simple_job_adapter import SimpleJobRepository
 
-    repo = SimpleJobRepository()._repo
+    adapter = get_repository_adapter()
+    repo = adapter.job_repository()
 
     async def fetch_jobs():
         # Get jobs from last N days
