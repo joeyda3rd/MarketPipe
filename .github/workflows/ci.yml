@@ -78,6 +78,15 @@ jobs:
           pytest -q tests/integration/test_bootstrap_integration.py tests/integration/test_data_quality_validation_e2e.py --timeout=120 --maxfail=3
         continue-on-error: true  # Don't fail CI on integration test issues
 
+      - name: Run critical e2e integration tests
+        run: |
+          # New critical e2e tests that validate real component integration
+          pytest -v --timeout=120 --maxfail=3 \
+            tests/integration/test_ci_real_pipeline_e2e.py \
+            tests/integration/test_readme_quickstart_e2e.py \
+            tests/integration/test_ci_cli_essentials.py
+        continue-on-error: true  # Don't block CI initially while stabilizing
+
       - name: Basic CLI validation
         run: |
           # Test help commands work (these should always work)
