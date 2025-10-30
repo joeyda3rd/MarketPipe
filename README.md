@@ -28,10 +28,13 @@ pip install marketpipe
 # Generate test data (no API keys needed)
 marketpipe ingest-ohlcv --provider fake --symbols AAPL,GOOGL --start 2025-01-01 --end 2025-01-02
 
-# Aggregate the data (creates DuckDB views for querying)
+# Aggregate to multiple timeframes (1m → 5m, 15m, 30m, 1h, 4h, 1d)
 marketpipe aggregate-ohlcv
 
-# Query the data using SQL
+# Validate data quality
+marketpipe validate-ohlcv
+
+# Query the aggregated data using SQL
 marketpipe query "SELECT * FROM bars_1d WHERE symbol='AAPL' AND timestamp >= '2024-01-01' LIMIT 10"
 
 # Start monitoring dashboard
@@ -48,8 +51,15 @@ export ALPACA_SECRET="your_secret"
 # Ingest real market data
 marketpipe ingest-ohlcv --provider alpaca --symbols AAPL,TSLA --start 2025-01-01 --end 2025-01-02
 
-# Note: Data validation and aggregation features are being enhanced
-# See CLI documentation for current usage
+# Aggregate the data to multiple timeframes
+marketpipe aggregate-ohlcv              # Aggregates recent completed jobs
+marketpipe aggregate-ohlcv AAPL_2025-01-01  # Aggregate specific job
+
+# Validate data quality
+marketpipe validate-ohlcv               # Validates recent completed jobs
+marketpipe validate-ohlcv AAPL_2025-01-01   # Validate specific job
+marketpipe validate-ohlcv --list        # List available validation reports
+marketpipe validate-ohlcv --show report.csv  # View a specific report
 ```
 
 ## Documentation
@@ -59,6 +69,8 @@ marketpipe ingest-ohlcv --provider alpaca --symbols AAPL,TSLA --start 2025-01-01
 | Command | Description | Example |
 |---------|-------------|---------|
 | `ingest-ohlcv` | Collect data from providers | `marketpipe ingest-ohlcv --provider alpaca --symbols AAPL` |
+| `aggregate-ohlcv` | Aggregate data to multiple timeframes | `marketpipe aggregate-ohlcv` or `marketpipe aggregate-ohlcv JOB_ID` |
+| `validate-ohlcv` | Validate data quality and generate reports | `marketpipe validate-ohlcv` or `marketpipe validate-ohlcv JOB_ID` |
 | `query` | Query stored data with SQL | `marketpipe query "SELECT * FROM bars_1d WHERE symbol='AAPL' LIMIT 10"` |
 | `metrics` | Start monitoring server | `marketpipe metrics --port 8000` |
 | `jobs list` | List ingestion jobs | `marketpipe jobs list` |
