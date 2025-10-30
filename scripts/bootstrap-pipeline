@@ -29,9 +29,19 @@ is_weekend() {
     [[ $day_of_week -eq 6 || $day_of_week -eq 7 ]]
 }
 
-# Calculate end date (yesterday to ensure complete trading day)
-END_DATE=$(date -d "yesterday" +%Y-%m-%d)
-echo "End date: $END_DATE (yesterday, to ensure complete trading day)"
+# Calculate end date based on provider data lag
+# Polygon free/delayed tier has ~6-7 day lag
+# Other providers typically have 1 day lag
+if [ "$PROVIDER" = "polygon" ]; then
+    LAG_DAYS=7
+    LAG_DESC="7 days ago (Polygon delayed data)"
+else
+    LAG_DAYS=1
+    LAG_DESC="yesterday (ensure complete trading day)"
+fi
+
+END_DATE=$(date -d "$LAG_DAYS days ago" +%Y-%m-%d)
+echo "End date: $END_DATE ($LAG_DESC)"
 
 # Calculate start date by going back N trading days
 current_date=$(date -d "$END_DATE" +%Y-%m-%d)
@@ -65,6 +75,7 @@ if [ "$PROVIDER" = "polygon" ]; then
         exit 1
     fi
     echo "✓ Polygon API key found"
+    echo "ℹ️  Note: Polygon free/delayed tier data has ~6-7 day lag"
 elif [ "$PROVIDER" = "alpaca" ]; then
     if [ -z "$ALPACA_KEY" ] || [ -z "$ALPACA_SECRET" ]; then
         echo "❌ Error: ALPACA_KEY and ALPACA_SECRET not set"
