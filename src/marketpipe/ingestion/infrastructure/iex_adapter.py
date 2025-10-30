@@ -92,9 +92,16 @@ class IEXMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """
         Fetch OHLCV bars from IEX Cloud.
+
+        Args:
+            symbol: Stock symbol
+            time_range: Time range for data retrieval
+            max_bars: Maximum number of bars to fetch
+            timeframe: Bar timeframe (note: IEX implementation uses intraday-prices endpoint)
 
         Note: IEX Cloud has limited historical data in sandbox mode.
         Production API offers more comprehensive data.

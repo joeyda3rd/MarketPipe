@@ -239,10 +239,13 @@ class ParquetStorageEngine:
             # Use semantic job ID that includes the trading day
             job_id = f"{symbol}_{trading_day.isoformat()}"
 
+            # Get timeframe from configuration, default to 1m if not available
+            timeframe = getattr(configuration, "timeframe", "1m")
+
             # Write to storage
             file_path = self.write(
                 df,
-                frame="1m",  # Default to 1-minute bars
+                frame=timeframe,  # Use configuration timeframe
                 symbol=symbol,
                 trading_day=trading_day,
                 job_id=job_id,

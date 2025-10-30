@@ -41,6 +41,7 @@ class IngestionJobConfig(BaseModel):
         description="Market data provider (future-proof for multiple providers)",
     )
     feed_type: str = Field(default="iex", description="Data feed type (iex for free, sip for paid)")
+    timeframe: str = Field(default="1m", description="Bar timeframe (1m, 5m, 15m, 30m, 1h, 4h, 1d)")
     output_path: str = Field(default="./data", description="Output directory for data files")
     workers: int = Field(default=4, description="Number of worker threads", ge=1, le=32)
 
@@ -99,9 +100,18 @@ class IngestionJobConfig(BaseModel):
     @classmethod
     def validate_feed_type(cls, v: str) -> str:
         """Validate feed type."""
-        valid_feeds = {"iex", "sip"}
+        valid_feeds = {"iex", "sip", "delayed", "real-time"}
         if v.lower() not in valid_feeds:
             raise ValueError(f"Unknown feed type: {v}. Valid feeds: {valid_feeds}")
+        return v.lower()
+
+    @field_validator("timeframe")
+    @classmethod
+    def validate_timeframe(cls, v: str) -> str:
+        """Validate timeframe."""
+        valid_timeframes = {"1m", "5m", "15m", "30m", "1h", "4h", "1d"}
+        if v.lower() not in valid_timeframes:
+            raise ValueError(f"Unknown timeframe: {v}. Valid timeframes: {valid_timeframes}")
         return v.lower()
 
     @model_validator(mode="after")

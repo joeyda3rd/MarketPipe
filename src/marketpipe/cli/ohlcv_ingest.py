@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import sys
 import threading
@@ -194,18 +195,20 @@ def _build_ingestion_services(
     output_path: str = "data/raw",
 ) -> tuple[IngestionJobService, IngestionCoordinatorService]:
     """Build and wire the DDD ingestion services with shared storage engine."""
-    # Use the configured output path as the base directory for all data
-    base_data_dir = Path(
-        output_path
-    ).parent  # Get parent of output_path (e.g., if output_path is "data/raw", use "data")
-    if base_data_dir == Path("."):  # If parent is current dir, use output_path itself
-        base_data_dir = Path(output_path)
+    # Separate concerns: output files can go anywhere, but databases stay in project
+    output_path_path = Path(output_path)
 
-    # Create data directory if it doesn't exist
+    # Databases ALWAYS go in ./data/ (project directory), regardless of output location
+    # This ensures `marketpipe jobs` commands can always find them
+    base_data_dir = Path("./data")
     base_data_dir.mkdir(parents=True, exist_ok=True)
 
+    # Database subdirectory
+    db_dir = base_data_dir / "db"
+    db_dir.mkdir(parents=True, exist_ok=True)
+
     # Use the configured output path for storage engine
-    storage_engine = ParquetStorageEngine(Path(output_path))
+    storage_engine = ParquetStorageEngine(output_path_path)
 
     # Infrastructure setup - use provider loader or default to Alpaca
     if provider_config:
@@ -231,9 +234,6 @@ def _build_ingestion_services(
         market_data_provider = build_provider(alpaca_config)
 
     # Repository setup - use base_data_dir instead of hardcoded "data"
-    db_dir = base_data_dir / "db"
-    db_dir.mkdir(exist_ok=True)
-
     core_db_path = db_dir / "core.db"
     job_repo = SqliteIngestionJobRepository(base_data_dir / "ingestion_jobs.db")
     checkpoint_repo = SqliteCheckpointRepository(core_db_path)
@@ -334,6 +334,13 @@ def _check_boundaries(path: str, symbol: str, start: str, end: str, provider: st
     Raises:
         SystemExit(1): If data is missing or outside the requested range
     """
+    # Skip verification for fake provider (used in tests)
+    if provider == "fake":
+        print(
+            f"Ingest OK: symbol {symbol} provider {provider} (verification skipped for fake provider)"
+        )
+        return
+
     try:
         from datetime import datetime
         from pathlib import Path
@@ -419,27 +426,15 @@ def _ingest_impl(
     workers: Optional[int] = None,
     provider: Optional[str] = None,
     feed_type: Optional[str] = None,
+    timeframe: Optional[str] = None,
 ):
     """Implementation of the ingest functionality."""
-    # Test-friendly fast path: if provider is 'fake', skip bootstrap and heavy
-    # operations and ensure an output parquet exists for downstream checks.
-    if provider == "fake":
-        out_dir = Path(output_path or "data/output")
-        try:
-            out_dir.mkdir(parents=True, exist_ok=True)
-            with open(out_dir / "_probe.parquet", "wb") as _f:
-                _f.write(b"PROBE")
-            print("✅ Job completed successfully!")
-            print("\n🔍 Running post-ingestion verification...")
-            print("✅ Post-ingestion verification completed successfully!")
-            return
-        except Exception:
-            # Fall through to full flow if writing probe fails
-            pass
-
-    from marketpipe.bootstrap import bootstrap
-
-    bootstrap()
+    # Configure logging to show adapter progress messages
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)-5s [%(name)s] %(message)s",
+        force=True,  # Override any existing configuration
+    )
 
     # Alpha software warning
     print("⚠️  ALPHA SOFTWARE WARNING: MarketPipe is in alpha development.")
@@ -467,6 +462,7 @@ def _ingest_impl(
                     "workers": workers,
                     "provider": provider,
                     "feed_type": feed_type,
+                    "timeframe": timeframe,
                 }
                 # Add symbols/start/end overrides if provided
                 if symbols is not None:
@@ -491,7 +487,10 @@ def _ingest_impl(
                 start_date = datetime.fromisoformat(start).date()
                 end_date = datetime.fromisoformat(end).date()
 
-                # Build job config from CLI arguments
+                # Determine provider defaults and build job config from CLI arguments
+                resolved_provider = (provider or "alpaca").lower()
+                default_feed_type = "delayed" if resolved_provider == "polygon" else "iex"
+
                 job_config = IngestionJobConfig(
                     symbols=symbol_list,
                     start=start_date,
@@ -499,13 +498,35 @@ def _ingest_impl(
                     batch_size=batch_size or 500,
                     output_path=output_path or "data/output",
                     workers=workers or 3,
-                    provider=provider or "alpaca",
-                    feed_type=feed_type or "iex",
+                    provider=resolved_provider,
+                    feed_type=feed_type or default_feed_type,
+                    timeframe=timeframe or "1m",
                 )
+
+            # Now that we have job_config, run bootstrap (skip for fake provider)
+            if job_config.provider != "fake":
+                from marketpipe.bootstrap import bootstrap
+
+                bootstrap()
 
             # For the fake provider, relax historical window limits to keep
             # provider verification tests fast and reliable.
             from datetime import date as _date
+
+            if job_config.provider == "polygon":
+                allowed_polygon_feeds = {"delayed", "real-time"}
+                if job_config.feed_type not in allowed_polygon_feeds:
+                    if job_config.feed_type == "iex":
+                        print(
+                            "ℹ️ Polygon provider selected without feed type; defaulting to 'delayed'."
+                        )
+                        job_config = job_config.merge_overrides(feed_type="delayed")
+                    else:
+                        print(
+                            "❌ Invalid feed type for polygon: "
+                            f"{job_config.feed_type}. Use 'delayed' or 'real-time'."
+                        )
+                        raise typer.Exit(1)
 
             if job_config.provider == "fake":
                 today = _date.today()
@@ -521,6 +542,9 @@ def _ingest_impl(
             print(f"  Date range: {job_config.start} to {job_config.end}")
             print(f"  Provider: {job_config.provider}")
             print(f"  Feed type: {job_config.feed_type}")
+            print(
+                f"  Timeframe: {job_config.timeframe if hasattr(job_config, 'timeframe') else '1m'}"
+            )
             print(f"  Output path: {job_config.output_path}")
             print(f"  Workers: {job_config.workers}")
             print(f"  Batch size: {job_config.batch_size}")
@@ -529,9 +553,8 @@ def _ingest_impl(
             print("\n🚀 Starting ingestion process...")
 
             # Build provider configuration (do not hard-fail here; allow services builder to handle)
-            provider_config: dict[str, str] = {
+            provider_config: dict[str, Any] = {
                 "provider": job_config.provider,
-                "feed_type": job_config.feed_type,
             }
 
             if job_config.provider == "alpaca":
@@ -543,6 +566,7 @@ def _ingest_impl(
                             "api_key": api_key,
                             "api_secret": api_secret,
                             "base_url": "https://data.alpaca.markets/v2",
+                            "feed_type": job_config.feed_type,
                             "rate_limit_per_min": 200,
                         }
                     )
@@ -555,6 +579,21 @@ def _ingest_impl(
                     {
                         "api_token": iex_token,
                         "is_sandbox": False,
+                    }
+                )
+            elif job_config.provider == "polygon":
+                polygon_key = os.getenv("POLYGON_API_KEY") or os.getenv("MP_POLYGON_API_KEY")
+                if not polygon_key:
+                    print(
+                        "❌ Polygon provider selected but neither POLYGON_API_KEY nor MP_POLYGON_API_KEY is set"
+                    )
+                    raise typer.Exit(1)
+
+                polygon_base_url = os.getenv("POLYGON_BASE_URL", "https://api.polygon.io")
+                provider_config.update(
+                    {
+                        "api_key": polygon_key,
+                        "base_url": polygon_base_url,
                     }
                 )
             elif job_config.provider != "fake":
@@ -576,6 +615,7 @@ def _ingest_impl(
                     batch_size=job_config.batch_size,
                     rate_limit_per_minute=200,  # Default rate limit
                     feed_type=job_config.feed_type,
+                    timeframe=job_config.timeframe if hasattr(job_config, "timeframe") else "1m",
                 ),
                 batch_config=BatchConfiguration.default(),
             )
@@ -619,24 +659,21 @@ def _ingest_impl(
 
             # Post-ingestion verification: check boundaries for each symbol
             print("\n🔍 Running post-ingestion verification...")
-            if job_config.provider == "fake":
-                print("✅ Post-ingestion verification completed successfully!")
-            else:
-                for symbol in job_config.symbols:
-                    try:
-                        _check_boundaries(
-                            path=job_config.output_path,
-                            symbol=symbol,
-                            start=str(job_config.start),
-                            end=str(job_config.end),
-                            provider=job_config.provider,
-                        )
-                    except SystemExit:
-                        # _check_boundaries calls sys.exit(1) on failure
-                        print(f"❌ Post-ingestion verification failed for {symbol}")
-                        raise typer.Exit(1) from None
+            for symbol in job_config.symbols:
+                try:
+                    _check_boundaries(
+                        path=job_config.output_path,
+                        symbol=symbol,
+                        start=str(job_config.start),
+                        end=str(job_config.end),
+                        provider=job_config.provider,
+                    )
+                except SystemExit:
+                    # _check_boundaries calls sys.exit(1) on failure
+                    print(f"❌ Post-ingestion verification failed for {symbol}")
+                    raise typer.Exit(1) from None
 
-                print("✅ Post-ingestion verification completed successfully!")
+            print("✅ Post-ingestion verification completed successfully!")
 
             # Ensure output contains at least one parquet file for fake provider scenarios
             # used by provider verification tests. This is a no-op for real providers.
@@ -709,6 +746,11 @@ def ingest_ohlcv(
         "--feed-type",
         help="Data feed type (overrides config)",
     ),
+    timeframe: str = typer.Option(
+        None,
+        "--timeframe",
+        help="Bar timeframe: 1m, 5m, 15m, 30m, 1h, 4h, 1d (overrides config, default: 1m)",
+    ),
     help_flag: bool = typer.Option(
         False,
         "--help",
@@ -736,6 +778,7 @@ Options:
   --workers INTEGER           Number of worker threads (overrides config)
   --provider TEXT             Market data provider (overrides config)
   --feed-type TEXT            Data feed type (overrides config)
+  --timeframe TEXT            Bar timeframe: 1m, 5m, 15m, 30m, 1h, 4h, 1d (default: 1m)
   -h, --help                  Show this message and exit
 """
         typer.echo(help_text.strip())
@@ -799,22 +842,6 @@ Options:
     validate_date_range(start, end)
     validate_symbols(symbols)
 
-    # Short-circuit for fake provider: create minimal output and exit successfully.
-    if provider == "fake":
-        try:
-            out_dir = output_path_path or Path("data/output")
-            out_dir.mkdir(parents=True, exist_ok=True)
-            with open(out_dir / "_probe.parquet", "wb") as _f:
-                _f.write(b"PROBE")
-            print("✅ Job completed successfully!")
-            print("\n🔍 Running post-ingestion verification...")
-            print("✅ Post-ingestion verification completed successfully!")
-            raise typer.Exit(0)
-        except Exception:
-            # If we fail to write the probe, continue with the full flow as fallback
-            pass
-    # (no PYTEST env short-circuit; allow real execution in provider tests)
-    # All good – run the actual implementation
     # Fast-path in CI option validation subprocess: if isolated DB env vars are set and
     # provider is fake, skip heavy ingestion to keep tests responsive.
     import os as _os
@@ -834,33 +861,18 @@ Options:
         print("Fast validation: skipping full ingestion for fake provider.")
         return
 
-    try:
-        _ingest_impl(
-            config=config,
-            symbols=symbols,
-            start=start,
-            end=end,
-            batch_size=batch_size,
-            output_path=str(output_path_path) if output_path_path else None,
-            workers=workers,
-            provider=provider,
-            feed_type=feed_type,
-        )
-    except (typer.Exit, SystemExit) as _ex:
-        # As a testing convenience, if the fake provider is requested, fall back to
-        # creating a minimal probe parquet so provider verification can proceed.
-        if provider == "fake" and _ex.exit_code != 0:
-            try:
-                out_dir = output_path_path or Path("data/output")
-                out_dir.mkdir(parents=True, exist_ok=True)
-                with open(out_dir / "_probe.parquet", "wb") as _f:
-                    _f.write(b"PROBE")
-                print("✅ Job completed successfully!")
-                print("✅ Post-ingestion verification completed successfully!")
-                return
-            except Exception:
-                pass
-        raise
+    _ingest_impl(
+        config=config,
+        symbols=symbols,
+        start=start,
+        end=end,
+        batch_size=batch_size,
+        output_path=str(output_path_path) if output_path_path else None,
+        workers=workers,
+        provider=provider,
+        feed_type=feed_type,
+        timeframe=timeframe,
+    )
 
 
 # Disable default help to keep behaviour identical to ingest_ohlcv (tests rely on this)
@@ -901,6 +913,11 @@ def ingest_ohlcv_convenience(
         None, "--provider", help="Market data provider (overrides config)"
     ),
     feed_type: str = typer.Option(None, "--feed-type", help="Data feed type (overrides config)"),
+    timeframe: str = typer.Option(
+        None,
+        "--timeframe",
+        help="Bar timeframe: 1m, 5m, 15m, 30m, 1h, 4h, 1d (overrides config, default: 1m)",
+    ),
     help_flag: bool = typer.Option(
         False,
         "--help",
@@ -928,6 +945,7 @@ Options:
   --workers INTEGER           Number of worker threads (overrides config)
   --provider TEXT             Market data provider (overrides config)
   --feed-type TEXT            Data feed type (overrides config)
+  --timeframe TEXT            Bar timeframe: 1m, 5m, 15m, 30m, 1h, 4h, 1d (default: 1m)
   -h, --help                  Show this message and exit
 """
         typer.echo(help_text.strip())
@@ -1005,31 +1023,18 @@ Options:
         except Exception:
             pass
 
-    try:
-        _ingest_impl(
-            config=config,
-            symbols=symbols,
-            start=start,
-            end=end,
-            batch_size=batch_size,
-            output_path=str(output_path_path) if output_path_path else None,
-            workers=workers,
-            provider=provider,
-            feed_type=feed_type,
-        )
-    except (typer.Exit, SystemExit) as _ex:
-        if provider == "fake" and _ex.exit_code != 0:
-            try:
-                out_dir = output_path_path or Path("data/output")
-                out_dir.mkdir(parents=True, exist_ok=True)
-                with open(out_dir / "_probe.parquet", "wb") as _f:
-                    _f.write(b"PROBE")
-                print("✅ Job completed successfully!")
-                print("✅ Post-ingestion verification completed successfully!")
-                raise typer.Exit(0)
-            except Exception:
-                pass
-        raise
+    _ingest_impl(
+        config=config,
+        symbols=symbols,
+        start=start,
+        end=end,
+        batch_size=batch_size,
+        output_path=str(output_path_path) if output_path_path else None,
+        workers=workers,
+        provider=provider,
+        feed_type=feed_type,
+        timeframe=timeframe,
+    )
 
 
 def ingest_deprecated(
@@ -1075,4 +1080,5 @@ def ingest_deprecated(
         workers=workers,
         provider=provider,
         feed_type=feed_type,
+        timeframe=None,  # Use default timeframe
     )

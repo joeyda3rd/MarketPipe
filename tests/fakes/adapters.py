@@ -317,6 +317,7 @@ class FakeMarketDataAdapter:
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """Fetch bars with configured behavior."""
         symbol_str = str(symbol)
@@ -373,6 +374,7 @@ class FakeMarketDataAdapter:
         start_timestamp: int,
         end_timestamp: int,
         batch_size: int = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """Fetch bars using nanosecond timestamps; returns configured data.
 
@@ -441,6 +443,7 @@ class FakeMarketDataProvider(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """Return fake OHLCV bars for testing."""
         self.call_count += 1

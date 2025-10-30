@@ -309,6 +309,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             "end_timestamp": job.time_range.end.to_nanoseconds(),
             "provider": getattr(job.configuration, "provider", "unknown"),
             "feed": getattr(job.configuration, "feed_type", "unknown"),
+            "timeframe": getattr(job.configuration, "timeframe", "1m"),
             "state": job.state.value,
             "created_at": job.created_at.isoformat(),
             "started_at": job.started_at.isoformat() if job.started_at else None,
@@ -352,6 +353,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             batch_size=1000,
             rate_limit_per_minute=200,
             feed_type=payload.get("feed", "iex"),
+            timeframe=payload.get("timeframe", "1m"),
         )
 
         # Create job
@@ -389,6 +391,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             "end_timestamp": job.time_range.end.to_nanoseconds(),
             "provider": getattr(job.configuration, "provider", "unknown"),
             "feed": getattr(job.configuration, "feed_type", "unknown"),
+            "timeframe": getattr(job.configuration, "timeframe", "1m"),
             "state": job.state.value,
             "created_at": job.created_at.isoformat(),
             "started_at": job.started_at.isoformat() if job.started_at else None,
@@ -432,6 +435,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             batch_size=1000,
             rate_limit_per_minute=200,
             feed_type=job_dict.get("feed", "iex"),
+            timeframe=job_dict.get("timeframe", "1m"),
         )
 
         # Create job

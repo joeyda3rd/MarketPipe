@@ -471,19 +471,32 @@ class IngestionCoordinatorService:
         checkpoint = await self._checkpoint_repository.get_checkpoint(job.job_id, symbol)
 
         # Determine start point for data fetching
-        # Use checkpoint if available, otherwise use job's time range start
+        # Use checkpoint if available AND valid, otherwise use job's time range start
+        job_start_ns = int(job.time_range.start.value.timestamp() * 1_000_000_000)
+        job_end_ns = int(job.time_range.end.value.timestamp() * 1_000_000_000)
+
         if checkpoint:
-            start_timestamp = checkpoint.last_processed_timestamp
+            # Validate checkpoint is within the job's time range
+            if checkpoint.last_processed_timestamp < job_start_ns:
+                # Checkpoint is before job start - ignore it (stale from old job)
+                start_timestamp = job_start_ns
+            elif checkpoint.last_processed_timestamp >= job_end_ns:
+                # Checkpoint is at or after job end - ignore it (already complete or invalid)
+                start_timestamp = job_start_ns
+            else:
+                # Valid checkpoint - resume from where we left off
+                start_timestamp = checkpoint.last_processed_timestamp
         else:
-            # Convert job's start time to nanoseconds
-            start_timestamp = int(job.time_range.start.value.timestamp() * 1_000_000_000)
+            # No checkpoint - start from beginning
+            start_timestamp = job_start_ns
 
         # Fetch data from market data provider (anti-corruption layer)
         bars = await self._market_data_provider.fetch_bars(
             symbol=symbol,
             start_timestamp=start_timestamp,
-            end_timestamp=int(job.time_range.end.value.timestamp() * 1_000_000_000),
+            end_timestamp=job_end_ns,
             batch_size=job.configuration.batch_size,
+            timeframe=job.configuration.timeframe,
         )
 
         if not bars:

@@ -74,9 +74,16 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """
         Generate fake OHLCV bars for the given symbol and time range.
+
+        Args:
+            symbol: Stock symbol
+            time_range: Time range for data retrieval
+            max_bars: Maximum number of bars to fetch
+            timeframe: Bar timeframe (e.g., "1m", "5m", "15m", "1h", "1d")
         """
         # Simulate random failures if configured
         if random.random() < self._fail_probability:
@@ -86,11 +93,14 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         if symbol.value not in self._supported_symbols:
             raise InvalidSymbolError(f"Symbol {symbol.value} not supported by fake provider")
 
+        # Parse timeframe to minutes
+        timeframe_minutes = self._parse_timeframe_to_minutes(timeframe)
+
         # Calculate expected number of bars for the time range
         start_time = time_range.start.value
         end_time = time_range.end.value
         time_diff = end_time - start_time
-        expected_bars = int(time_diff.total_seconds() / 60)  # 1 bar per minute
+        expected_bars = int(time_diff.total_seconds() / (timeframe_minutes * 60))
 
         # Use a more generous max_bars limit to ensure we cover the full range
         # Allow up to 10,000 bars or the expected number, whichever is higher
@@ -106,7 +116,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
 
         bar_count = 0
         while current_time < end_time and bar_count < effective_max_bars:
-            # Generate OHLCV for this minute
+            # Generate OHLCV for this timeframe
             bar = self._generate_bar(symbol, current_time, current_price)
             bars.append(bar)
 
@@ -114,11 +124,26 @@ class FakeMarketDataAdapter(IMarketDataProvider):
             price_change = random.gauss(0, self._volatility * current_price)
             current_price = max(0.01, current_price + price_change)
 
-            # Move to next minute
-            current_time += timedelta(minutes=1)
+            # Move to next timeframe interval
+            current_time += timedelta(minutes=timeframe_minutes)
             bar_count += 1
 
         return bars
+
+    def _parse_timeframe_to_minutes(self, timeframe: str) -> int:
+        """Parse timeframe string to minutes."""
+        timeframe_map = {
+            "1m": 1,
+            "5m": 5,
+            "15m": 15,
+            "30m": 30,
+            "1h": 60,
+            "4h": 240,
+            "1d": 1440,
+        }
+        if timeframe not in timeframe_map:
+            raise ValueError(f"Unsupported timeframe: {timeframe}")
+        return timeframe_map[timeframe]
 
     def _generate_bar(self, symbol: Symbol, timestamp: datetime, base_price: float) -> OHLCVBar:
         """Generate a single OHLCV bar."""
@@ -179,6 +204,7 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         start_timestamp: int,
         end_timestamp: int,
         batch_size: int = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """Legacy method for backward compatibility."""
         from marketpipe.domain.value_objects import TimeRange, Timestamp
@@ -186,4 +212,4 @@ class FakeMarketDataAdapter(IMarketDataProvider):
         start_ts = Timestamp.from_nanoseconds(start_timestamp)
         end_ts = Timestamp.from_nanoseconds(end_timestamp)
         time_range = TimeRange(start_ts, end_ts)
-        return await self.fetch_bars_for_symbol(symbol, time_range, batch_size)
+        return await self.fetch_bars_for_symbol(symbol, time_range, batch_size, timeframe)

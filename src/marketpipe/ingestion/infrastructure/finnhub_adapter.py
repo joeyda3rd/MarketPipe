@@ -58,6 +58,7 @@ class FinnhubMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """
         Fetch OHLCV bars from Finnhub API.
@@ -66,12 +67,11 @@ class FinnhubMarketDataAdapter(IMarketDataProvider):
             symbol: Stock symbol (e.g., AAPL)
             time_range: Time range for data retrieval
             max_bars: Maximum number of bars to fetch
+            timeframe: Bar timeframe (e.g., "1m", "5m", "15m", "1h", "1d")
 
         Returns:
             List of OHLCV bars
         """
-        # Default to daily timeframe for interface compatibility
-        timeframe = "1d"
         self.log.info(
             f"Fetching {timeframe} bars for {symbol.value} from {time_range.start} to {time_range.end}"
         )
