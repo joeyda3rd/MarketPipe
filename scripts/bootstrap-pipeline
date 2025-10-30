@@ -1,0 +1,158 @@
+#!/bin/bash
+# Bootstrap a complete pipeline run with N trading days of data
+# Usage: scripts/bootstrap-pipeline [symbols] [days] [provider] [output_dir]
+# Example: scripts/bootstrap-pipeline "AAPL,MSFT,GOOGL,TSLA,AMZN" 5 polygon /mnt/market_data
+
+set -e  # Exit on error
+
+# Default values
+SYMBOLS="${1:-AAPL,MSFT,GOOGL,TSLA,AMZN}"
+TRADING_DAYS="${2:-5}"
+PROVIDER="${3:-polygon}"
+OUTPUT_DIR="${4:-/mnt/market_data}"
+
+echo "╭─────────────────────────────────────────────────────────────────╮"
+echo "│                   MarketPipe Bootstrap                          │"
+echo "╰─────────────────────────────────────────────────────────────────╯"
+echo ""
+echo "Configuration:"
+echo "  Symbols:       $SYMBOLS"
+echo "  Trading Days:  $TRADING_DAYS"
+echo "  Provider:      $PROVIDER"
+echo "  Output Dir:    $OUTPUT_DIR"
+echo ""
+
+# Function to check if a date is a weekend
+is_weekend() {
+    local date=$1
+    local day_of_week=$(date -d "$date" +%u)  # 1=Monday, 7=Sunday
+    [[ $day_of_week -eq 6 || $day_of_week -eq 7 ]]
+}
+
+# Calculate end date (yesterday to ensure complete trading day)
+END_DATE=$(date -d "yesterday" +%Y-%m-%d)
+echo "End date: $END_DATE (yesterday, to ensure complete trading day)"
+
+# Calculate start date by going back N trading days
+current_date=$(date -d "$END_DATE" +%Y-%m-%d)
+trading_days_found=0
+
+while [ $trading_days_found -lt $TRADING_DAYS ]; do
+    if ! is_weekend "$current_date"; then
+        trading_days_found=$((trading_days_found + 1))
+    fi
+
+    if [ $trading_days_found -lt $TRADING_DAYS ]; then
+        current_date=$(date -d "$current_date -1 day" +%Y-%m-%d)
+    fi
+done
+
+START_DATE=$current_date
+echo "Start date: $START_DATE (going back $TRADING_DAYS trading days)"
+echo ""
+
+# Verify dates span expected range
+days_span=$(( ( $(date -d "$END_DATE" +%s) - $(date -d "$START_DATE" +%s) ) / 86400 ))
+echo "Date range spans $days_span calendar days for $TRADING_DAYS trading days"
+echo ""
+
+# Check provider credentials
+if [ "$PROVIDER" = "polygon" ]; then
+    if [ -z "$POLYGON_API_KEY" ] && [ -z "$MP_POLYGON_API_KEY" ]; then
+        echo "❌ Error: POLYGON_API_KEY not set"
+        echo "   Please set your Polygon API key:"
+        echo "   export POLYGON_API_KEY=\"your_api_key\""
+        exit 1
+    fi
+    echo "✓ Polygon API key found"
+elif [ "$PROVIDER" = "alpaca" ]; then
+    if [ -z "$ALPACA_KEY" ] || [ -z "$ALPACA_SECRET" ]; then
+        echo "❌ Error: ALPACA_KEY and ALPACA_SECRET not set"
+        exit 1
+    fi
+    echo "✓ Alpaca credentials found"
+elif [ "$PROVIDER" != "fake" ]; then
+    echo "⚠️  Warning: Unknown provider '$PROVIDER', proceeding anyway..."
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════════════"
+echo "STEP 1/4: Ingesting 1-minute bars from $PROVIDER"
+echo "═══════════════════════════════════════════════════════════════════"
+echo ""
+
+marketpipe ingest-ohlcv \
+  --provider "$PROVIDER" \
+  --symbols "$SYMBOLS" \
+  --start "$START_DATE" \
+  --end "$END_DATE" \
+  --timeframe 1m \
+  --output "$OUTPUT_DIR"
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Ingestion failed. Pipeline aborted."
+    exit 1
+fi
+
+echo ""
+echo "✅ Ingestion completed successfully"
+echo ""
+echo "═══════════════════════════════════════════════════════════════════"
+echo "STEP 2/4: Aggregating to multiple timeframes (5m, 15m, 30m, 1h, 4h, 1d)"
+echo "═══════════════════════════════════════════════════════════════════"
+echo ""
+
+marketpipe aggregate-ohlcv
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Aggregation failed. Pipeline aborted."
+    exit 1
+fi
+
+echo ""
+echo "✅ Aggregation completed successfully"
+echo ""
+echo "═══════════════════════════════════════════════════════════════════"
+echo "STEP 3/4: Validating data quality"
+echo "═══════════════════════════════════════════════════════════════════"
+echo ""
+
+marketpipe validate-ohlcv
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Validation failed. Pipeline aborted."
+    exit 1
+fi
+
+echo ""
+echo "✅ Validation completed successfully"
+echo ""
+echo "═══════════════════════════════════════════════════════════════════"
+echo "STEP 4/4: Querying results to verify"
+echo "═══════════════════════════════════════════════════════════════════"
+echo ""
+
+echo "Daily bars per symbol:"
+marketpipe query "SELECT symbol, COUNT(*) as bars FROM bars_1d GROUP BY symbol ORDER BY symbol" || echo "⚠️  Query failed (aggregated data may not be available yet)"
+
+echo ""
+echo "═══════════════════════════════════════════════════════════════════"
+echo "✅ Pipeline completed successfully!"
+echo "═══════════════════════════════════════════════════════════════════"
+echo ""
+echo "Summary:"
+echo "  • Ingested 1m bars: $START_DATE to $END_DATE ($TRADING_DAYS trading days)"
+echo "  • Aggregated to: 5m, 15m, 30m, 1h, 4h, 1d"
+echo "  • Validated data quality"
+echo "  • Symbols: $SYMBOLS"
+echo ""
+echo "Next steps:"
+echo "  marketpipe query \"SELECT * FROM bars_1d WHERE symbol='AAPL' LIMIT 10\""
+echo "  marketpipe aggregate-ohlcv JOB_ID   # Manually aggregate a specific job"
+echo "  marketpipe validate-ohlcv --list    # View validation reports"
+echo "  marketpipe jobs list                # View all jobs"
+echo "  marketpipe metrics --port 8000      # Start monitoring dashboard"
+echo ""
