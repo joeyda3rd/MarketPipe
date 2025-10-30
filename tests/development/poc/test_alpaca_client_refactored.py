@@ -188,6 +188,7 @@ class TestAlpacaClientWithFakes:
         requests = http_client.get_requests_made()
         assert len(requests) >= 1, "Should make at least one successful request"
 
+    @pytest.mark.asyncio
     async def test_async_client_behavior(self, alpaca_config, auth_strategy):
         """Test async client functionality.
 
