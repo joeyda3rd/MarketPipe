@@ -10,123 +10,16 @@
 
 MarketPipe transforms how you collect, validate, and store financial market data. Built with modern Python patterns, it provides a robust, scalable foundation for financial data workflows with enterprise-grade observability and monitoring.
 
-## Features
-
-### **Modern Architecture**
-- **Domain-Driven Design** with enforced boundaries and clean separation of concerns
-- **Plugin-based providers** for easy integration with any market data source
-- **Async/sync dual APIs** for maximum flexibility
-- **Type-safe configuration** with comprehensive validation
-
-### **Data Providers**
-- **Alpaca Markets** - Real-time and historical market data
-- **IEX Cloud** - Professional-grade financial data
-- **Fake Provider** - Generate realistic test data for development
-- **Extensible Plugin System** - Add your own providers easily
-
-### **ETL Pipeline**
-- **Parallel ingestion** across multiple symbols and timeframes
-- **Schema validation** with business rule enforcement
-- **Incremental loading** with checkpoint/resume capability
-- **Data quality monitoring** with comprehensive error reporting
-- **Partitioned storage** in Parquet format for optimal performance
-
-### **Observability**
-- **Prometheus metrics** with multiprocess support
-- **Grafana dashboards** for real-time monitoring
-- **Structured logging** with configurable levels
-- **Performance tracking** and error alerting
-
-### **Deployment Ready**
-- **Docker Compose** stack with monitoring included
-- **Database migrations** with Alembic
-- **Health checks** and readiness probes
-- **Production-ready configuration**
-
-## Roadmap
-
-MarketPipe's development focuses exclusively on enhancing ETL capabilities within our Domain-Driven Design architecture for financial market data with enterprise-grade reliability.
-
-### Near-term (Next Releases)
-
-#### **Universe Builder/Manager**
-- CLI commands for managing symbol universes (domain models exist)
-- Import/export universe definitions
-- Universe validation and health checks
-- Programmatic universe management API
-
-#### **Enhanced Programmatic API**
-- Expanded Python API beyond basic `load_ohlcv()`
-- Better integration with Jupyter notebooks and research environments
-- Direct access to ingestion and validation services
-- Rich data access patterns for analysis workflows
-
-#### **Enhanced Data Loader**
-- Advanced filtering and aggregation capabilities
-- Multiple export formats (CSV, JSON, Arrow, etc.)
-- Custom query interface with complex predicates
-- Streaming data access for large datasets
-
-#### **Additional Data Providers**
-**Immediate targets (8 providers):** FRED (Economic Data), Binance (Crypto), Finnhub, Polygon, Tiingo, Twelve Data, plus enhanced IEX and Alpaca integrations
-
-**Extended ecosystem:** Alpha Vantage, CME DataMine, Coinbase, Quandl, Refinitiv, Yahoo Finance, Kraken, Tradier, and more
-
-**Community contributions:** See our [Contributing Guide](#contributing) for adding new data provider integrations
-
-### Medium-term (Later Releases)
-
-#### **Schema Registry**
-- Handle schema evolution from data providers
-- Version management for data structures
-- Backward compatibility tools
-- Automated migration assistance
-
-#### **Incremental ETL Engine**
-- Enhanced change detection and delta processing
-- Efficient backfill strategies
-- Checkpoint recovery improvements
-- Conflict resolution for overlapping data
-
-#### **Advanced Transform Engine**
-- Data normalization and standardization pipelines
-- Custom transformation rules and business logic
-- Cross-provider data harmonization
-- Real-time data transformation capabilities
-
-#### **ETL Observability Suite**
-- Data lineage tracking through the pipeline
-- Enhanced pipeline health monitoring
-- Data quality trend analysis
-- Performance optimization insights
-
-#### **Load Optimization**
-- Advanced partitioning strategies
-- Compression and storage format options
-- Multi-destination loading (multiple databases, cloud storage)
-- Parallel loading with automatic scaling
-
-#### **Data Catalog**
-- Metadata management for all ETL assets
-- Data discovery and documentation
-- Usage analytics and lineage visualization
-- Data governance and quality tracking
+See features and development notes below.
 
 ## Quick Start
 
-### Installation (End Users)
+### Installation
 
 ```bash
-# Recommended: in a fresh virtualenv (or use pipx)
-python -m venv .venv && source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
-python -m pip install --upgrade pip
+git clone https://github.com/joeyda3rd/marketpipe.git
+cd marketpipe
 pip install marketpipe
-
-# Optional extras (e.g., PostgreSQL support)
-# pip install "marketpipe[postgres]"
-
-# Verify install
-marketpipe --help
 ```
 
 ### Basic Usage
@@ -194,65 +87,56 @@ marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2025-01-01
 
 ## Development
 
-### Quick Setup (From Source)
+### Quick Setup
 
 ```bash
 git clone https://github.com/joeyda3rd/marketpipe.git
 cd marketpipe
-
-# Create a virtual environment (recommended)
-python -m venv .venv && source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
-python -m pip install --upgrade pip
-
-# Install with dev tools for contributors
-pip install -e .[dev]
-
-# One-command dev setup
-scripts/setup.sh
+scripts/setup    # One-command development setup
 
 # Install pre-commit hooks (recommended)
+pip install pre-commit
 pre-commit install
 
-# Run a quick demo
-scripts/demo.sh
+scripts/demo     # Run a quick demo
 ```
 
 ### Development Commands
 
 ```bash
-make fmt         # Format code (Black)
-make lint        # Lint (Ruff)
-make test        # Run tests (pytest)
-make check       # Format + lint + mypy + arch check
+scripts/format   # Format code
+scripts/lint     # Run linters
+scripts/test     # Run tests
+scripts/check    # Health check
 ```
 
 ### Testing
 
 ```bash
 # Fast tests for development feedback (~3s)
-scripts/test-fast.sh
+scripts/test-fast
 
 # Pre-commit tests (ultra-fast, ~2s)
 scripts/pre-commit-tests
 
 # Full test suite with coverage
-scripts/test-full.sh
+scripts/test-full
 
 # Simulate CI environment locally
-scripts/test-ci.sh
+scripts/test-ci
 
-# Make targets
-make test         # fast default
-make test-all     # full suite
+# Legacy make commands (still work)
+make test
+make test-all
 ```
 
 ### Architecture Validation
 
-MarketPipe enforces Domain-Driven Design boundaries (see `[tool.importlinter]` in `pyproject.toml`).
+MarketPipe enforces Domain-Driven Design boundaries:
 
 ```bash
 # Check architecture compliance
-make arch-check
+import-linter --config setup.cfg
 ```
 
 ## Database Setup
@@ -360,6 +244,108 @@ monitoring:
   port: 8000
 ```
 
+## Features
+
+### **Modern Architecture**
+- **Domain-Driven Design** with enforced boundaries and clean separation of concerns
+- **Plugin-based providers** for easy integration with any market data source
+- **Async/sync dual APIs** for maximum flexibility
+- **Type-safe configuration** with comprehensive validation
+
+### **Data Providers**
+- **Alpaca Markets** - Real-time and historical market data
+- **IEX Cloud** - Professional-grade financial data
+- **Fake Provider** - Generate realistic test data for development
+- **Extensible Plugin System** - Add your own providers easily
+
+### **ETL Pipeline**
+- **Parallel ingestion** across multiple symbols and timeframes
+- **Schema validation** with business rule enforcement
+- **Incremental loading** with checkpoint/resume capability
+- **Data quality monitoring** with comprehensive error reporting
+- **Partitioned storage** in Parquet format for optimal performance
+
+### **Observability**
+- **Prometheus metrics** with multiprocess support
+- **Grafana dashboards** for real-time monitoring
+- **Structured logging** with configurable levels
+- **Performance tracking** and error alerting
+
+### **Deployment Ready**
+- **Docker Compose** stack with monitoring included
+- **Database migrations** with Alembic
+- **Health checks** and readiness probes
+- **Production-ready configuration**
+
+## Roadmap
+
+MarketPipe's development focuses exclusively on enhancing ETL capabilities within our Domain-Driven Design architecture for financial market data with enterprise-grade reliability.
+
+### Near-term (Next Releases)
+
+#### **Universe Builder/Manager**
+- CLI commands for managing symbol universes (domain models exist)
+- Import/export universe definitions
+- Universe validation and health checks
+- Programmatic universe management API
+
+#### **Enhanced Programmatic API**
+- Expanded Python API beyond basic `load_ohlcv()`
+- Better integration with Jupyter notebooks and research environments
+- Direct access to ingestion and validation services
+- Rich data access patterns for analysis workflows
+
+#### **Enhanced Data Loader**
+- Advanced filtering and aggregation capabilities
+- Multiple export formats (CSV, JSON, Arrow, etc.)
+- Custom query interface with complex predicates
+- Streaming data access for large datasets
+
+#### **Additional Data Providers**
+**Immediate targets (8 providers):** FRED (Economic Data), Binance (Crypto), Finnhub, Polygon, Tiingo, Twelve Data, plus enhanced IEX and Alpaca integrations
+
+**Extended ecosystem:** Alpha Vantage, CME DataMine, Coinbase, Quandl, Refinitiv, Yahoo Finance, Kraken, Tradier, and more
+
+**Community contributions:** See our [Contributing Guide](#contributing) for adding new data provider integrations
+
+### Medium-term (Later Releases)
+
+#### **Schema Registry**
+- Handle schema evolution from data providers
+- Version management for data structures
+- Backward compatibility tools
+- Automated migration assistance
+
+#### **Incremental ETL Engine**
+- Enhanced change detection and delta processing
+- Efficient backfill strategies
+- Checkpoint recovery improvements
+- Conflict resolution for overlapping data
+
+#### **Advanced Transform Engine**
+- Data normalization and standardization pipelines
+- Custom transformation rules and business logic
+- Cross-provider data harmonization
+- Real-time data transformation capabilities
+
+#### **ETL Observability Suite**
+- Data lineage tracking through the pipeline
+- Enhanced pipeline health monitoring
+- Data quality trend analysis
+- Performance optimization insights
+
+#### **Load Optimization**
+- Advanced partitioning strategies
+- Compression and storage format options
+- Multi-destination loading (multiple databases, cloud storage)
+- Parallel loading with automatic scaling
+
+#### **Data Catalog**
+- Metadata management for all ETL assets
+- Data discovery and documentation
+- Usage analytics and lineage visualization
+- Data governance and quality tracking
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
@@ -369,7 +355,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 1. Fork the repository
 2. Create a feature branch
 3. Run tests: `make test`
-4. Check architecture: `import-linter --config pyproject.toml` (or simply `make arch-check`)
+4. Check architecture: `import-linter --config setup.cfg`
 5. Submit a pull request
 
 ## Alpha Release Notes
