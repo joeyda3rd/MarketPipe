@@ -9,6 +9,7 @@ Create Date: 2025-06-11 22:26:13.946793
 from collections.abc import Sequence
 from typing import Union
 
+import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -18,8 +19,31 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _column_exists(table_name: str, column_name: str) -> bool:
+    """Check if a column exists in a table."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col["name"] for col in inspector.get_columns(table_name)]
+    return column_name in columns
+
+
+def _index_exists(index_name: str) -> bool:
+    """Check if an index exists in the database."""
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text("SELECT name FROM sqlite_master WHERE type='index' AND name=:index_name"),
+        {"index_name": index_name},
+    )
+    return result.fetchone() is not None
+
+
 def upgrade() -> None:
-    """Add missing columns to ohlcv_bars table."""
+    """Add missing columns to ohlcv_bars table (idempotent)."""
+    # Check if migration is needed by checking if trading_date column exists
+    if _column_exists("ohlcv_bars", "trading_date"):
+        # Migration already applied, skip
+        return
+
     # First check if we need to migrate by seeing if columns exist
     # This is a SQLite-compatible approach using table recreation
 
@@ -62,8 +86,9 @@ def upgrade() -> None:
     op.execute("DROP TABLE ohlcv_bars")
     op.execute("ALTER TABLE ohlcv_bars_new RENAME TO ohlcv_bars")
 
-    # Recreate indexes
-    op.execute("CREATE INDEX idx_ohlcv_symbol_timestamp ON ohlcv_bars(symbol, timestamp_ns)")
+    # Recreate indexes (idempotent)
+    if not _index_exists("idx_ohlcv_symbol_timestamp"):
+        op.execute("CREATE INDEX idx_ohlcv_symbol_timestamp ON ohlcv_bars(symbol, timestamp_ns)")
 
     # Update existing rows to populate trading_date from timestamp_ns
     # Use database-agnostic approach
@@ -88,9 +113,12 @@ def upgrade() -> None:
         """
         )
 
-    # Create new indexes
-    op.execute("CREATE INDEX idx_ohlcv_trading_date ON ohlcv_bars(trading_date)")
-    op.execute("CREATE INDEX idx_ohlcv_symbol_trading_date ON ohlcv_bars(symbol, trading_date)")
+    # Create new indexes (idempotent)
+    if not _index_exists("idx_ohlcv_trading_date"):
+        op.execute("CREATE INDEX idx_ohlcv_trading_date ON ohlcv_bars(trading_date)")
+
+    if not _index_exists("idx_ohlcv_symbol_trading_date"):
+        op.execute("CREATE INDEX idx_ohlcv_symbol_trading_date ON ohlcv_bars(symbol, trading_date)")
 
 
 def downgrade() -> None:

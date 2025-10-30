@@ -9,6 +9,7 @@ Create Date: 2025-06-11 22:25:39.165124
 from collections.abc import Sequence
 from typing import Union
 
+import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -18,14 +19,25 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _index_exists(index_name: str) -> bool:
+    """Check if an index exists in the database."""
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text("SELECT name FROM sqlite_master WHERE type='index' AND name=:index_name"),
+        {"index_name": index_name},
+    )
+    return result.fetchone() is not None
+
+
 def upgrade() -> None:
-    """Optimize metrics table indexes."""
+    """Optimize metrics table indexes (idempotent)."""
     # Drop the existing separate indexes and create a composite one
     op.execute("DROP INDEX IF EXISTS idx_metrics_ts_name")
     op.execute("DROP INDEX IF EXISTS idx_metrics_name")
 
-    # Create optimized composite index for time-based metric queries
-    op.execute("CREATE INDEX idx_metrics_name_ts ON metrics(name, ts)")
+    # Create optimized composite index for time-based metric queries (only if it doesn't exist)
+    if not _index_exists("idx_metrics_name_ts"):
+        op.execute("CREATE INDEX idx_metrics_name_ts ON metrics(name, ts)")
 
 
 def downgrade() -> None:

@@ -20,11 +20,42 @@ branch_labels = None
 depends_on = None
 
 
+def _table_exists(table_name: str) -> bool:
+    """Check if a table exists in the database."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    return table_name in inspector.get_table_names()
+
+
+def _index_exists(index_name: str) -> bool:
+    """Check if an index exists in the database."""
+    conn = op.get_bind()
+    # Check for both SQLite and PostgreSQL
+    try:
+        result = conn.execute(
+            sa.text("SELECT name FROM sqlite_master WHERE type='index' AND name=:index_name"),
+            {"index_name": index_name},
+        )
+        return result.fetchone() is not None
+    except:
+        # PostgreSQL
+        result = conn.execute(
+            sa.text("SELECT indexname FROM pg_indexes WHERE indexname=:index_name"),
+            {"index_name": index_name},
+        )
+        return result.fetchone() is not None
+
+
 def upgrade() -> None:
-    """Create ingestion_jobs table with database-agnostic design."""
+    """Create ingestion_jobs table with database-agnostic design (idempotent)."""
     # Determine if we're using PostgreSQL
     conn = op.get_bind()
     is_postgresql = conn.dialect.name == "postgresql"
+
+    # Check if table already exists
+    if _table_exists("ingestion_jobs"):
+        # Table already exists, skip creation
+        return
 
     # Create ingestion_jobs table
     payload_column = (
@@ -61,10 +92,15 @@ def upgrade() -> None:
         sa.UniqueConstraint("symbol", "day", name="uq_ingestion_jobs_symbol_day"),
     )
 
-    # Create indexes for efficient querying
-    op.create_index("idx_ingestion_jobs_state", "ingestion_jobs", ["state"])
-    op.create_index("idx_ingestion_jobs_created_at", "ingestion_jobs", ["created_at"])
-    op.create_index("idx_ingestion_jobs_day", "ingestion_jobs", ["day"])
+    # Create indexes for efficient querying (idempotent)
+    if not _index_exists("idx_ingestion_jobs_state"):
+        op.create_index("idx_ingestion_jobs_state", "ingestion_jobs", ["state"])
+
+    if not _index_exists("idx_ingestion_jobs_created_at"):
+        op.create_index("idx_ingestion_jobs_created_at", "ingestion_jobs", ["created_at"])
+
+    if not _index_exists("idx_ingestion_jobs_day"):
+        op.create_index("idx_ingestion_jobs_day", "ingestion_jobs", ["day"])
 
     # PostgreSQL-specific optimizations
     if is_postgresql:

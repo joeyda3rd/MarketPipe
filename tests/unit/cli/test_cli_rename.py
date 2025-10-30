@@ -175,7 +175,7 @@ class TestCLIRename:
 
         # Validate command parameters
         result = runner.invoke(app, ["validate-ohlcv", "--help"])
-        assert "--job-id" in result.stdout
+        assert "JOB_ID" in result.stdout  # Now a positional argument, not --job-id
         assert "--list" in result.stdout
         assert "--show" in result.stdout
 

@@ -276,7 +276,6 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--tb=short",
-    "--maxfail=3",
     "--disable-warnings",
     "-ra"
 ]

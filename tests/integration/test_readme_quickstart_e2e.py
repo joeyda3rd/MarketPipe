@@ -93,13 +93,15 @@ class TestREADMEQuickstartCommands:
                 len(parquet_files) > 0
             ), f"Should create parquet files. Directory contents: {list(data_dir.rglob('*'))}"
 
-    @pytest.mark.skip(reason="Query command CLI interface changed - README outdated")
+    @pytest.mark.skip(
+        reason="Query requires aggregation first, but aggregate command requires JOB_ID - not ready for README example"
+    )
     def test_readme_query_command(self, tmp_path):
-        """Test README line 32: marketpipe query --symbol AAPL --start 2024-01-01
+        """Test README lines 34-35: marketpipe query "SELECT * FROM bars_1d WHERE symbol='AAPL' AND timestamp >= '2024-01-01' LIMIT 10"
 
-        This command requires data to exist first, so we ingest then query.
+        This command requires data to exist first, so we ingest, aggregate, then query.
 
-        NOTE: Currently skipped as query command now expects SQL, not --symbol option.
+        NOTE: Skipped because aggregate-ohlcv requires JOB_ID argument, making the workflow too complex for README.
         """
         # Setup isolated environment
         import os
@@ -111,7 +113,7 @@ class TestREADMEQuickstartCommands:
         ingest_result = subprocess.run(
             [
                 "marketpipe",
-                "ingest",
+                "ingest-ohlcv",
                 "--provider",
                 "fake",
                 "--symbols",
@@ -129,9 +131,24 @@ class TestREADMEQuickstartCommands:
 
         assert ingest_result.returncode == 0, "Ingest should succeed before query test"
 
-        # Now run EXACT query command from README line 32
+        # Aggregate data (required before querying)
+        aggregate_result = subprocess.run(
+            ["marketpipe", "aggregate-ohlcv"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            env=env,
+        )
+
+        assert aggregate_result.returncode == 0, "Aggregate should succeed before query test"
+
+        # Now run EXACT query command from README line 35
         result = subprocess.run(
-            ["marketpipe", "query", "--symbol", "AAPL", "--start", "2024-01-01"],
+            [
+                "marketpipe",
+                "query",
+                "SELECT * FROM bars_1d WHERE symbol='AAPL' AND timestamp >= '2024-01-01' LIMIT 10",
+            ],
             capture_output=True,
             text=True,
             timeout=30,
@@ -152,14 +169,16 @@ class TestREADMEQuickstartCommands:
             len(output) > 100
         ), f"Query should return substantial output with data. Got {len(output)} bytes"
 
-    @pytest.mark.skip(reason="Metrics command --port option not yet implemented")
+    @pytest.mark.skip(
+        reason="Metrics command has database migration issues with existing schema - needs investigation"
+    )
     def test_readme_metrics_command_starts(self, tmp_path):
-        """Test README line 35: marketpipe metrics --port 8000
+        """Test README line 37-38: marketpipe metrics --port 8000
 
         This command starts a server, so we test it starts successfully then
         stop it immediately (don't wait for it to run).
 
-        NOTE: Currently skipped as metrics command doesn't support --port option yet.
+        NOTE: Skipped due to database migration conflicts when table already exists.
         """
         # Setup isolated environment
         import os
@@ -195,14 +214,14 @@ class TestREADMEQuickstartCommands:
             poll_result is None
         ), f"Metrics server should start successfully. Exit code: {poll_result}"
 
-    @pytest.mark.skip(reason="Validate command CLI interface changed - README outdated")
+    @pytest.mark.skip(
+        reason="Validate command requires JOB_ID argument - not user-friendly for README example yet"
+    )
     def test_readme_validate_command(self, tmp_path):
-        """Test README line 49: marketpipe validate --symbol AAPL --start 2025-01-01
+        """Test README line 51-52: marketpipe validate-ohlcv
 
-        Note: This is from the "With Real Data" section but we test with fake provider
-        since we can't use real API keys in CI.
-
-        NOTE: Currently skipped as validate command doesn't accept --symbol option.
+        NOTE: Command requires JOB_ID argument which makes it unsuitable for simple README examples.
+        Skipped until command UX is improved.
         """
         # Setup isolated environment
         import os
@@ -214,7 +233,7 @@ class TestREADMEQuickstartCommands:
         ingest_result = subprocess.run(
             [
                 "marketpipe",
-                "ingest",
+                "ingest-ohlcv",
                 "--provider",
                 "fake",
                 "--symbols",
@@ -232,9 +251,9 @@ class TestREADMEQuickstartCommands:
 
         assert ingest_result.returncode == 0, "Ingest should succeed before validation test"
 
-        # Now run validation command from README line 49
+        # Now run validation command from README line 52
         result = subprocess.run(
-            ["marketpipe", "validate", "--symbol", "AAPL", "--start", "2025-01-01"],
+            ["marketpipe", "validate-ohlcv"],
             capture_output=True,
             text=True,
             timeout=60,
@@ -248,13 +267,14 @@ class TestREADMEQuickstartCommands:
             result.returncode == 0 or "completed" in result.stdout.lower()
         ), f"README validate command should execute successfully. Exit code: {result.returncode}\nStderr: {result.stderr}"
 
-    @pytest.mark.skip(reason="Aggregate command CLI interface changed - README outdated")
+    @pytest.mark.skip(
+        reason="Aggregate command requires JOB_ID argument - not user-friendly for README example yet"
+    )
     def test_readme_aggregate_command(self, tmp_path):
-        """Test README line 52: marketpipe aggregate --symbol AAPL --timeframe 5m --start 2025-01-01
+        """Test README line 54-55: marketpipe aggregate-ohlcv
 
-        Note: This is from the "With Real Data" section but we test with fake provider.
-
-        NOTE: Currently skipped as aggregate command now expects JOB_ID, not --symbol option.
+        NOTE: Command requires JOB_ID argument which makes it unsuitable for simple README examples.
+        Skipped until command UX is improved.
         """
         # Setup isolated environment
         import os
@@ -262,11 +282,11 @@ class TestREADMEQuickstartCommands:
         env = os.environ.copy()
         env["MP_DATA_DIR"] = str(tmp_path / "data")
 
-        # First, ingest 1-minute data (needed for aggregation to 5m)
+        # First, ingest 1-minute data (needed for aggregation)
         ingest_result = subprocess.run(
             [
                 "marketpipe",
-                "ingest",
+                "ingest-ohlcv",
                 "--provider",
                 "fake",
                 "--symbols",
@@ -284,18 +304,9 @@ class TestREADMEQuickstartCommands:
 
         assert ingest_result.returncode == 0, "Ingest should succeed before aggregation test"
 
-        # Now run aggregation command from README line 52
+        # Now run aggregation command from README line 55
         result = subprocess.run(
-            [
-                "marketpipe",
-                "aggregate",
-                "--symbol",
-                "AAPL",
-                "--timeframe",
-                "5m",
-                "--start",
-                "2025-01-01",
-            ],
+            ["marketpipe", "aggregate-ohlcv"],
             capture_output=True,
             text=True,
             timeout=60,
@@ -349,7 +360,9 @@ class TestREADMECommandAvailability:
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Query command CLI interface changed - README outdated")
+@pytest.mark.skip(
+    reason="Query requires aggregation, but aggregate command requires JOB_ID - UX not ready for simple README workflow"
+)
 def test_readme_quickstart_full_workflow(tmp_path):
     """Test the complete README quickstart workflow end-to-end.
 
@@ -357,12 +370,13 @@ def test_readme_quickstart_full_workflow(tmp_path):
 
     Steps:
     1. Ingest fake data (README line 29)
-    2. Query the data (README line 32)
-    3. Success!
+    2. Aggregate the data (README line 32) - BLOCKED: requires JOB_ID
+    3. Query the data (README line 35) - BLOCKED: needs aggregation first
+    4. Success!
 
     This is the CRITICAL user journey - if this fails, onboarding fails.
 
-    NOTE: Currently skipped as query command now expects SQL, not --symbol option.
+    NOTE: Skipped until aggregate-ohlcv command works without JOB_ID.
     """
     # Setup isolated environment
     import os
@@ -375,7 +389,7 @@ def test_readme_quickstart_full_workflow(tmp_path):
     ingest_result = subprocess.run(
         [
             "marketpipe",
-            "ingest",
+            "ingest-ohlcv",
             "--provider",
             "fake",
             "--symbols",
@@ -396,34 +410,34 @@ def test_readme_quickstart_full_workflow(tmp_path):
     ), f"Step 1 (ingest) failed. Exit code: {ingest_result.returncode}\nStderr: {ingest_result.stderr}"
     print(f"✓ Ingest completed: {ingest_result.stdout[:200]}")
 
-    # Step 2: QUERY (exact command from README)
-    print("\n=== Step 2: Query (README line 32) ===")
+    # Step 2: AGGREGATE (README line 32)
+    print("\n=== Step 2: Aggregate (README line 32) ===")
+    aggregate_result = subprocess.run(
+        ["marketpipe", "aggregate-ohlcv"],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        env=env,
+    )
+
+    assert (
+        aggregate_result.returncode == 0
+    ), f"Step 2 (aggregate) failed. Exit code: {aggregate_result.returncode}\nStderr: {aggregate_result.stderr}"
+    print(f"✓ Aggregate completed: {aggregate_result.stdout[:200]}")
+
+    # Step 3: QUERY (exact command from README line 35)
+    print("\n=== Step 3: Query (README line 35) ===")
     query_result = subprocess.run(
         [
             "marketpipe",
             "query",
-            "--symbol",
-            "AAPL",
-            "--start",
-            "2025-01-01",  # Note: README uses 2024-01-01 but we ingested 2025
+            "SELECT * FROM bars_1d WHERE symbol='AAPL' AND timestamp >= '2024-01-01' LIMIT 10",
         ],
         capture_output=True,
         text=True,
         timeout=30,
         env=env,
     )
-
-    # Query might fail if date mismatch, but command should execute
-    # Let's be flexible here since data availability depends on ingest
-    if query_result.returncode != 0:
-        # Try with the date we actually ingested
-        query_result = subprocess.run(
-            ["marketpipe", "query", "--symbol", "AAPL", "--start", "2025-01-01"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            env=env,
-        )
 
     assert (
         query_result.returncode == 0 or len(query_result.stdout) > 0

@@ -101,7 +101,7 @@ class TestParquetPruning:
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.write_text("fake parquet data")
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             with patch("marketpipe.metrics.DATA_PRUNED_BYTES_TOTAL"):
                 result = runner.invoke(prune_app, ["parquet", "3y", "--root", str(tmp_path)])
 
@@ -121,7 +121,7 @@ class TestParquetPruning:
         recent_file.parent.mkdir(parents=True, exist_ok=True)
         recent_file.write_text("fake data")
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             result = runner.invoke(prune_app, ["parquet", "5y", "--root", str(tmp_path)])
 
         assert result.exit_code == 0
@@ -131,7 +131,7 @@ class TestParquetPruning:
         """Test pruning with nonexistent directory."""
         runner = CliRunner()
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             result = runner.invoke(prune_app, ["parquet", "1y", "--root", "/nonexistent/path"])
 
         assert result.exit_code == 1
@@ -160,7 +160,7 @@ class TestSQLitePruning:
         runner = CliRunner()
         mock_repo.count_old_jobs.return_value = 42
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             with patch(
                 "marketpipe.ingestion.infrastructure.repository_factory.create_ingestion_job_repository",
                 return_value=mock_repo,
@@ -177,7 +177,7 @@ class TestSQLitePruning:
         runner = CliRunner()
         mock_repo.delete_old_jobs.return_value = 15
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             with patch(
                 "marketpipe.ingestion.infrastructure.repository_factory.create_ingestion_job_repository",
                 return_value=mock_repo,
@@ -194,7 +194,7 @@ class TestSQLitePruning:
         runner = CliRunner()
         mock_repo.delete_old_jobs.return_value = 0
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             with patch(
                 "marketpipe.ingestion.infrastructure.repository_factory.create_ingestion_job_repository",
                 return_value=mock_repo,
@@ -213,7 +213,7 @@ class TestSQLitePruning:
         mock_repo = Mock(spec=[])
         mock_repo.__class__.__name__ = "PostgresIngestionJobRepository"
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             with patch(
                 "marketpipe.ingestion.infrastructure.repository_factory.create_ingestion_job_repository",
                 return_value=mock_repo,
@@ -228,7 +228,7 @@ class TestSQLitePruning:
         runner = CliRunner()
         mock_repo.delete_old_jobs.side_effect = Exception("Database error")
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             with patch(
                 "marketpipe.ingestion.infrastructure.repository_factory.create_ingestion_job_repository",
                 return_value=mock_repo,
@@ -256,7 +256,7 @@ class TestMetricsIntegration:
         test_file.parent.mkdir(parents=True, exist_ok=True)
         test_file.write_text("fake data")
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             with patch("marketpipe.metrics.DATA_PRUNED_BYTES_TOTAL"):
                 with patch("marketpipe.metrics.record_metric") as mock_record:
                     runner.invoke(prune_app, ["parquet", "3y", "--root", str(tmp_path)])
@@ -273,7 +273,7 @@ class TestMetricsIntegration:
         mock_repo.__class__.__name__ = "SqliteIngestionJobRepository"
         mock_repo.delete_old_jobs = AsyncMock(return_value=10)
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             with patch(
                 "marketpipe.ingestion.infrastructure.repository_factory.create_ingestion_job_repository",
                 return_value=mock_repo,
@@ -298,7 +298,7 @@ class TestDomainEvents:
         test_file.parent.mkdir(parents=True, exist_ok=True)
         test_file.write_text("fake data")
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             with patch("marketpipe.domain.events.DataPruned"):
                 result = runner.invoke(prune_app, ["parquet", "3y", "--root", str(tmp_path)])
 
@@ -315,7 +315,7 @@ class TestDomainEvents:
         mock_repo.__class__.__name__ = "SqliteIngestionJobRepository"
         mock_repo.delete_old_jobs = AsyncMock(return_value=5)
 
-        with patch("marketpipe.cli.prune.bootstrap"):
+        with patch("marketpipe.bootstrap.bootstrap"):
             with patch(
                 "marketpipe.ingestion.infrastructure.repository_factory.create_ingestion_job_repository",
                 return_value=mock_repo,

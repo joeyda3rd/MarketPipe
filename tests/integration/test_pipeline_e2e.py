@@ -76,15 +76,19 @@ def test_full_pipeline_end_to_end(tmp_path, monkeypatch):
     ) as mock_service:
         # Create a mock service that simulates successful aggregation
         mock_agg_service = Mock()
-        mock_agg_service.handle_ingestion_completed.return_value = None  # Success
+        mock_agg_service.run_manual_aggregation.return_value = None  # Success
         mock_service.return_value = mock_agg_service
 
         result = runner.invoke(app, ["aggregate", job_id], catch_exceptions=False)
 
         assert result.exit_code == 0
-        assert "All aggregations completed successfully!" in result.stdout
-        # The CLI calls handle_ingestion_completed, not run_manual_aggregation
-        mock_agg_service.handle_ingestion_completed.assert_called_once()
+        # Check for new aggregation completion message format
+        assert (
+            "All aggregations completed successfully!" in result.stdout
+            or "✅ Aggregation completed" in result.stdout
+        )
+        # The CLI now calls run_manual_aggregation
+        mock_agg_service.run_manual_aggregation.assert_called_once()
         print("✓ Aggregation: CLI command succeeded")
 
     # 3. VALIDATE: Run validate CLI command
@@ -104,10 +108,16 @@ def test_full_pipeline_end_to_end(tmp_path, monkeypatch):
             mock_repo_instance.get_report_summary.return_value = {"total_errors": 0}
             mock_csv_repo.return_value = mock_repo_instance
 
-            result = runner.invoke(app, ["validate", "--job-id", job_id], catch_exceptions=False)
+            result = runner.invoke(
+                app, ["validate", job_id], catch_exceptions=False
+            )  # JOB_ID is now positional
 
             assert result.exit_code == 0, f"Validation failed with output: {result.stdout}"
-            assert "Validation completed successfully!" in result.stdout
+            # Check for new validation completion message format
+            assert (
+                "Validation completed successfully!" in result.stdout
+                or "✅ Validation completed for job:" in result.stdout
+            )
             print("✓ Validation: CLI command succeeded")
 
     # 4. QUERY: Run query CLI command
@@ -220,11 +230,15 @@ def test_pipeline_error_handling(tmp_path, monkeypatch):
     assert "nonexistent-job" in result.stdout or result.exit_code == 0
 
     # Test validate command with non-existent job - now succeeds with mocking
-    # The validation would only fail in real scenarios without data
-    result = runner.invoke(app, ["validate", "--job-id", "nonexistent-job"])
+    # The validation would only fail in real scenarios without data (JOB_ID is now positional)
+    result = runner.invoke(app, ["validate", "nonexistent-job"])
     # With our mocked services, this actually succeeds (which is correct for the test)
     assert result.exit_code == 0
-    assert "Validation completed successfully!" in result.stdout
+    # Check for new validation completion message format
+    assert (
+        "Validation completed successfully!" in result.stdout
+        or "✅ Validation completed for job:" in result.stdout
+    )
 
     # Test query command with invalid SQL
     with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:

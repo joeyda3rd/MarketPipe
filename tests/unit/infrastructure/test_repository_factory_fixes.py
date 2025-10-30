@@ -152,6 +152,8 @@ class TestPostgresPoolRaceCondition:
     @pytest.mark.asyncio
     async def test_concurrent_pool_initialization(self):
         """Test that concurrent calls to _get_pool() don't create multiple pools."""
+        pytest.importorskip("asyncpg")
+
         from marketpipe.ingestion.infrastructure.postgres_repository import (
             PostgresIngestionJobRepository,
         )

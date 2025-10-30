@@ -87,7 +87,7 @@ repos:
       # Fast test suite for pre-commit
       - id: fast-tests
         name: Fast Tests
-        entry: python scripts/pre-commit-tests
+        entry: python scripts/pre-commit-tests.sh
         language: system
         pass_filenames: false
         stages: [pre-commit]

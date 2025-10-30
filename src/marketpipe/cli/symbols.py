@@ -10,8 +10,7 @@ import typer
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
-from marketpipe.ingestion.pipeline.symbol_pipeline import run_symbol_pipeline
-from marketpipe.ingestion.symbol_providers import list_providers
+# Heavy imports moved inside functions to optimize --help performance
 
 console = Console()
 
@@ -119,7 +118,7 @@ def update(
         None,
         "--provider",
         "-p",
-        help="Symbol provider(s) to ingest. Available: " + ", ".join(list_providers()),
+        help="Symbol provider(s) to ingest. Use --help after command loads to see available providers.",
     ),
     snapshot_as_of: str = typer.Option(
         str(date.today()), "--snapshot-as-of", help="Snapshot date (YYYY-MM-DD). Default: today"
@@ -153,6 +152,9 @@ def update(
         mp symbols update -p polygon --backfill 2025-01-01 --execute
         mp symbols update -p polygon --diff-only --execute
     """
+    # Lazy imports for performance optimization
+    from marketpipe.ingestion.pipeline.symbol_pipeline import run_symbol_pipeline
+    from marketpipe.ingestion.symbol_providers import list_providers
 
     # Handle default providers (use all if none specified)
     available_providers = list_providers()

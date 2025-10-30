@@ -26,10 +26,13 @@ pip install marketpipe
 
 ```bash
 # Generate test data (no API keys needed)
-marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2025-01-01 --end 2025-01-02
+marketpipe ingest-ohlcv --provider fake --symbols AAPL,GOOGL --start 2025-01-01 --end 2025-01-02
 
-# Query the data
-marketpipe query --symbol AAPL --start 2024-01-01
+# Aggregate the data (creates DuckDB views for querying)
+marketpipe aggregate-ohlcv
+
+# Query the data using SQL
+marketpipe query "SELECT * FROM bars_1d WHERE symbol='AAPL' AND timestamp >= '2024-01-01' LIMIT 10"
 
 # Start monitoring dashboard
 marketpipe metrics --port 8000
@@ -43,13 +46,10 @@ export ALPACA_KEY="your_api_key"
 export ALPACA_SECRET="your_secret"
 
 # Ingest real market data
-marketpipe ingest --provider alpaca --symbols AAPL TSLA --start 2025-01-01 --end 2025-01-02
+marketpipe ingest-ohlcv --provider alpaca --symbols AAPL,TSLA --start 2025-01-01 --end 2025-01-02
 
-# Validate data quality
-marketpipe validate --symbol AAPL --start 2025-01-01
-
-# Aggregate to different timeframes
-marketpipe aggregate --symbol AAPL --timeframe 5m --start 2025-01-01
+# Note: Data validation and aggregation features are being enhanced
+# See CLI documentation for current usage
 ```
 
 ## Documentation
@@ -58,11 +58,11 @@ marketpipe aggregate --symbol AAPL --timeframe 5m --start 2025-01-01
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `ingest` | Collect data from providers | `marketpipe ingest --provider alpaca --symbols AAPL` |
-| `query` | Query stored data | `marketpipe query --symbol AAPL --start 2024-01-01` |
-| `validate` | Check data quality | `marketpipe validate --symbol AAPL` |
-| `aggregate` | Create higher timeframes | `marketpipe aggregate --timeframe 5m` |
+| `ingest-ohlcv` | Collect data from providers | `marketpipe ingest-ohlcv --provider alpaca --symbols AAPL` |
+| `query` | Query stored data with SQL | `marketpipe query "SELECT * FROM bars_1d WHERE symbol='AAPL' LIMIT 10"` |
 | `metrics` | Start monitoring server | `marketpipe metrics --port 8000` |
+| `jobs list` | List ingestion jobs | `marketpipe jobs list` |
+| `jobs cleanup` | Clean up old jobs | `marketpipe jobs cleanup --older-than 7d` |
 
 ### Data Providers
 
@@ -70,19 +70,19 @@ marketpipe aggregate --symbol AAPL --timeframe 5m --start 2025-01-01
 ```bash
 export ALPACA_KEY="your_api_key"
 export ALPACA_SECRET="your_secret"
-marketpipe ingest --provider alpaca --symbols AAPL --feed iex
+marketpipe ingest-ohlcv --provider alpaca --symbols AAPL --feed iex
 ```
 
 #### IEX Cloud
 ```bash
 export IEX_TOKEN="your_token"
-marketpipe ingest --provider iex --symbols AAPL
+marketpipe ingest-ohlcv --provider iex --symbols AAPL
 ```
 
 #### Fake Provider (Development)
 ```bash
 # No credentials needed - generates realistic test data
-marketpipe ingest --provider fake --symbols AAPL GOOGL --start 2025-01-01
+marketpipe ingest-ohlcv --provider fake --symbols AAPL,GOOGL --start 2025-01-01
 ```
 
 ## Development

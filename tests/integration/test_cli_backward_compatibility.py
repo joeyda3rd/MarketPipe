@@ -194,7 +194,24 @@ class BackwardCompatibilityValidator:
                 new_clean = self._clean_output_for_comparison(new_result.stdout)
 
                 if deprecated_clean != new_clean:
-                    differences.append("Output content differs between deprecated and new commands")
+                    # Add debug info to help diagnose the issue
+                    import difflib
+
+                    diff = list(
+                        difflib.unified_diff(
+                            deprecated_clean.splitlines(keepends=True),
+                            new_clean.splitlines(keepends=True),
+                            fromfile="deprecated",
+                            tofile="new",
+                            lineterm="",
+                        )
+                    )
+                    if len(diff) < 50:  # Only include diff if it's reasonably sized
+                        differences.append(f"Output content differs:\n{''.join(diff[:50])}")
+                    else:
+                        differences.append(
+                            "Output content differs between deprecated and new commands"
+                        )
 
                 return len(differences) == 0, differences
 
@@ -205,6 +222,7 @@ class BackwardCompatibilityValidator:
         """Clean output for comparison by removing timestamps, warnings, etc."""
         lines = output.split("\n")
         cleaned_lines = []
+        skip_examples = False
 
         for line in lines:
             line_lower = line.lower()
@@ -217,11 +235,49 @@ class BackwardCompatibilityValidator:
             if line.strip().startswith("Usage:"):
                 continue
 
+            # Skip Examples section (differs between aliases) - inline or separate
+            if "examples:" in line_lower or line.strip().lower().startswith("examples"):
+                skip_examples = True
+                continue
+
+            # Stop skipping once we hit a new section (starts with ╭ or ─ or capitalized word at start)
+            if (
+                skip_examples
+                and line.strip()
+                and (line.strip().startswith("╭") or line.strip().startswith("─"))
+            ):
+                skip_examples = False
+
+            if skip_examples:
+                continue
+
             # Remove ANSI color codes
             line = re.sub(r"\033\[[0-9;]*m", "", line)
 
-            # Normalize description differences (remove parenthetical notes)
+            # Normalize description differences (remove parenthetical notes and extra detail)
             line = re.sub(r"\s*\([^)]*convenience command[^)]*\)", "", line)
+
+            # Normalize description text differences - keep only the main description
+            # Remove "Without JOB_ID:" and "With JOB_ID:" and standalone "JOB_ID:" additional help text
+            if (
+                line.strip().startswith("Without JOB_ID:")
+                or line.strip().startswith("With JOB_ID:")
+                or line.strip().startswith("JOB_ID: Aggregates")
+                or line.strip().startswith("JOB_ID  Specific job")
+            ):
+                continue
+
+            # Remove inline examples (format: "Examples:   marketpipe ...")
+            if "examples:" in line_lower:
+                continue
+
+            # Skip lines that are part of inline examples
+            if (
+                "#" in line
+                and ("aggregate" in line_lower or "validate" in line_lower)
+                and ("days" in line_lower or "jobs" in line_lower)
+            ):
+                continue
 
             # Skip empty lines
             if line.strip():

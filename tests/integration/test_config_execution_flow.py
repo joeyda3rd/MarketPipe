@@ -174,7 +174,11 @@ class TestConfigurationExecutionFlow:
         )
 
         print(f"Execution result stdout: {result.stdout}")
-        print(f"Execution result stderr: {result.stderr}")
+        # Don't try to access stderr if it's not captured separately
+        try:
+            print(f"Execution result stderr: {result.stderr}")
+        except ValueError:
+            print("Note: stderr not separately captured")
 
         # Check if execution succeeded or if there are expected limitations
         execution_attempted = "🚀 Starting ingestion process..." in result.output
@@ -232,7 +236,11 @@ class TestConfigurationExecutionFlow:
         # Should fail gracefully with helpful error message
         assert result.exit_code != 0
         # Check both stdout and stderr for error messages
-        combined_output = (result.stdout + result.stderr).lower()
+        try:
+            combined_output = (result.stdout + result.stderr).lower()
+        except ValueError:
+            # stderr not separately captured
+            combined_output = result.stdout.lower()
         assert (
             "config" in combined_output or "yaml" in combined_output or "parse" in combined_output
         )
