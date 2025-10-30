@@ -422,6 +422,34 @@ Options:
     def _light_jobs_kill() -> None:
         _ty.echo("Jobs kill not executed in light mode.")
 
+    @jobs_light.command(name="cleanup")
+    def _light_jobs_cleanup(
+        delete_all: bool = _ty.Option(
+            False, "--all", help="Remove ALL jobs and checkpoints (use with caution)"
+        ),
+        completed: bool = _ty.Option(False, "--completed", help="Remove completed jobs only"),
+        failed: bool = _ty.Option(False, "--failed", help="Remove failed jobs only"),
+        older_than_days: _Opt[int] = _ty.Option(
+            None, "--older-than", help="Remove jobs older than N days"
+        ),
+        job_id: _Opt[str] = _ty.Option(None, "--job-id", help="Remove specific job ID"),
+        dry_run: bool = _ty.Option(
+            True,
+            "--dry-run/--execute",
+            help="Preview changes without applying them (default: True)",
+        ),
+    ) -> None:
+        """Clean up old or stale jobs and checkpoints.
+
+        Examples:
+            marketpipe jobs cleanup --completed --execute         # Remove completed jobs
+            marketpipe jobs cleanup --failed --execute            # Remove failed jobs
+            marketpipe jobs cleanup --older-than 7 --execute      # Remove jobs > 7 days old
+            marketpipe jobs cleanup --job-id AAPL_2025-10-01 --execute  # Remove specific job
+            marketpipe jobs cleanup --all --execute               # Remove ALL jobs (DANGER!)
+        """
+        _ty.echo("Jobs cleanup not executed in light mode.")
+
     app.add_typer(jobs_light, name="jobs")
 
     # Deprecated aliases

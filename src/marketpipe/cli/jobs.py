@@ -413,5 +413,144 @@ def kill(
         raise typer.Exit(1) from None
 
 
+@jobs_app.command()
+def cleanup(
+    delete_all: bool = typer.Option(
+        False, "--all", help="Remove ALL jobs and checkpoints (use with caution)"
+    ),
+    completed: bool = typer.Option(False, "--completed", help="Remove completed jobs only"),
+    failed: bool = typer.Option(False, "--failed", help="Remove failed jobs only"),
+    older_than_days: Optional[int] = typer.Option(
+        None, "--older-than", help="Remove jobs older than N days"
+    ),
+    job_id: Optional[str] = typer.Option(None, "--job-id", help="Remove specific job ID"),
+    dry_run: bool = typer.Option(
+        True, "--dry-run/--execute", help="Preview changes without applying them (default: True)"
+    ),
+):
+    """Clean up old or stale jobs and checkpoints.
+
+    Examples:
+        marketpipe jobs cleanup --completed --execute         # Remove completed jobs
+        marketpipe jobs cleanup --failed --execute            # Remove failed jobs
+        marketpipe jobs cleanup --older-than 7 --execute      # Remove jobs > 7 days old
+        marketpipe jobs cleanup --job-id AAPL_2025-10-01 --execute  # Remove specific job
+        marketpipe jobs cleanup --all --execute               # Remove ALL jobs (DANGER!)
+        marketpipe jobs cleanup --all                         # Preview what would be deleted
+    """
+
+    db_path = _get_db_path()
+    if not db_path:
+        typer.echo("❌ No ingestion jobs database found")
+        raise typer.Exit(1)
+
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Build query based on options
+            conditions = []
+            params: list[object] = []
+
+            if delete_all:
+                # Delete everything
+                typer.echo("⚠️  WARNING: This will delete ALL jobs and checkpoints!")
+                if not dry_run:
+                    confirm = typer.confirm("Are you sure you want to delete ALL jobs?", abort=True)
+                    if not confirm:
+                        typer.echo("❌ Cancelled")
+                        raise typer.Exit(0)
+            elif job_id:
+                # Job ID is format "SYMBOL_YYYY-MM-DD", split it
+                if "_" in job_id:
+                    symbol_part, day_part = job_id.rsplit("_", 1)
+                    conditions.append("symbol = ? AND day = ?")
+                    params.extend([symbol_part, day_part])
+                else:
+                    typer.echo(
+                        f"❌ Invalid job ID format. Expected: SYMBOL_YYYY-MM-DD, got: {job_id}"
+                    )
+                    raise typer.Exit(1)
+            else:
+                # Apply filters
+                state_conditions = []
+                if completed:
+                    state_conditions.append("state = 'COMPLETED'")
+                if failed:
+                    state_conditions.append("state = 'FAILED'")
+
+                if state_conditions:
+                    conditions.append(f"({' OR '.join(state_conditions)})")
+
+                if older_than_days:
+                    cutoff = datetime.now(timezone.utc) - timedelta(days=older_than_days)
+                    conditions.append("updated_at < ?")
+                    params.append(cutoff.isoformat())
+
+            # Build WHERE clause
+            where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+            # Preview jobs to be deleted
+            cursor.execute(
+                f"SELECT id, symbol, day, state, created_at, updated_at FROM ingestion_jobs WHERE {where_clause}",
+                params,
+            )
+            jobs_to_delete = cursor.fetchall()
+
+            if not jobs_to_delete:
+                typer.echo("📭 No jobs found matching the criteria")
+                return
+
+            typer.echo(
+                f"\n{'🔍 PREVIEW' if dry_run else '🗑️  DELETING'}: {len(jobs_to_delete)} jobs"
+            )
+            typer.echo("=" * 80)
+
+            for job in jobs_to_delete[:10]:  # Show first 10
+                job_id_display = f"{job['symbol']}_{job['day']}"
+                typer.echo(f"  • {job_id_display:<25} {job['state']:<12} {job['updated_at']}")
+
+            if len(jobs_to_delete) > 10:
+                typer.echo(f"  ... and {len(jobs_to_delete) - 10} more")
+
+            # Get checkpoint count (checkpoints use symbol and day too)
+            cursor.execute(
+                f"SELECT COUNT(*) FROM checkpoints c WHERE EXISTS (SELECT 1 FROM ingestion_jobs j WHERE j.symbol = c.symbol AND {where_clause.replace('state', 'j.state').replace('updated_at', 'j.updated_at')})",
+                params,
+            )
+            checkpoint_count = cursor.fetchone()[0]
+            typer.echo(f"\n📌 Associated checkpoints: {checkpoint_count}")
+
+            if dry_run:
+                typer.echo("\n💡 Run with --execute to apply these changes")
+                return
+
+            # Delete jobs and checkpoints
+            typer.echo("\n🗑️  Deleting...")
+
+            # Delete checkpoints first
+            # Checkpoints are linked by symbol, not job_id
+            cursor.execute(
+                f"DELETE FROM checkpoints WHERE EXISTS (SELECT 1 FROM ingestion_jobs WHERE ingestion_jobs.symbol = checkpoints.symbol AND {where_clause.replace('state', 'ingestion_jobs.state').replace('updated_at', 'ingestion_jobs.updated_at')})",
+                params,
+            )
+            deleted_checkpoints = cursor.rowcount
+
+            # Delete jobs
+            cursor.execute(f"DELETE FROM ingestion_jobs WHERE {where_clause}", params)
+            deleted_jobs = cursor.rowcount
+
+            conn.commit()
+
+            typer.echo(f"✅ Deleted {deleted_jobs} jobs")
+            typer.echo(f"✅ Deleted {deleted_checkpoints} checkpoints")
+            typer.echo("🎉 Cleanup complete!")
+
+    except Exception as e:
+        typer.echo(f"❌ Database error: {e}")
+        raise typer.Exit(1) from None
+
+
 # Export the app
 __all__ = ["jobs_app"]
