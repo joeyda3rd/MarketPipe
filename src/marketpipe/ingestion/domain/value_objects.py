@@ -21,6 +21,7 @@ class IngestionConfiguration:
     batch_size: int
     rate_limit_per_minute: Optional[int]
     feed_type: str
+    timeframe: str = "1m"
 
     def __post_init__(self):
         """Validate configuration values."""
@@ -36,8 +37,13 @@ class IngestionConfiguration:
         if self.compression not in ["snappy", "gzip", "lz4", "zstd"]:
             raise ValueError(f"Unsupported compression: {self.compression}")
 
-        if self.feed_type not in ["iex", "sip"]:
+        if self.feed_type not in ["iex", "sip", "delayed", "real-time"]:
             raise ValueError(f"Unsupported feed type: {self.feed_type}")
+
+        # Validate timeframe format
+        valid_timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"]
+        if self.timeframe not in valid_timeframes:
+            raise ValueError(f"Unsupported timeframe: {self.timeframe}. Valid: {valid_timeframes}")
 
     @classmethod
     def from_dict(cls, config_dict: dict[str, Any]) -> IngestionConfiguration:
@@ -49,6 +55,7 @@ class IngestionConfiguration:
             batch_size=config_dict.get("batch_size", 1000),
             rate_limit_per_minute=config_dict.get("rate_limit_per_min"),
             feed_type=config_dict.get("feed", "iex"),
+            timeframe=config_dict.get("timeframe", "1m"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -60,6 +67,7 @@ class IngestionConfiguration:
             "batch_size": self.batch_size,
             "rate_limit_per_min": self.rate_limit_per_minute,
             "feed": self.feed_type,
+            "timeframe": self.timeframe,
         }
 
 

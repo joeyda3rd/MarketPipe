@@ -40,6 +40,7 @@ class IMarketDataProvider(ABC):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """
         Fetch OHLCV bars for a symbol within a time range.
@@ -48,6 +49,7 @@ class IMarketDataProvider(ABC):
             symbol: The financial symbol to fetch
             time_range: Time range to fetch data for
             max_bars: Maximum number of bars to fetch
+            timeframe: Bar timeframe (e.g., "1m", "5m", "15m", "1h", "1d")
 
         Returns:
             List of domain OHLCV bar entities

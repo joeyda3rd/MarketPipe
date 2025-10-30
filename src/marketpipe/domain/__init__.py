@@ -14,12 +14,7 @@ independent of infrastructure concerns.
 
 from .aggregates import SymbolBarsAggregate
 from .entities import Entity, EntityId, OHLCVBar
-from .events import (
-    BarCollectionCompleted,
-    DomainEvent,
-    IngestionJobCompleted,
-    ValidationFailed,
-)
+from .events import BarCollectionCompleted, DomainEvent, IngestionJobCompleted, ValidationFailed
 from .market_data import (
     IMarketDataProvider,
     InvalidSymbolError,

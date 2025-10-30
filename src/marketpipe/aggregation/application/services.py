@@ -64,7 +64,7 @@ class AggregationRunnerService:
             sql_pairs = [(spec, self._domain.duckdb_sql(spec)) for spec in DEFAULT_SPECS]
 
             # Run aggregation
-            result = self._engine.aggregate_job(event.job_id, sql_pairs)
+            self._engine.aggregate_job(event.job_id, sql_pairs)
 
             # Refresh DuckDB views to pick up new data
             from ..infrastructure.duckdb_views import refresh_views
@@ -78,14 +78,7 @@ class AggregationRunnerService:
                 "aggregation_frames_processed", frames_processed, provider=provider, feed=feed
             )
 
-            # If engine returns row counts, record those too
-            if hasattr(result, "total_rows_aggregated"):
-                record_metric(
-                    "aggregation_rows_processed",
-                    result.total_rows_aggregated,
-                    provider=provider,
-                    feed=feed,
-                )
+            # If engine returns row counts in the future, they can be recorded here
 
             # Publish success event
             success_event = AggregationCompleted(event.job_id, frames_processed)
@@ -143,7 +136,19 @@ class AggregationRunnerService:
         Returns:
             Configured aggregation runner service
         """
-        engine = DuckDBAggregationEngine(raw_root=Path("data/raw"), agg_root=Path("data/agg"))
+        import os
+
+        raw_root = Path(os.environ.get("MARKETPIPE_RAW_ROOT", "data/raw"))
+        agg_root = Path(os.environ.get("MARKETPIPE_AGG_ROOT", "data/agg"))
+        # Keep DuckDB views in sync with chosen aggregation root
+        try:
+            from ..infrastructure.duckdb_views import set_agg_root
+
+            set_agg_root(agg_root)
+        except Exception:
+            pass
+
+        engine = DuckDBAggregationEngine(raw_root=raw_root, agg_root=agg_root)
         domain = AggregationDomainService()
 
         return cls(engine=engine, domain=domain)

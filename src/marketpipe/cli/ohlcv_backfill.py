@@ -132,7 +132,7 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
                     # Fix: For single day backfill, start=gap_day, end=gap_day+1
                     next_day = gap_day + dt.timedelta(days=1)
                     _ingest_impl(
-                        config=str(config) if config else None,
+                        config=config,
                         symbols=sym,
                         start=gap_day.isoformat(),
                         end=next_day.isoformat(),  # Use next day for end to satisfy start < end validation
@@ -140,9 +140,17 @@ def backfill_ohlcv(  # noqa: PLR0913 – CLI has many options
                         # leave other overrides None to use config/defaults
                     )
                     duration = (dt.datetime.utcnow() - started).total_seconds()
-                    asyncio.run(event_bus.publish(BackfillJobCompleted(sym, gap_day, duration)))
+                    from marketpipe.domain.value_objects import Symbol
+
+                    asyncio.run(
+                        event_bus.publish(BackfillJobCompleted(Symbol(sym), gap_day, duration))
+                    )
                 except Exception as exc:  # noqa: BLE001 – surface any ingestion error
-                    asyncio.run(event_bus.publish(BackfillJobFailed(sym, gap_day, str(exc))))
+                    from marketpipe.domain.value_objects import Symbol
+
+                    asyncio.run(
+                        event_bus.publish(BackfillJobFailed(Symbol(sym), gap_day, str(exc)))
+                    )
                     typer.echo(f"❌ Back-fill failed for {sym} {gap_day}: {exc}", err=True)
 
     typer.echo(

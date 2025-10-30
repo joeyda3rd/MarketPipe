@@ -19,7 +19,7 @@ from ..domain.repositories import (
 )
 from ..domain.services import IngestionDomainService, IngestionProgressTracker, JobCreationRequest
 from ..domain.storage import IDataStorage
-from ..domain.value_objects import IngestionCheckpoint, IngestionPartition
+from ..domain.value_objects import BatchConfiguration, IngestionCheckpoint, IngestionPartition
 from .commands import (
     CancelJobCommand,
     CompleteJobCommand,
@@ -173,7 +173,7 @@ class IngestionJobService:
             symbols=original_job.symbols,
             time_range=original_job.time_range,
             configuration=original_job.configuration,
-            batch_config=original_job.configuration,  # Simplified for this example
+            batch_config=BatchConfiguration.default(),
         )
 
         new_job = self._domain_service.create_ingestion_job(new_request)
@@ -317,14 +317,15 @@ class IngestionCoordinatorService:
 
         try:
             # Process symbols in parallel using asyncio.gather
-            tasks = [self._process_symbol(job, symbol) for symbol in job.symbols]
+            symbols_list = list(job.symbols)
+            tasks = [self._process_symbol(job, symbol) for symbol in symbols_list]
 
             # Execute all tasks concurrently
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             # Process results
             for i, result in enumerate(results):
-                symbol = job.symbols[i]
+                symbol = symbols_list[i]
 
                 if isinstance(result, Exception):
                     # Log error and continue with other symbols
@@ -339,10 +340,14 @@ class IngestionCoordinatorService:
                     )
                 else:
                     try:
-                        bars_count, partition = result
+                        from typing import cast
+
+                        bars_count, partition = cast(tuple[int, IngestionPartition], result)
 
                         # Mark symbol as processed in the job
                         job = await self._job_repository.get_by_id(job_id)  # Refresh job state
+                        if job is None:
+                            raise IngestionJobNotFoundError(job_id)
                         job.mark_symbol_processed(symbol, bars_count, partition)
                         await self._job_repository.save(job)
 
@@ -426,7 +431,7 @@ class IngestionCoordinatorService:
             from marketpipe.metrics import record_metric
 
             record_metric("ingest_job_failures", 1, provider=provider, feed=feed)
-            if job.symbols:
+            if job and job.symbols:
                 for symbol in job.symbols:
                     record_metric(
                         f"ingest_failures_{symbol.value}", 1, provider=provider, feed=feed
@@ -466,19 +471,32 @@ class IngestionCoordinatorService:
         checkpoint = await self._checkpoint_repository.get_checkpoint(job.job_id, symbol)
 
         # Determine start point for data fetching
-        # Use checkpoint if available, otherwise use job's time range start
+        # Use checkpoint if available AND valid, otherwise use job's time range start
+        job_start_ns = int(job.time_range.start.value.timestamp() * 1_000_000_000)
+        job_end_ns = int(job.time_range.end.value.timestamp() * 1_000_000_000)
+
         if checkpoint:
-            start_timestamp = checkpoint.last_processed_timestamp
+            # Validate checkpoint is within the job's time range
+            if checkpoint.last_processed_timestamp < job_start_ns:
+                # Checkpoint is before job start - ignore it (stale from old job)
+                start_timestamp = job_start_ns
+            elif checkpoint.last_processed_timestamp >= job_end_ns:
+                # Checkpoint is at or after job end - ignore it (already complete or invalid)
+                start_timestamp = job_start_ns
+            else:
+                # Valid checkpoint - resume from where we left off
+                start_timestamp = checkpoint.last_processed_timestamp
         else:
-            # Convert job's start time to nanoseconds
-            start_timestamp = int(job.time_range.start.value.timestamp() * 1_000_000_000)
+            # No checkpoint - start from beginning
+            start_timestamp = job_start_ns
 
         # Fetch data from market data provider (anti-corruption layer)
         bars = await self._market_data_provider.fetch_bars(
             symbol=symbol,
             start_timestamp=start_timestamp,
-            end_timestamp=int(job.time_range.end.value.timestamp() * 1_000_000_000),
+            end_timestamp=job_end_ns,
             batch_size=job.configuration.batch_size,
+            timeframe=job.configuration.timeframe,
         )
 
         if not bars:

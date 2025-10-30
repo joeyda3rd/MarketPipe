@@ -123,7 +123,6 @@ class SymbolRecord(BaseModel):
             if len(v_clean) != 12:
                 raise ValueError("FIGI must be exactly 12 characters")
             return v_clean
-        return v
 
     @field_validator("cusip")
     @classmethod
@@ -138,7 +137,6 @@ class SymbolRecord(BaseModel):
             if len(v_clean) != 9:
                 raise ValueError("CUSIP must be exactly 9 characters")
             return v_clean
-        return v
 
     @field_validator("isin")
     @classmethod
@@ -153,7 +151,6 @@ class SymbolRecord(BaseModel):
             if len(v_clean) != 12:
                 raise ValueError("ISIN must be exactly 12 characters")
             return v_clean
-        return v
 
     @field_validator("cik")
     @classmethod
@@ -168,7 +165,6 @@ class SymbolRecord(BaseModel):
             if not v_clean.isdigit():
                 raise ValueError("CIK must contain only digits")
             return v_clean.zfill(10)  # Zero-pad to 10 characters
-        return v
 
     @field_validator("exchange_mic")
     @classmethod
@@ -214,7 +210,6 @@ class SymbolRecord(BaseModel):
             if v_clean == "" or v_clean.upper() in {"N/A", "NA", "NULL"}:
                 return None
             return v_clean
-        return v
 
     @field_validator("shares_outstanding")
     @classmethod
@@ -405,9 +400,14 @@ def safe_create(record_kwargs: dict, *, provider: str) -> Optional[SymbolRecord]
         return SymbolRecord(**record_kwargs)
     except ValidationError as err:
         # Extract first validation error for logging
-        first_error = err.errors()[0] if err.errors() else {}
-        field_path = ".".join(str(loc) for loc in first_error.get("loc", []))
-        error_msg = first_error.get("msg", "Unknown validation error")
+        errors_list = err.errors()
+        if errors_list:
+            first_error = errors_list[0]
+            field_path = ".".join(str(loc) for loc in first_error["loc"])
+            error_msg = str(first_error["msg"])
+        else:
+            field_path = ""
+            error_msg = str(err)
 
         _val_logger.warning(
             "provider=%s ticker=%s field=%s error=%s",

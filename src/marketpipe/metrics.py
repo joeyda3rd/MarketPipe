@@ -260,10 +260,29 @@ _metrics_repo: Optional[SqliteMetricsRepository] = None
 
 
 def get_metrics_repository() -> SqliteMetricsRepository:
-    """Get or create the global metrics repository."""
+    """Get or create the global metrics repository.
+
+    Respects METRICS_DB_PATH and resets the cached repository if the target
+    database path has changed (e.g., in tests that set the env var).
+    """
     global _metrics_repo
-    # Always recreate if environment variable might have changed
-    _metrics_repo = SqliteMetricsRepository()
+    desired_path_env = os.environ.get("METRICS_DB_PATH")
+    desired_path = desired_path_env or "data/db/core.db"
+    desired_abs = str(Path(desired_path).resolve())
+
+    if _metrics_repo is not None:
+        try:
+            current_abs = str(Path(_metrics_repo.db_path).resolve())
+        except Exception:
+            current_abs = ""
+
+        # Recreate if the resolved target path changed (e.g., different CWD or env)
+        if current_abs != desired_abs:
+            _metrics_repo = SqliteMetricsRepository(desired_path)
+        return _metrics_repo
+
+    # Create new repository at the resolved path
+    _metrics_repo = SqliteMetricsRepository(desired_path)
     return _metrics_repo
 
 
@@ -327,9 +346,9 @@ def record_metric(
         loop.create_task(repo.record(name, value, provider, feed))
         # Don't wait for completion to avoid blocking
     except RuntimeError:
-        # No running event loop, run it synchronously
+        # No running event loop; perform a synchronous write using a temporary loop
         try:
             asyncio.run(repo.record(name, value, provider, feed))
         except Exception:
-            # If there are still event loop issues, just skip silently
+            # Swallow persistence errors in non-critical contexts (e.g., CLI/help runs)
             pass

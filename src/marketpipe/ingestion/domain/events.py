@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -22,16 +22,9 @@ class IngestionJobStarted(DomainEvent):
     symbols: list[Symbol]
     time_range: TimeRange
     started_at: datetime
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -62,16 +55,9 @@ class IngestionJobCompleted(DomainEvent):
     total_bars_processed: int
     partitions_created: int
     completed_at: datetime
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -99,16 +85,9 @@ class IngestionJobFailed(DomainEvent):
     error_message: str
     failed_at: datetime
     symbols_processed: int
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -134,16 +113,9 @@ class IngestionJobCancelled(DomainEvent):
     job_id: IngestionJobId
     cancelled_at: datetime
     symbols_processed: int
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -170,16 +142,9 @@ class IngestionBatchProcessed(DomainEvent):
     bars_processed: int
     partition: IngestionPartition
     processed_at: datetime
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -207,16 +172,9 @@ class IngestionCheckpointSaved(DomainEvent):
     symbol: Symbol
     checkpoint_timestamp: int
     records_processed: int
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:
@@ -243,16 +201,9 @@ class IngestionRateLimited(DomainEvent):
     symbol: Symbol
     delay_seconds: float
     reason: str
-    event_id: UUID = None
-    occurred_at: datetime = None
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
-
-    def __post_init__(self):
-        # Use object.__setattr__ for frozen dataclasses
-        if self.event_id is None:
-            object.__setattr__(self, "event_id", uuid4())
-        if self.occurred_at is None:
-            object.__setattr__(self, "occurred_at", datetime.now(timezone.utc))
 
     @property
     def event_type(self) -> str:

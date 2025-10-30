@@ -18,20 +18,21 @@ import logging
 import os
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import duckdb
 
-try:
-    from marketpipe.ingestion.normalizer.scd_writer import (
-        attach_symbols_master,
-        run_scd_update,
-    )
-except ImportError:
-    # Fallback for development/testing
-    import sys
+if TYPE_CHECKING:
+    from marketpipe.ingestion.normalizer.scd_writer import attach_symbols_master, run_scd_update
+else:
+    try:
+        from marketpipe.ingestion.normalizer.scd_writer import attach_symbols_master, run_scd_update
+    except ImportError:
+        # Fallback for development/testing
+        import sys as _sys
 
-    sys.path.insert(0, str(Path(__file__).parent))
-    from scd_writer import attach_symbols_master, run_scd_update
+        _sys.path.insert(0, str(Path(__file__).parent))
+        from scd_writer import attach_symbols_master, run_scd_update
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -121,7 +122,8 @@ Examples:
             required_tables = ["symbols_snapshot", "diff_insert", "diff_update", "diff_unchanged"]
             for table in required_tables:
                 try:
-                    count = db.sql(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                    _row = db.sql(f"SELECT COUNT(*) FROM {table}").fetchone()
+                    count = _row[0] if _row else 0
                     logger.debug(f"Table {table}: {count} rows")
                 except Exception as e:
                     logger.error(f"Required table {table} not found: {e}")

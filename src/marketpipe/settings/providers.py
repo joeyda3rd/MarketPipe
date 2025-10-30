@@ -10,18 +10,23 @@ type validation and documentation for required credentials.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional, cast
 
 from pydantic import Field
 
+# Resolve BaseSettings from either pydantic-settings or pydantic under a single alias
+_BaseSettingsType: type[Any]
 try:
-    from pydantic_settings import BaseSettings
-except ImportError:
-    # Fallback for older pydantic versions
-    from pydantic import BaseSettings
+    import pydantic_settings as _ps
+
+    _BaseSettingsType = cast(type[Any], _ps.BaseSettings)
+except Exception:  # pragma: no cover - fallback for older pydantic
+    import pydantic as _p
+
+    _BaseSettingsType = cast(type[Any], _p.BaseSettings)
 
 
-class AlpacaSettings(BaseSettings):
+class AlpacaSettings(_BaseSettingsType):
     """Alpaca Markets API settings.
 
     Alpaca provides free-tier market data through IEX and paid data through SIP.
@@ -44,7 +49,7 @@ class AlpacaSettings(BaseSettings):
         case_sensitive = True
 
 
-class IEXSettings(BaseSettings):
+class IEXSettings(_BaseSettingsType):
     """IEX Cloud API settings.
 
     IEX Cloud provides US equities data with both secret and publishable tokens.
@@ -79,7 +84,7 @@ class IEXSettings(BaseSettings):
         case_sensitive = True
 
 
-class FinnhubSettings(BaseSettings):
+class FinnhubSettings(_BaseSettingsType):
     """Finnhub API settings.
 
     Finnhub provides financial market data with good free tier coverage.
@@ -96,7 +101,7 @@ class FinnhubSettings(BaseSettings):
         case_sensitive = True
 
 
-class PolygonSettings(BaseSettings):
+class PolygonSettings(_BaseSettingsType):
     """Polygon.io API settings.
 
     Polygon provides tick-level US equities and options data with fast WebSockets.
@@ -113,7 +118,7 @@ class PolygonSettings(BaseSettings):
         case_sensitive = True
 
 
-class BinanceSettings(BaseSettings):
+class BinanceSettings(_BaseSettingsType):
     """Binance API settings.
 
     Binance is the largest spot crypto exchange with global liquidity.
@@ -133,7 +138,7 @@ class BinanceSettings(BaseSettings):
         case_sensitive = True
 
 
-class TiingoSettings(BaseSettings):
+class TiingoSettings(_BaseSettingsType):
     """Tiingo API settings.
 
     Tiingo provides high-quality US equities & news in CSV/JSON formats.
@@ -150,7 +155,7 @@ class TiingoSettings(BaseSettings):
         case_sensitive = True
 
 
-class TwelveDataSettings(BaseSettings):
+class TwelveDataSettings(_BaseSettingsType):
     """Twelve Data API settings.
 
     Twelve Data provides 1-minute global equities/forex with generous free tier.
@@ -169,7 +174,7 @@ class TwelveDataSettings(BaseSettings):
         case_sensitive = True
 
 
-class FredSettings(BaseSettings):
+class FredSettings(_BaseSettingsType):
     """FRED (Federal Reserve Economic Data) settings.
 
     FRED provides US economic indicators and requires no authentication.
@@ -191,7 +196,7 @@ class FredSettings(BaseSettings):
 # =============================================================================
 
 
-class AlphaVantageSettings(BaseSettings):
+class AlphaVantageSettings(_BaseSettingsType):
     """Alpha Vantage API settings (BACKLOG).
 
     Environment Variables:
@@ -208,7 +213,7 @@ class AlphaVantageSettings(BaseSettings):
         case_sensitive = True
 
 
-class MarketStackSettings(BaseSettings):
+class MarketStackSettings(_BaseSettingsType):
     """MarketStack API settings (BACKLOG).
 
     Environment Variables:
@@ -225,7 +230,7 @@ class MarketStackSettings(BaseSettings):
         case_sensitive = True
 
 
-class EODHDSettings(BaseSettings):
+class EODHDSettings(_BaseSettingsType):
     """EODHD API settings (BACKLOG).
 
     Environment Variables:
@@ -240,7 +245,7 @@ class EODHDSettings(BaseSettings):
         case_sensitive = True
 
 
-class IntrinioSettings(BaseSettings):
+class IntrinioSettings(_BaseSettingsType):
     """Intrinio API settings (BACKLOG).
 
     Environment Variables:
@@ -257,7 +262,7 @@ class IntrinioSettings(BaseSettings):
         case_sensitive = True
 
 
-class TradierSettings(BaseSettings):
+class TradierSettings(_BaseSettingsType):
     """Tradier API settings (BACKLOG).
 
     Environment Variables:
@@ -274,7 +279,7 @@ class TradierSettings(BaseSettings):
         case_sensitive = True
 
 
-class QuandlSettings(BaseSettings):
+class QuandlSettings(_BaseSettingsType):
     """Quandl API settings (BACKLOG).
 
     Environment Variables:
@@ -289,7 +294,7 @@ class QuandlSettings(BaseSettings):
         case_sensitive = True
 
 
-class RefinitivSettings(BaseSettings):
+class RefinitivSettings(_BaseSettingsType):
     """Refinitiv API settings (BACKLOG).
 
     Environment Variables:
@@ -304,7 +309,7 @@ class RefinitivSettings(BaseSettings):
         case_sensitive = True
 
 
-class ExegySettings(BaseSettings):
+class ExegySettings(_BaseSettingsType):
     """Exegy API settings (BACKLOG).
 
     Environment Variables:
@@ -319,7 +324,7 @@ class ExegySettings(BaseSettings):
         case_sensitive = True
 
 
-class CMEDataMineSettings(BaseSettings):
+class CMEDataMineSettings(_BaseSettingsType):
     """CME DataMine API settings (BACKLOG).
 
     Environment Variables:
@@ -342,7 +347,7 @@ class CMEDataMineSettings(BaseSettings):
         case_sensitive = True
 
 
-class KrakenSettings(BaseSettings):
+class KrakenSettings(_BaseSettingsType):
     """Kraken API settings (BACKLOG).
 
     Environment Variables:
@@ -359,7 +364,7 @@ class KrakenSettings(BaseSettings):
         case_sensitive = True
 
 
-class CoinbaseSettings(BaseSettings):
+class CoinbaseSettings(_BaseSettingsType):
     """Coinbase API settings (BACKLOG).
 
     Environment Variables:
@@ -376,7 +381,7 @@ class CoinbaseSettings(BaseSettings):
         case_sensitive = True
 
 
-class YFinanceSettings(BaseSettings):
+class YFinanceSettings(_BaseSettingsType):
     """Yahoo Finance settings (BACKLOG).
 
     Yahoo Finance doesn't require credentials for basic usage.

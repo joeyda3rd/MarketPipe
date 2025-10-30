@@ -16,6 +16,17 @@ from marketpipe.metrics import SYMBOLS_ROWS
 logger = logging.getLogger(__name__)
 
 
+def _arrow_to_table(arrow_result):
+    """
+    Convert DuckDB arrow result to PyArrow Table.
+
+    Handles both RecordBatchReader (Python 3.13+/newer DuckDB) and Table (older versions).
+    """
+    if hasattr(arrow_result, "read_all"):
+        return arrow_result.read_all()
+    return arrow_result
+
+
 def run_scd_update(
     db: duckdb.DuckDBPyConnection, data_dir: str, dry_run: bool = False
 ) -> dict[str, int]:
@@ -53,9 +64,12 @@ def run_scd_update(
 
     # Check if diff tables exist and get counts
     try:
-        insert_count = db.sql("SELECT COUNT(*) FROM diff_insert").fetchone()[0]
-        update_count = db.sql("SELECT COUNT(*) FROM diff_update").fetchone()[0]
-        unchanged_count = db.sql("SELECT COUNT(*) FROM diff_unchanged").fetchone()[0]
+        tup = db.sql("SELECT COUNT(*) FROM diff_insert").fetchone()
+        insert_count = int(tup[0]) if tup and tup[0] is not None else 0
+        tup = db.sql("SELECT COUNT(*) FROM diff_update").fetchone()
+        update_count = int(tup[0]) if tup and tup[0] is not None else 0
+        tup = db.sql("SELECT COUNT(*) FROM diff_unchanged").fetchone()
+        unchanged_count = int(tup[0]) if tup and tup[0] is not None else 0
 
         logger.info(
             f"Diff summary - Insert: {insert_count}, Update: {update_count}, Unchanged: {unchanged_count}"
@@ -109,28 +123,31 @@ def run_scd_update(
         try:
             if not dry_run:
                 # Read all existing data and close rows that are being updated
-                existing_data = db.execute(
-                    """
-                    SELECT *,
-                           CASE
-                               WHEN id IN (SELECT id FROM diff_update) AND valid_to IS NULL
-                               THEN $1::DATE
-                               ELSE valid_to
-                           END as updated_valid_to
-                    FROM symbols_master
-                """,
-                    [close_date],
-                ).arrow()
+                existing_data = _arrow_to_table(
+                    db.execute(
+                        """
+                        SELECT *,
+                               CASE
+                                   WHEN id IN (SELECT id FROM diff_update) AND valid_to IS NULL
+                                   THEN $1::DATE
+                                   ELSE valid_to
+                               END as updated_valid_to
+                        FROM symbols_master
+                    """,
+                        [close_date],
+                    ).arrow()
+                )
 
                 # Count rows that were closed
-                closed_count = db.execute(
+                tup = db.execute(
                     """
                     SELECT COUNT(*)
                     FROM symbols_master
                     WHERE id IN (SELECT id FROM diff_update)
                       AND valid_to IS NULL
                 """
-                ).fetchone()[0]
+                ).fetchone()
+                closed_count = int(tup[0]) if tup and tup[0] is not None else 0
 
                 stats["rows_closed"] = closed_count
                 logger.info(f"Will close {closed_count} existing rows with valid_to = {close_date}")
@@ -169,14 +186,15 @@ def run_scd_update(
                     all_data_to_write.append(existing_df)
             else:
                 # Dry run - just count what would be closed
-                closed_count = db.execute(
+                tup = db.execute(
                     """
                     SELECT COUNT(*)
                     FROM symbols_master
                     WHERE id IN (SELECT id FROM diff_update)
                       AND valid_to IS NULL
                 """
-                ).fetchone()[0]
+                ).fetchone()
+                closed_count = int(tup[0]) if tup and tup[0] is not None else 0
                 stats["rows_closed"] = closed_count
                 logger.info(f"[DRY RUN] Would close {closed_count} existing rows")
 
@@ -185,7 +203,7 @@ def run_scd_update(
     else:
         # No updates, just read existing data as-is
         try:
-            existing_data = db.execute("SELECT * FROM symbols_master").arrow()
+            existing_data = _arrow_to_table(db.execute("SELECT * FROM symbols_master").arrow())
             if len(existing_data) > 0:
                 existing_df = existing_data.to_pandas()
                 # Ensure consistent column ordering
@@ -234,34 +252,40 @@ def run_scd_update(
 
             if insert_count > 0 and update_count > 0:
                 # Both inserts and updates
-                new_rows_table = db.execute(
-                    f"""
-                    SELECT {column_select}
-                    FROM diff_insert
-                    UNION ALL
-                    SELECT {column_select.replace('$1', '$2')}
-                    FROM diff_update
-                """,
-                    [snapshot_date, snapshot_date],
-                ).arrow()
+                new_rows_table = _arrow_to_table(
+                    db.execute(
+                        f"""
+                        SELECT {column_select}
+                        FROM diff_insert
+                        UNION ALL
+                        SELECT {column_select.replace('$1', '$2')}
+                        FROM diff_update
+                    """,
+                        [snapshot_date, snapshot_date],
+                    ).arrow()
+                )
             elif insert_count > 0:
                 # Only inserts
-                new_rows_table = db.execute(
-                    f"""
-                    SELECT {column_select}
-                    FROM diff_insert
-                """,
-                    [snapshot_date],
-                ).arrow()
+                new_rows_table = _arrow_to_table(
+                    db.execute(
+                        f"""
+                        SELECT {column_select}
+                        FROM diff_insert
+                    """,
+                        [snapshot_date],
+                    ).arrow()
+                )
             elif update_count > 0:
                 # Only updates
-                new_rows_table = db.execute(
-                    f"""
-                    SELECT {column_select}
-                    FROM diff_update
-                """,
-                    [snapshot_date],
-                ).arrow()
+                new_rows_table = _arrow_to_table(
+                    db.execute(
+                        f"""
+                        SELECT {column_select}
+                        FROM diff_update
+                    """,
+                        [snapshot_date],
+                    ).arrow()
+                )
 
             # Convert to pandas DataFrame
             new_rows_df = new_rows_table.to_pandas()

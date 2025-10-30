@@ -10,21 +10,23 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import weakref
-from contextlib import AbstractAsyncContextManager
+from collections.abc import AsyncIterator
 
 import aiosqlite
 
 # Per-event-loop locks to avoid "bound to different event loop" errors
-_EVENT_LOOP_LOCKS: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
+_EVENT_LOOP_LOCKS: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Lock] = (
+    weakref.WeakKeyDictionary()
+)
 
 
 def _get_event_loop_lock() -> asyncio.Lock:
     """Get or create a lock for the current event loop."""
     try:
-        loop = asyncio.get_running_loop()
+        loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
     except RuntimeError:
-        # No running loop - create a dummy key that will get its own lock
-        loop = object()  # type: ignore[assignment]
+        # Fallback: obtain (or create) a loop to use as a key
+        loop = asyncio.get_event_loop()
 
     if loop not in _EVENT_LOOP_LOCKS:
         _EVENT_LOOP_LOCKS[loop] = asyncio.Lock()
@@ -50,7 +52,7 @@ class SqliteAsyncMixin:
     db_path: str
 
     @contextlib.asynccontextmanager
-    async def _conn(self) -> AbstractAsyncContextManager[aiosqlite.Connection]:
+    async def _conn(self) -> AsyncIterator[aiosqlite.Connection]:
         """Async context manager for SQLite connections.
 
         Provides a configured aiosqlite connection with:

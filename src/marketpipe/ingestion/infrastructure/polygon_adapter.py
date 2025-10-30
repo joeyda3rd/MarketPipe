@@ -58,6 +58,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """
         Fetch OHLCV bars from Polygon.io API.
@@ -65,13 +66,12 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
         Args:
             symbol: Stock symbol (e.g., AAPL)
             time_range: Time range for data retrieval
-            max_bars: Maximum number of bars to fetch
+            max_bars: Maximum bars per API request (Polygon's limit parameter)
+            timeframe: Bar timeframe (e.g., "1m", "5m", "15m", "1h", "1d")
 
         Returns:
-            List of OHLCV bars
+            List of OHLCV bars for the entire time range (paginated as needed)
         """
-        # Default to daily timeframe for interface compatibility
-        timeframe = "1d"
         self.log.info(
             f"Fetching {timeframe} bars for {symbol.value} from {time_range.start} to {time_range.end}"
         )
@@ -87,9 +87,13 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
         cursor = None
         page_count = 0
 
+        # Convert time range to timestamps for validation
+        start_ts = int(time_range.start.value.timestamp() * 1000)  # milliseconds
+        end_ts = int(time_range.end.value.timestamp() * 1000)  # milliseconds
+
         while True:
             page_count += 1
-            self.log.debug(f"Fetching page {page_count} for {symbol.value}")
+            self.log.info(f"📥 Fetching page {page_count} for {symbol.value}...")
 
             # Apply rate limiting
             await self._apply_rate_limit()
@@ -108,6 +112,8 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
             if cursor:
                 params["cursor"] = cursor
 
+            self.log.debug(f"Requesting: {url} with params: {params}")
+
             try:
                 # Make HTTP request
                 response_data = await self._make_request(url, params)
@@ -115,12 +121,30 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                 # Parse response
                 if "results" in response_data and response_data["results"]:
                     page_bars = self._parse_polygon_response(response_data, symbol)
-                    bars.extend(page_bars)
-                    self.log.debug(f"Parsed {len(page_bars)} bars from page {page_count}")
 
-                    # Check if we have enough bars
-                    if len(bars) >= max_bars:
-                        bars = bars[:max_bars]
+                    # Filter bars to only include those within the requested time range
+                    # This prevents pagination from downloading data outside the requested range
+                    filtered_bars = []
+                    for bar in page_bars:
+                        bar_ts = int(bar.timestamp.value.timestamp() * 1000)
+                        if start_ts <= bar_ts <= end_ts:
+                            filtered_bars.append(bar)
+                        elif bar_ts > end_ts:
+                            # Bar is after our end date - stop pagination
+                            self.log.info(
+                                f"⏹️  Reached end of requested date range at bar {bar.timestamp.value}"
+                            )
+                            cursor = None  # Force stop pagination
+                            break
+
+                    bars.extend(filtered_bars)
+                    self.log.info(
+                        f"✅ Page {page_count}: Downloaded {len(page_bars)} bars, "
+                        f"kept {len(filtered_bars)} within range (Total: {len(bars)} bars)"
+                    )
+
+                    # If cursor was cleared due to reaching end date, break
+                    if cursor is None:
                         break
                 else:
                     self.log.warning(f"No results in response for {symbol.value}")
@@ -146,9 +170,16 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                     # If subsequent pages fail, return what we have
                     break
 
-        self.log.info(
-            f"Successfully fetched {len(bars)} bars for {symbol.value} ({page_count} pages)"
-        )
+        if bars:
+            self.log.info(
+                f"🎉 Successfully fetched {len(bars)} {timeframe} bars for {symbol.value} "
+                f"across {page_count} API request(s)"
+            )
+        else:
+            self.log.warning(
+                f"⚠️  No bars returned for {symbol.value} in date range {from_date} to {to_date}"
+            )
+
         return bars
 
     async def get_supported_symbols(self) -> list[Symbol]:
@@ -213,6 +244,36 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
             maximum_history_days=365 * 2,  # Polygon has good historical data
         )
 
+    # Legacy method for backward compatibility
+    async def fetch_bars(
+        self,
+        symbol: Symbol,
+        start_timestamp: int,
+        end_timestamp: int,
+        batch_size: int = 1000,
+        timeframe: str = "1m",
+    ) -> list[OHLCVBar]:
+        """
+        Legacy method for backward compatibility with application service.
+
+        Args:
+            symbol: Stock symbol
+            start_timestamp: Start timestamp in nanoseconds
+            end_timestamp: End timestamp in nanoseconds
+            batch_size: Maximum number of bars to fetch
+            timeframe: Bar timeframe (e.g., "1m", "5m", "15m", "1h", "1d")
+
+        Returns:
+            List of OHLCV bars
+        """
+        # Convert nanosecond timestamps to TimeRange
+        start_ts = Timestamp.from_nanoseconds(start_timestamp)
+        end_ts = Timestamp.from_nanoseconds(end_timestamp)
+        time_range = TimeRange(start_ts, end_ts)
+
+        # Delegate to the interface method
+        return await self.fetch_bars_for_symbol(symbol, time_range, batch_size, timeframe)
+
     async def _apply_rate_limit(self) -> None:
         """Apply rate limiting based on free tier limits."""
         async with self._rate_limit_lock:
@@ -229,7 +290,10 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                 wait_time = 60.0 - (now - oldest_request)
 
                 if wait_time > 0:
-                    self.log.info(f"Rate limit reached, waiting {wait_time:.1f} seconds")
+                    self.log.info(
+                        f"⏳ Rate limit ({self.rate_limit_per_minute}/min) reached, "
+                        f"waiting {wait_time:.1f}s..."
+                    )
                     await asyncio.sleep(wait_time)
 
             # Record this request
@@ -250,7 +314,9 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                     # Handle rate limiting
                     if response.status_code == 429:
                         retry_after = int(response.headers.get("Retry-After", 60))
-                        self.log.warning(f"Rate limited, waiting {retry_after} seconds")
+                        self.log.info(
+                            f"⏳ HTTP 429: Rate limited by server, waiting {retry_after}s..."
+                        )
                         await asyncio.sleep(retry_after)
                         continue
 
@@ -269,7 +335,9 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                         response.raise_for_status()
 
                     # Parse JSON response
-                    data = response.json()
+                    from typing import cast
+
+                    data = cast(dict[str, Any], response.json())
 
                     # Check API status
                     if data.get("status") == "ERROR":

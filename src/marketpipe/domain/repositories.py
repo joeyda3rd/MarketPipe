@@ -9,7 +9,7 @@ in the domain layer as interfaces and implemented in infrastructure.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from datetime import date
 
 # Import concrete implementations (only in type checking to keep interfaces clean)
@@ -110,7 +110,7 @@ class IOHLCVRepository(ABC):
     @abstractmethod
     async def get_bars_for_symbol(
         self, symbol: Symbol, time_range: TimeRange
-    ) -> AsyncIterator[OHLCVBar]:
+    ) -> AsyncGenerator[OHLCVBar, None]:
         """Stream bars for symbol in time range.
 
         Args:
@@ -125,7 +125,7 @@ class IOHLCVRepository(ABC):
     @abstractmethod
     async def get_bars_for_symbols(
         self, symbols: list[Symbol], time_range: TimeRange
-    ) -> AsyncIterator[OHLCVBar]:
+    ) -> AsyncGenerator[OHLCVBar, None]:
         """Stream bars for multiple symbols in time range.
 
         Args:

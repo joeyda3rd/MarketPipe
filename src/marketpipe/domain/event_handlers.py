@@ -11,4 +11,5 @@ from __future__ import annotations
 # All logging and metrics handlers have been moved to infrastructure layer.
 # Future domain event handlers should contain only business logic.
 
-__all__ = []
+# Explicitly type __all__ for mypy
+__all__: list[str] = []

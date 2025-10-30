@@ -8,7 +8,7 @@ with async aiosqlite for non-blocking operations.
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from datetime import date
 from pathlib import Path
 from typing import Any, Optional
@@ -70,7 +70,6 @@ class SqliteSymbolBarsRepository(SqliteAsyncMixin, ISymbolBarsRepository):
                 aggregate._version = row["version"]
                 aggregate._is_complete = bool(row["is_complete"])
                 aggregate._collection_started = bool(row["collection_started"])
-                aggregate._bar_count = row["bar_count"]
 
                 return aggregate
         except Exception as e:
@@ -150,7 +149,7 @@ class SqliteSymbolBarsRepository(SqliteAsyncMixin, ISymbolBarsRepository):
     ) -> dict[str, dict[str, bool]]:
         """Get completion status for symbol/date combinations."""
         try:
-            result = {}
+            result: dict[str, dict[str, bool]] = {}
             async with self._conn() as db:
                 symbol_placeholders = ",".join("?" * len(symbols))
                 date_placeholders = ",".join("?" * len(trading_dates))
@@ -213,61 +212,69 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
         # Apply migrations on first use
         apply_pending(self._db_path)
 
-    async def get_bars_for_symbol(
+    def get_bars_for_symbol(
         self, symbol: Symbol, time_range: TimeRange
-    ) -> AsyncIterator[OHLCVBar]:
+    ) -> AsyncGenerator[OHLCVBar, None]:
         """Stream bars for symbol in time range."""
-        try:
-            async with self._conn() as db:
-                db.row_factory = aiosqlite.Row
-                cursor = await db.execute(
-                    """
-                    SELECT id, symbol, timestamp_ns, open_price, high_price, low_price,
-                           close_price, volume, trade_count, vwap
-                    FROM ohlcv_bars
-                    WHERE symbol = ? AND timestamp_ns >= ? AND timestamp_ns <= ?
-                    ORDER BY timestamp_ns
-                """,
-                    (
-                        symbol.value,
-                        time_range.start.to_nanoseconds(),
-                        time_range.end.to_nanoseconds(),
-                    ),
-                )
 
-                async for row in cursor:
-                    bar = self._row_to_ohlcv_bar(row)
-                    yield bar
-        except Exception as e:
-            raise RepositoryError(f"Failed to get bars for symbol: {e}") from e
+        async def gen() -> AsyncGenerator[OHLCVBar, None]:
+            try:
+                async with self._conn() as db:
+                    db.row_factory = aiosqlite.Row
+                    cursor = await db.execute(
+                        """
+                        SELECT id, symbol, timestamp_ns, open_price, high_price, low_price,
+                               close_price, volume, trade_count, vwap
+                        FROM ohlcv_bars
+                        WHERE symbol = ? AND timestamp_ns >= ? AND timestamp_ns <= ?
+                        ORDER BY timestamp_ns
+                    """,
+                        (
+                            symbol.value,
+                            time_range.start.to_nanoseconds(),
+                            time_range.end.to_nanoseconds(),
+                        ),
+                    )
 
-    async def get_bars_for_symbols(
+                    async for row in cursor:
+                        bar = self._row_to_ohlcv_bar(row)
+                        yield bar
+            except Exception as e:
+                raise RepositoryError(f"Failed to get bars for symbol: {e}") from e
+
+        return gen()
+
+    def get_bars_for_symbols(
         self, symbols: list[Symbol], time_range: TimeRange
-    ) -> AsyncIterator[OHLCVBar]:
+    ) -> AsyncGenerator[OHLCVBar, None]:
         """Stream bars for multiple symbols in time range."""
-        try:
-            async with self._conn() as db:
-                db.row_factory = aiosqlite.Row
-                symbol_placeholders = ",".join("?" * len(symbols))
 
-                cursor = await db.execute(
-                    f"""
-                    SELECT id, symbol, timestamp_ns, open_price, high_price, low_price,
-                           close_price, volume, trade_count, vwap
-                    FROM ohlcv_bars
-                    WHERE symbol IN ({symbol_placeholders})
-                    AND timestamp_ns >= ? AND timestamp_ns <= ?
-                    ORDER BY timestamp_ns, symbol
-                """,
-                    [s.value for s in symbols]
-                    + [time_range.start.to_nanoseconds(), time_range.end.to_nanoseconds()],
-                )
+        async def gen() -> AsyncGenerator[OHLCVBar, None]:
+            try:
+                async with self._conn() as db:
+                    db.row_factory = aiosqlite.Row
+                    symbol_placeholders = ",".join("?" * len(symbols))
 
-                async for row in cursor:
-                    bar = self._row_to_ohlcv_bar(row)
-                    yield bar
-        except Exception as e:
-            raise RepositoryError(f"Failed to get bars for symbols: {e}") from e
+                    cursor = await db.execute(
+                        f"""
+                        SELECT id, symbol, timestamp_ns, open_price, high_price, low_price,
+                               close_price, volume, trade_count, vwap
+                        FROM ohlcv_bars
+                        WHERE symbol IN ({symbol_placeholders})
+                        AND timestamp_ns >= ? AND timestamp_ns <= ?
+                        ORDER BY timestamp_ns, symbol
+                    """,
+                        [s.value for s in symbols]
+                        + [time_range.start.to_nanoseconds(), time_range.end.to_nanoseconds()],
+                    )
+
+                    async for row in cursor:
+                        bar = self._row_to_ohlcv_bar(row)
+                        yield bar
+            except Exception as e:
+                raise RepositoryError(f"Failed to get bars for symbols: {e}") from e
+
+        return gen()
 
     def _row_to_ohlcv_bar(self, row) -> OHLCVBar:
         """Convert database row to OHLCVBar entity."""
@@ -364,7 +371,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
                     )
 
                 row = await cursor.fetchone()
-                return row[0]
+                return int(row[0]) if row and row[0] is not None else 0
         except Exception as e:
             raise RepositoryError(f"Failed to count bars: {e}") from e
 
@@ -382,7 +389,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
 
                 row = await cursor.fetchone()
                 result = row[0] if row else None
-                return Timestamp.from_nanoseconds(result) if result is not None else None
+                return Timestamp.from_nanoseconds(int(result)) if result is not None else None
         except Exception as e:
             raise RepositoryError(f"Failed to get latest timestamp: {e}") from e
 
@@ -411,7 +418,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
                     )
 
                 await db.commit()
-                return cursor.rowcount
+                return int(cursor.rowcount)
         except Exception as e:
             raise RepositoryError(f"Failed to delete bars: {e}") from e
 
@@ -462,7 +469,9 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, ICheckpointRepository):
 
                 row = await cursor.fetchone()
                 if row:
-                    return json.loads(row[0])
+                    data = json.loads(row[0])
+                    if isinstance(data, dict):
+                        return data
                 return None
         except Exception as e:
             raise RepositoryError(f"Failed to get checkpoint: {e}") from e
@@ -499,18 +508,6 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, ICheckpointRepository):
             raise RepositoryError(f"Failed to list checkpoints: {e}") from e
 
 
-def _add_entityid_from_string():
-    """Add from_string method to EntityId if not present."""
-    if not hasattr(EntityId, "from_string"):
-
-        @classmethod
-        def from_string(cls, id_str: str) -> EntityId:
-            from uuid import UUID
-
-            return cls(UUID(id_str))
-
-        EntityId.from_string = from_string
-
-
-# Add the method on import
-_add_entityid_from_string()
+def _add_entityid_from_string() -> None:
+    """No-op shim kept for backward compatibility (method now on EntityId)."""
+    return

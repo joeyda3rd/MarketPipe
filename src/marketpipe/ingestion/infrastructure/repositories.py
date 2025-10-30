@@ -309,6 +309,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             "end_timestamp": job.time_range.end.to_nanoseconds(),
             "provider": getattr(job.configuration, "provider", "unknown"),
             "feed": getattr(job.configuration, "feed_type", "unknown"),
+            "timeframe": getattr(job.configuration, "timeframe", "1m"),
             "state": job.state.value,
             "created_at": job.created_at.isoformat(),
             "started_at": job.started_at.isoformat() if job.started_at else None,
@@ -352,6 +353,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             batch_size=1000,
             rate_limit_per_minute=200,
             feed_type=payload.get("feed", "iex"),
+            timeframe=payload.get("timeframe", "1m"),
         )
 
         # Create job
@@ -389,6 +391,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             "end_timestamp": job.time_range.end.to_nanoseconds(),
             "provider": getattr(job.configuration, "provider", "unknown"),
             "feed": getattr(job.configuration, "feed_type", "unknown"),
+            "timeframe": getattr(job.configuration, "timeframe", "1m"),
             "state": job.state.value,
             "created_at": job.created_at.isoformat(),
             "started_at": job.started_at.isoformat() if job.started_at else None,
@@ -432,6 +435,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
             batch_size=1000,
             rate_limit_per_minute=200,
             feed_type=job_dict.get("feed", "iex"),
+            timeframe=job_dict.get("timeframe", "1m"),
         )
 
         # Create job
@@ -718,17 +722,16 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                 """
                 CREATE TABLE IF NOT EXISTS ingestion_metrics (
                     job_id TEXT NOT NULL,
-                    start_timestamp INTEGER NOT NULL,
-                    end_timestamp INTEGER NOT NULL,
-                    total_records INTEGER NOT NULL,
-                    processed_records INTEGER NOT NULL,
-                    failed_records INTEGER NOT NULL,
-                    processing_time_seconds REAL NOT NULL,
-                    throughput_records_per_second REAL NOT NULL,
+                    symbols_processed INTEGER NOT NULL,
+                    symbols_failed INTEGER NOT NULL,
+                    total_bars_ingested INTEGER NOT NULL,
+                    total_processing_time_seconds REAL NOT NULL,
+                    average_processing_time_per_symbol REAL NOT NULL,
+                    peak_memory_usage_mb REAL,
                     created_at TIMESTAMP NOT NULL,
                     PRIMARY KEY (job_id)
                 )
-            """
+                """
             )
 
     async def save_metrics(self, job_id: IngestionJobId, metrics: ProcessingMetrics) -> None:
@@ -738,20 +741,19 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                 await db.execute(
                     """
                     INSERT OR REPLACE INTO ingestion_metrics
-                    (job_id, start_timestamp, end_timestamp, total_records,
-                     processed_records, failed_records, processing_time_seconds,
-                     throughput_records_per_second, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (job_id, symbols_processed, symbols_failed, total_bars_ingested,
+                     total_processing_time_seconds, average_processing_time_per_symbol,
+                     peak_memory_usage_mb, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         str(job_id),
-                        metrics.start_timestamp,
-                        metrics.end_timestamp,
-                        metrics.total_records,
-                        metrics.processed_records,
-                        metrics.failed_records,
-                        metrics.processing_time_seconds,
-                        metrics.throughput_records_per_second,
+                        metrics.symbols_processed,
+                        metrics.symbols_failed,
+                        metrics.total_bars_ingested,
+                        metrics.total_processing_time_seconds,
+                        metrics.average_processing_time_per_symbol,
+                        metrics.peak_memory_usage_mb,
                         datetime.now(),
                     ),
                 )
@@ -767,9 +769,9 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
                     """
-                    SELECT start_timestamp, end_timestamp, total_records,
-                           processed_records, failed_records, processing_time_seconds,
-                           throughput_records_per_second
+                    SELECT symbols_processed, symbols_failed, total_bars_ingested,
+                           total_processing_time_seconds, average_processing_time_per_symbol,
+                           peak_memory_usage_mb
                     FROM ingestion_metrics
                     WHERE job_id = ?
                 """,
@@ -781,13 +783,18 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                     return None
 
                 return ProcessingMetrics(
-                    start_timestamp=row["start_timestamp"],
-                    end_timestamp=row["end_timestamp"],
-                    total_records=row["total_records"],
-                    processed_records=row["processed_records"],
-                    failed_records=row["failed_records"],
-                    processing_time_seconds=row["processing_time_seconds"],
-                    throughput_records_per_second=row["throughput_records_per_second"],
+                    symbols_processed=int(row["symbols_processed"]),
+                    symbols_failed=int(row["symbols_failed"]),
+                    total_bars_ingested=int(row["total_bars_ingested"]),
+                    total_processing_time_seconds=float(row["total_processing_time_seconds"]),
+                    average_processing_time_per_symbol=float(
+                        row["average_processing_time_per_symbol"]
+                    ),
+                    peak_memory_usage_mb=(
+                        float(row["peak_memory_usage_mb"])
+                        if row["peak_memory_usage_mb"] is not None
+                        else None
+                    ),
                 )
 
         except aiosqlite.Error as e:
@@ -802,9 +809,9 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
                     """
-                    SELECT job_id, start_timestamp, end_timestamp, total_records,
-                           processed_records, failed_records, processing_time_seconds,
-                           throughput_records_per_second
+                    SELECT job_id, symbols_processed, symbols_failed, total_bars_ingested,
+                           total_processing_time_seconds, average_processing_time_per_symbol,
+                           peak_memory_usage_mb
                     FROM ingestion_metrics
                     WHERE created_at BETWEEN ? AND ?
                     ORDER BY created_at DESC
@@ -818,13 +825,18 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                 for row in rows:
                     job_id = IngestionJobId.from_string(row["job_id"])
                     metrics = ProcessingMetrics(
-                        start_timestamp=row["start_timestamp"],
-                        end_timestamp=row["end_timestamp"],
-                        total_records=row["total_records"],
-                        processed_records=row["processed_records"],
-                        failed_records=row["failed_records"],
-                        processing_time_seconds=row["processing_time_seconds"],
-                        throughput_records_per_second=row["throughput_records_per_second"],
+                        symbols_processed=int(row["symbols_processed"]),
+                        symbols_failed=int(row["symbols_failed"]),
+                        total_bars_ingested=int(row["total_bars_ingested"]),
+                        total_processing_time_seconds=float(row["total_processing_time_seconds"]),
+                        average_processing_time_per_symbol=float(
+                            row["average_processing_time_per_symbol"]
+                        ),
+                        peak_memory_usage_mb=(
+                            float(row["peak_memory_usage_mb"])
+                            if row["peak_memory_usage_mb"] is not None
+                            else None
+                        ),
                     )
                     result.append((job_id, metrics))
 
@@ -842,13 +854,12 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                 cursor = await db.execute(
                     """
                     SELECT
-                        AVG(start_timestamp) as avg_start_timestamp,
-                        AVG(end_timestamp) as avg_end_timestamp,
-                        AVG(total_records) as avg_total_records,
-                        AVG(processed_records) as avg_processed_records,
-                        AVG(failed_records) as avg_failed_records,
-                        AVG(processing_time_seconds) as avg_processing_time_seconds,
-                        AVG(throughput_records_per_second) as avg_throughput_records_per_second
+                        AVG(symbols_processed) as avg_symbols_processed,
+                        AVG(symbols_failed) as avg_symbols_failed,
+                        AVG(total_bars_ingested) as avg_total_bars_ingested,
+                        AVG(total_processing_time_seconds) as avg_total_processing_time_seconds,
+                        AVG(average_processing_time_per_symbol) as avg_avg_time_per_symbol,
+                        AVG(peak_memory_usage_mb) as avg_peak_memory_usage_mb
                     FROM ingestion_metrics
                     WHERE created_at BETWEEN ? AND ?
                 """,
@@ -860,13 +871,12 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                     return None
 
                 return ProcessingMetrics(
-                    start_timestamp=int(row[0]),
-                    end_timestamp=int(row[1]),
-                    total_records=int(row[2]),
-                    processed_records=int(row[3]),
-                    failed_records=int(row[4]),
-                    processing_time_seconds=float(row[5]),
-                    throughput_records_per_second=float(row[6]),
+                    symbols_processed=int(row[0]),
+                    symbols_failed=int(row[1]),
+                    total_bars_ingested=int(row[2]),
+                    total_processing_time_seconds=float(row[3]),
+                    average_processing_time_per_symbol=float(row[4]),
+                    peak_memory_usage_mb=(float(row[5]) if row[5] is not None else None),
                 )
 
         except aiosqlite.Error as e:
@@ -881,7 +891,10 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
                     """
-                    SELECT DATE(created_at) as day, AVG(throughput_records_per_second) as avg_throughput
+                    SELECT DATE(created_at) as day,
+                           AVG(CASE WHEN total_processing_time_seconds > 0
+                                    THEN total_bars_ingested / total_processing_time_seconds
+                                    ELSE 0 END) as avg_throughput
                     FROM ingestion_metrics
                     WHERE created_at >= ?
                     GROUP BY DATE(created_at)

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 import duckdb
 import pandas as pd
@@ -120,7 +121,11 @@ class DuckDBAggregationEngine:
             raise
 
     def get_aggregated_data(
-        self, symbol: str, frame: FrameSpec, start_ts: int = None, end_ts: int = None
+        self,
+        symbol: str,
+        frame: FrameSpec,
+        start_ts: Optional[int] = None,
+        end_ts: Optional[int] = None,
     ) -> pd.DataFrame:
         """Load aggregated data for a symbol and timeframe.
 

@@ -336,8 +336,8 @@ class TestCliCommandBootstrap:
                 assert is_bootstrapped()
                 # mock_apply.assert_called_once()  # Skip - bootstrap uses orchestrator now
 
-    def test_query_command_calls_bootstrap(self, tmp_path):
-        """Test that query command calls bootstrap."""
+    def test_query_command_does_not_call_bootstrap(self, tmp_path):
+        """Test that query command does NOT call bootstrap (queries parquet files directly)."""
         from typer.testing import CliRunner
 
         from marketpipe.cli import app
@@ -364,9 +364,9 @@ class TestCliCommandBootstrap:
                 # Command should succeed
                 assert result.exit_code == 0
 
-                # Bootstrap should have been called
-                assert is_bootstrapped()
-                # mock_apply.assert_called_once()  # Skip - bootstrap uses orchestrator now
+                # Bootstrap should NOT have been called (query reads parquet files directly)
+                assert not is_bootstrapped()
+                # mock_apply.assert_not_called()  # Query doesn't need database
 
 
 class TestBootstrapConcurrency:

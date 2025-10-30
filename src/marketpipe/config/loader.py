@@ -8,7 +8,7 @@ import warnings
 from pathlib import Path
 from typing import Any, Union
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from .ingestion import CURRENT_CONFIG_VERSION, MIN_SUPPORTED_VERSION, IngestionJobConfig
 

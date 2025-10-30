@@ -25,6 +25,9 @@ from marketpipe.metrics import SYMBOLS_NULL_RATIO, SYMBOLS_SNAPSHOT_RECORDS
 async def _fetch_one(name: str, snapshot_as_of: _dt.date) -> list:
     token_env = f"{name.upper()}_API_KEY"
     token = os.getenv(token_env)
+    # Fail fast for providers that require auth (avoid network call without token)
+    if name.lower() == "polygon" and not token:
+        raise RuntimeError("Missing POLYGON_API_KEY for provider 'polygon'")
     provider = get_provider(name, token=token, as_of=snapshot_as_of)
     records = await provider.fetch_symbols()
     # attach provider column for tie-breaks / auditing
@@ -92,7 +95,8 @@ def diff_snapshot(conn: duckdb.DuckDBPyConnection) -> tuple[int, int]:
 
     # Simple placeholder: treat all snapshot records as inserts if no master exists
     try:
-        master_count = conn.execute("SELECT COUNT(*) FROM symbols_master").fetchone()[0]
+        _row = conn.execute("SELECT COUNT(*) FROM symbols_master").fetchone()
+        master_count = _row[0] if _row else 0
         if master_count == 0:
             # No existing master data, treat all as inserts
             conn.execute(
@@ -101,7 +105,8 @@ def diff_snapshot(conn: duckdb.DuckDBPyConnection) -> tuple[int, int]:
                 SELECT * FROM symbols_snapshot
             """
             )
-            insert_count = conn.execute("SELECT COUNT(*) FROM diff_insert").fetchone()[0]
+            _row2 = conn.execute("SELECT COUNT(*) FROM diff_insert").fetchone()
+            insert_count = _row2[0] if _row2 else 0
             update_count = 0
         else:
             # Has existing data - for now, treat all as unchanged
@@ -122,7 +127,8 @@ def diff_snapshot(conn: duckdb.DuckDBPyConnection) -> tuple[int, int]:
             SELECT * FROM symbols_snapshot
         """
         )
-        insert_count = conn.execute("SELECT COUNT(*) FROM diff_insert").fetchone()[0]
+        _row3 = conn.execute("SELECT COUNT(*) FROM diff_insert").fetchone()
+        insert_count = _row3[0] if _row3 else 0
         update_count = 0
 
     return insert_count, update_count

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -34,7 +34,7 @@ async def serve_metrics_dashboard(
 
     def parse_prometheus_metrics(text: str) -> dict[str, Any]:
         """Parse Prometheus exposition format into structured data."""
-        metrics = {}
+        metrics: dict[str, dict[str, Any]] = {}
         lines = text.strip().split("\n")
 
         current_metric = None
@@ -51,7 +51,7 @@ async def serve_metrics_dashboard(
                                 else ""
                             ),
                             "type": "unknown",
-                            "values": [],
+                            "values": cast(list[dict[str, Any]], []),
                         }
                 elif line.startswith("# TYPE "):
                     parts = line.split(" ", 3)
@@ -81,7 +81,7 @@ async def serve_metrics_dashboard(
                         metrics[metric_name] = {
                             "help": "",
                             "type": "unknown",
-                            "values": [],
+                            "values": cast(list[dict[str, Any]], []),
                         }
 
                     try:

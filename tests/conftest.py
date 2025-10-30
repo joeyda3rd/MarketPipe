@@ -67,6 +67,10 @@ class IntegrationEnvironment:
             "temp_dir": self.get_temp_dir(),
         }
 
+    # Backward-compatibility: allow dict-style access used by some tests
+    def __getitem__(self, key: str):
+        return self.as_dict()[key]
+
 
 @pytest.fixture
 def integration_environment():

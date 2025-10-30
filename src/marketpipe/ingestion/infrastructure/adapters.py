@@ -45,7 +45,10 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
 
         # Configure Alpaca client (infrastructure layer)
         self._client_config = ClientConfig(
-            api_key=api_key, base_url=base_url, rate_limit_per_min=rate_limit_per_min
+            api_key=api_key,
+            base_url=base_url,
+            rate_limit_per_min=rate_limit_per_min,
+            burst_size=rate_limit_per_min,
         )
         self._auth = HeaderTokenAuth(api_key, api_secret)
         self._rate_limiter = create_rate_limiter_from_config(

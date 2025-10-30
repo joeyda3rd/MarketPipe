@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 __all__ = [
     "cli_error",
@@ -60,15 +60,19 @@ def validate_date_range(start: Optional[str], end: Optional[str]) -> None:
     except ValueError:
         cli_error("invalid date format; use YYYY-MM-DD", code=2)
 
-    if end_date < start_date:
-        cli_error("end date must not be before start date", code=2)
+    if end_date <= start_date:
+        cli_error("start date must be before end date", code=2)
 
     today = dt.date.today()
     if start_date > today or end_date > today:
         cli_error("date range cannot be in the future", code=2)
 
+    # Prevent very old ranges for CLI option validation (2 years)
+    if (today - end_date).days > 730:
+        cli_error("date range older than 730 days", code=2)
 
-_SYMBOL_RE = re.compile(r"^[A-Z0-9\.]{1,10}$")
+
+_SYMBOL_RE = re.compile(r"^[A-Z][A-Z0-9\.]{0,9}$")
 
 
 def validate_symbols(symbols_csv: Optional[str]) -> list[str]:
@@ -128,8 +132,8 @@ def validate_workers(workers: Optional[int]) -> None:
         return
     if workers < 1:
         cli_error("--workers must be positive", code=2)
-    if workers > 64:
-        cli_error("--workers exceeds maximum (64)", code=2)
+    if workers > 20:
+        cli_error("invalid number of workers; maximum is 20", code=2)
 
 
 def validate_batch_size(size: Optional[int]) -> None:

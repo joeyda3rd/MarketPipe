@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from datetime import date
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import fasteners
 import pandas as pd
@@ -188,12 +188,13 @@ class ParquetStorageEngine:
         """
         from datetime import datetime, timezone
 
+        from marketpipe.domain.value_objects import Symbol
         from marketpipe.ingestion.domain.value_objects import IngestionPartition
 
         if not bars:
             # Return a dummy partition for empty data
             return IngestionPartition(
-                symbol=None,  # Fixed: Don't access bars[0] when bars is empty
+                symbol=Symbol.from_string("UNKNOWN"),
                 file_path=self._root / "empty.parquet",
                 record_count=0,
                 file_size_bytes=0,
@@ -238,10 +239,13 @@ class ParquetStorageEngine:
             # Use semantic job ID that includes the trading day
             job_id = f"{symbol}_{trading_day.isoformat()}"
 
+            # Get timeframe from configuration, default to 1m if not available
+            timeframe = getattr(configuration, "timeframe", "1m")
+
             # Write to storage
             file_path = self.write(
                 df,
-                frame="1m",  # Default to 1-minute bars
+                frame=timeframe,  # Use configuration timeframe
                 symbol=symbol,
                 trading_day=trading_day,
                 job_id=job_id,
@@ -286,7 +290,7 @@ class ParquetStorageEngine:
         else:
             # Fallback for empty partitions (should not happen if bars is not empty)
             return IngestionPartition(
-                symbol=bars[0].symbol if bars else None,  # Fixed: Safe access to bars
+                symbol=bars[0].symbol if bars else Symbol.from_string("UNKNOWN"),
                 file_path=self._root / "empty.parquet",
                 record_count=0,
                 file_size_bytes=0,
@@ -493,7 +497,7 @@ class ParquetStorageEngine:
 
         return sorted(job_ids)
 
-    def get_storage_stats(self) -> dict[str, any]:
+    def get_storage_stats(self) -> dict[str, Any]:
         """Get storage statistics.
 
         Returns:
@@ -530,7 +534,7 @@ class ParquetStorageEngine:
             "symbols": sorted(symbols),
         }
 
-    def validate_integrity(self) -> dict[str, any]:
+    def validate_integrity(self) -> dict[str, Any]:
         """Validate storage integrity and return diagnostics.
 
         Returns:

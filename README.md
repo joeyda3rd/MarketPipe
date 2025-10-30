@@ -346,8 +346,6 @@ MarketPipe's development focuses exclusively on enhancing ETL capabilities withi
 - Usage analytics and lineage visualization
 - Data governance and quality tracking
 
-=======
-
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.

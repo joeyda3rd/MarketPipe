@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from .base import SymbolProviderBase
 
 _REGISTRY: dict[str, type[SymbolProviderBase]] = {}

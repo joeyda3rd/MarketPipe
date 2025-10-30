@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import logging
-from importlib.metadata import entry_points
+from importlib.metadata import EntryPoint, entry_points
+from typing import Any
 
 from marketpipe.domain.market_data import IMarketDataProvider
 
@@ -26,6 +27,27 @@ _DEFAULT_PROVIDER_NAMES = {"alpaca", "iex", "fake"}
 _allow_default_registration: bool = True
 
 
+def _discover_entry_points() -> list[EntryPoint]:
+    """Return provider entry points across Python versions.
+
+    Handles both the modern ``entry_points().select(group=...)`` API and the
+    older mapping-like return value that exposes ``get(group, [])``.
+    """
+    try:
+        eps: Any = entry_points()
+        # Modern API (Python 3.10+ / importlib-metadata >= 3.10)
+        if hasattr(eps, "select"):
+            return list(eps.select(group="marketpipe.providers"))
+        # Older mapping-style API
+        group = getattr(eps, "get", None)
+        if callable(group):
+            return list(eps.get("marketpipe.providers", []))
+        # Fallback: best effort iterate
+        return list(eps)
+    except Exception:
+        return []
+
+
 def _auto_register() -> None:
     """Auto-register providers from entry points."""
     global _AUTO_REGISTERED, _allow_default_registration
@@ -33,8 +55,8 @@ def _auto_register() -> None:
         return
 
     try:
-        # Load providers from entry points (Python 3.9+ compatible)
-        marketpipe_providers = entry_points(group="marketpipe.providers")
+        # Load providers from entry points (supports multiple API shapes)
+        marketpipe_providers = _discover_entry_points()
 
         for ep in marketpipe_providers:
             try:

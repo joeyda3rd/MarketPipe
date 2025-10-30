@@ -7,7 +7,7 @@ import asyncio
 import json
 import logging
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import asyncpg
 
@@ -417,7 +417,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
             "created_at": partition.created_at.isoformat(),
         }
 
-    def _deserialize_job_from_payload(self, payload: str) -> IngestionJob:
+    def _deserialize_job_from_payload(self, payload: Union[str, dict[str, Any]]) -> IngestionJob:
         """Deserialize IngestionJob from JSONB payload."""
         if isinstance(payload, str):
             job_dict = json.loads(payload)

@@ -45,9 +45,9 @@ def _format_size(path: Path) -> str:
     """Get human-readable size of a file or directory."""
     try:
         if path.is_file():
-            size = path.stat().st_size
+            size: float = float(path.stat().st_size)
         elif path.is_dir():
-            size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+            size = float(sum(f.stat().st_size for f in path.rglob("*") if f.is_file()))
         else:
             return "0 B"
 
@@ -133,11 +133,12 @@ def factory_reset(
     print("-" * 40)
     # Format total size
     total_size_str = _format_size(Path(f"/tmp/dummy_file_of_size_{total_size}"))
+    size_value = float(total_size)
     for unit in ["B", "KB", "MB", "GB"]:
-        if total_size < 1024.0:
-            total_size_str = f"{total_size:.1f} {unit}"
+        if size_value < 1024.0:
+            total_size_str = f"{size_value:.1f} {unit}"
             break
-        total_size /= 1024.0
+        size_value /= 1024.0
     else:
         total_size_str = f"{total_size:.1f} TB"
 

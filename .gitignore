@@ -286,6 +286,9 @@ dev/
 
 # Phase 3 Cleanup Additions - Repository Size Optimization
 validation_output/
+validation_output_real/
+validator_data/
+validator_real/
 test_data/
 benchmark-*.json
 *.egg-info/

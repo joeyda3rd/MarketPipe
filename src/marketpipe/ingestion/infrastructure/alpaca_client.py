@@ -74,9 +74,10 @@ class AlpacaClient(BaseApiClient):
         retries = 0
         while True:
             start = time.perf_counter()
+            assert self.http_client is not None
             r = self.http_client.get(
                 url,
-                params=params,  # Include all params including symbols
+                params=dict(params),  # Include all params including symbols
                 headers=headers,
                 timeout=self.config.timeout,
             )
@@ -156,9 +157,10 @@ class AlpacaClient(BaseApiClient):
         retries = 0
         while True:
             start = time.perf_counter()
+            assert self.async_http_client is not None
             r = await self.async_http_client.get(
                 url,
-                params=params,  # Include all params including symbols
+                params=dict(params),  # Include all params including symbols
                 headers=headers,
                 timeout=self.config.timeout,
             )

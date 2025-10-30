@@ -159,6 +159,9 @@ class CLIOptionValidator:
                     "Will assume non-transactional DDL",
                     "Running upgrade",
                     "INFO  [alembic",
+                    "INFO  [PolygonMarketDataAdapter]",  # Polygon adapter operational logs
+                    "INFO  [ParquetStorageEngine]",  # Storage engine operational logs
+                    "INFO  [marketpipe.infrastructure.sqlite_pool]",  # SQLite pool logs
                 ]
             ):
                 continue
@@ -245,6 +248,17 @@ class CLIOptionValidator:
                     pass  # Continue if we can't remove the file
 
         env_vars = os.environ.copy()
+
+        # Clear provider API keys to ensure tests for auth-required providers fail as expected
+        provider_keys_to_clear = [
+            "POLYGON_API_KEY",
+            "ALPACA_KEY",
+            "ALPACA_SECRET",
+            "IEX_TOKEN",
+            "FINNHUB_API_KEY",
+        ]
+        for key in provider_keys_to_clear:
+            env_vars.pop(key, None)
 
         # Force databases to be created in temp directory with unique names to avoid conflicts
         unique_suffix = f"{int(time.time() * 1000)}_{random.randint(1000, 9999)}"

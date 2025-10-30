@@ -229,9 +229,14 @@ class OHLCVCalculationService(DomainService):
         total_volume = Volume(sum(bar.volume.value for bar in bars))
 
         # Calculate trade count if available
-        trade_count = None
-        if all(bar.trade_count is not None for bar in bars):
-            trade_count = sum(bar.trade_count for bar in bars)
+        trade_count: Optional[int] = None
+        tc_sum = 0
+        for b in bars:
+            if b.trade_count is None:
+                break
+            tc_sum += b.trade_count
+        else:
+            trade_count = tc_sum
 
         # Calculate VWAP if available
         vwap = None
@@ -278,7 +283,7 @@ class OHLCVCalculationService(DomainService):
 
     def calculate_sma(
         self, bars: list[OHLCVBar], period: int, price_type: str = "close"
-    ) -> list[float]:
+    ) -> list[Optional[float]]:
         """Calculate Simple Moving Average for a series of bars.
 
         Args:
@@ -295,8 +300,8 @@ class OHLCVCalculationService(DomainService):
         if price_type not in ["open", "high", "low", "close"]:
             raise ValueError("price_type must be one of: open, high, low, close")
 
-        sma_values = []
-        prices = []
+        sma_values: list[Optional[float]] = []
+        prices: list[float] = []
 
         for bar in bars:
             # Get the price based on type
@@ -333,10 +338,10 @@ class OHLCVCalculationService(DomainService):
         if period <= 1:
             raise ValueError("Period must be greater than 1")
 
-        volatility_values = []
-        returns = []
+        volatility_values: list[Optional[float]] = []
+        returns: list[float] = []
 
-        prev_close = None
+        prev_close: Optional[float] = None
         for bar in bars:
             current_close = bar.close_price.to_float()
 
@@ -383,7 +388,7 @@ class MarketDataValidationService(DomainService):
         Returns:
             List of validation error messages (empty if valid)
         """
-        errors = []
+        errors: list[str] = []
 
         # Basic price validation
         if bar.open_price.value <= 0:
@@ -429,7 +434,7 @@ class MarketDataValidationService(DomainService):
         Returns:
             List of aggregated validation error messages (empty if all valid)
         """
-        all_errors = []
+        all_errors: list[str] = []
 
         if not bars:
             return all_errors
@@ -493,7 +498,7 @@ class MarketDataValidationService(DomainService):
         Returns:
             List of validation errors
         """
-        errors = []
+        errors: list[str] = []
 
         # Convert to UTC and check if within trading hours
         # This is a simplified check - real implementation would need proper timezone handling
@@ -546,7 +551,7 @@ class MarketDataValidationService(DomainService):
         Returns:
             List of validation error messages (empty if valid)
         """
-        errors = []
+        errors: list[str] = []
 
         if previous_bar is None:
             return errors
@@ -578,7 +583,7 @@ class MarketDataValidationService(DomainService):
         Returns:
             List of validation error messages (empty if valid)
         """
-        errors = []
+        errors: list[str] = []
 
         if len(bars) < 2:
             return errors

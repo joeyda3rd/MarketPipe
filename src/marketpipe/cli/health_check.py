@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import typer
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 # Import MarketPipe components for testing
 try:
