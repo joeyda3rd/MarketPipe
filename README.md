@@ -413,3 +413,5 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 - **Security**: See [SECURITY.md](SECURITY.md) for security policy
 
 ---
+
+For installed-package journeys, recovery tests, PostgreSQL validation, and release rehearsals, see the [testing guide](docs/testing/README.md).

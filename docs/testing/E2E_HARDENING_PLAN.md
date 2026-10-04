@@ -109,4 +109,29 @@ Do not claim optional live probes were executed without an explicit opt-in run.
 - Planning: saved this complete plan before implementation.
 - Baseline: main is synchronized at `a25b1ba`; local draft/tooling/CSV/workspace files
   are preserved outside the implementation commits.
-- Results and deviations will be added here as each stage is verified.
+- Added installed wheel/sdist journeys with literal OHLCV assertions, multi-symbol
+  multi-day discovery, failure exit codes, idempotency and filtered cleanup.
+- Recovery tests kill real workers before replacement and after replacement (before
+  checkpoint persistence), then use the supported `jobs doctor --fix` recovery flow.
+  Separate-process appends, concurrent readers, disk/permission failures, corrupt
+  partitions, partial provider failure and real SQLite write contention are covered.
+- HTTP regressions exposed and fixed repeated cursors, malformed successful
+  envelopes, duplicate pages, exclusive end handling, and the default async HTTP
+  adapter calling the synchronous client. Synthetic credentials are checked for leaks.
+- Historical upgrade and fresh-schema tests passed on a temporary PostgreSQL 14
+  service and SQLite. Fixed dialect-specific index queries and nanosecond integer
+  overflow; concurrent PostgreSQL claims are verified against disposable databases.
+- Golden tests cover all six frames, unordered/duplicate bars, zero volume and both
+  New York DST changes. README command workflows now execute without obsolete skips.
+- Full integration baseline found 14 failures. Fixed obsolete symbols/expectations
+  and unsafe subprocess isolation; follow-up exposed shared event subscriptions and
+  duplicate CLI startup costs, which are corrected through public cleanup and one
+  isolated help invocation. Final combined results will be recorded after validation.
+- Dependency audit after upgrading bootstrap pip/setuptools: zero vulnerabilities;
+  high severity/high confidence Bandit scan: zero findings and zero scanner errors.
+  No vulnerability exceptions were introduced.
+- Wheel/sdist strict Twine checks passed; packaged Alembic resources are asserted.
+  GitHub workflows pass actionlint. Release dry runs guard every public mutation and
+  publication reuses validated artifacts. Optional live probes remain unexecuted.
+- Required checks, nightly/manual integrations, PostgreSQL and bounded-resource
+  jobs are implemented. Remote execution and final delivery are pending.

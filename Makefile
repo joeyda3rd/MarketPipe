@@ -136,3 +136,16 @@ clean:
 # Install in development mode
 install:
 	@pip install -e .
+
+# Deterministic installed distribution journeys; no provider credentials required.
+.PHONY: test-e2e test-integration-full release-rehearsal
+test-e2e:
+	@python -m pytest tests/e2e -m "not postgres" --strict-markers --timeout=90 --durations=15
+
+test-integration-full:
+	@python -m pytest tests/integration -m "not postgres" --strict-markers --timeout=120 --durations=25
+
+release-rehearsal:
+	@python -m build
+	@python -m twine check --strict dist/*
+	@python -m pytest tests/e2e -m "not postgres" --strict-markers --timeout=90

@@ -224,7 +224,7 @@ async def test_multiple_events_record_separate_metrics(temp_metrics_db, clear_ev
     event_bus.publish(agg_event)
 
     # Wait for processing
-    await asyncio.sleep(0.2)
+    await flush_metrics()
 
     # Check all metrics were recorded
     repo = SqliteMetricsRepository(temp_metrics_db)
