@@ -36,10 +36,13 @@ def generate_realistic_minute_bars(
         DataFrame with realistic OHLCV data
     """
     # Start at market open (9:30 AM ET)
-    market_open = datetime.combine(trading_day, datetime.min.time()) + timedelta(
-        hours=13, minutes=30
+    from zoneinfo import ZoneInfo
+
+    market_open = (
+        (datetime.combine(trading_day, datetime.min.time()) + timedelta(hours=9, minutes=30))
+        .replace(tzinfo=ZoneInfo("America/New_York"))
+        .astimezone(timezone.utc)
     )
-    market_open = market_open.replace(tzinfo=timezone.utc)
 
     bars = []
     current_price = base_price
@@ -267,8 +270,9 @@ class TestRealAggregationEndToEnd:
                     assert first_datetime.minute == 0, f"1h timestamp not aligned: {first_datetime}"
                 elif spec.name == "1d":
                     # 1-day bars should align to day boundaries (market open)
+                    local_open = first_datetime.tz_localize("UTC").tz_convert("America/New_York")
                     assert (
-                        first_datetime.hour == 13 and first_datetime.minute == 30
+                        local_open.hour == 9 and local_open.minute == 30
                     ), f"1d timestamp not aligned: {first_datetime}"
 
                 print(f"✓ {spec.name} timestamps properly aligned")
@@ -364,7 +368,8 @@ class TestRealAggregationEndToEnd:
             success=True,
         )
 
-        # Should not raise exception for empty job
-        aggregation_service.handle_ingestion_completed(event)
+        # Missing data must be reported rather than mistaken for successful aggregation.
+        with pytest.raises(FileNotFoundError, match="nonexistent-job"):
+            aggregation_service.handle_ingestion_completed(event)
 
         print("✅ Empty job handling test passed")

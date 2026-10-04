@@ -12,20 +12,25 @@ class AggregationDomainService:
         """Generate DuckDB SQL for aggregating 1-minute bars to specified timeframe."""
         window_ns = frame.seconds * 1_000_000_000
 
-        # Special handling for daily bars - align to market open (13:30 UTC)
+        # Daily bars follow New York trading dates and the DST-aware market open.
         if frame.name == "1d":
             return f"""
+            WITH dated_bars AS (
+                SELECT *, date_trunc('day',
+                    timezone('America/New_York', to_timestamp(ts_ns / 1000000000))) AS trading_day
+                FROM {src_table}
+            )
             SELECT
                 symbol,
-                -- Align to market open: convert to UTC date, then add 13.5 hours (13:30 UTC)
-                CAST((extract(epoch from date_trunc('day', to_timestamp(ts_ns / 1000000000) AT TIME ZONE 'UTC')) + 13.5 * 3600) * 1000000000 AS BIGINT) AS ts_ns,
+                CAST(extract(epoch from timezone('America/New_York',
+                    trading_day + INTERVAL '9 hours 30 minutes')) * 1000000000 AS BIGINT) AS ts_ns,
                 first(open ORDER BY ts_ns)  AS open,
                 max(high)    AS high,
                 min(low)     AS low,
                 last(close ORDER BY ts_ns)  AS close,
                 sum(volume)  AS volume
-            FROM {src_table}
-            GROUP BY symbol, date_trunc('day', to_timestamp(ts_ns / 1000000000) AT TIME ZONE 'UTC')
+            FROM dated_bars
+            GROUP BY symbol, trading_day
             ORDER BY symbol, ts_ns
             """
         else:
