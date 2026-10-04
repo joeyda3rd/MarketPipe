@@ -135,9 +135,11 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
     def __init__(self, db_path: Optional[str] = None):
         # Check environment variable first, then use provided path, then default
         if db_path is None:
-            db_path = os.environ.get("METRICS_DB_PATH", "data/db/core.db")
+            db_path = os.environ.get("MARKETPIPE_METRICS_DB_PATH") or os.environ.get(
+                "METRICS_DB_PATH", "data/db/core.db"
+            )
 
-        self._db_path = Path(db_path)
+        self._db_path = Path(db_path).resolve()
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self.db_path = str(self._db_path)  # For async connection helper
         # Apply migrations on first use
@@ -267,7 +269,9 @@ def get_metrics_repository() -> SqliteMetricsRepository:
     database path has changed (e.g., in tests that set the env var).
     """
     global _metrics_repo
-    desired_path_env = os.environ.get("METRICS_DB_PATH")
+    desired_path_env = os.environ.get("MARKETPIPE_METRICS_DB_PATH") or os.environ.get(
+        "METRICS_DB_PATH"
+    )
     desired_path = desired_path_env or "data/db/core.db"
     desired_abs = str(Path(desired_path).resolve())
 
