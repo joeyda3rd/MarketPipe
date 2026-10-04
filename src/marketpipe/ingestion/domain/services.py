@@ -250,11 +250,6 @@ class IngestionDomainService(DomainService):
         if time_range.start.value > now:
             raise ValueError("Cannot create jobs for future dates")
 
-        # Business rule: Don't allow jobs for data older than 2 years (data availability)
-        max_age_days = 730  # 2 years
-        if (now - time_range.end.value).days > max_age_days:
-            raise ValueError(f"Cannot create jobs for data older than {max_age_days} days")
-
     def _validate_configuration(self, config: IngestionConfiguration) -> None:
         """Validate configuration for business rules."""
         # Validate output path exists or can be created

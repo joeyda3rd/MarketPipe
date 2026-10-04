@@ -238,10 +238,19 @@ def _build_ingestion_services(
         market_data_provider = build_provider(alpaca_config)
 
     # Repository setup - use base_data_dir instead of hardcoded "data"
-    core_db_path = db_dir / "core.db"
-    job_repo = SqliteIngestionJobRepository(base_data_dir / "ingestion_jobs.db")
-    checkpoint_repo = SqliteCheckpointRepository(core_db_path)
-    metrics_repo = SqliteMetricsRepository(base_data_dir / "metrics.db")
+    core_db_path = Path(os.environ.get("MARKETPIPE_DB_PATH", str(db_dir / "core.db")))
+    job_db_path = Path(
+        os.environ.get("MARKETPIPE_INGESTION_DB_PATH", str(base_data_dir / "ingestion_jobs.db"))
+    )
+    checkpoint_db_path = Path(os.environ.get("MARKETPIPE_CHECKPOINT_DB_PATH", str(core_db_path)))
+    metrics_db_path = Path(
+        os.environ.get("MARKETPIPE_METRICS_DB_PATH", str(base_data_dir / "metrics.db"))
+    )
+    for db_path in (core_db_path, job_db_path, checkpoint_db_path, metrics_db_path):
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+    job_repo = SqliteIngestionJobRepository(job_db_path)
+    checkpoint_repo = SqliteCheckpointRepository(checkpoint_db_path)
+    metrics_repo = SqliteMetricsRepository(metrics_db_path)
 
     # Domain repositories
     SqliteSymbolBarsRepository(str(core_db_path))
@@ -506,7 +515,7 @@ def _ingest_impl(
                     start=start_date,
                     end=end_date,
                     batch_size=batch_size or 500,
-                    output_path=output_path or "data/output",
+                    output_path=output_path or os.environ.get("MARKETPIPE_RAW_ROOT") or "data/raw",
                     workers=workers or 3,
                     provider=resolved_provider,
                     feed_type=feed_type or default_feed_type,
@@ -518,10 +527,6 @@ def _ingest_impl(
                 from marketpipe.bootstrap import bootstrap
 
                 bootstrap()
-
-            # For the fake provider, relax historical window limits to keep
-            # provider verification tests fast and reliable.
-            from datetime import date as _date
 
             if job_config.provider == "polygon":
                 allowed_polygon_feeds = {"delayed", "real-time"}
@@ -537,14 +542,6 @@ def _ingest_impl(
                             f"{job_config.feed_type}. Use 'delayed' or 'real-time'."
                         )
                         raise typer.Exit(1)
-
-            if job_config.provider == "fake":
-                today = _date.today()
-                if (today - job_config.end).days > 730:
-                    # Clamp to a recent 2-day window
-                    clamped_end = today
-                    clamped_start = today.fromordinal(today.toordinal() - 1)
-                    job_config = job_config.merge_overrides(start=clamped_start, end=clamped_end)
 
             # Display configuration summary
             print("📊 Ingestion Configuration:")
@@ -657,6 +654,10 @@ def _ingest_impl(
             # Run asyncio with clean error suppression
             job_id, result = asyncio.run(run_ingestion())
 
+            if result.get("symbols_failed", 0) > 0 or result.get("status") == "failed":
+                print(f"❌ Ingestion failed for {result.get('symbols_failed', 0)} symbol(s)")
+                raise typer.Exit(1)
+
             # Report results
             print("✅ Job completed successfully!")
             print(f"📊 Job ID: {job_id}")
@@ -685,23 +686,8 @@ def _ingest_impl(
 
             print("✅ Post-ingestion verification completed successfully!")
 
-            # Ensure output contains at least one parquet file for fake provider scenarios
-            # used by provider verification tests. This is a no-op for real providers.
-            if job_config.provider == "fake":
-                try:
-                    import pandas as _pd
-
-                    out_dir = Path(job_config.output_path)
-                    out_dir.mkdir(parents=True, exist_ok=True)
-                    # Write a minimal parquet if none exist yet
-                    if not any(out_dir.rglob("*.parquet")):
-                        (_pd.DataFrame({"ok": [1]})).to_parquet(
-                            out_dir / "_probe.parquet", index=False
-                        )
-                except Exception:
-                    # Ignore write issues; ingestion already succeeded
-                    pass
-
+        except typer.Exit:
+            raise
         except Exception as e:
             print(f"❌ Ingestion failed: {e}")
             raise typer.Exit(1) from e
@@ -715,7 +701,7 @@ def _ingest_impl(
 
 def ingest_ohlcv(
     # Config file option
-    config: Path = typer.Option(
+    config: Optional[Path] = typer.Option(
         None,
         "--config",
         "-c",
@@ -725,38 +711,38 @@ def ingest_ohlcv(
         dir_okay=False,
     ),
     # Direct flag options (optional when using config)
-    symbols: str = typer.Option(
+    symbols: Optional[str] = typer.Option(
         None, "--symbols", "-s", help="Comma-separated tickers, e.g. AAPL,MSFT"
     ),
-    start: str = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
-    end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
+    start: Optional[str] = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
+    end: Optional[str] = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
     # Override options (work with both config and direct flags)
-    batch_size: int = typer.Option(
+    batch_size: Optional[int] = typer.Option(
         None,
         "--batch-size",
         help="Bars per request (overrides config)",
     ),
-    output_path: str = typer.Option(
+    output_path: Optional[str] = typer.Option(
         None,
         "--output",
         help="Output directory (overrides config)",
     ),
-    workers: int = typer.Option(
+    workers: Optional[int] = typer.Option(
         None,
         "--workers",
         help="Number of worker threads (overrides config)",
     ),
-    provider: str = typer.Option(
+    provider: Optional[str] = typer.Option(
         None,
         "--provider",
         help="Market data provider (overrides config)",
     ),
-    feed_type: str = typer.Option(
+    feed_type: Optional[str] = typer.Option(
         None,
         "--feed-type",
         help="Data feed type (overrides config)",
     ),
-    timeframe: str = typer.Option(
+    timeframe: Optional[str] = typer.Option(
         None,
         "--timeframe",
         help="Bar timeframe: 1m, 5m, 15m, 30m, 1h, 4h, 1d (overrides config, default: 1m)",
@@ -804,28 +790,6 @@ Options:
         validate_provider(provider)
         validate_feed_type(provider, feed_type)
 
-    # Fast-path for CLI option validation subprocess: if isolated DB env vars are set and
-    # provider is fake, skip heavy validations and ingestion to keep tests responsive.
-    import os as _os
-
-    if provider == "fake" and (
-        _os.environ.get("MARKETPIPE_DB_PATH")
-        or _os.environ.get("MARKETPIPE_INGESTION_DB_PATH")
-        or _os.environ.get("MARKETPIPE_METRICS_DB_PATH")
-    ):
-        # Write a tiny probe parquet so downstream tests that verify output
-        # can succeed without running the full pipeline.
-        try:
-            import pandas as _pd
-
-            out_dir = Path(output_path) if output_path else Path("data/output")
-            out_dir.mkdir(parents=True, exist_ok=True)
-            (_pd.DataFrame({"ok": [1]})).to_parquet(out_dir / "_probe.parquet", index=False)
-        except Exception:
-            pass
-        print("Fast validation: skipping full ingestion for fake provider.")
-        return
-
     # Numeric / path validations
     validate_workers(workers)
     validate_batch_size(batch_size)
@@ -834,42 +798,11 @@ Options:
     # Convert output_path to Path after validation
     output_path_path: Optional[Path] = Path(output_path) if output_path is not None else None
 
-    # Ensure at least one parquet exists for fake provider flows used in provider tests.
-    # This is a harmless sentinel and does not interfere with real ingestion output.
-    if provider == "fake" and output_path_path is not None:
-        try:
-            output_path_path.mkdir(parents=True, exist_ok=True)
-            sentinel = output_path_path / "_sentinel.parquet"
-            if not sentinel.exists():
-                with open(sentinel, "wb") as _f:
-                    _f.write(b"SENTINEL")
-        except Exception:
-            pass
-
     validate_config_file(str(config) if config else "")
 
     # Date and symbol validation
     validate_date_range(start, end)
     validate_symbols(symbols)
-
-    # Fast-path in CI option validation subprocess: if isolated DB env vars are set and
-    # provider is fake, skip heavy ingestion to keep tests responsive.
-    import os as _os
-
-    if provider == "fake" and (
-        _os.environ.get("MARKETPIPE_DB_PATH")
-        or _os.environ.get("MARKETPIPE_INGESTION_DB_PATH")
-        or _os.environ.get("MARKETPIPE_METRICS_DB_PATH")
-    ):
-        try:
-            out_dir = output_path_path or Path("data/output")
-            out_dir.mkdir(parents=True, exist_ok=True)
-            with open(out_dir / "_probe.parquet", "wb") as _f:
-                _f.write(b"PROBE")
-        except Exception:
-            pass
-        print("Fast validation: skipping full ingestion for fake provider.")
-        return
 
     _ingest_impl(
         config=config,
@@ -888,7 +821,7 @@ Options:
 # Disable default help to keep behaviour identical to ingest_ohlcv (tests rely on this)
 def ingest_ohlcv_convenience(
     # Config file option
-    config: Path = typer.Option(
+    config: Optional[Path] = typer.Option(
         None,
         "--config",
         "-c",
@@ -898,32 +831,34 @@ def ingest_ohlcv_convenience(
         dir_okay=False,
     ),
     # Direct flag options (optional when using config)
-    symbols: str = typer.Option(
+    symbols: Optional[str] = typer.Option(
         None, "--symbols", "-s", help="Comma-separated tickers, e.g. AAPL,MSFT"
     ),
-    start: str = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
-    end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
+    start: Optional[str] = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
+    end: Optional[str] = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
     # Override options (work with both config and direct flags)
-    batch_size: int = typer.Option(
+    batch_size: Optional[int] = typer.Option(
         None,
         "--batch-size",
         help="Bars per request (overrides config)",
     ),
-    output_path: str = typer.Option(
+    output_path: Optional[str] = typer.Option(
         None,
         "--output",
         help="Output directory (overrides config)",
     ),
-    workers: int = typer.Option(
+    workers: Optional[int] = typer.Option(
         None,
         "--workers",
         help="Number of worker threads (overrides config)",
     ),
-    provider: str = typer.Option(
+    provider: Optional[str] = typer.Option(
         None, "--provider", help="Market data provider (overrides config)"
     ),
-    feed_type: str = typer.Option(None, "--feed-type", help="Data feed type (overrides config)"),
-    timeframe: str = typer.Option(
+    feed_type: Optional[str] = typer.Option(
+        None, "--feed-type", help="Data feed type (overrides config)"
+    ),
+    timeframe: Optional[str] = typer.Option(
         None,
         "--timeframe",
         help="Bar timeframe: 1m, 5m, 15m, 30m, 1h, 4h, 1d (overrides config, default: 1m)",
@@ -984,55 +919,6 @@ Options:
     validate_date_range(start, end)
     validate_symbols(symbols)
 
-    # Fast-paths for test harness and CI when using the 'fake' provider.
-    # Avoid heavy bootstrap/ingestion to keep CLI option tests fast and isolated.
-    import os as _os
-
-    if provider == "fake" and (
-        _os.environ.get("MARKETPIPE_DB_PATH")
-        or _os.environ.get("MARKETPIPE_INGESTION_DB_PATH")
-        or _os.environ.get("MARKETPIPE_METRICS_DB_PATH")
-    ):
-        # Ensure a .parquet exists for downstream checks
-        try:
-            out_dir = (
-                output_path_path or Path("data/output")
-                if output_path_path
-                else Path(output_path or "data/output")
-            )
-            out_dir.mkdir(parents=True, exist_ok=True)
-            with open(out_dir / "_probe.parquet", "wb") as _f:
-                _f.write(b"PROBE")
-        except Exception:
-            pass
-        print("📊 Ingestion Configuration:")
-        print(f"  Symbols: {symbols}")
-        print(f"  Date range: {start} to {end}")
-        print(f"  Provider: {provider}")
-        print(f"  Feed type: {feed_type or 'iex'}")
-        print(f"  Output path: {output_path or 'data/output'}")
-        print(f"  Workers: {workers or 3}")
-        print(f"  Batch size: {batch_size or 500}")
-        print("\n🚀 Starting ingestion process...")
-        print("✅ Job completed successfully!")
-        print("\n🔍 Running post-ingestion verification...")
-        print("✅ Post-ingestion verification completed successfully!")
-        return
-
-    # Short-circuit for fake provider: create minimal output and exit successfully.
-    if provider == "fake":
-        try:
-            out_dir = output_path_path or Path("data/output")
-            out_dir.mkdir(parents=True, exist_ok=True)
-            with open(out_dir / "_probe.parquet", "wb") as _f:
-                _f.write(b"PROBE")
-            print("✅ Job completed successfully!")
-            print("\n🔍 Running post-ingestion verification...")
-            print("✅ Post-ingestion verification completed successfully!")
-            raise typer.Exit(0)
-        except Exception:
-            pass
-
     _ingest_impl(
         config=config,
         symbols=symbols,
@@ -1049,7 +935,7 @@ Options:
 
 def ingest_deprecated(
     # Config file option
-    config: Path = typer.Option(
+    config: Optional[Path] = typer.Option(
         None,
         "--config",
         "-c",
@@ -1059,23 +945,27 @@ def ingest_deprecated(
         dir_okay=False,
     ),
     # Direct flag options (optional when using config)
-    symbols: str = typer.Option(
+    symbols: Optional[str] = typer.Option(
         None, "--symbols", "-s", help="Comma-separated tickers, e.g. AAPL,MSFT"
     ),
-    start: str = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
-    end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
+    start: Optional[str] = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
+    end: Optional[str] = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
     # Override options (work with both config and direct flags)
-    batch_size: int = typer.Option(
+    batch_size: Optional[int] = typer.Option(
         None, "--batch-size", help="Bars per request (overrides config)"
     ),
-    output_path: str = typer.Option(None, "--output", help="Output directory (overrides config)"),
-    workers: int = typer.Option(
+    output_path: Optional[str] = typer.Option(
+        None, "--output", help="Output directory (overrides config)"
+    ),
+    workers: Optional[int] = typer.Option(
         None, "--workers", help="Number of worker threads (overrides config)"
     ),
-    provider: str = typer.Option(
+    provider: Optional[str] = typer.Option(
         None, "--provider", help="Market data provider (overrides config)"
     ),
-    feed_type: str = typer.Option(None, "--feed-type", help="Data feed type (overrides config)"),
+    feed_type: Optional[str] = typer.Option(
+        None, "--feed-type", help="Data feed type (overrides config)"
+    ),
 ):
     """[DEPRECATED] Use 'ingest-ohlcv' or 'ohlcv ingest' instead."""
     print("⚠️  Warning: 'ingest' is deprecated. Use 'ingest-ohlcv' or 'ohlcv ingest' instead.")

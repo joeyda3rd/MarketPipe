@@ -52,7 +52,7 @@ class PipelineSmokeValidator:
     """Validates end-to-end pipeline functionality."""
 
     def __init__(self, base_dir: Optional[Path] = None):
-        self.base_dir = base_dir or Path(__file__).parent.parent.parent
+        self.base_dir = base_dir or Path.cwd()
         self.test_results: list[PipelineTestResult] = []
 
     def run_pipeline_scenario(self, scenario: PipelineTestScenario) -> PipelineTestResult:

@@ -11,6 +11,8 @@ from typing import Union
 import duckdb
 import pandas as pd
 
+from ..domain.value_objects import DEFAULT_SPECS
+
 # Default path to aggregated data - can be overridden for testing
 AGG_ROOT = Path("data/agg")
 
@@ -35,7 +37,7 @@ def _attach_partition(frame: str) -> None:
     """Attach a timeframe partition as a view.
 
     Args:
-        frame: Timeframe name (5m, 15m, 1h, 1d)
+        frame: Timeframe name (5m, 15m, 30m, 1h, 4h, 1d)
     """
     path = AGG_ROOT / f"frame={frame}"
 
@@ -75,9 +77,9 @@ def _attach_partition(frame: str) -> None:
 def ensure_views() -> None:
     """Ensure all timeframe views are created.
 
-    Creates views for all standard timeframes: 5m, 15m, 1h, 1d
+    Creates views for all standard timeframes: 5m, 15m, 30m, 1h, 4h, 1d
     """
-    frames = ["5m", "15m", "1h", "1d"]
+    frames = [spec.name for spec in DEFAULT_SPECS]
 
     logger.debug(f"Ensuring views for frames: {frames}")
 
@@ -99,7 +101,7 @@ def query(sql: str) -> pd.DataFrame:
     """Execute SQL query against aggregated data views.
 
     Args:
-        sql: SQL query string. Available views: bars_5m, bars_15m, bars_1h, bars_1d
+        sql: SQL query string using the standard bars_<frame> views.
 
     Returns:
         DataFrame with query results
@@ -139,7 +141,11 @@ def get_available_data() -> pd.DataFrame:
         UNION ALL
         SELECT '15m' as frame, symbol, date, COUNT(*) as row_count FROM bars_15m GROUP BY symbol, date
         UNION ALL
+        SELECT '30m' as frame, symbol, date, COUNT(*) as row_count FROM bars_30m GROUP BY symbol, date
+        UNION ALL
         SELECT '1h' as frame, symbol, date, COUNT(*) as row_count FROM bars_1h GROUP BY symbol, date
+        UNION ALL
+        SELECT '4h' as frame, symbol, date, COUNT(*) as row_count FROM bars_4h GROUP BY symbol, date
         UNION ALL
         SELECT '1d' as frame, symbol, date, COUNT(*) as row_count FROM bars_1d GROUP BY symbol, date
     )
@@ -168,7 +174,7 @@ def validate_views() -> dict[str, bool]:
     Returns:
         Dictionary mapping view names to availability status
     """
-    frames = ["5m", "15m", "1h", "1d"]
+    frames = [spec.name for spec in DEFAULT_SPECS]
     status = {}
 
     ensure_views()

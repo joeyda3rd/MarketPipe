@@ -55,7 +55,7 @@ class CLIOptionValidator:
     """Validates CLI options and their combinations."""
 
     def __init__(self, base_dir: Optional[Path] = None):
-        self.base_dir = base_dir or Path(__file__).parent.parent.parent
+        self.base_dir = base_dir or Path.cwd()
         self.test_results: list[OptionValidationResult] = []
 
     def validate_option_combination(self, test_case: OptionTestCase) -> OptionValidationResult:
@@ -401,7 +401,6 @@ class CLIOptionTestGenerator:
             ("2024-01-32", "2024-01-32", ["invalid date", "day"]),
             ("not-a-date", "2024-01-03", ["invalid date", "format"]),
             ("2024-01-31", "2024-01-03", ["start date", "after", "end date"]),
-            ("2022-12-01", "2022-12-31", ["older than 730 days"]),  # Too old
             ("2024-06-15", "2024-06-15", ["start date must be before end date"]),  # Same date
         ]
 

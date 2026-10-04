@@ -64,15 +64,14 @@ class AlpacaClient(BaseApiClient):
         # Local import to avoid circular dependency
         from marketpipe.metrics import ERRORS, LATENCY, REQUESTS
 
-        if self.rate_limiter:
-            self.rate_limiter.acquire()
-
         url = f"{self.config.base_url}{self._PATH_TEMPLATE}"  # v2 API doesn't need symbol in URL
         headers = {"Accept": "application/json", "User-Agent": self.config.user_agent}
         self.auth.apply(headers, params={})
 
         retries = 0
         while True:
+            if self.rate_limiter:
+                self.rate_limiter.acquire()
             start = time.perf_counter()
             assert self.http_client is not None
             r = self.http_client.get(
@@ -94,7 +93,7 @@ class AlpacaClient(BaseApiClient):
                 response_json = r.json()
             except (json.JSONDecodeError, ValueError) as e:
                 # If JSON parsing fails, check if we should retry based on status code only
-                safe_msg = safe_for_log(
+                safe_msg = self._safe_for_log(
                     f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}",
                     self.config.api_key,
                 )
@@ -102,7 +101,7 @@ class AlpacaClient(BaseApiClient):
                 if self.should_retry(r.status_code, {}):
                     retries += 1
                     if retries > self.config.max_retries:
-                        safe_error_msg = safe_for_log(
+                        safe_error_msg = self._safe_for_log(
                             f"Alpaca request exceeded retry limit: {r.text}", self.config.api_key
                         )
                         raise RuntimeError(safe_error_msg) from e
@@ -111,14 +110,27 @@ class AlpacaClient(BaseApiClient):
                     time.sleep(sleep)
                     continue
                 else:
-                    safe_error_msg = safe_for_log(
+                    safe_error_msg = self._safe_for_log(
                         f"Failed to parse Alpaca API response as JSON: {r.text}",
                         self.config.api_key,
                     )
                     raise RuntimeError(safe_error_msg) from e
 
             if not self.should_retry(r.status_code, response_json):
+                if r.status_code >= 400:
+                    raise RuntimeError(
+                        self._safe_for_log(
+                            f"Alpaca API error {r.status_code}: {r.text}",
+                            self.config.api_key,
+                        )
+                    )
                 return response_json
+
+            retries += 1
+            if retries > self.config.max_retries:
+                raise RuntimeError(
+                    self._safe_for_log("Alpaca request exceeded retry limit", self.config.api_key)
+                )
 
             # Handle Retry-After header for 429 responses
             if r.status_code == 429 and self.rate_limiter:
@@ -132,12 +144,6 @@ class AlpacaClient(BaseApiClient):
                     except (ValueError, TypeError):
                         self.log.warning(f"Invalid Retry-After header: {retry_after}")
 
-            retries += 1
-            if retries > self.config.max_retries:
-                safe_error_msg = safe_for_log(
-                    f"Alpaca request exceeded retry limit: {r.text}", self.config.api_key
-                )
-                raise RuntimeError(safe_error_msg)
             sleep = self._backoff(retries)
             self.log.warning("Retry %d sleeping %.2fs", retries, sleep)
             time.sleep(sleep)
@@ -147,15 +153,14 @@ class AlpacaClient(BaseApiClient):
         # Local import to avoid circular dependency
         from marketpipe.metrics import ERRORS, LATENCY, REQUESTS
 
-        if self.rate_limiter:
-            await self.rate_limiter.async_acquire()
-
         url = f"{self.config.base_url}{self._PATH_TEMPLATE}"  # v2 API doesn't need symbol in URL
         headers = {"Accept": "application/json", "User-Agent": self.config.user_agent}
         self.auth.apply(headers, params={})
 
         retries = 0
         while True:
+            if self.rate_limiter:
+                await self.rate_limiter.async_acquire()
             start = time.perf_counter()
             assert self.async_http_client is not None
             r = await self.async_http_client.get(
@@ -177,7 +182,7 @@ class AlpacaClient(BaseApiClient):
                 response_json = r.json()
             except (json.JSONDecodeError, ValueError) as e:
                 # If JSON parsing fails, check if we should retry based on status code only
-                safe_msg = safe_for_log(
+                safe_msg = self._safe_for_log(
                     f"Failed to parse JSON response: {e}. Status: {r.status_code}, Text: {r.text[:200]}",
                     self.config.api_key,
                 )
@@ -185,7 +190,7 @@ class AlpacaClient(BaseApiClient):
                 if self.should_retry(r.status_code, {}):
                     retries += 1
                     if retries > self.config.max_retries:
-                        safe_error_msg = safe_for_log(
+                        safe_error_msg = self._safe_for_log(
                             "Alpaca async retry limit hit", self.config.api_key
                         )
                         raise RuntimeError(safe_error_msg) from e
@@ -194,14 +199,27 @@ class AlpacaClient(BaseApiClient):
                     await asyncio.sleep(sleep)
                     continue
                 else:
-                    safe_error_msg = safe_for_log(
+                    safe_error_msg = self._safe_for_log(
                         f"Failed to parse Alpaca API response as JSON: {r.text}",
                         self.config.api_key,
                     )
                     raise RuntimeError(safe_error_msg) from e
 
             if not self.should_retry(r.status_code, response_json):
+                if r.status_code >= 400:
+                    raise RuntimeError(
+                        self._safe_for_log(
+                            f"Alpaca API error {r.status_code}: {r.text}",
+                            self.config.api_key,
+                        )
+                    )
                 return response_json
+
+            retries += 1
+            if retries > self.config.max_retries:
+                raise RuntimeError(
+                    self._safe_for_log("Alpaca request exceeded retry limit", self.config.api_key)
+                )
 
             # Handle Retry-After header for 429 responses
             if r.status_code == 429 and self.rate_limiter:
@@ -215,10 +233,6 @@ class AlpacaClient(BaseApiClient):
                     except (ValueError, TypeError):
                         self.log.warning(f"Invalid Retry-After header: {retry_after}")
 
-            retries += 1
-            if retries > self.config.max_retries:
-                safe_error_msg = safe_for_log("Alpaca async retry limit hit", self.config.api_key)
-                raise RuntimeError(safe_error_msg)
             sleep = self._backoff(retries)
             self.log.warning("Async retry %d sleeping %.2fs", retries, sleep)
             await asyncio.sleep(sleep)
@@ -292,6 +306,15 @@ class AlpacaClient(BaseApiClient):
         return rows
 
     # ---------- helpers ----------
+    def _safe_for_log(self, message: str, *secrets: str) -> str:
+        return safe_for_log(
+            message,
+            self.config.api_key,
+            getattr(self.auth, "key_id", ""),
+            getattr(self.auth, "secret_key", ""),
+            *secrets,
+        )
+
     def should_retry(self, status: int, body: dict[str, Any]) -> bool:
         if status in {429, 500, 502, 503, 504}:
             return True

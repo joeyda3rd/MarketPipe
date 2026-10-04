@@ -57,7 +57,7 @@ class EnhancedCLITester:
     """Enhanced CLI testing with edge cases and error scenarios."""
 
     def __init__(self, base_dir: Optional[Path] = None):
-        self.base_dir = base_dir or Path(__file__).parent.parent.parent
+        self.base_dir = base_dir or Path.cwd()
         self.test_results: list[EdgeCaseResult] = []
 
     def create_edge_case_tests(self) -> list[EdgeCaseTest]:

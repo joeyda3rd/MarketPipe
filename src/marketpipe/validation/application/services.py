@@ -10,6 +10,7 @@ from marketpipe.domain.value_objects import Price, Symbol, Timestamp, Volume
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 
 from ..domain.services import ValidationDomainService
+from ..domain.value_objects import BarError, ValidationResult
 from ..infrastructure.repositories import CsvReportRepository
 
 
@@ -48,29 +49,38 @@ class ValidationRunnerService:
 
             # Load DataFrames from storage engine
             symbol_dataframes = self._storage_engine.load_job_bars(event.job_id)
+            if not symbol_dataframes:
+                raise FileNotFoundError(f"No data found for job {event.job_id}")
 
             total_errors = 0
             total_bars_validated = 0
             symbols_processed = 0
+            failed_symbols = []
 
             for symbol_name, df in symbol_dataframes.items():
                 try:
                     # Convert DataFrame to domain objects
-                    bars = self._convert_dataframe_to_bars(df, symbol_name)
-                    total_bars_validated += len(bars)
+                    conversion_errors: list[BarError] = []
+                    bars = self._convert_dataframe_to_bars(df, symbol_name, conversion_errors)
+                    total_bars_validated += len(df)
 
                     # Validate using domain service
                     result = self._validator.validate_bars(symbol_name, bars)
+                    result = ValidationResult(
+                        symbol=symbol_name,
+                        total=len(df),
+                        errors=conversion_errors + result.errors,
+                    )
 
                     # Record validation metrics
                     error_count = len(result.errors)
                     total_errors += error_count
 
                     record_metric(
-                        "validation_bars_processed", len(bars), provider=provider, feed=feed
+                        "validation_bars_processed", len(df), provider=provider, feed=feed
                     )
                     record_metric(
-                        f"validation_bars_{symbol_name}", len(bars), provider=provider, feed=feed
+                        f"validation_bars_{symbol_name}", len(df), provider=provider, feed=feed
                     )
 
                     if error_count > 0:
@@ -103,6 +113,10 @@ class ValidationRunnerService:
                         f"validation_failure_{symbol_name}", 1, provider=provider, feed=feed
                     )
                     print(f"ERROR Failed to validate symbol {symbol_name}: {symbol_error}")
+                    failed_symbols.append(symbol_name)
+
+            if failed_symbols:
+                raise RuntimeError(f"Failed to validate symbols: {', '.join(failed_symbols)}")
 
             # Record overall job validation metrics
             if total_errors == 0:
@@ -128,12 +142,14 @@ class ValidationRunnerService:
             print(f"ERROR Validation failed for job {event.job_id}: {e}")
             raise
 
-    def _convert_dataframe_to_bars(self, df, symbol_name: str) -> list:
+    def _convert_dataframe_to_bars(
+        self, df, symbol_name: str, errors: list[BarError] | None = None
+    ) -> list:
         """Convert DataFrame to OHLCVBar domain objects."""
         bars = []
         symbol = Symbol.from_string(symbol_name)
 
-        for _, row in df.iterrows():
+        for index, row in df.iterrows():
             try:
                 bar = OHLCVBar(
                     id=EntityId.generate(),
@@ -146,9 +162,13 @@ class ValidationRunnerService:
                     volume=Volume(int(row["volume"])),
                 )
                 bars.append(bar)
-            except Exception:
-                # Skip invalid rows
-                continue
+            except Exception as exc:
+                if errors is not None:
+                    try:
+                        timestamp_ns = int(row["ts_ns"])
+                    except (KeyError, TypeError, ValueError, OverflowError):
+                        timestamp_ns = 0
+                    errors.append(BarError(timestamp_ns, f"invalid bar at index {index}: {exc}"))
 
         return bars
 
@@ -156,8 +176,10 @@ class ValidationRunnerService:
     @classmethod
     def build_default(cls):
         """Build service with default dependencies."""
+        import os
+
         return cls(
-            storage_engine=ParquetStorageEngine("data/raw"),
+            storage_engine=ParquetStorageEngine(os.environ.get("MARKETPIPE_RAW_ROOT", "data/raw")),
             validator=ValidationDomainService(),
             reporter=CsvReportRepository(),
         )

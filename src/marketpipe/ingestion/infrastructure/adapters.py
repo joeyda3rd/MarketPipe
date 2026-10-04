@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -88,7 +89,8 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         self,
         symbol: Symbol,
         time_range: TimeRange,
-        max_bars: int = 1000,
+        max_bars: Optional[int] = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """
         Fetch bars from Alpaca and translate to domain models.
@@ -96,13 +98,19 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         This method handles the translation from Alpaca's format to our domain format,
         protecting the domain from external API changes.
         """
+        if timeframe != "1m":
+            raise ValueError(
+                "Alpaca ingestion supports 1m bars; use aggregation for other timeframes"
+            )
         # Convert time range to milliseconds for Alpaca API
         start_ms = time_range.start.to_nanoseconds() // 1_000_000
         end_ms = time_range.end.to_nanoseconds() // 1_000_000
 
         # Fetch raw data from Alpaca
         try:
-            raw_bars = self._alpaca_client.fetch_batch(symbol.value, start_ms, end_ms)
+            raw_bars = await asyncio.to_thread(
+                self._alpaca_client.fetch_batch, symbol.value, start_ms, end_ms
+            )
         except Exception as e:
             # Translate infrastructure exceptions to domain exceptions
             safe_msg = safe_for_log(
@@ -111,7 +119,7 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
             raise MarketDataProviderError(safe_msg) from e
 
         # Limit results to max_bars
-        if len(raw_bars) > max_bars:
+        if max_bars is not None and len(raw_bars) > max_bars:
             raw_bars = raw_bars[:max_bars]
 
         # Translate raw data to domain models
@@ -260,12 +268,13 @@ class AlpacaMarketDataAdapter(IMarketDataProvider):
         start_timestamp: int,
         end_timestamp: int,
         batch_size: int = 1000,
+        timeframe: Optional[str] = None,
     ) -> list[OHLCVBar]:
-        """Legacy method for backward compatibility."""
+        """Fetch the complete range without treating batch_size as a total limit."""
         start_ts = Timestamp.from_nanoseconds(start_timestamp)
         end_ts = Timestamp.from_nanoseconds(end_timestamp)
         time_range = TimeRange(start_ts, end_ts)
-        return await self.fetch_bars_for_symbol(symbol, time_range, batch_size)
+        return await self.fetch_bars_for_symbol(symbol, time_range, None, timeframe or "1m")
 
 
 class IEXMarketDataAdapter(IMarketDataProvider):
@@ -288,6 +297,7 @@ class IEXMarketDataAdapter(IMarketDataProvider):
         symbol: Symbol,
         time_range: TimeRange,
         max_bars: int = 1000,
+        timeframe: str = "1m",
     ) -> list[OHLCVBar]:
         """Fetch bars from IEX and translate to domain models."""
         # This is a stub implementation - IEX integration would go here

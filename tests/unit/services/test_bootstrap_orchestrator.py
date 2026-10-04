@@ -188,8 +188,16 @@ class TestBootstrapBackwardCompatibility:
 
     def setup_method(self):
         """Reset global state before each test."""
+        from marketpipe.bootstrap import get_global_orchestrator, reset_bootstrap_state
+
+        self._original_orchestrator = get_global_orchestrator()
+        reset_bootstrap_state()
+
+    def teardown_method(self):
+        """Restore the shared orchestrator after fake dependency injection."""
         from marketpipe.bootstrap import reset_bootstrap_state
 
+        set_global_orchestrator(self._original_orchestrator)
         reset_bootstrap_state()
 
     def test_legacy_bootstrap_function_uses_orchestrator(self):

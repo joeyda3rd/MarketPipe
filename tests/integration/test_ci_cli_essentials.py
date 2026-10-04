@@ -30,6 +30,17 @@ import subprocess
 import pytest
 
 
+@pytest.fixture
+def jobs_database(tmp_path, monkeypatch):
+    """Job commands use their own database rather than prior tests' output."""
+    from marketpipe.migrations import apply_pending
+
+    path = tmp_path / "jobs.db"
+    apply_pending(path)
+    monkeypatch.setenv("MARKETPIPE_INGESTION_DB_PATH", str(path))
+    return path
+
+
 @pytest.mark.integration
 class TestEssentialCLICommands:
     """Test essential CLI commands execute successfully in CI.
@@ -122,7 +133,7 @@ class TestEssentialCLICommands:
         output = result.stdout.lower() + result.stderr.lower()
         assert "fake" in output, "Should list 'fake' provider in output"
 
-    def test_jobs_list_executes(self, tmp_path):
+    def test_jobs_list_executes(self, tmp_path, jobs_database):
         """Test: marketpipe jobs list executes successfully.
 
         This command should execute even if no jobs exist.
@@ -141,7 +152,7 @@ class TestEssentialCLICommands:
             result.returncode == 0
         ), f"Jobs list should execute successfully. Exit code: {result.returncode}\nStderr: {result.stderr}"
 
-    def test_jobs_cleanup_dry_run_executes(self, tmp_path):
+    def test_jobs_cleanup_dry_run_executes(self, tmp_path, jobs_database):
         """Test: marketpipe jobs cleanup --dry-run executes successfully.
 
         This command should execute safely in dry-run mode.

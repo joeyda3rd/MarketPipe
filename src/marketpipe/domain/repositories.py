@@ -108,7 +108,7 @@ class IOHLCVRepository(ABC):
     """
 
     @abstractmethod
-    async def get_bars_for_symbol(
+    def get_bars_for_symbol(
         self, symbol: Symbol, time_range: TimeRange
     ) -> AsyncGenerator[OHLCVBar, None]:
         """Stream bars for symbol in time range.
@@ -123,7 +123,7 @@ class IOHLCVRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_bars_for_symbols(
+    def get_bars_for_symbols(
         self, symbols: list[Symbol], time_range: TimeRange
     ) -> AsyncGenerator[OHLCVBar, None]:
         """Stream bars for multiple symbols in time range.

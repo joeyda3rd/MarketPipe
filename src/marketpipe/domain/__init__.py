@@ -23,7 +23,7 @@ from .market_data import (
 )
 from .services import DomainService
 from .symbol import AssetClass, Status, SymbolRecord
-from .value_objects import Price, Symbol, TimeRange, Timestamp, Volume
+from .value_objects import Price, PriceChange, Symbol, TimeRange, Timestamp, Volume
 
 __all__ = [
     # Base classes
@@ -36,6 +36,7 @@ __all__ = [
     # Value Objects
     "Symbol",
     "Price",
+    "PriceChange",
     "Timestamp",
     "Volume",
     "TimeRange",

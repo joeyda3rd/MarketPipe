@@ -304,7 +304,9 @@ class TestSymbolsModes:
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
     @patch("marketpipe.ingestion.pipeline.symbol_pipeline.get_provider")
-    def test_pipeline_failure_propagates_exit_code(self, mock_get_provider, mock_list_providers):
+    def test_pipeline_failure_propagates_exit_code(
+        self, mock_get_provider, mock_list_providers, tmp_path
+    ):
         """Test that pipeline failures result in non-zero exit codes."""
         mock_list_providers.return_value = ["dummy"]
 
@@ -317,12 +319,18 @@ class TestSymbolsModes:
         mock_provider.fetch_symbols = failing_fetch
         mock_get_provider.return_value = mock_provider
 
-        result = self.runner.invoke(root_app, ["symbols", "update", "-p", "dummy", "--execute"])
+        db_path = tmp_path / "missing" / "symbols.duckdb"
+        result = self.runner.invoke(
+            root_app,
+            ["symbols", "update", "-p", "dummy", "--execute", "--db", str(db_path)],
+        )
 
         # Verify failure
         assert result.exit_code == 1
         assert "❌ Pipeline failed:" in result.output
         assert "Provider fetch failed" in result.output
+        mock_get_provider.assert_called_once()
+        assert db_path.parent.exists()
 
     @patch("marketpipe.ingestion.symbol_providers.list_providers")
     def test_invalid_date_format_error(self, mock_list_providers):

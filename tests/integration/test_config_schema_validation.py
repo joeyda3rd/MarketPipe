@@ -57,7 +57,7 @@ class ConfigurationValidator:
     """Validates configuration files and precedence rules."""
 
     def __init__(self, base_dir: Optional[Path] = None):
-        self.base_dir = base_dir or Path(__file__).parent.parent.parent
+        self.base_dir = base_dir or Path.cwd()
 
     def validate_config_case(self, test_case: ConfigTestCase) -> ConfigValidationResult:
         """
