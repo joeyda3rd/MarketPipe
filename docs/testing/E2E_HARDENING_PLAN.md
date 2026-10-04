@@ -1,6 +1,6 @@
 # MarketPipe end to end testing and hardening plan
 
-Created: 2026-10-04. Status: implementation in progress.
+Created: 2026-10-04. Status: implementation and verification complete.
 
 ## Objective and scope
 
@@ -128,7 +128,7 @@ Do not claim optional live probes were executed without an explicit opt-in run.
 - Full integration baseline found 14 failures. Fixed obsolete symbols/expectations
   and unsafe subprocess isolation; follow-up exposed shared event subscriptions and
   duplicate CLI startup costs, which are corrected through public cleanup and one
-  isolated help invocation. Final combined results will be recorded after validation.
+  isolated help invocation. The final combined offline runs pass locally and remotely.
 - Combined current-dependency runs exposed cross-workspace SQLite pool reuse.
   Repository instances and pooled connections now resolve filesystem paths before
   persistence. A regression verifies independent databases and retained repository
@@ -145,4 +145,39 @@ Do not claim optional live probes were executed without an explicit opt-in run.
   GitHub workflows pass actionlint. Release dry runs guard every public mutation and
   publication reuses validated artifacts. Optional live probes remain unexecuted.
 - Required checks, nightly/manual integrations, PostgreSQL and bounded-resource
-  jobs are implemented. Remote execution and final delivery are pending.
+  jobs are implemented and verified remotely. Main's existing active ruleset now
+  requires `CI Summary` from GitHub Actions with an up-to-date branch; its existing
+  PR, linear-history, deletion and force-push protections are preserved.
+
+## Final validation evidence
+
+Implementation delivered through [PR #92](https://github.com/joeyda3rd/MarketPipe/pull/92).
+Full code validation below ran against commit `4be3c7f`; the subsequent documentation
+commit records these results without changing application code or tests.
+
+| Check | Verified result |
+| --- | --- |
+| Complete local offline suite, fresh Python 3.11 dependencies | 1,140 passed, 46 existing skips, 303.77 seconds |
+| Required installed E2E | 42 passed, no skips, 70.69 seconds; PostgreSQL case deselected for its separate job |
+| Python 3.9 complete offline suite | 1,140 passed, 46 existing skips, 361.32 seconds |
+| Python 3.13 complete offline suite | 1,140 passed, 46 existing skips, 325.19 seconds |
+| Unit matrix, Python 3.9–3.13 | Every matrix job passed |
+| PostgreSQL 16 migrations and repository checks | 5 passed, including deployed-head upgrade and concurrent claims |
+| Persistence with constrained descriptors and worker threads | 10 passed |
+| Dependency audit and high severity/high confidence static scan | 0 vulnerabilities, 0 findings, 0 scanner errors; no vulnerability exceptions |
+| CLI startup benchmark, explicitly requested in serial | Passed; every command also required successful execution |
+| Black, isort, Ruff, DDD contracts, actionlint | Passed |
+| Release rehearsal | 1,140 passed, 46 existing skips; wheel and sdist passed strict Twine checks |
+
+Remote evidence: [complete CI and extended checks](https://github.com/joeyda3rd/MarketPipe/actions/runs/37225733331),
+[release dry run](https://github.com/joeyda3rd/MarketPipe/actions/runs/37225735016).
+The dry run's release-creation and Test PyPI jobs were skipped, and its summary passed.
+No release, tag, package publication or live-provider request was made by this plan.
+The temporary local PostgreSQL service was shut down after verification.
+
+The 46 existing default skips include opt-in benchmarks/slow cases, live-provider
+cases, legacy disabled pipeline demonstrations, prototype cases, the unimplemented
+legacy version-option check, and two legacy PostgreSQL unit cases. Dedicated new
+PostgreSQL and real local HTTP checks run successfully in their place where applicable.
+The mandatory installed E2E suite has no skipped core behavior. Existing mypy debt
+remains explicitly advisory; optional live probes require a separate opt-in run.
