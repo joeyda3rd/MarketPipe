@@ -28,7 +28,6 @@ class DistributedNode:
         self.storage_engine = ParquetStorageEngine(storage_dir)
         self.is_active = True
         self.processed_jobs = []
-        self.message_queue = asyncio.Queue()
         self.coordinator_address = None
 
     async def process_ingestion_job(self, job_data: dict) -> dict:
@@ -133,7 +132,6 @@ class DistributedCoordinator:
         self.nodes: dict[str, DistributedNode] = {}
         self.job_assignments: dict[str, str] = {}  # job_id -> node_id
         self.heartbeats: dict[str, dict] = {}
-        self.job_queue = asyncio.Queue()
         self.completed_jobs = []
 
     def register_node(self, node: DistributedNode):

@@ -18,6 +18,22 @@ from marketpipe.ingestion.infrastructure.provider_registry import (
 )
 
 
+@pytest.fixture(scope="module", autouse=True)
+def isolated_provider_registry():
+    """Restore providers and discovery state after tests that clear the registry."""
+    from marketpipe.ingestion.infrastructure import provider_registry
+
+    with pytest.MonkeyPatch.context() as patcher:
+        patcher.setattr(provider_registry, "_REGISTRY", provider_registry._REGISTRY.copy())
+        patcher.setattr(provider_registry, "_AUTO_REGISTERED", provider_registry._AUTO_REGISTERED)
+        patcher.setattr(
+            provider_registry,
+            "_allow_default_registration",
+            provider_registry._allow_default_registration,
+        )
+        yield
+
+
 class MockProvider(IMarketDataProvider):
     """Mock provider for testing."""
 

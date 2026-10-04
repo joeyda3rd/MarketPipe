@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from unittest.mock import patch
 
+from click import unstyle
 from typer.testing import CliRunner
 
 from marketpipe.cli import app as root_app
@@ -37,7 +38,7 @@ class TestSymbolsUpdateCommand:
         ]
 
         for flag in required_flags:
-            assert flag in result.output, f"Flag {flag} not found in help output"
+            assert flag in unstyle(result.output), f"Flag {flag} not found in help output"
 
         # Normalize output by removing extra whitespace and newlines for more robust checking
         normalized_output = " ".join(result.output.split())

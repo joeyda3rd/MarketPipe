@@ -20,6 +20,9 @@ WRITER = """
 import sys
 from datetime import date
 import pandas as pd
+import pyarrow as pa
+pa.set_cpu_count(1)
+pa.set_io_thread_count(1)
 from marketpipe.infrastructure.storage.parquet_engine import ParquetStorageEngine
 engine = ParquetStorageEngine(sys.argv[1])
 print('ready', flush=True)

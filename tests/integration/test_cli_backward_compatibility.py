@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -74,7 +75,7 @@ class BackwardCompatibilityValidator:
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
                 # Build command
-                cmd_args = ["python", "-m", "marketpipe"] + test_case.deprecated_command
+                cmd_args = [sys.executable, "-m", "marketpipe"] + test_case.deprecated_command
 
                 # Add options, replacing output path with temp directory
                 for option, value in test_case.options.items():
@@ -157,10 +158,8 @@ class BackwardCompatibilityValidator:
 
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
-                Path(temp_dir)
-
                 # Run deprecated command
-                deprecated_args = ["python", "-m", "marketpipe"] + deprecated_cmd
+                deprecated_args = [sys.executable, "-m", "marketpipe"] + deprecated_cmd
                 for option, value in options.items():
                     if isinstance(value, bool) and value:
                         deprecated_args.append(option)
@@ -168,11 +167,11 @@ class BackwardCompatibilityValidator:
                         deprecated_args.extend([option, str(value)])
 
                 deprecated_result = subprocess.run(
-                    deprecated_args, capture_output=True, text=True, timeout=30, cwd=self.base_dir
+                    deprecated_args, capture_output=True, text=True, timeout=30, cwd=temp_dir
                 )
 
                 # Run new command
-                new_args = ["python", "-m", "marketpipe"] + new_cmd
+                new_args = [sys.executable, "-m", "marketpipe"] + new_cmd
                 for option, value in options.items():
                     if isinstance(value, bool) and value:
                         new_args.append(option)
@@ -180,7 +179,7 @@ class BackwardCompatibilityValidator:
                         new_args.extend([option, str(value)])
 
                 new_result = subprocess.run(
-                    new_args, capture_output=True, text=True, timeout=30, cwd=self.base_dir
+                    new_args, capture_output=True, text=True, timeout=30, cwd=temp_dir
                 )
 
                 # Compare exit codes
@@ -220,6 +219,7 @@ class BackwardCompatibilityValidator:
 
     def _clean_output_for_comparison(self, output: str) -> str:
         """Clean output for comparison by removing timestamps, warnings, etc."""
+        output = re.sub(r"\033\[[0-9;]*m", "", output)
         lines = output.split("\n")
         cleaned_lines = []
         skip_examples = False
@@ -445,7 +445,7 @@ class ConfigurationCompatibilityValidator:
 
                 # Test with current ingest command
                 cmd = [
-                    "python",
+                    sys.executable,
                     "-m",
                     "marketpipe",
                     "ingest-ohlcv",
@@ -455,7 +455,7 @@ class ConfigurationCompatibilityValidator:
                 ]
 
                 result = subprocess.run(
-                    cmd, capture_output=True, text=True, timeout=30, cwd=self.base_dir
+                    cmd, capture_output=True, text=True, timeout=30, cwd=temp_dir
                 )
 
                 if result.returncode != 0:

@@ -276,3 +276,24 @@ async def test_polygon_read_timeout_is_bounded(http_server):
     with pytest.raises(httpx.ReadTimeout):
         await polygon(url, timeout=0.02).fetch_bars_for_symbol(Symbol("AAPL"), polygon_range())
     assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_polygon_continues_after_empty_page_with_cursor(http_server):
+    url, responses, requests = http_server
+    responses.extend(
+        [
+            (200, {}, {"status": "OK", "results": [], "next_url": url + "/?cursor=after-empty"}),
+            (
+                200,
+                {},
+                {
+                    "status": "OK",
+                    "results": [{"t": START_MS, "o": 100, "h": 101, "l": 99, "c": 100, "v": 10}],
+                },
+            ),
+        ]
+    )
+    bars = await polygon(url).fetch_bars_for_symbol(Symbol("AAPL"), polygon_range())
+    assert [bar.volume.value for bar in bars] == [10]
+    assert len(requests) == 2

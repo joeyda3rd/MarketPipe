@@ -157,8 +157,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                     if reached_end_of_range:
                         break
                 else:
-                    self.log.warning(f"No results in response for {symbol.value}")
-                    break
+                    self.log.info(f"Empty results page for {symbol.value}")
 
                 # Check for pagination - get next_url from response
                 next_url = response_data.get("next_url")
