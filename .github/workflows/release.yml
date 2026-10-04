@@ -37,7 +37,7 @@ jobs:
           EXPECTED_RELEASE_VERSION: ${{ inputs.version }}
         run: python scripts/validate_release.py
       - name: Test release behavior
-        run: python -m pytest tests/unit tests/integration tests/e2e -m 'not postgres' -n 2 --timeout=120 --junitxml=release-results.xml -q
+        run: python -m pytest tests -m 'not postgres' -n 2 --timeout=120 --junitxml=release-results.xml -q
       - name: Build and validate the exact distributions to publish
         run: |
           python -m build
