@@ -424,6 +424,11 @@ class EnhancedCLITester:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
+            reset_marker = None
+            if test.category == "factory_reset":
+                reset_marker = temp_path / "data" / "preserved.txt"
+                reset_marker.parent.mkdir()
+                reset_marker.write_text("Factory reset must preserve this test-owned file.")
 
             # Set up environment variables
             env = os.environ.copy()
@@ -469,6 +474,8 @@ class EnhancedCLITester:
                 result.exit_code = process_result.returncode
                 result.stdout = process_result.stdout
                 result.stderr = process_result.stderr
+                if reset_marker is not None:
+                    assert reset_marker.exists(), "A reset preview or rejected reset deleted data"
 
             except subprocess.TimeoutExpired:
                 result.error_messages.append(f"Command timed out after {test.timeout_seconds}s")

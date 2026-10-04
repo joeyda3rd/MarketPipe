@@ -121,12 +121,23 @@ Do not claim optional live probes were executed without an explicit opt-in run.
 - Historical upgrade and fresh-schema tests passed on a temporary PostgreSQL 14
   service and SQLite. Fixed dialect-specific index queries and nanosecond integer
   overflow; concurrent PostgreSQL claims are verified against disposable databases.
+  Forward revision `0006` also widens databases already stamped at the deployed
+  `0005` head, preserves their rows, and keeps 64-bit timestamps during rollback.
 - Golden tests cover all six frames, unordered/duplicate bars, zero volume and both
   New York DST changes. README command workflows now execute without obsolete skips.
 - Full integration baseline found 14 failures. Fixed obsolete symbols/expectations
   and unsafe subprocess isolation; follow-up exposed shared event subscriptions and
   duplicate CLI startup costs, which are corrected through public cleanup and one
   isolated help invocation. Final combined results will be recorded after validation.
+- Combined current-dependency runs exposed cross-workspace SQLite pool reuse.
+  Repository instances and pooled connections now resolve filesystem paths before
+  persistence. A regression verifies independent databases and retained repository
+  identity after working-directory changes. Registry tests restore discovery state;
+  obsolete simulation queues no longer depend on a missing Python 3.9 event loop.
+- CLI safety tests now seed files in their own temporary directories and assert
+  rejected resets and previews preserve them. Startup timing uses the existing
+  benchmark opt-in and passed explicitly in serial execution; command success is
+  asserted independently of timing.
 - Dependency audit after upgrading bootstrap pip/setuptools: zero vulnerabilities;
   high severity/high confidence Bandit scan: zero findings and zero scanner errors.
   No vulnerability exceptions were introduced.
