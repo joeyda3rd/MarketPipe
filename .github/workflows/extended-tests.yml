@@ -1,6 +1,7 @@
 name: Extended Tests
 
 on:
+  workflow_call:
   schedule:
     - cron: '0 4 * * *'
   workflow_dispatch:
