@@ -251,6 +251,8 @@ def update(
     total_updates = 0
 
     try:
+        if not dry_run:
+            db_path.parent.mkdir(parents=True, exist_ok=True)
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),

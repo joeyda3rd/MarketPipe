@@ -15,12 +15,20 @@ import typer
 jobs_app = typer.Typer(name="jobs", help="Ingestion job management commands", add_completion=False)
 
 
+def _parse_timestamp(value: str) -> datetime:
+    """Normalize SQLite timestamps and ISO timestamps to aware UTC values."""
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _get_db_path() -> Optional[str]:
     """Get the path to the ingestion jobs database."""
     # Check environment variables first (for test isolation)
     env_db_path = os.getenv("MARKETPIPE_INGESTION_DB_PATH")
-    if env_db_path and Path(env_db_path).exists():
-        return env_db_path
+    if env_db_path:
+        return env_db_path if Path(env_db_path).exists() else None
 
     # Check standard locations
     possible_paths = ["data/ingestion_jobs.db", "ingestion_jobs.db", "data/db/core.db"]
@@ -29,6 +37,27 @@ def _get_db_path() -> Optional[str]:
         if Path(path).exists():
             return path
     return None
+
+
+def _get_recent_completed_job_ids(symbol: Optional[str] = None, days: int = 7) -> list[str]:
+    """Find completed jobs in the database used by ingestion and job administration."""
+    if days < 1:
+        raise ValueError("--days must be positive")
+    db_path = _get_db_path()
+    if db_path is None:
+        return []
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    query = (
+        "SELECT symbol, day FROM ingestion_jobs WHERE state = 'COMPLETED' "
+        "AND julianday(updated_at) >= julianday(?)"
+    )
+    params: list[object] = [cutoff.isoformat()]
+    if symbol:
+        query += " AND symbol = ?"
+        params.append(symbol.upper())
+    query += " ORDER BY updated_at DESC"
+    with sqlite3.connect(db_path) as conn:
+        return [f"{row[0]}_{row[1]}" for row in conn.execute(query, params)]
 
 
 @jobs_app.command(name="list")
@@ -196,7 +225,7 @@ def status(
                     typer.echo(f"\n🔄 Active Jobs ({len(active_jobs)})")
                     typer.echo("-" * 50)
                     for job in active_jobs:
-                        updated = datetime.fromisoformat(job["updated_at"].replace("Z", "+00:00"))
+                        updated = _parse_timestamp(job["updated_at"])
                         hours_ago = (datetime.now(timezone.utc) - updated).total_seconds() / 3600
                         typer.echo(
                             f"  Job {job['id']}: {job['symbol']} {job['day']} - {job['state']} ({hours_ago:.1f}h ago)"
@@ -249,7 +278,7 @@ def doctor(
                 SELECT id, symbol, day, state, created_at, updated_at
                 FROM ingestion_jobs
                 WHERE state = 'IN_PROGRESS'
-                AND updated_at < ?
+                AND julianday(updated_at) < julianday(?)
                 ORDER BY updated_at DESC
             """,
                 (stuck_threshold.isoformat(),),
@@ -258,7 +287,7 @@ def doctor(
             stuck_jobs = cursor.fetchall()
 
             for job in stuck_jobs:
-                updated = datetime.fromisoformat(job["updated_at"].replace("Z", "+00:00"))
+                updated = _parse_timestamp(job["updated_at"])
                 stuck_hours = (datetime.now(timezone.utc) - updated).total_seconds() / 3600
 
                 issue = {
@@ -280,7 +309,7 @@ def doctor(
                 SELECT id, symbol, day, state, created_at, updated_at
                 FROM ingestion_jobs
                 WHERE state = 'PENDING'
-                AND created_at < ?
+                AND julianday(created_at) < julianday(?)
                 ORDER BY created_at DESC
             """,
                 (old_threshold.isoformat(),),
@@ -289,7 +318,7 @@ def doctor(
             old_pending = cursor.fetchall()
 
             for job in old_pending:
-                created = datetime.fromisoformat(job["created_at"].replace("Z", "+00:00"))
+                created = _parse_timestamp(job["created_at"])
                 pending_hours = (datetime.now(timezone.utc) - created).total_seconds() / 3600
 
                 issue = {
@@ -439,6 +468,11 @@ def cleanup(
         marketpipe jobs cleanup --all                         # Preview what would be deleted
     """
 
+    if older_than_days is not None and older_than_days < 1:
+        raise typer.BadParameter("--older-than must be a positive number of days")
+    if not dry_run and not any((delete_all, completed, failed, older_than_days, job_id)):
+        raise typer.BadParameter("Choose a cleanup filter or --all before using --execute")
+
     db_path = _get_db_path()
     if not db_path:
         typer.echo("❌ No ingestion jobs database found")
@@ -485,7 +519,7 @@ def cleanup(
 
                 if older_than_days:
                     cutoff = datetime.now(timezone.utc) - timedelta(days=older_than_days)
-                    conditions.append("updated_at < ?")
+                    conditions.append("julianday(updated_at) < julianday(?)")
                     params.append(cutoff.isoformat())
 
             # Build WHERE clause
@@ -500,6 +534,8 @@ def cleanup(
 
             if not jobs_to_delete:
                 typer.echo("📭 No jobs found matching the criteria")
+                if dry_run:
+                    typer.echo("🔍 Dry run: no changes made")
                 return
 
             typer.echo(
@@ -514,12 +550,56 @@ def cleanup(
             if len(jobs_to_delete) > 10:
                 typer.echo(f"  ... and {len(jobs_to_delete) - 10} more")
 
-            # Get checkpoint count (checkpoints use symbol and day too)
+            # Pin the selected jobs so checkpoint cleanup uses their exact identities.
             cursor.execute(
-                f"SELECT COUNT(*) FROM checkpoints c WHERE EXISTS (SELECT 1 FROM ingestion_jobs j WHERE j.symbol = c.symbol AND {where_clause.replace('state', 'j.state').replace('updated_at', 'j.updated_at')})",
+                f"CREATE TEMP TABLE cleanup_targets AS "
+                f"SELECT id, symbol, day FROM ingestion_jobs WHERE {where_clause}",
                 params,
             )
-            checkpoint_count = cursor.fetchone()[0]
+            checkpoint_schemas = ["main"]
+            checkpoint_path = Path(
+                os.environ.get(
+                    "MARKETPIPE_CHECKPOINT_DB_PATH",
+                    os.environ.get(
+                        "MARKETPIPE_DB_PATH", str(Path(db_path).parent / "db" / "core.db")
+                    ),
+                )
+            )
+            if checkpoint_path.exists() and checkpoint_path.resolve() != Path(db_path).resolve():
+                cursor.execute("ATTACH DATABASE ? AS checkpoint_db", (str(checkpoint_path),))
+                checkpoint_schemas.append("checkpoint_db")
+
+            checkpoint_queries = []
+            for schema in checkpoint_schemas:
+                tables = {
+                    row[0]
+                    for row in cursor.execute(
+                        f"SELECT name FROM {schema}.sqlite_master WHERE type = 'table'"
+                    )
+                }
+                if "ingestion_checkpoints" in tables:
+                    checkpoint_queries.append(
+                        (
+                            f"{schema}.ingestion_checkpoints",
+                            "job_id IN (SELECT symbol || '_' || day FROM cleanup_targets)",
+                        )
+                    )
+                if "checkpoints" in tables:
+                    # Legacy checkpoints are shared per symbol: retain them while any
+                    # unselected job for that symbol remains.
+                    checkpoint_queries.append(
+                        (
+                            f"{schema}.checkpoints",
+                            "symbol IN (SELECT symbol FROM cleanup_targets) "
+                            "AND NOT EXISTS (SELECT 1 FROM ingestion_jobs j "
+                            "WHERE j.symbol = checkpoints.symbol "
+                            "AND j.id NOT IN (SELECT id FROM cleanup_targets))",
+                        )
+                    )
+            checkpoint_count = sum(
+                cursor.execute(f"SELECT COUNT(*) FROM {table} WHERE {predicate}").fetchone()[0]
+                for table, predicate in checkpoint_queries
+            )
             typer.echo(f"\n📌 Associated checkpoints: {checkpoint_count}")
 
             if dry_run:
@@ -529,16 +609,16 @@ def cleanup(
             # Delete jobs and checkpoints
             typer.echo("\n🗑️  Deleting...")
 
-            # Delete checkpoints first
-            # Checkpoints are linked by symbol, not job_id
-            cursor.execute(
-                f"DELETE FROM checkpoints WHERE EXISTS (SELECT 1 FROM ingestion_jobs WHERE ingestion_jobs.symbol = checkpoints.symbol AND {where_clause.replace('state', 'ingestion_jobs.state').replace('updated_at', 'ingestion_jobs.updated_at')})",
-                params,
-            )
-            deleted_checkpoints = cursor.rowcount
+            # Delete matching checkpoints from both current and legacy repositories.
+            deleted_checkpoints = 0
+            for table, predicate in checkpoint_queries:
+                cursor.execute(f"DELETE FROM {table} WHERE {predicate}")
+                deleted_checkpoints += cursor.rowcount
 
             # Delete jobs
-            cursor.execute(f"DELETE FROM ingestion_jobs WHERE {where_clause}", params)
+            cursor.execute(
+                "DELETE FROM ingestion_jobs WHERE id IN (SELECT id FROM cleanup_targets)"
+            )
             deleted_jobs = cursor.rowcount
 
             conn.commit()

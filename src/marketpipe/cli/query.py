@@ -9,13 +9,13 @@ import typer
 
 
 def query(
-    sql: str = typer.Argument(..., help="DuckDB SQL using views bars_5m|15m|1h|1d"),
+    sql: str = typer.Argument(..., help="DuckDB SQL using views bars_5m|15m|30m|1h|4h|1d"),
     csv: bool = typer.Option(False, "--csv", help="Output CSV to stdout"),
     limit: int = typer.Option(50, "--limit", "-l", help="Limit number of rows in table output"),
 ):
     """Run an ad-hoc query on aggregated data.
 
-    Available views: bars_5m, bars_15m, bars_1h, bars_1d
+    Available views: bars_5m, bars_15m, bars_30m, bars_1h, bars_4h, bars_1d
 
     Examples:
         marketpipe query "SELECT * FROM bars_5m WHERE symbol='AAPL' LIMIT 10"

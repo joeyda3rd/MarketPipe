@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -15,33 +14,9 @@ from marketpipe.validation.infrastructure.repositories import CsvReportRepositor
 
 def _get_recent_jobs(symbol: Optional[str] = None, days: int = 7) -> list[str]:
     """Get recent completed jobs from the repository."""
-    import asyncio
+    from .jobs import _get_recent_completed_job_ids
 
-    from marketpipe.bootstrap import get_repository_adapter
-    from marketpipe.ingestion.domain.entities import ProcessingState
-
-    adapter = get_repository_adapter()
-    repo = adapter.job_repository()
-
-    async def fetch_jobs():
-        # Get jobs from last N days
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days)
-        jobs = await repo.get_jobs_by_date_range(start_date, end_date)
-
-        # Filter for completed jobs
-        completed_jobs = [j for j in jobs if j.state == ProcessingState.COMPLETED]
-
-        # Filter by symbol if specified
-        if symbol:
-            completed_jobs = [
-                j for j in completed_jobs if j.job_id.symbol and str(j.job_id.symbol) == symbol
-            ]
-
-        # Return job IDs as strings
-        return [str(j.job_id) for j in completed_jobs]
-
-    return asyncio.run(fetch_jobs())
+    return _get_recent_completed_job_ids(symbol, days)
 
 
 def _validate_single_job(job_id: str, validation_service: ValidationRunnerService):

@@ -222,7 +222,7 @@ class TestErrorPropagationEndToEnd:
                     )
                     print("✅ Database connection error handled gracefully")
 
-    def test_secret_masking_in_error_propagation(self, tmp_path, caplog):
+    def test_secret_masking_in_error_propagation(self, tmp_path, caplog, monkeypatch):
         """Test that secrets are masked in error messages throughout the stack."""
 
         caplog.clear()
@@ -233,10 +233,12 @@ class TestErrorPropagationEndToEnd:
             fake_api_secret = "SECRET_12345_ABCDEF_67890"
 
             runner = CliRunner()
+            monkeypatch.setenv("ALPACA_KEY", fake_api_key)
+            monkeypatch.setenv("ALPACA_SECRET", fake_api_secret)
 
             # Create error scenario with potential secret exposure
             with patch(
-                "marketpipe.ingestion.infrastructure.alpaca_client.AlpacaClient"
+                "marketpipe.ingestion.infrastructure.adapters.AlpacaClient.fetch_batch"
             ) as mock_client:
 
                 # Configure mock to raise error with secret in message
@@ -247,15 +249,11 @@ class TestErrorPropagationEndToEnd:
 
                 config_content = dedent(
                     f"""
-                    alpaca:
-                      key: "{fake_api_key}"
-                      secret: "{fake_api_secret}"
-                      base_url: "https://data.alpaca.markets/v2"
-                      feed: "iex"
-
+                    config_version: "1"
+                    provider: "alpaca"
                     symbols: [AAPL]
                     start: "2024-01-15"
-                    end: "2024-01-15"
+                    end: "2024-01-16"
                     output_path: "{tmp_path}/secret_test"
                 """
                 )
@@ -272,6 +270,9 @@ class TestErrorPropagationEndToEnd:
                     ],
                     catch_exceptions=True,
                 )
+
+                mock_client.assert_called_once()
+                assert result.exit_code != 0
 
                 # Error should occur, but secrets should be masked
                 error_output = result.stdout

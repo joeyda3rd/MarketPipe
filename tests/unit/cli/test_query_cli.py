@@ -177,7 +177,8 @@ def test_query_command_help(runner):
 
     assert result.exit_code == 0
     assert "Run an ad-hoc query on aggregated data" in result.stdout
-    assert "Available views: bars_5m, bars_15m, bars_1h, bars_1d" in result.stdout
+    for view in ["bars_5m", "bars_15m", "bars_30m", "bars_1h", "bars_4h", "bars_1d"]:
+        assert view in result.stdout
     assert "Examples:" in result.stdout
     assert "SELECT * FROM bars_5m WHERE symbol='AAPL'" in result.stdout
 
