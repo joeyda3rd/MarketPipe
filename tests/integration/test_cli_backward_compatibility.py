@@ -55,7 +55,7 @@ class BackwardCompatibilityValidator:
     """Validates backward compatibility of CLI commands."""
 
     def __init__(self, base_dir: Optional[Path] = None):
-        self.base_dir = base_dir or Path(__file__).parent.parent.parent
+        self.base_dir = base_dir or Path.cwd()
 
     def validate_deprecated_command(
         self, test_case: DeprecationTestCase
@@ -375,7 +375,7 @@ class ConfigurationCompatibilityValidator:
     """Validates configuration file backward compatibility."""
 
     def __init__(self, base_dir: Optional[Path] = None):
-        self.base_dir = base_dir or Path(__file__).parent.parent.parent
+        self.base_dir = base_dir or Path.cwd()
 
     def validate_config_schema_compatibility(self) -> list[str]:
         """Validate that old configuration schemas still work."""
