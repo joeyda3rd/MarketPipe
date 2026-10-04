@@ -11,11 +11,51 @@ import pandas as pd
 import pytest
 
 from marketpipe.domain.value_objects import Symbol
+from marketpipe.infrastructure.sqlite_pool import connection
 from marketpipe.ingestion.domain.entities import IngestionJobId
 from marketpipe.ingestion.domain.value_objects import IngestionCheckpoint
 from marketpipe.ingestion.infrastructure.repositories import SqliteCheckpointRepository
 
 pytestmark = pytest.mark.e2e
+
+
+def test_relative_connection_pools_isolate_different_workspaces(tmp_path, monkeypatch):
+    for name, expected in [("first", 10), ("second", 20)]:
+        workspace = tmp_path / name
+        workspace.mkdir()
+        monkeypatch.chdir(workspace)
+        with connection(Path("state.db")) as database:
+            database.execute("CREATE TABLE state (value INTEGER)")
+            database.execute("INSERT INTO state VALUES (?)", (expected,))
+    for name, expected in [("first", 10), ("second", 20)]:
+        monkeypatch.chdir(tmp_path / name)
+        with connection(Path("state.db")) as database:
+            assert database.execute("SELECT value FROM state").fetchall() == [(expected,)]
+
+
+@pytest.mark.asyncio
+async def test_relative_checkpoint_paths_stay_bound_to_their_workspace(tmp_path, monkeypatch):
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    first.mkdir()
+    second.mkdir()
+    job = IngestionJobId.from_string("AAPL_2024-01-15")
+    symbol = Symbol("AAPL")
+    checkpoint = IngestionCheckpoint(symbol, 1705329000000000000, 10, datetime.now(timezone.utc))
+
+    monkeypatch.chdir(first)
+    first_repository = SqliteCheckpointRepository(Path("checkpoints.db"))
+    await first_repository.save_checkpoint(job, checkpoint)
+
+    monkeypatch.chdir(second)
+    second_repository = SqliteCheckpointRepository(Path("checkpoints.db"))
+    assert await second_repository.get_checkpoint(job, symbol) is None
+    assert (await first_repository.get_checkpoint(job, symbol)).records_processed == 10
+    await second_repository.save_checkpoint(
+        job, IngestionCheckpoint(symbol, 1705329060000000000, 20, datetime.now(timezone.utc))
+    )
+    assert (await first_repository.get_checkpoint(job, symbol)).records_processed == 10
+    assert (await second_repository.get_checkpoint(job, symbol)).records_processed == 20
 
 
 def test_partial_provider_failure_and_filtered_cleanup_preserve_other_symbol(cli, http_server):

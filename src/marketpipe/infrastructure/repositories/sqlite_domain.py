@@ -38,7 +38,7 @@ class SqliteSymbolBarsRepository(SqliteAsyncMixin, ISymbolBarsRepository):
     """
 
     def __init__(self, db_path: str = "data/db/core.db"):
-        self._db_path = Path(db_path)
+        self._db_path = Path(db_path).resolve()
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self.db_path = str(self._db_path)  # Required by SqliteAsyncMixin
         # Apply migrations on first use
@@ -206,7 +206,7 @@ class SqliteOHLCVRepository(SqliteAsyncMixin, IOHLCVRepository):
     """
 
     def __init__(self, db_path: str = "data/db/core.db"):
-        self._db_path = Path(db_path)
+        self._db_path = Path(db_path).resolve()
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self.db_path = str(self._db_path)  # Required by SqliteAsyncMixin
         # Apply migrations on first use
@@ -431,7 +431,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, ICheckpointRepository):
     """
 
     def __init__(self, db_path: str = "data/db/core.db"):
-        self._db_path = Path(db_path)
+        self._db_path = Path(db_path).resolve()
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self.db_path = str(self._db_path)  # Required by SqliteAsyncMixin
         # Apply migrations on first use

@@ -26,6 +26,11 @@ PostgreSQL, and persistence with bounded descriptors and numerical worker thread
 Test timeouts bound failures. CI artifacts include XML, CLI logs, reports and relevant
 E2E data; none contain live provider credentials.
 
+Timing benchmarks use the existing `--benchmark` opt-in. Run CLI startup timings
+serially with `python -m pytest tests/integration/test_cli_enhanced_matrix.py -k performance_benchmarks --benchmark`
+so concurrent workers do not distort the two-second startup budget. The benchmark
+also requires each command to succeed.
+
 Release defaults to `dry_run: true` when dispatched. It validates the requested
 version, executes the offline suites, builds distributions, and stores them as CI
 artifacts. Release creation, tagging and Test PyPI uploads run only for a tag event or

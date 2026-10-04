@@ -45,6 +45,7 @@ def _init_conn(path: Path) -> sqlite3.Connection:
 
 def get_pool(path: Path) -> list[sqlite3.Connection]:
     """Get or create connection pool for database path."""
+    path = Path(path) if str(path) == ":memory:" else Path(path).resolve()
     path_str = str(path)
 
     with _lock:
@@ -75,7 +76,7 @@ def connection(
             rows = cursor.fetchall()
     """
     # Ensure database directory exists
-    path = Path(path)
+    path = Path(path) if str(path) == ":memory:" else Path(path).resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
 
     pool = get_pool(path)
