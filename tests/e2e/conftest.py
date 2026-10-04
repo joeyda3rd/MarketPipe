@@ -15,6 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+import fasteners
 import pytest
 
 
@@ -48,20 +49,26 @@ class InstalledCLI:
 def installed_executable(tmp_path_factory):
     repository = Path(__file__).resolve().parents[2]
     build_root = tmp_path_factory.mktemp("installed-distribution")
-    build = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "build",
-            "--no-isolation",
-            "--outdir",
-            str(build_root),
-            str(repository),
-        ],
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
+    (repository / "build").mkdir(exist_ok=True)
+    lock = fasteners.InterProcessLock(str(repository / "build" / ".e2e-distribution.lock"))
+    assert lock.acquire(blocking=True, timeout=60), "Another distribution build did not finish"
+    try:
+        build = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "build",
+                "--no-isolation",
+                "--outdir",
+                str(build_root),
+                str(repository),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    finally:
+        lock.release()
     assert build.returncode == 0, build.stdout + build.stderr
     wheels = list(build_root.glob("*.whl"))
     assert len(wheels) == 1
