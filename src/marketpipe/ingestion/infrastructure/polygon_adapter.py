@@ -8,12 +8,14 @@ import logging
 import time
 from datetime import datetime, timezone
 from typing import Any, Optional
+from urllib.parse import parse_qs, urlsplit
 
 import httpx
 
 from marketpipe.domain.entities import EntityId, OHLCVBar
 from marketpipe.domain.market_data import IMarketDataProvider, ProviderMetadata
 from marketpipe.domain.value_objects import Price, Symbol, TimeRange, Timestamp, Volume
+from marketpipe.security.mask import safe_for_log
 
 from .provider_registry import provider
 
@@ -38,6 +40,8 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
         max_retries: int = 3,
         logger: Optional[logging.Logger] = None,
     ):
+        if rate_limit_per_minute <= 0:
+            raise ValueError("rate_limit_per_minute must be positive")
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.rate_limit_per_minute = rate_limit_per_minute
@@ -91,6 +95,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
         start_ts = int(time_range.start.value.timestamp() * 1000)  # milliseconds
         end_ts = int(time_range.end.value.timestamp() * 1000)  # milliseconds
 
+        seen_cursors = set()
         while True:
             page_count += 1
             self.log.info(f"📥 Fetching page {page_count} for {symbol.value}...")
@@ -112,7 +117,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
             if cursor:
                 params["cursor"] = cursor
 
-            self.log.debug(f"Requesting: {url} with params: {params}")
+            self.log.debug(safe_for_log(f"Requesting: {url} with params: {params}", self.api_key))
 
             try:
                 # Make HTTP request
@@ -123,18 +128,19 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                     page_bars = self._parse_polygon_response(response_data, symbol)
 
                     # Filter bars to only include those within the requested time range
-                    # This prevents pagination from downloading data outside the requested range
+                    # Track if we've reached data beyond our end date
+                    reached_end_of_range = False
                     filtered_bars = []
                     for bar in page_bars:
                         bar_ts = int(bar.timestamp.value.timestamp() * 1000)
                         if start_ts <= bar_ts <= end_ts:
                             filtered_bars.append(bar)
                         elif bar_ts > end_ts:
-                            # Bar is after our end date - stop pagination
+                            # Bar is after our end date - stop pagination after this page
                             self.log.info(
                                 f"⏹️  Reached end of requested date range at bar {bar.timestamp.value}"
                             )
-                            cursor = None  # Force stop pagination
+                            reached_end_of_range = True
                             break
 
                     bars.extend(filtered_bars)
@@ -143,32 +149,31 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                         f"kept {len(filtered_bars)} within range (Total: {len(bars)} bars)"
                     )
 
-                    # If cursor was cleared due to reaching end date, break
-                    if cursor is None:
+                    # If we reached the end of the requested date range, stop paginating
+                    if reached_end_of_range:
                         break
                 else:
                     self.log.warning(f"No results in response for {symbol.value}")
                     break
 
-                # Check for pagination
-                cursor = response_data.get("next_url")
-                if not cursor:
+                # Check for pagination - get next_url from response
+                next_url = response_data.get("next_url")
+                if not next_url:
                     break
 
-                # Extract cursor from next_url if present
-                if cursor and "cursor=" in cursor:
-                    cursor = cursor.split("cursor=")[1].split("&")[0]
-                else:
-                    cursor = None
+                cursor_values = parse_qs(urlsplit(next_url).query).get("cursor")
+                if not cursor_values or cursor_values[0] in seen_cursors:
+                    raise ValueError("Polygon returned an invalid or repeated pagination cursor")
+                cursor = cursor_values[0]
+                seen_cursors.add(cursor)
 
             except Exception as e:
-                self.log.error(f"Failed to fetch page {page_count} for {symbol.value}: {e}")
-                if page_count == 1:
-                    # If first page fails, re-raise
-                    raise
-                else:
-                    # If subsequent pages fail, return what we have
-                    break
+                self.log.error(
+                    safe_for_log(
+                        f"Failed to fetch page {page_count} for {symbol.value}: {e}", self.api_key
+                    )
+                )
+                raise
 
         if bars:
             self.log.info(
@@ -277,7 +282,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
     async def _apply_rate_limit(self) -> None:
         """Apply rate limiting based on free tier limits."""
         async with self._rate_limit_lock:
-            now = time.time()
+            now = time.monotonic()
 
             # Remove requests older than 1 minute
             cutoff = now - 60.0
@@ -297,7 +302,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                     await asyncio.sleep(wait_time)
 
             # Record this request
-            self._request_times.append(now)
+            self._request_times.append(time.monotonic())
 
     async def _make_request(self, url: str, params: dict[str, Any]) -> dict[str, Any]:
         """Make HTTP request with retry logic."""
