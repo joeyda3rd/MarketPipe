@@ -138,34 +138,37 @@ class TestMetricsGuardRails:
             pytest.fail(f"Event handlers failed: {e}")
 
     def test_bootstrap_event_registration(self):
-        """Verify bootstrap properly registers event handlers."""
+        """Verify bootstrap registers ingestion completion handlers on the event bus."""
+        from collections import defaultdict
         from datetime import date
 
-        from marketpipe.bootstrap import bootstrap
+        from marketpipe.aggregation.application.services import AggregationRunnerService
+        from marketpipe.bootstrap import bootstrap, reset_bootstrap_state
+        from marketpipe.infrastructure.messaging.in_memory_bus import InMemoryEventBus
+        from marketpipe.validation.application.services import ValidationRunnerService
 
-        # Bootstrap should complete without errors
+        reset_bootstrap_state()
         try:
-            bootstrap()
-        except Exception as e:
-            pytest.fail(f"Bootstrap failed: {e}")
-
-        # Event bus should be available
-        event_bus = get_event_bus()
-        assert event_bus is not None
-
-        # Should be able to publish events with correct parameters
-        test_event = IngestionJobCompleted(
-            job_id="test",
-            symbol=Symbol.from_string("TEST"),
-            trading_date=date(2024, 1, 1),
-            bars_processed=1,
-            success=True,
-        )
-
-        try:
-            event_bus.publish(test_event)
-        except Exception as e:
-            pytest.fail(f"Event publishing failed: {e}")
+            with (
+                patch("marketpipe.bootstrap.orchestrator._global_orchestrator", None),
+                patch.object(InMemoryEventBus, "_subs", defaultdict(list)),
+                patch.object(AggregationRunnerService, "build_default") as aggregation,
+                patch.object(ValidationRunnerService, "build_default") as validation,
+            ):
+                bootstrap()
+                event_bus = get_event_bus()
+                event = IngestionJobCompleted(
+                    job_id="test",
+                    symbol=Symbol.from_string("TEST"),
+                    trading_date=date(2024, 1, 1),
+                    bars_processed=1,
+                    success=True,
+                )
+                event_bus.publish(event)
+                aggregation.return_value.handle_ingestion_completed.assert_called_once_with(event)
+                validation.return_value.handle_ingestion_completed.assert_called_once_with(event)
+        finally:
+            reset_bootstrap_state()
 
 
 class TestApplicationLayerIntegration:
