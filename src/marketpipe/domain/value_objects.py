@@ -164,6 +164,24 @@ class Price:
 
 
 @dataclass(frozen=True)
+class PriceChange:
+    """Signed difference between prices, with the same four-decimal precision."""
+
+    value: Decimal
+
+    def __post_init__(self):
+        quantized = self.value.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+        object.__setattr__(self, "value", quantized)
+
+    def to_float(self) -> float:
+        """Convert the signed change to float."""
+        return float(self.value)
+
+    def __str__(self) -> str:
+        return f"${self.value}"
+
+
+@dataclass(frozen=True)
 class Timestamp:
     """Timestamp value object with timezone awareness.
 

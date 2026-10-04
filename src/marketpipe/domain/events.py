@@ -11,7 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
-from typing import Any, Callable, Optional, Protocol
+from typing import Any, Callable, Optional, Protocol, cast
 from uuid import UUID, uuid4
 
 from .value_objects import Symbol, Timestamp
@@ -40,6 +40,14 @@ class IEventBus(Protocol):
             event: The domain event to publish
         """
         ...
+
+
+class _EventMetadata(Protocol):
+    @property
+    def event_id(self) -> UUID: ...
+
+    @property
+    def occurred_at(self) -> datetime: ...
 
 
 class DomainEvent(ABC):
@@ -76,13 +84,15 @@ class DomainEvent(ABC):
 
     def __str__(self) -> str:
         """String representation of the event."""
-        return f"{self.event_type}(id={self.event_id}, aggregate={self.aggregate_id})"
+        metadata = cast(_EventMetadata, self)
+        return f"{self.event_type}(id={metadata.event_id}, aggregate={self.aggregate_id})"
 
     def __repr__(self) -> str:
         """Detailed representation for debugging."""
+        metadata = cast(_EventMetadata, self)
         return (
-            f"{self.__class__.__name__}(event_id={self.event_id}, "
-            f"occurred_at={self.occurred_at.isoformat()}, "
+            f"{self.__class__.__name__}(event_id={metadata.event_id}, "
+            f"occurred_at={metadata.occurred_at.isoformat()}, "
             f"aggregate_id={self.aggregate_id})"
         )
 

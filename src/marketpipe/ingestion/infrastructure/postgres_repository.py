@@ -49,7 +49,7 @@ class PostgresIngestionJobRepository(IIngestionJobRepository):
                 "Install it with: pip install asyncpg"
             )
         self._dsn = dsn
-        self._pool: Optional[asyncpg.Pool] = None  # type: ignore
+        self._pool: Optional[asyncpg.Pool] = None
         self._min_size = min_size
         self._max_size = max_size
         self._pool_lock = asyncio.Lock()  # Prevent race conditions on pool creation

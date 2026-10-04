@@ -189,7 +189,7 @@ class OHLCVCalculationService(DomainService):
             # If this is a new period, process the current group
             if current_period_start is not None and period_start != current_period_start:
                 if current_group:
-                    resampled_bar = self._resample_bar_group(current_group, period_start)
+                    resampled_bar = self._resample_bar_group(current_group, current_period_start)
                     resampled_bars.append(resampled_bar)
                 current_group = []
 
