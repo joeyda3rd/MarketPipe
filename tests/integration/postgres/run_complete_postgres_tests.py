@@ -290,8 +290,8 @@ def test_alembic_migrations():
             version = result.fetchone()[0]
             print(f"📝 Migration version: {version}")
 
-            if version != "0005":
-                print(f"❌ Expected version 0005, got {version}")
+            if version != "0006":
+                print(f"❌ Expected version 0006, got {version}")
                 return False
 
         print("✅ Alembic migration tests completed successfully")

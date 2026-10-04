@@ -50,7 +50,7 @@ def test_postgres_fresh_schema_indexes_and_large_timestamps(postgres_url):
         with engine.begin() as connection:
             assert (
                 connection.execute(sa.text("SELECT version_num FROM alembic_version")).scalar()
-                == "0005"
+                == "0006"
             )
             connection.execute(
                 sa.text(
@@ -66,6 +66,45 @@ def test_postgres_fresh_schema_indexes_and_large_timestamps(postgres_url):
             assert "idx_metrics_name_ts" in {
                 index["name"] for index in sa.inspect(connection).get_indexes("metrics")
             }
+    finally:
+        engine.dispose()
+
+
+def test_upgrade_widens_deployed_integer_timestamps_without_losing_rows(postgres_url):
+    """A database already stamped at the old head must accept real nanoseconds."""
+    engine = sa.create_engine(postgres_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                sa.text("ALTER TABLE ohlcv_bars ALTER COLUMN timestamp_ns TYPE INTEGER")
+            )
+            connection.execute(sa.text("UPDATE alembic_version SET version_num = '0005'"))
+            connection.execute(
+                sa.text(
+                    """INSERT INTO ohlcv_bars
+                    (id, symbol, timestamp_ns, open_price, high_price, low_price, close_price, volume)
+                    VALUES ('legacy', 'AAPL', 1000000000, '100', '102', '99', '101', 10)"""
+                )
+            )
+        root = Path(__file__).resolve().parents[2]
+        config = Config(str(root / "alembic.ini"))
+        config.set_main_option("script_location", str(root / "alembic"))
+        config.set_main_option("sqlalchemy.url", postgres_url.replace("%", "%%"))
+        command.upgrade(config, "head")
+        command.upgrade(config, "head")
+        with engine.begin() as connection:
+            assert (
+                connection.execute(sa.text("SELECT timestamp_ns FROM ohlcv_bars")).scalar()
+                == 1000000000
+            )
+            connection.execute(
+                sa.text(
+                    """INSERT INTO ohlcv_bars
+                    (id, symbol, timestamp_ns, open_price, high_price, low_price, close_price, volume)
+                    VALUES ('current', 'AAPL', 1705329000000000000, '100', '102', '99', '101', 20)"""
+                )
+            )
+            assert connection.execute(sa.text("SELECT count(*) FROM ohlcv_bars")).scalar() == 2
     finally:
         engine.dispose()
 

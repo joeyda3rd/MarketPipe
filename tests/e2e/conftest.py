@@ -82,7 +82,8 @@ def installed_executable(tmp_path_factory):
         assert any(path.endswith("/alembic.ini") for path in files)
         assert any(path.endswith("/alembic/env.py") for path in files)
         assert any(
-            path.endswith("/alembic/versions/0005_add_ingestion_jobs_table.py") for path in files
+            path.endswith("/alembic/versions/0006_widen_postgres_nanosecond_timestamps.py")
+            for path in files
         )
     metadata = subprocess.run(
         [sys.executable, "-m", "twine", "check", "--strict", str(wheels[0]), str(sources[0])],

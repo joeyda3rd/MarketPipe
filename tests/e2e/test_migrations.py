@@ -68,7 +68,7 @@ def test_upgrade_preserves_existing_bars_and_is_repeatable(tmp_path, monkeypatch
             ).fetchall() == [("AAPL", 1705329000000000000, "101", 10, "2024-01-15")]
             assert (
                 connection.execute(sa.text("SELECT version_num FROM alembic_version")).scalar()
-                == "0005"
+                == "0006"
             )
             assert "ingestion_jobs" in sa.inspect(connection).get_table_names()
             assert {index["name"] for index in sa.inspect(connection).get_indexes("metrics")} >= {
