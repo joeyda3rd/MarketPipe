@@ -200,3 +200,79 @@ def test_alpaca_closed_local_endpoint_propagates_connection_failure(http_server)
         url = f"http://127.0.0.1:{endpoint.getsockname()[1]}"
         with pytest.raises(httpx.ConnectError):
             alpaca(url, timeout=0.1).fetch_batch("AAPL", START_MS, END_MS)
+
+
+def polygon(url, *, retries=0, timeout=1):
+    return PolygonMarketDataAdapter(
+        "polygon-contract-key",
+        base_url=url,
+        rate_limit_per_minute=60000,
+        max_retries=retries,
+        timeout=timeout,
+    )
+
+
+def polygon_range():
+    return TimeRange(
+        Timestamp(datetime(2024, 1, 15, tzinfo=timezone.utc)),
+        Timestamp(datetime(2024, 1, 16, tzinfo=timezone.utc)),
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [429, 503])
+async def test_polygon_retries_transient_http_failures(http_server, status):
+    url, responses, requests = http_server
+    responses.extend(
+        [
+            (status, {"Retry-After": "0"}, {}),
+            (
+                200,
+                {},
+                {
+                    "status": "OK",
+                    "results": [{"t": START_MS, "o": 100, "h": 101, "l": 99, "c": 100, "v": 10}],
+                },
+            ),
+        ]
+    )
+    assert (
+        len(await polygon(url, retries=1).fetch_bars_for_symbol(Symbol("AAPL"), polygon_range()))
+        == 1
+    )
+    assert len(requests) == 2
+
+
+@pytest.mark.asyncio
+async def test_polygon_exhausted_rate_limit_does_not_sleep_or_retry(http_server):
+    url, responses, requests = http_server
+    responses.append((429, {"Retry-After": "999999"}, {}))
+    with pytest.raises(RuntimeError):
+        await polygon(url).fetch_bars_for_symbol(Symbol("AAPL"), polygon_range())
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [401, 403, 500])
+async def test_polygon_failure_does_not_leak_credentials(http_server, caplog, status):
+    url, responses, requests = http_server
+    responses.append((status, {}, {"error": "polygon-contract-key"}))
+    with pytest.raises((ValueError, RuntimeError)) as error:
+        await polygon(url).fetch_bars_for_symbol(Symbol("AAPL"), polygon_range())
+    assert len(requests) == 1
+    assert "polygon-contract-key" not in str(error.value) + caplog.text
+    assert "apikey" not in requests[0][1]
+
+
+@pytest.mark.asyncio
+async def test_polygon_read_timeout_is_bounded(http_server):
+    url, responses, requests = http_server
+
+    def slow_response(_path, _query):
+        time.sleep(0.15)
+        return 200, {}, {"status": "OK", "results": []}
+
+    responses.append(slow_response)
+    with pytest.raises(httpx.ReadTimeout):
+        await polygon(url, timeout=0.02).fetch_bars_for_symbol(Symbol("AAPL"), polygon_range())
+    assert len(requests) == 1

@@ -20,6 +20,11 @@ def postgres_url(monkeypatch):
     url = os.environ.get("MARKETPIPE_TEST_POSTGRES_URL")
     if not url:
         pytest.skip("Dedicated test PostgreSQL URL not configured")
+    url = (
+        sa.engine.make_url(url)
+        .set(drivername="postgresql+psycopg2")
+        .render_as_string(hide_password=False)
+    )
     monkeypatch.delenv("DATABASE_URL", raising=False)
     admin = sa.create_engine(url, isolation_level="AUTOCOMMIT")
     name = "marketpipe_test_" + uuid.uuid4().hex
@@ -76,7 +81,9 @@ async def test_postgres_job_save_fetch_delete_and_concurrent_claims(postgres_url
         PostgresIngestionJobRepository,
     )
 
-    repository = PostgresIngestionJobRepository(postgres_url)
+    repository = PostgresIngestionJobRepository(
+        postgres_url.replace("postgresql+psycopg2://", "postgresql://")
+    )
     try:
         for ticker in ("AAPL", "MSFT", "GOOGL"):
             job = IngestionJob(

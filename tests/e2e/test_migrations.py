@@ -23,6 +23,11 @@ def test_upgrade_preserves_existing_bars_and_is_repeatable(tmp_path, monkeypatch
         url = os.environ.get("MARKETPIPE_TEST_POSTGRES_URL")
         if not url:
             pytest.skip("Dedicated test PostgreSQL URL not configured")
+        url = (
+            sa.engine.make_url(url)
+            .set(drivername="postgresql+psycopg2")
+            .render_as_string(hide_password=False)
+        )
     else:
         url = f"sqlite:///{tmp_path / 'migration.db'}"
     # Explicit dedicated database only; production DATABASE_URL is never a test input.
