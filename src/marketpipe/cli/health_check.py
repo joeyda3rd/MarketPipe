@@ -435,12 +435,14 @@ class MarketPipeHealthChecker:
                     "--start",
                     "2023-01-01",
                     "--end",
-                    "2023-01-01",
+                    "2023-01-02",
                     "--output",
                     str(temp_path / "data"),
                 ]
 
-                process_result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                process_result = subprocess.run(
+                    cmd, capture_output=True, text=True, timeout=60, cwd=temp_path
+                )
 
                 if process_result.returncode == 0:
                     # Check if data files were created

@@ -124,7 +124,7 @@ class TestCLIOutputHandling:
                 assert result.exit_code == 1
 
     def test_default_output_path_when_no_flag(self):
-        """Test that data goes to data/output when no --output flag is provided."""
+        """Test that ingestion uses the same default raw directory as downstream commands."""
 
         # Mock the ingestion services and boundary check
         with (
@@ -177,6 +177,10 @@ class TestCLIOutputHandling:
             # Verify command succeeded
             assert result.exit_code == 0, f"Command failed: {result.stdout}"
             assert "Job completed successfully" in result.stdout
+
+            assert mock_build.call_args.args[1] == "data/raw"
+            assert mock_check.call_args.kwargs["start"] == "2024-01-01"
+            assert mock_check.call_args.kwargs["end"] == "2024-01-02"
 
     def test_verification_service_gets_correct_parameters(self):
         """Test that verification service is called and processes data correctly."""

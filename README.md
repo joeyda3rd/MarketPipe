@@ -35,11 +35,17 @@ marketpipe aggregate-ohlcv
 marketpipe validate-ohlcv
 
 # Query the aggregated data using SQL
-marketpipe query "SELECT * FROM bars_1d WHERE symbol='AAPL' AND timestamp >= '2024-01-01' LIMIT 10"
+marketpipe query "SELECT * FROM bars_1d WHERE symbol='AAPL' LIMIT 10"
 
 # Start monitoring dashboard
 marketpipe metrics --port 8000
 ```
+
+Ingestion, validation, and aggregation share `data/raw` as the default raw data directory.
+Set `MARKETPIPE_RAW_ROOT` to use another directory across all three commands. If ingestion
+uses `--output`, set `MARKETPIPE_RAW_ROOT` to that same path for validation and aggregation.
+The default aggregation and validation commands select jobs completed within the last seven
+days, including jobs that ingested historical data.
 
 ### With Real Data
 

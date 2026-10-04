@@ -216,15 +216,16 @@ def test_version_constants_are_consistent():
     assert MIN_SUPPORTED_VERSION <= CURRENT_CONFIG_VERSION
 
 
-def test_config_model_has_correct_defaults():
+def test_config_model_has_correct_defaults(monkeypatch):
     """Test that the model has correct default values."""
     # Should be able to create with minimal config
+    monkeypatch.delenv("MARKETPIPE_RAW_ROOT", raising=False)
     config = IngestionJobConfig(symbols=["AAPL"], start=date(2024, 1, 1), end=date(2024, 1, 2))
 
     assert config.config_version == CURRENT_CONFIG_VERSION
     assert config.provider == "alpaca"
     assert config.feed_type == "iex"
-    assert config.output_path == "./data"
+    assert config.output_path == "data/raw"
     assert config.workers == 4
     assert config.batch_size == 1000
 

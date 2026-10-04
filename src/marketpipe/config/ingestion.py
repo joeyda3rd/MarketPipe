@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 from datetime import date
 from pathlib import Path
 from typing import Any, Union
@@ -42,7 +43,10 @@ class IngestionJobConfig(BaseModel):
     )
     feed_type: str = Field(default="iex", description="Data feed type (iex for free, sip for paid)")
     timeframe: str = Field(default="1m", description="Bar timeframe (1m, 5m, 15m, 30m, 1h, 4h, 1d)")
-    output_path: str = Field(default="./data", description="Output directory for data files")
+    output_path: str = Field(
+        default_factory=lambda: os.environ.get("MARKETPIPE_RAW_ROOT", "data/raw"),
+        description="Output directory for raw data files",
+    )
     workers: int = Field(default=4, description="Number of worker threads", ge=1, le=32)
 
     class Config:

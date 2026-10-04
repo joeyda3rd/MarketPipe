@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import re
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -67,10 +68,6 @@ def validate_date_range(start: Optional[str], end: Optional[str]) -> None:
     if start_date > today or end_date > today:
         cli_error("date range cannot be in the future", code=2)
 
-    # Prevent very old ranges for CLI option validation (2 years)
-    if (today - end_date).days > 730:
-        cli_error("date range older than 730 days", code=2)
-
 
 _SYMBOL_RE = re.compile(r"^[A-Z][A-Z0-9\.]{0,9}$")
 
@@ -83,6 +80,9 @@ def validate_symbols(symbols_csv: Optional[str]) -> list[str]:
         cli_error("empty symbol list supplied", code=2)
 
     raw = [s.strip().upper() for s in symbols_csv.split(",") if s.strip()]
+
+    if not raw:
+        cli_error("empty symbol list supplied", code=2)
 
     if len(raw) > 500:
         cli_error("too many symbols supplied; limit is 500", code=2)
@@ -120,9 +120,8 @@ def validate_output_dir(output: Path | Optional[str]) -> None:
         # Check if parent is writable (ingestion process needs to create the output dir)
         try:
             # Test write access by creating a temporary file
-            test_file = parent / ".marketpipe_write_test"
-            test_file.touch()
-            test_file.unlink()
+            with tempfile.TemporaryFile(dir=parent):
+                pass
         except (PermissionError, OSError):
             cli_error(f"parent directory is not writable: {parent}", code=2)
 

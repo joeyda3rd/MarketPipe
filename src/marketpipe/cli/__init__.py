@@ -125,7 +125,7 @@ if not _USING_TYER_STUB:
     app.command(
         help=(
             "Run an ad-hoc query on aggregated data.\n\n"
-            "Available views: bars_5m, bars_15m, bars_1h, bars_1d\n\n"
+            "Available views: bars_5m, bars_15m, bars_30m, bars_1h, bars_4h, bars_1d\n\n"
             "Examples:\n"
             "  marketpipe query \"SELECT * FROM bars_5m WHERE symbol='AAPL' LIMIT 10\"\n"
             '  marketpipe query "SELECT symbol, COUNT(*) FROM bars_1d GROUP BY symbol" --csv\n'
