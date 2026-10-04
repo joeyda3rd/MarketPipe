@@ -111,7 +111,7 @@ class TestAlpacaClientWithFakes:
         with unittest.mock.patch.object(
             client, "_request", side_effect=self._simulate_request_with_fake(http_client)
         ):
-            rows = client.fetch_batch("AAPL", 0, 1000)
+            rows = client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
         # Verify behavior (not implementation details)
         assert len(rows) == 2, "Should combine results from both pages"
@@ -179,7 +179,7 @@ class TestAlpacaClientWithFakes:
         with unittest.mock.patch.object(
             client, "_request", side_effect=self._simulate_request_with_fake(http_client)
         ):
-            rows = client.fetch_batch("AAPL", 0, 1000)
+            rows = client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
         # Verify successful retry
         assert len(rows) == 1, "Should get data after retry"
@@ -226,7 +226,7 @@ class TestAlpacaClientWithFakes:
             "_async_request",
             side_effect=self._simulate_async_request_with_fake(async_http_client),
         ):
-            rows = await client.async_fetch_batch("AAPL", 0, 1000)
+            rows = await client.async_fetch_batch("AAPL", 1672617600000, 1672704000000)
 
         assert len(rows) == 1
         assert rows[0]["symbol"] == "AAPL"
@@ -272,7 +272,7 @@ class TestAlpacaClientWithFakes:
                 with unittest.mock.patch.object(
                     client, "_request", side_effect=self._simulate_request_with_fake(http_client)
                 ):
-                    client.fetch_batch("AAPL", 0, 1000)
+                    client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
     # Helper methods for bridging until dependency injection is implemented
 
@@ -360,7 +360,7 @@ class TestComparisonMocksVsFakes:
         auth = HeaderTokenAuth("test-key-id", "test-secret")
         client = AlpacaClient(config=config, auth=auth)
 
-        rows = client.fetch_batch("AAPL", 0, 1000)
+        rows = client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
         # Can only verify implementation details, not behavior
         assert call_count == 2  # Couples to implementation!
@@ -422,7 +422,7 @@ class TestComparisonMocksVsFakes:
         with unittest.mock.patch.object(
             client, "_request", side_effect=self._simulate_request_with_fake(http_client)
         ):
-            rows = client.fetch_batch("AAPL", 0, 1000)
+            rows = client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
         # Test behavior, not implementation details
         assert len(rows) == 2, "Should get combined results from pagination"

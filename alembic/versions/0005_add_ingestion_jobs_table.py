@@ -28,22 +28,13 @@ def _table_exists(table_name: str) -> bool:
 
 
 def _index_exists(index_name: str) -> bool:
-    """Check if an index exists in the database."""
-    conn = op.get_bind()
-    # Check for both SQLite and PostgreSQL
-    try:
-        result = conn.execute(
-            sa.text("SELECT name FROM sqlite_master WHERE type='index' AND name=:index_name"),
-            {"index_name": index_name},
-        )
-        return result.fetchone() is not None
-    except:
-        # PostgreSQL
-        result = conn.execute(
-            sa.text("SELECT indexname FROM pg_indexes WHERE indexname=:index_name"),
-            {"index_name": index_name},
-        )
-        return result.fetchone() is not None
+    """Inspect indexes without issuing SQL for a different database dialect."""
+    inspector = sa.inspect(op.get_bind())
+    return any(
+        index["name"] == index_name
+        for table in inspector.get_table_names()
+        for index in inspector.get_indexes(table)
+    )
 
 
 def upgrade() -> None:

@@ -3,54 +3,38 @@
 
 from __future__ import annotations
 
-import asyncio
-import os
-import tempfile
 from datetime import date, datetime, timezone
 from unittest.mock import patch
 
 import pytest
+import pytest_asyncio
 
 from marketpipe.aggregation.domain.events import AggregationCompleted, AggregationFailed
 from marketpipe.bootstrap import get_event_bus
 from marketpipe.domain.events import IngestionJobCompleted, ValidationFailed
 from marketpipe.domain.value_objects import Symbol, Timestamp
-from marketpipe.metrics import SqliteMetricsRepository
+from marketpipe.metrics import SqliteMetricsRepository, flush_metrics
 from marketpipe.validation.domain.events import ValidationCompleted
 from marketpipe.validation.domain.value_objects import ValidationResult
 
 
 @pytest.fixture
-def temp_metrics_db():
-    """Create temporary metrics database."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
-        db_path = f.name
-
-    # Set environment variable for metrics repository
-    old_env = os.environ.get("METRICS_DB_PATH")
-    os.environ["METRICS_DB_PATH"] = db_path
-
-    yield db_path
-
-    # Cleanup
-    if old_env is not None:
-        os.environ["METRICS_DB_PATH"] = old_env
-    elif "METRICS_DB_PATH" in os.environ:
-        del os.environ["METRICS_DB_PATH"]
-
-    if os.path.exists(db_path):
-        os.unlink(db_path)
+def temp_metrics_db(tmp_path, monkeypatch):
+    """Keep event persistence separate from all other component tests."""
+    path = tmp_path / "metrics.db"
+    monkeypatch.setenv("MARKETPIPE_METRICS_DB_PATH", str(path))
+    return str(path)
 
 
-@pytest.fixture
-def clear_event_bus():
-    """Clear the event bus before and after tests."""
-    # Reset the event bus singleton
-    import marketpipe.bootstrap
+@pytest_asyncio.fixture
+async def clear_event_bus():
+    """Clear subscriptions through the public API and finish pending writes."""
+    from marketpipe.infrastructure.messaging.in_memory_bus import InMemoryEventBus
 
-    marketpipe.bootstrap._EVENT_BUS = None
+    InMemoryEventBus.clear_subscriptions()
     yield
-    marketpipe.bootstrap._EVENT_BUS = None
+    await flush_metrics()
+    InMemoryEventBus.clear_subscriptions()
 
 
 @pytest.mark.asyncio
@@ -75,7 +59,7 @@ async def test_ingestion_completed_event_records_metrics(temp_metrics_db, clear_
     event_bus.publish(event)
 
     # Wait for processing
-    await asyncio.sleep(0.1)
+    await flush_metrics()
 
     # Check metrics were recorded
     repo = SqliteMetricsRepository(temp_metrics_db)
@@ -114,7 +98,7 @@ async def test_validation_failed_event_records_metrics(temp_metrics_db, clear_ev
     event_bus.publish(event)
 
     # Wait for processing
-    await asyncio.sleep(0.1)
+    await flush_metrics()
 
     # Check metrics were recorded
     repo = SqliteMetricsRepository(temp_metrics_db)
@@ -146,7 +130,7 @@ async def test_validation_completed_event_records_metrics(temp_metrics_db, clear
     event_bus.publish(event)
 
     # Wait for processing
-    await asyncio.sleep(0.1)
+    await flush_metrics()
 
     # Check metrics
     repo = SqliteMetricsRepository(temp_metrics_db)
@@ -170,7 +154,7 @@ async def test_aggregation_completed_event_records_metrics(temp_metrics_db, clea
     event_bus.publish(event)
 
     # Wait for processing
-    await asyncio.sleep(0.1)
+    await flush_metrics()
 
     # Check metrics
     repo = SqliteMetricsRepository(temp_metrics_db)
@@ -195,7 +179,7 @@ async def test_aggregation_failed_event_records_metrics(temp_metrics_db, clear_e
     event_bus.publish(event)
 
     # Wait for processing
-    await asyncio.sleep(0.1)
+    await flush_metrics()
 
     # Check metrics
     repo = SqliteMetricsRepository(temp_metrics_db)
@@ -240,7 +224,7 @@ async def test_multiple_events_record_separate_metrics(temp_metrics_db, clear_ev
     event_bus.publish(agg_event)
 
     # Wait for processing
-    await asyncio.sleep(0.2)
+    await flush_metrics()
 
     # Check all metrics were recorded
     repo = SqliteMetricsRepository(temp_metrics_db)
@@ -281,7 +265,7 @@ async def test_event_handlers_gracefully_handle_errors(temp_metrics_db, clear_ev
         event_bus.publish(normal_event)  # Should not raise
 
         # Wait for processing
-        await asyncio.sleep(0.1)
+        await flush_metrics()
 
         # The event should have been published, even though metrics failed
         assert mock_record.called

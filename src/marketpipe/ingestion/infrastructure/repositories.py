@@ -37,7 +37,7 @@ class SqliteIngestionJobRepository(SqliteAsyncMixin, IIngestionJobRepository):
     """SQLite implementation of ingestion job repository."""
 
     def __init__(self, db_path: Optional[Path] = None):
-        self._db_path = db_path or Path("ingestion_jobs.db")
+        self._db_path = Path(db_path or "ingestion_jobs.db").resolve()
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
 
@@ -525,7 +525,7 @@ class SqliteCheckpointRepository(SqliteAsyncMixin, IIngestionCheckpointRepositor
     """SQLite implementation of checkpoint repository."""
 
     def __init__(self, db_path: Optional[Path] = None):
-        self._db_path = db_path or Path("ingestion_checkpoints.db")
+        self._db_path = Path(db_path or "ingestion_checkpoints.db").resolve()
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
 
@@ -708,7 +708,7 @@ class SqliteMetricsRepository(SqliteAsyncMixin, IIngestionMetricsRepository):
     """SQLite implementation of metrics repository."""
 
     def __init__(self, db_path: Optional[Path] = None):
-        self._db_path = db_path or Path("ingestion_metrics.db")
+        self._db_path = Path(db_path or "ingestion_metrics.db").resolve()
         self.db_path = str(self._db_path)  # For SqliteAsyncMixin
         self._init_database()
 

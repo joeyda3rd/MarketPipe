@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -48,16 +49,44 @@ def _get_recent_completed_job_ids(symbol: Optional[str] = None, days: int = 7) -
         return []
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     query = (
-        "SELECT symbol, day FROM ingestion_jobs WHERE state = 'COMPLETED' "
+        "SELECT symbol, day, payload FROM ingestion_jobs WHERE state = 'COMPLETED' "
         "AND julianday(updated_at) >= julianday(?)"
     )
     params: list[object] = [cutoff.isoformat()]
-    if symbol:
-        query += " AND symbol = ?"
-        params.append(symbol.upper())
     query += " ORDER BY updated_at DESC"
     with sqlite3.connect(db_path) as conn:
-        return [f"{row[0]}_{row[1]}" for row in conn.execute(query, params)]
+        jobs = list(conn.execute(query, params))
+    raw_root = Path(os.getenv("MARKETPIPE_RAW_ROOT", "data/raw"))
+    results: dict[str, None] = {}
+    for primary_symbol, day, raw_payload in jobs:
+        payload = json.loads(raw_payload) if raw_payload else {}
+        symbols = payload.get("symbols", [primary_symbol])
+        for ticker in symbols:
+            if symbol and ticker != symbol.upper():
+                continue
+            start = payload.get("start_timestamp")
+            end = payload.get("end_timestamp")
+            # Stored files have per-symbol/per-trading-day identities even when a
+            # coordinator job spans several symbols or dates.
+            discovered = []
+            for path in (raw_root / "frame=1m" / f"symbol={ticker}").glob("date=*/*.parquet"):
+                file_day = path.parent.name.removeprefix("date=")
+                if start is not None and end is not None:
+                    from zoneinfo import ZoneInfo
+
+                    first = datetime.fromtimestamp(start / 1e9, ZoneInfo("America/New_York")).date()
+                    last = datetime.fromtimestamp(
+                        (end - 1) / 1e9, ZoneInfo("America/New_York")
+                    ).date()
+                    if not first.isoformat() <= file_day <= last.isoformat():
+                        continue
+                elif file_day != day:
+                    continue
+                if path.stem == f"{ticker}_{file_day}":
+                    discovered.append(path.stem)
+            for job_id in sorted(discovered) or [f"{ticker}_{day}"]:
+                results[job_id] = None
+    return list(results)
 
 
 @jobs_app.command(name="list")

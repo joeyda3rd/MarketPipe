@@ -18,6 +18,7 @@ __all__ = [
 ]
 
 import logging
+import sys
 import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
@@ -51,6 +52,8 @@ def apply_pending_alembic(db_path: Path) -> None:
     # to ensure migrations work even if the current working directory is
     # changed by tests or CLI invocations.
     project_root = Path(__file__).resolve().parent.parent.parent  # src/marketpipe → project root
+    if not (project_root / "alembic.ini").exists():
+        project_root = Path(sys.prefix) / "share" / "marketpipe"
     alembic_ini = project_root / "alembic.ini"
 
     if not alembic_ini.exists():

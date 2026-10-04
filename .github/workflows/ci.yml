@@ -3,8 +3,16 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
+    inputs:
+      extended:
+        description: Also require full integration, PostgreSQL, and resource checks
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -12,128 +20,80 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-      fail-fast: false  # Continue testing other versions even if one fails
-
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     steps:
       - uses: actions/checkout@v6
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-
       - name: Install dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Formatting and lint
         run: |
-          python -m pip install --upgrade pip
-          pip install -e '.[dev]'
-
-      - name: Check config version consistency
-        run: |
-          python -c "
-          import re
-          from pathlib import Path
-
-          # Read the version constants
-          config_file = Path('src/marketpipe/config/ingestion.py').read_text()
-          current_match = re.search(r'CURRENT_CONFIG_VERSION\s*=\s*[\"\'](.*?)[\"\']', config_file)
-          min_match = re.search(r'MIN_SUPPORTED_VERSION\s*=\s*[\"\'](.*?)[\"\']', config_file)
-
-          if not current_match or not min_match:
-              raise RuntimeError('Could not find version constants in config file')
-
-          current_ver = current_match.group(1)
-          min_ver = min_match.group(1)
-
-          print(f'✅ Found CURRENT_CONFIG_VERSION: {current_ver}')
-          print(f'✅ Found MIN_SUPPORTED_VERSION: {min_ver}')
-
-          # Basic consistency checks
-          if not current_ver or not min_ver:
-              raise ValueError('Version constants cannot be empty')
-
-          if min_ver > current_ver:
-              raise ValueError(f'MIN_SUPPORTED_VERSION ({min_ver}) cannot be greater than CURRENT_CONFIG_VERSION ({current_ver})')
-
-          print('✅ Configuration version constants are consistent')
-          "
-
-      - name: Run Black (code formatting check)
-        run: black --check --diff src/ tests/
-
-      - name: Run Ruff (linting)
-        run: ruff check src/ tests/
-
-      - name: Run MyPy (type checking)
+          black --check src/ tests/
+          ruff check src/ tests/
+          lint-imports --config pyproject.toml
+      - name: Type checking
         run: mypy src/marketpipe/
-        continue-on-error: true  # Don't fail CI on type errors during development
-
-      - name: Run unit tests with coverage
-        run: |
-          pytest -q --cov=marketpipe --cov-branch tests/unit/ --timeout=60 --maxfail=5
-
-      - name: Run stable integration tests (lightweight subset)
-        run: |
-          pytest -q tests/integration/test_bootstrap_integration.py tests/integration/test_data_quality_validation_e2e.py --timeout=120 --maxfail=3
-        continue-on-error: true  # Don't fail CI on integration test issues
-
-      - name: Run critical e2e integration tests
-        run: |
-          # New critical e2e tests that validate real component integration
-          pytest -v --timeout=120 --maxfail=3 \
-            tests/integration/test_ci_real_pipeline_e2e.py \
-            tests/integration/test_readme_quickstart_e2e.py \
-            tests/integration/test_ci_cli_essentials.py
-        continue-on-error: true  # Don't block CI initially while stabilizing
-
-      - name: Basic CLI validation
-        run: |
-          # Test help commands work (these should always work)
-          python -m marketpipe --help
-          python -m marketpipe health-check --help
-          python -m marketpipe ingest-ohlcv --help
-
-          # Test health check runs (may fail in CI environment, that's ok)
-          python -m marketpipe health-check --verbose || echo "Health check completed with warnings (expected in CI)"
-
-          # Test config validation (may fail in CI environment, that's ok)
-          echo "ingestion:" > test_config.yaml
-          echo "  symbols: ['AAPL']" >> test_config.yaml
-          echo "  start_date: '2023-01-01'" >> test_config.yaml
-          echo "  end_date: '2023-01-01'" >> test_config.yaml
-          python -m marketpipe health-check --config test_config.yaml --verbose || echo "Config health check completed with warnings (expected in CI)"
-
-          # Test dry run functionality (this just shows help, should work)
-          python -m marketpipe ingest-ohlcv --symbols AAPL --start 2023-01-01 --end 2023-01-01 --provider fake --feed-type iex --help
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        if: success()
+        continue-on-error: true # Existing type debt is tracked separately.
+      - name: Unit tests
+        run: python -m pytest tests/unit --strict-markers --cov=marketpipe --cov-branch --timeout=60 --junitxml=unit-results.xml -q
+      - uses: actions/upload-artifact@v6
+        if: always()
         with:
-          fail_ci_if_error: false
+          name: unit-${{ matrix.python-version }}
+          path: |
+            unit-results.xml
+            .coverage
+
+  e2e:
+    name: Installed CLI and recovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -e '.[dev]'
+      - name: Real offline journeys, provider contracts, and recovery
+        run: python -m pytest tests/e2e -m 'not postgres' --strict-markers --timeout=90 --durations=15 --basetemp=e2e-artifacts --junitxml=e2e-results.xml -q
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: e2e-diagnostics
+          path: |
+            e2e-results.xml
+            e2e-artifacts/**/commands.log
+            e2e-artifacts/**/*.csv
+            e2e-artifacts/**/*.parquet
+            e2e-artifacts/**/*.db
+
+  security:
+    uses: ./.github/workflows/security.yml
+
+  extended:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.extended }}
+    uses: ./.github/workflows/extended-tests.yml
 
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, e2e, security, extended]
     if: always()
-
     steps:
-      - name: Summary
+      - name: Require every gate
+        env:
+          UNIT_RESULT: ${{ needs.test.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          EXTENDED_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.extended }}
+          EXTENDED_RESULT: ${{ needs.extended.result }}
         run: |
-          if [ "${{ needs.test.result }}" == "success" ]; then
-            echo "🟢 **CI PASSED** - All Python versions completed successfully"
-            echo "- Python 3.9-3.13 matrix: ✅"
-            echo "- Code quality checks: ✅"
-            echo "- Core test suite: ✅"
-            echo "- CLI validation: ✅"
-            echo "- Configuration checks: ✅"
-          else
-            echo "🔴 **CI FAILED** - Some Python versions failed"
-            echo "- Check the test matrix job logs above for details"
-            echo "- Run tests locally: \`pytest -x --tb=short\`"
-            echo "- Check code formatting: \`black --check src/ tests/\`"
-            echo "- Check linting: \`ruff check src/ tests/\`"
-            exit 1
-          fi
+          test "$UNIT_RESULT" = success
+          test "$E2E_RESULT" = success
+          test "$SECURITY_RESULT" = success
+          if [ "$EXTENDED_REQUESTED" = true ]; then test "$EXTENDED_RESULT" = success; fi
+          echo 'Unit matrix, installed E2E, and security gates passed.' >> "$GITHUB_STEP_SUMMARY"

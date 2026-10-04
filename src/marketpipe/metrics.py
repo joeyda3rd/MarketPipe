@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime
@@ -134,9 +135,11 @@ class SqliteMetricsRepository(SqliteAsyncMixin):
     def __init__(self, db_path: Optional[str] = None):
         # Check environment variable first, then use provided path, then default
         if db_path is None:
-            db_path = os.environ.get("METRICS_DB_PATH", "data/db/core.db")
+            db_path = os.environ.get("MARKETPIPE_METRICS_DB_PATH") or os.environ.get(
+                "METRICS_DB_PATH", "data/db/core.db"
+            )
 
-        self._db_path = Path(db_path)
+        self._db_path = Path(db_path).resolve()
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self.db_path = str(self._db_path)  # For async connection helper
         # Apply migrations on first use
@@ -266,7 +269,9 @@ def get_metrics_repository() -> SqliteMetricsRepository:
     database path has changed (e.g., in tests that set the env var).
     """
     global _metrics_repo
-    desired_path_env = os.environ.get("METRICS_DB_PATH")
+    desired_path_env = os.environ.get("MARKETPIPE_METRICS_DB_PATH") or os.environ.get(
+        "METRICS_DB_PATH"
+    )
     desired_path = desired_path_env or "data/db/core.db"
     desired_abs = str(Path(desired_path).resolve())
 
@@ -284,6 +289,25 @@ def get_metrics_repository() -> SqliteMetricsRepository:
     # Create new repository at the resolved path
     _metrics_repo = SqliteMetricsRepository(desired_path)
     return _metrics_repo
+
+
+_pending_metric_writes: set[asyncio.Task] = set()
+
+
+async def flush_metrics() -> None:
+    """Finish this loop's pending persistence before shutting down its database threads."""
+    loop = asyncio.get_running_loop()
+    pending = [task for task in _pending_metric_writes if task.get_loop() is loop]
+    if pending:
+        await asyncio.gather(*pending, return_exceptions=True)
+
+
+def _metric_write_finished(task: asyncio.Task) -> None:
+    _pending_metric_writes.discard(task)
+    if not task.cancelled() and task.exception() is not None:
+        logging.getLogger(__name__).warning(
+            "Metric persistence failed: %s", type(task.exception()).__name__
+        )
 
 
 def record_metric(
@@ -343,7 +367,9 @@ def record_metric(
         # Try to determine if we're in an async context
         loop = asyncio.get_running_loop()
         # We're in an async context, schedule the task
-        loop.create_task(repo.record(name, value, provider, feed))
+        task = loop.create_task(repo.record(name, value, provider, feed))
+        _pending_metric_writes.add(task)
+        task.add_done_callback(_metric_write_finished)
         # Don't wait for completion to avoid blocking
     except RuntimeError:
         # No running event loop; perform a synchronous write using a temporary loop

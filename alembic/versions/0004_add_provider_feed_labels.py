@@ -28,13 +28,13 @@ def _column_exists(table_name: str, column_name: str) -> bool:
 
 
 def _index_exists(index_name: str) -> bool:
-    """Check if an index exists in the database."""
-    conn = op.get_bind()
-    result = conn.execute(
-        sa.text("SELECT name FROM sqlite_master WHERE type='index' AND name=:index_name"),
-        {"index_name": index_name},
+    """Inspect indexes without issuing SQL for a different database dialect."""
+    inspector = sa.inspect(op.get_bind())
+    return any(
+        index["name"] == index_name
+        for table in inspector.get_table_names()
+        for index in inspector.get_indexes(table)
     )
-    return result.fetchone() is not None
 
 
 def upgrade() -> None:

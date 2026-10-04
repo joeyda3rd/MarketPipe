@@ -56,7 +56,7 @@ def test_legacy_alpaca_client_handles_symbol_data_pagination(monkeypatch):
     auth = HeaderTokenAuth("id", "sec")
     client = AlpacaClient(config=cfg, auth=auth)
 
-    rows = client.fetch_batch("AAPL", 0, 1)
+    rows = client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
     assert len(rows) == 2
     assert headers_seen[0]["APCA-API-KEY-ID"] == "id"
@@ -121,7 +121,9 @@ def test_legacy_alpaca_client_supports_async_symbol_data_retrieval(monkeypatch):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        rows = loop.run_until_complete(client.async_fetch_batch("AAPL", 0, 1))
+        rows = loop.run_until_complete(
+            client.async_fetch_batch("AAPL", 1672617600000, 1672704000000)
+        )
     finally:
         loop.close()
 
@@ -169,7 +171,7 @@ def test_legacy_alpaca_client_retries_after_rate_limit_response(monkeypatch):
     auth = HeaderTokenAuth("id", "sec")
     client = AlpacaClient(config=cfg, auth=auth)
 
-    rows = client.fetch_batch("AAPL", 0, 1)
+    rows = client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
     assert len(rows) == 1
     assert len(calls) == 2

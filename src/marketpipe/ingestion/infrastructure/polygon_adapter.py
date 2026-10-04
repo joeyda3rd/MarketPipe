@@ -42,6 +42,8 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
     ):
         if rate_limit_per_minute <= 0:
             raise ValueError("rate_limit_per_minute must be positive")
+        if timeout <= 0 or max_retries < 0:
+            raise ValueError("timeout must be positive and max_retries non-negative")
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.rate_limit_per_minute = rate_limit_per_minute
@@ -124,6 +126,8 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                 response_data = await self._make_request(url, params)
 
                 # Parse response
+                if "results" in response_data and not isinstance(response_data["results"], list):
+                    raise ValueError("Polygon results must be a list")
                 if "results" in response_data and response_data["results"]:
                     page_bars = self._parse_polygon_response(response_data, symbol)
 
@@ -133,9 +137,9 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                     filtered_bars = []
                     for bar in page_bars:
                         bar_ts = int(bar.timestamp.value.timestamp() * 1000)
-                        if start_ts <= bar_ts <= end_ts:
+                        if start_ts <= bar_ts < end_ts:
                             filtered_bars.append(bar)
-                        elif bar_ts > end_ts:
+                        elif bar_ts >= end_ts:
                             # Bar is after our end date - stop pagination after this page
                             self.log.info(
                                 f"⏹️  Reached end of requested date range at bar {bar.timestamp.value}"
@@ -153,8 +157,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                     if reached_end_of_range:
                         break
                 else:
-                    self.log.warning(f"No results in response for {symbol.value}")
-                    break
+                    self.log.info(f"Empty results page for {symbol.value}")
 
                 # Check for pagination - get next_url from response
                 next_url = response_data.get("next_url")
@@ -185,7 +188,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                 f"⚠️  No bars returned for {symbol.value} in date range {from_date} to {to_date}"
             )
 
-        return bars
+        return list({bar.timestamp.value: bar for bar in bars}.values())
 
     async def get_supported_symbols(self) -> list[Symbol]:
         """Get list of supported US stock symbols from Polygon.io."""
@@ -312,20 +315,37 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
         headers = {
             "User-Agent": "MarketPipe/1.0 (Polygon.io Adapter)",
             "Accept": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
         }
+        params = {key: value for key, value in params.items() if key.lower() != "apikey"}
 
         for attempt in range(self.max_retries + 1):
             try:
+                if attempt:
+                    await self._apply_rate_limit()
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     response = await client.get(url, params=params, headers=headers)
 
-                    # Handle rate limiting
-                    if response.status_code == 429:
-                        retry_after = int(response.headers.get("Retry-After", 60))
-                        self.log.info(
-                            f"⏳ HTTP 429: Rate limited by server, waiting {retry_after}s..."
+                    if response.status_code in {429, 500, 502, 503, 504}:
+                        if attempt == self.max_retries:
+                            raise RuntimeError(
+                                safe_for_log(
+                                    f"Polygon retry limit exceeded (HTTP {response.status_code})",
+                                    self.api_key,
+                                )
+                            )
+                        delay = min(2**attempt, 60)
+                        if response.status_code == 429:
+                            try:
+                                delay = min(
+                                    max(float(response.headers.get("Retry-After", delay)), 0), 60
+                                )
+                            except (TypeError, ValueError):
+                                pass
+                        self.log.warning(
+                            "Polygon HTTP %s; retrying in %.1fs", response.status_code, delay
                         )
-                        await asyncio.sleep(retry_after)
+                        await asyncio.sleep(delay)
                         continue
 
                     # Handle authentication errors
@@ -339,24 +359,33 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                     # Handle other client errors
                     if response.status_code >= 400:
                         error_text = response.text
-                        self.log.error(f"Polygon API error {response.status_code}: {error_text}")
-                        response.raise_for_status()
+                        raise RuntimeError(
+                            safe_for_log(
+                                f"Polygon API error {response.status_code}: {error_text[:500]}",
+                                self.api_key,
+                            )
+                        )
 
                     # Parse JSON response
                     from typing import cast
 
                     data = cast(dict[str, Any], response.json())
 
+                    if not isinstance(data, dict):
+                        raise ValueError("Polygon response must be an object")
+
                     # Check API status
                     if data.get("status") == "ERROR":
                         error_msg = data.get("error", "Unknown API error")
-                        raise ValueError(f"Polygon API error: {error_msg}")
+                        raise ValueError(
+                            safe_for_log(f"Polygon API error: {error_msg}", self.api_key)
+                        )
 
                     return data
 
             except httpx.TimeoutException:
                 if attempt < self.max_retries:
-                    wait_time = 2**attempt  # Exponential backoff
+                    wait_time = min(2**attempt, 60)  # Exponential backoff
                     self.log.warning(
                         f"Request timeout, retrying in {wait_time}s (attempt {attempt + 1})"
                     )
@@ -366,9 +395,12 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                     raise
             except httpx.RequestError as e:
                 if attempt < self.max_retries:
-                    wait_time = 2**attempt
+                    wait_time = min(2**attempt, 60)
                     self.log.warning(
-                        f"Request error: {e}, retrying in {wait_time}s (attempt {attempt + 1})"
+                        safe_for_log(
+                            f"Request error: {e}, retrying in {wait_time}s (attempt {attempt + 1})",
+                            self.api_key,
+                        )
                     )
                     await asyncio.sleep(wait_time)
                     continue
@@ -435,11 +467,8 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
 
                 bars.append(bar)
 
-            except (KeyError, ValueError, TypeError) as e:
-                self.log.warning(
-                    f"Failed to parse bar data for {symbol.value}: {e}, data: {result}"
-                )
-                continue
+            except (KeyError, ValueError, TypeError):
+                raise ValueError("Invalid Polygon bar response") from None
 
         return bars
 

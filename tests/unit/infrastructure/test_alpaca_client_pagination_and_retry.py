@@ -62,7 +62,7 @@ class TestAlpacaClientPaginationHandling:
         auth = HeaderTokenAuth("id", "sec")
         client = AlpacaClient(config=cfg, auth=auth)
 
-        bars = client.fetch_batch("AAPL", 0, 1)
+        bars = client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
         assert len(bars) == 2
         assert headers_seen[0]["APCA-API-KEY-ID"] == "id"
@@ -110,7 +110,7 @@ class TestAlpacaClientPaginationHandling:
         auth = HeaderTokenAuth("test_id", "test_secret")
         client = AlpacaClient(config=cfg, auth=auth)
 
-        bars = client.fetch_batch("AAPL", 0, 1)
+        bars = client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
         # Verify we got both pages of data
         assert len(bars) == 2
@@ -182,7 +182,7 @@ class TestAlpacaClientAsyncOperations:
         auth = HeaderTokenAuth("id", "sec")
         client = AlpacaClient(config=cfg, auth=auth)
 
-        bars = asyncio.run(client.async_fetch_batch("AAPL", 0, 1))
+        bars = asyncio.run(client.async_fetch_batch("AAPL", 1672617600000, 1672704000000))
         assert len(bars) == 2
         assert headers_seen[0]["APCA-API-KEY-ID"] == "id"
 
@@ -230,7 +230,7 @@ class TestAlpacaClientRateLimitHandling:
         auth = HeaderTokenAuth("test_id", "test_secret")
         client = AlpacaClient(config=cfg, auth=auth)
 
-        bars = client.fetch_batch("AAPL", 0, 1)
+        bars = client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
         assert len(bars) == 1
         assert len(calls) == 2  # First call failed, second succeeded
@@ -278,7 +278,7 @@ class TestAlpacaClientRateLimitHandling:
         auth = HeaderTokenAuth("test_id", "test_secret")
         client = AlpacaClient(config=cfg, auth=auth)
 
-        bars = client.fetch_batch("AAPL", 0, 1)
+        bars = client.fetch_batch("AAPL", 1672617600000, 1672704000000)
 
         # Verify successful retrieval after retries
         assert len(bars) == 1

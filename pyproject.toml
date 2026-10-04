@@ -129,6 +129,9 @@ dev-tools = [
 
 # Complete development environment - includes everything
 dev = [
+    "setuptools>=61",
+    "build>=1.2",
+    "twine>=6",
     # Testing
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
@@ -180,6 +183,11 @@ where = ["src"]
 [tool.setuptools.package-data]
 "*" = ["*.sql"]
 "marketpipe" = ["py.typed"]
+
+[tool.setuptools.data-files]
+"share/marketpipe" = ["alembic.ini"]
+"share/marketpipe/alembic" = ["alembic/env.py", "alembic/script.py.mako"]
+"share/marketpipe/alembic/versions" = ["alembic/versions/*.py"]
 
 # Coverage configuration moved to .coveragerc to support parallel mode
 
@@ -287,6 +295,7 @@ filterwarnings = [
     "ignore::RuntimeWarning"
 ]
 markers = [
+    "e2e: Deterministic end-to-end tests of the installed distribution",
     # Speed-based markers for test organization
     "fast: Fast tests suitable for pre-commit hooks (<2s total)",
     "unit: Unit tests (fast, isolated)",

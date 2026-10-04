@@ -64,7 +64,7 @@ class TestAlembicMigrations:
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute("SELECT version_num FROM alembic_version")
             version = cursor.fetchone()[0]
-            assert version == "0005"
+            assert version == "0006"
 
     def test_alembic_current_command(self, tmp_path):
         """Test alembic current command works."""
@@ -100,7 +100,7 @@ class TestAlembicMigrations:
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute("SELECT version_num FROM alembic_version")
             version = cursor.fetchone()[0]
-            assert version == "0005"
+            assert version == "0006"
 
     def test_ohlcv_columns_after_migration(self, tmp_path):
         """Test that OHLCV table has all expected columns after migration."""
@@ -238,7 +238,7 @@ class TestPostgresMigrations:
             with engine.connect() as conn:
                 result = conn.execute(text("SELECT version_num FROM alembic_version"))
                 version = result.fetchone()[0]
-                assert version == "0005"
+                assert version == "0006"
 
         except Exception as e:
             pytest.skip(f"Postgres test failed (likely no running Postgres): {e}")

@@ -642,10 +642,9 @@ class TestParquetStorageEngineErrorHandling:
 
         mock_read_parquet.side_effect = Exception("Read failed")
 
-        # Should return empty dict instead of crashing
-        result = engine.load_job_bars("job1")
-
-        assert result == {}
+        # A read failure cannot masquerade as an empty or partially complete job.
+        with pytest.raises(OSError, match="job partition"):
+            engine.load_job_bars("job1")
 
 
 # Integration test helper

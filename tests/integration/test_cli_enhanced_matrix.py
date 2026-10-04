@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 import tempfile
 import time
 from dataclasses import dataclass, field
@@ -423,6 +424,11 @@ class EnhancedCLITester:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
+            reset_marker = None
+            if test.category == "factory_reset":
+                reset_marker = temp_path / "data" / "preserved.txt"
+                reset_marker.parent.mkdir()
+                reset_marker.write_text("Factory reset must preserve this test-owned file.")
 
             # Set up environment variables
             env = os.environ.copy()
@@ -436,7 +442,7 @@ class EnhancedCLITester:
                 test.options["--config"] = str(config_file)
 
             # Build command
-            cmd = ["python", "-m", "marketpipe"] + test.command_path
+            cmd = [sys.executable, "-m", "marketpipe"] + test.command_path
 
             # test.options may be provided as a *set* of flag names in some cases – convert that
             # to a mapping of flag -> True so we can iterate with .items() safely.
@@ -461,13 +467,15 @@ class EnhancedCLITester:
                     capture_output=True,
                     text=True,
                     timeout=test.timeout_seconds,
-                    cwd=self.base_dir,
+                    cwd=temp_dir,
                     env=env,
                 )
                 result.execution_time_ms = (time.time() - start_time) * 1000
                 result.exit_code = process_result.returncode
                 result.stdout = process_result.stdout
                 result.stderr = process_result.stderr
+                if reset_marker is not None:
+                    assert reset_marker.exists(), "A reset preview or rejected reset deleted data"
 
             except subprocess.TimeoutExpired:
                 result.error_messages.append(f"Command timed out after {test.timeout_seconds}s")
@@ -618,6 +626,7 @@ class TestEnhancedCLIMatrix:
                 + f"\n\nFull report:\n{report}"
             )
 
+    @pytest.mark.benchmark
     def test_performance_benchmarks(self, tester):
         """Test command performance benchmarks."""
         # Test fast commands (help, providers, etc.)
@@ -639,6 +648,7 @@ class TestEnhancedCLIMatrix:
             )
 
             result = tester.execute_test(test)
+            assert result.success, result.error_messages
 
             if result.execution_time_ms > MAX_FAST_TIME_MS:
                 slow_commands.append(f"{' '.join(cmd_path)}: {result.execution_time_ms:.1f}ms")

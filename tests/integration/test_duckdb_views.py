@@ -156,7 +156,7 @@ def test_validate_views(mock_agg_root):
     """Test view validation functionality."""
     status = duckdb_views.validate_views()
 
-    expected_views = ["bars_5m", "bars_15m", "bars_1h", "bars_1d"]
+    expected_views = ["bars_5m", "bars_15m", "bars_30m", "bars_1h", "bars_4h", "bars_1d"]
 
     assert len(status) == len(expected_views)
     for view_name in expected_views:

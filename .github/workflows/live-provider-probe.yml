@@ -1,0 +1,36 @@
+name: Live Provider Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: Explicitly opt in to one live provider request
+        required: true
+        type: choice
+        options: [alpaca, polygon]
+      date:
+        description: Past trading date, YYYY-MM-DD (one AAPL day, no pagination)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: python -m pip install .
+      - name: One bounded live request
+        env:
+          PROBE_PROVIDER: ${{ inputs.provider }}
+          PROBE_DATE: ${{ inputs.date }}
+          ALPACA_KEY: ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
+          POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+        run: python scripts/live_provider_probe.py

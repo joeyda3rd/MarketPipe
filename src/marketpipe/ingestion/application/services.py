@@ -451,6 +451,10 @@ class IngestionCoordinatorService:
                     )
 
             raise
+        finally:
+            from marketpipe.metrics import flush_metrics
+
+            await flush_metrics()
 
     async def _process_symbol(
         self, job: IngestionJob, symbol: Symbol

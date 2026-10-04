@@ -271,7 +271,7 @@ class TestErrorPropagationEndToEnd:
                     catch_exceptions=True,
                 )
 
-                mock_client.assert_called_once()
+                assert mock_client.call_count == 1, result.output
                 assert result.exit_code != 0
 
                 # Error should occur, but secrets should be masked
