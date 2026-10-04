@@ -35,16 +35,17 @@ class DuckDBAggregationEngine:
             job_id: Ingestion job identifier
             frame_sql_pairs: List of (FrameSpec, SQL) tuples for aggregation
         """
+        con = None
         try:
             # Load raw data for all symbols in the job using new engine
             symbol_dataframes = self._raw_storage.load_job_bars(job_id)
 
             if not symbol_dataframes:
-                self.log.warning(f"No data found for job {job_id}")
-                return
+                raise FileNotFoundError(f"No data found for job {job_id}")
 
             # Create DuckDB connection
             con = duckdb.connect(":memory:")
+            failures = []
 
             # Process each symbol
             for symbol, df in symbol_dataframes.items():
@@ -82,40 +83,45 @@ class DuckDBAggregationEngine:
 
                     except Exception as e:
                         self.log.error(f"Failed to aggregate {symbol} to {spec.name}: {e}")
-                        continue
+                        failures.append(f"{symbol}/{spec.name}: {e}")
 
-            con.close()
+            if failures:
+                raise RuntimeError(f"Aggregation failed for {job_id}: {'; '.join(failures)}")
             self.log.info(f"Completed aggregation for job {job_id}")
 
         except Exception as e:
             self.log.error(f"Aggregation failed for job {job_id}: {e}")
             raise
+        finally:
+            if con is not None:
+                con.close()
 
     def _write_aggregated_data(
         self, df: pd.DataFrame, symbol: str, spec: FrameSpec, job_id: str
     ) -> None:
         """Write aggregated DataFrame using the new storage engine."""
-        # Determine trading day from the first timestamp
+        # Keep each calendar day in its own partition, including multi-day jobs.
         if "ts_ns" in df.columns and not df.empty:
-            first_ts_ns = df["ts_ns"].iloc[0]
-            trading_day = pd.Timestamp(first_ts_ns, unit="ns").date()
+            dates = pd.to_datetime(df["ts_ns"], unit="ns", utc=True).dt.date
+            daily_frames = [(day, df.loc[dates == day]) for day in sorted(dates.unique())]
         else:
             # Fallback to today if no timestamp data
             from datetime import date
 
-            trading_day = date.today()
+            daily_frames = [(date.today(), df)]
 
         # Use the new storage engine to write the data
         try:
-            output_path = self._agg_storage.write(
-                df,
-                frame=spec.name,
-                symbol=symbol,
-                trading_day=trading_day,
-                job_id=job_id,
-                overwrite=True,
-            )
-            self.log.debug(f"Wrote {len(df)} rows to {output_path}")
+            for trading_day, day_df in daily_frames:
+                output_path = self._agg_storage.write(
+                    day_df,
+                    frame=spec.name,
+                    symbol=symbol,
+                    trading_day=trading_day,
+                    job_id=job_id,
+                    overwrite=True,
+                )
+                self.log.debug(f"Wrote {len(day_df)} rows to {output_path}")
         except Exception as e:
             self.log.error(f"Failed to write aggregated data for {symbol} {spec.name}: {e}")
             raise

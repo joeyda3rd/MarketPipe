@@ -18,6 +18,7 @@ class FrameSpec:
 DEFAULT_SPECS = [
     FrameSpec("5m", 300),
     FrameSpec("15m", 900),
+    FrameSpec("30m", 1800),
     FrameSpec("1h", 3600),
     FrameSpec("4h", 14400),
     FrameSpec("1d", 86400),

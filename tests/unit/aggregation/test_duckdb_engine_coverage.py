@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pandas as pd
+import pytest
 
 from marketpipe.aggregation.domain.value_objects import FrameSpec
 from marketpipe.aggregation.infrastructure.duckdb_engine import DuckDBAggregationEngine
@@ -102,8 +103,8 @@ def test_duckdb_aggregation_engine_no_data():
         with patch.object(engine._raw_storage, "load_job_bars") as mock_load:
             mock_load.return_value = {}
 
-            # Should handle empty data gracefully
-            engine.aggregate_job("empty_job", [])
+            with pytest.raises(FileNotFoundError, match="No data found"):
+                engine.aggregate_job("empty_job", [])
 
             mock_load.assert_called_once_with("empty_job")
 
@@ -251,8 +252,9 @@ def test_duckdb_aggregation_engine_sql_error_handling():
                 frame_spec = FrameSpec(name="5m", seconds=300)
                 sql = "INVALID SQL"
 
-                # Should not raise but log error
-                engine.aggregate_job("test_job", [(frame_spec, sql)])
+                with pytest.raises(RuntimeError, match="SQL error"):
+                    engine.aggregate_job("test_job", [(frame_spec, sql)])
 
                 mock_load.assert_called_once()
                 mock_connect.assert_called_once()
+                mock_conn.close.assert_called_once()
