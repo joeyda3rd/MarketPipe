@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import logging
+import os
+import tempfile
+import threading
 from datetime import date
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -42,6 +45,7 @@ class ParquetStorageEngine:
         self._compression = compression
         self._root.mkdir(parents=True, exist_ok=True)
         self.log = logging.getLogger(self.__class__.__name__)
+        self._write_lock = threading.RLock()
 
         # Validate compression algorithm
         if compression not in {"zstd", "snappy", "gzip", "lz4", "brotli"}:
@@ -94,35 +98,44 @@ class ParquetStorageEngine:
         # Define output file path
         file_path = partition_path / f"{job_id}.parquet"
 
-        # Use file locking for concurrency safety
-        lock_path = str(file_path) + ".lock"
-        with fasteners.InterProcessLock(lock_path):
-            if file_path.exists() and not overwrite:
-                raise FileExistsError(f"File already exists: {file_path}")
-
-            try:
-                # Convert to Arrow table with explicit schema to avoid type incompatibilities
-                table = pa.Table.from_pandas(df, preserve_index=False)
-
-                # Write with compression and consistent schema
-                pq.write_table(
-                    table,
-                    file_path,
-                    compression=self._compression,
-                    row_group_size=10000,  # Optimize for read performance
-                    use_dictionary=False,  # Disable dictionary encoding to avoid type conflicts
-                )
-
-                self.log.info(f"Wrote {len(df)} rows to {file_path}")
-
-            except Exception as e:
-                # Clean up partial file on failure
-                if file_path.exists():
-                    file_path.unlink()
-                self.log.error(f"Failed to write {file_path}: {e}")
-                raise
-
+        # Protect threads in this engine as well as other writer processes.
+        with self._write_lock, fasteners.InterProcessLock(str(file_path) + ".lock"):
+            self._write_file(df, file_path, overwrite=overwrite)
         return file_path
+
+    def _write_file(self, df: pd.DataFrame, file_path: Path, *, overwrite: bool) -> None:
+        """Atomically replace a file while the caller holds its write lock."""
+        if df.empty:
+            raise ValueError("Cannot write empty DataFrame")
+        required_cols = {"ts_ns", "open", "high", "low", "close", "volume"}
+        if not required_cols.issubset(df.columns):
+            missing = required_cols - set(df.columns)
+            raise ValueError(f"DataFrame missing required columns: {missing}")
+        if file_path.exists() and not overwrite:
+            raise FileExistsError(f"File already exists: {file_path}")
+
+        temporary_path = None
+        try:
+            table = pa.Table.from_pandas(df, preserve_index=False)
+            with tempfile.NamedTemporaryFile(
+                dir=file_path.parent, prefix=".parquet-", suffix=".tmp", delete=False
+            ) as temporary_file:
+                temporary_path = Path(temporary_file.name)
+            pq.write_table(
+                table,
+                temporary_path,
+                compression=self._compression,
+                row_group_size=10000,
+                use_dictionary=False,
+            )
+            os.replace(temporary_path, file_path)
+            self.log.info(f"Wrote {len(df)} rows to {file_path}")
+        except Exception as e:
+            self.log.error(f"Failed to write {file_path}: {e}")
+            raise
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
 
     def append_to_job(
         self,
@@ -153,33 +166,23 @@ class ParquetStorageEngine:
             / f"{job_id}.parquet"
         )
 
-        if file_path.exists():
-            # Load existing data and combine with new data
-            existing_df = pd.read_parquet(file_path)
-            combined_df = pd.concat([existing_df, df], ignore_index=True)
-
-            # Remove duplicates based on timestamp if present
-            if "ts_ns" in combined_df.columns:
-                combined_df = combined_df.drop_duplicates(subset=["ts_ns"], keep="last")
-                combined_df = combined_df.sort_values("ts_ns")
-
-            return self.write(
-                combined_df,
-                frame=frame,
-                symbol=symbol,
-                trading_day=trading_day,
-                job_id=job_id,
-                overwrite=True,
-            )
-        else:
-            return self.write(
-                df,
-                frame=frame,
-                symbol=symbol,
-                trading_day=trading_day,
-                job_id=job_id,
-                overwrite=False,
-            )
+        if df.empty:
+            raise ValueError("Cannot write empty DataFrame")
+        required_cols = {"ts_ns", "open", "high", "low", "close", "volume"}
+        if not required_cols.issubset(df.columns):
+            missing = required_cols - set(df.columns)
+            raise ValueError(f"DataFrame missing required columns: {missing}")
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._write_lock, fasteners.InterProcessLock(str(file_path) + ".lock"):
+            if file_path.exists():
+                existing_df = pd.read_parquet(file_path)
+                combined_df = pd.concat([existing_df, df], ignore_index=True)
+            else:
+                combined_df = df
+            combined_df = combined_df.drop_duplicates(subset=["ts_ns"], keep="last")
+            combined_df = combined_df.sort_values("ts_ns")
+            self._write_file(combined_df, file_path, overwrite=True)
+        return file_path
 
     async def store_bars(self, bars, configuration):
         """Store OHLCV bars using the configured settings.
@@ -209,12 +212,12 @@ class ParquetStorageEngine:
         bars_by_day = defaultdict(list)
         for bar in bars:
             trading_day = bar.timestamp.trading_date()
-            bars_by_day[trading_day].append(bar)
+            bars_by_day[(bar.symbol.value, trading_day)].append(bar)
 
         # Store bars for each trading day separately
         partitions = []
 
-        for trading_day, day_bars in bars_by_day.items():
+        for (_, trading_day), day_bars in bars_by_day.items():
             # Convert bars to DataFrame
             data = []
             for bar in day_bars:
@@ -243,13 +246,12 @@ class ParquetStorageEngine:
             timeframe = getattr(configuration, "timeframe", "1m")
 
             # Write to storage
-            file_path = self.write(
+            file_path = self.append_to_job(
                 df,
                 frame=timeframe,  # Use configuration timeframe
                 symbol=symbol,
                 trading_day=trading_day,
                 job_id=job_id,
-                overwrite=True,
             )
 
             # Create partition info for this day

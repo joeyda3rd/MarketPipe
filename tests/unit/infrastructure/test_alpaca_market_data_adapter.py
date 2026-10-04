@@ -130,6 +130,31 @@ class TestAlpacaMarketDataAdapterFetching:
     """Test market data fetching functionality."""
 
     @pytest.mark.asyncio
+    async def test_legacy_batch_size_does_not_truncate_requested_range(self, monkeypatch):
+        adapter = AlpacaMarketDataAdapter("key", "secret", "https://example.invalid")
+        row = {
+            "timestamp": 1672675800000000000,
+            "open": 100.0,
+            "high": 101.0,
+            "low": 99.0,
+            "close": 100.5,
+            "volume": 1000,
+        }
+        monkeypatch.setattr(adapter._alpaca_client, "fetch_batch", lambda *args: [row] * 3)
+        bars = await adapter.fetch_bars(
+            Symbol("AAPL"), 1672675800000000000, 1672679400000000000, batch_size=2
+        )
+        assert len(bars) == 3
+
+    @pytest.mark.asyncio
+    async def test_rejects_timeframe_that_would_mislabel_minute_bars(self):
+        adapter = AlpacaMarketDataAdapter("key", "secret", "https://example.invalid")
+        with pytest.raises(ValueError, match="use aggregation"):
+            await adapter.fetch_bars(
+                Symbol("AAPL"), 1672675800000000000, 1672679400000000000, timeframe="1d"
+            )
+
+    @pytest.mark.asyncio
     async def test_fetch_bars_converts_timestamp_parameters_correctly(self, monkeypatch):
         """Test that timestamp parameters are converted correctly for Alpaca API."""
         adapter = AlpacaMarketDataAdapter(

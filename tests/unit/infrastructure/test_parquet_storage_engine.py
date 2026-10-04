@@ -71,6 +71,49 @@ class TestParquetStorageEngineInitialization:
 class TestParquetStorageEngineWrite:
     """Test write operations."""
 
+    def test_failed_overwrite_preserves_previous_file(self, engine, sample_df):
+        options = {
+            "frame": "1m",
+            "symbol": "AAPL",
+            "trading_day": date(2022, 1, 1),
+            "job_id": "job1",
+        }
+        path = engine.write(sample_df, **options)
+        original = path.read_bytes()
+
+        def fail_after_partial_write(table, destination, **kwargs):
+            Path(destination).write_bytes(b"incomplete")
+            raise OSError("disk full")
+
+        with patch("pyarrow.parquet.write_table", side_effect=fail_after_partial_write):
+            with pytest.raises(OSError, match="disk full"):
+                engine.write(sample_df, overwrite=True, **options)
+
+        assert path.read_bytes() == original
+        assert not list(path.parent.glob("*.tmp"))
+
+    def test_concurrent_appends_preserve_each_batch(self, engine, sample_df):
+        from concurrent.futures import ThreadPoolExecutor
+
+        options = {
+            "frame": "1m",
+            "symbol": "AAPL",
+            "trading_day": date(2022, 1, 1),
+            "job_id": "job1",
+        }
+
+        def append_batch(index):
+            row = sample_df.iloc[[0]].copy()
+            row["ts_ns"] += index * 60_000_000_000
+            return engine.append_to_job(row, **options)
+
+        with ThreadPoolExecutor(max_workers=4) as workers:
+            paths = list(workers.map(append_batch, range(8)))
+        stored = pd.read_parquet(paths[0])
+        assert len(stored) == 8
+        assert stored["ts_ns"].is_unique
+        assert stored["ts_ns"].is_monotonic_increasing
+
     def test_write_basic(
         self, engine: ParquetStorageEngine, sample_df: pd.DataFrame, tmp_path: Path
     ):
