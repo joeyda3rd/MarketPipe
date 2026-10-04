@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
@@ -14,6 +15,19 @@ from marketpipe.ingestion.infrastructure.polygon_adapter import PolygonMarketDat
 
 class TestPolygonAdapterPagination:
     """Test Polygon adapter handles pagination correctly."""
+
+    def test_adapter_can_be_constructed_without_an_event_loop(self, monkeypatch):
+        original_lock = asyncio.Lock
+
+        def require_running_loop():
+            asyncio.get_running_loop()
+            return original_lock()
+
+        monkeypatch.setattr(asyncio, "Lock", require_running_loop)
+        adapter = PolygonMarketDataAdapter(api_key="test_api_key")
+        asyncio.run(adapter._apply_rate_limit())
+
+        assert len(adapter._request_times) == 1
 
     @pytest.fixture
     def adapter(self):

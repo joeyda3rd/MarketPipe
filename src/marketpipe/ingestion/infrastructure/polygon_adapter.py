@@ -51,7 +51,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
 
         # Rate limiting state
         self._request_times: list[float] = []
-        self._rate_limit_lock = asyncio.Lock()
+        self._rate_limit_lock: Optional[asyncio.Lock] = None
 
         self.log.info(
             f"Polygon adapter initialized with {rate_limit_per_minute} requests/min limit"
@@ -281,6 +281,9 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
 
     async def _apply_rate_limit(self) -> None:
         """Apply rate limiting based on free tier limits."""
+        # Python 3.9 binds locks to the current event loop during construction.
+        if self._rate_limit_lock is None:
+            self._rate_limit_lock = asyncio.Lock()
         async with self._rate_limit_lock:
             now = time.monotonic()
 
