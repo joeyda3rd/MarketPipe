@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Optional
 from uuid import UUID, uuid4
 
-from .value_objects import Price, Symbol, Timestamp, Volume
+from .value_objects import Price, PriceChange, Symbol, Timestamp, Volume
 
 
 @dataclass(frozen=True)
@@ -183,13 +183,13 @@ class OHLCVBar(Entity):
         """
         return Price(self._high_price.value - self._low_price.value)
 
-    def calculate_price_change(self) -> Price:
+    def calculate_price_change(self) -> PriceChange:
         """Calculate the price change (close - open).
 
         Returns:
             Price difference between close and open
         """
-        return Price(self._close_price.value - self._open_price.value)
+        return PriceChange(self._close_price.value - self._open_price.value)
 
     def calculate_price_change_percentage(self) -> float:
         """Calculate the percentage price change.

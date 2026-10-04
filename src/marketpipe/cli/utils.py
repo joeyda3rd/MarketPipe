@@ -20,7 +20,7 @@ try:  # pragma: no cover - simple alias for tests
     )
 except Exception:  # pragma: no cover
 
-    def list_providers() -> list[str]:  # type: ignore[redef]
+    def list_providers() -> list[str]:
         return []
 
 

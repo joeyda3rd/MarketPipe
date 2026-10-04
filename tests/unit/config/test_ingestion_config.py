@@ -53,7 +53,7 @@ class TestIngestionJobConfig:
         assert config.batch_size == 1000  # Default
         assert config.provider == "alpaca"  # Default
         assert config.feed_type == "iex"  # Default
-        assert config.output_path == "./data"  # Default
+        assert config.output_path == "data/raw"  # Default
         assert config.workers == 4  # Default
 
     def test_symbol_validation_and_normalization(self):

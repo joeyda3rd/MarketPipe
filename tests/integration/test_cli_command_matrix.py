@@ -211,7 +211,7 @@ class CLICommandValidator:
                     capture_output=True,
                     text=True,
                     timeout=10,
-                    cwd=Path(__file__).parent.parent.parent,
+                    cwd=Path.cwd(),
                 )
                 execution_time = (time.time() - start_time) * 1000
 
@@ -263,7 +263,7 @@ class CLICommandValidator:
                         capture_output=True,
                         text=True,
                         timeout=10,
-                        cwd=Path(__file__).parent.parent.parent,
+                        cwd=Path.cwd(),
                     )
                 elif self.runner and app:
                     self.runner.invoke(app, cmd_path)

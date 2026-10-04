@@ -231,8 +231,9 @@ class TestIngestionCoordinatorEndToEndFlow:
         await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("all_fail", [False, True])
     async def test_coordinator_handles_failed_symbols_gracefully(
-        self, ingestion_services, tmp_path
+        self, ingestion_services, tmp_path, all_fail
     ):
         """Test that coordinator handles failed symbols without stopping other processing."""
         services = ingestion_services
@@ -251,6 +252,8 @@ class TestIngestionCoordinatorEndToEndFlow:
 
         # Configure adapter to fail for GOOGL only
         market_data_adapter.set_symbol_failure(failing_symbol)
+        if all_fail:
+            market_data_adapter.set_symbol_failure(working_symbol)
 
         # Create ingestion job
 
@@ -272,8 +275,14 @@ class TestIngestionCoordinatorEndToEndFlow:
         assert len(fetch_calls) >= 1  # At least one call should have been made
 
         # Verify that at least the working symbol was processed
-        assert result["symbols_processed"] >= 1
-        assert result["symbols_failed"] >= 1  # GOOGL should have failed
+        assert result["symbols_processed"] == (0 if all_fail else 1)
+        assert result["symbols_failed"] == (2 if all_fail else 1)
+        assert result["status"] == ("failed" if all_fail else "partial_success")
+        from marketpipe.ingestion.domain.entities import ProcessingState
+
+        job = await services["job_repository"].get_by_id(job_id)
+        assert job.state == ProcessingState.FAILED
+        assert not await services["job_repository"].get_active_jobs()
 
         await asyncio.sleep(0.1)  # Allow time for any fire-and-forget tasks to complete
 

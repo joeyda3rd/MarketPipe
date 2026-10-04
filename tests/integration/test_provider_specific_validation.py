@@ -58,7 +58,7 @@ class ProviderValidator:
     """Validates individual market data providers."""
 
     def __init__(self, base_dir: Optional[Path] = None):
-        self.base_dir = base_dir or Path(__file__).parent.parent.parent
+        self.base_dir = base_dir or Path.cwd()
         self.provider_configs = self._get_provider_configs()
 
     def _get_provider_configs(self) -> dict[str, ProviderTestConfig]:

@@ -241,6 +241,7 @@ class TestOHLCVCalculationService:
 
         # First 5-minute bar (minutes 30-34)
         first_bar = resampled[0]
+        assert first_bar.timestamp.value == base_time
         assert first_bar.open_price == bars[0].open_price  # First bar's open
         assert first_bar.close_price == bars[4].close_price  # Fifth bar's close
         assert first_bar.high_price == Price(Decimal("105.00"))  # Max high from first 5 bars
@@ -249,6 +250,7 @@ class TestOHLCVCalculationService:
 
         # Second 5-minute bar (minutes 35-39)
         second_bar = resampled[1]
+        assert second_bar.timestamp.value == base_time.replace(minute=35)
         assert second_bar.open_price == bars[5].open_price  # Sixth bar's open
         assert second_bar.close_price == bars[9].close_price  # Tenth bar's close
         assert second_bar.volume.value == 5000  # Sum of last 5 volumes

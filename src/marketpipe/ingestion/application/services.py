@@ -383,6 +383,13 @@ class IngestionCoordinatorService:
                         record_metric("ingest_symbol_failures", 1, provider=provider, feed=feed)
 
             # Job should auto-complete when all symbols are processed
+            # Failed symbols must not leave an incomplete job occupying an active slot.
+            if failed_symbols:
+                current_job = await self._job_repository.get_by_id(job_id)
+                if current_job and current_job.can_fail:
+                    await self._job_service.fail_job(
+                        FailJobCommand(job_id, f"Failed to process {failed_symbols} symbol(s)")
+                    )
             # Calculate and save final metrics
             end_time = datetime.now(timezone.utc)
             processing_time = (end_time - start_time).total_seconds()
@@ -399,8 +406,10 @@ class IngestionCoordinatorService:
             if failed_symbols == 0:
                 record_metric("ingest_job_success", 1, provider=provider, feed=feed)
             else:
-                # Partial success - record mixed results
-                record_metric("ingest_job_partial_success", 1, provider=provider, feed=feed)
+                metric = (
+                    "ingest_job_partial_success" if processed_symbols else "ingest_job_failures"
+                )
+                record_metric(metric, 1, provider=provider, feed=feed)
                 record_metric(
                     "ingest_job_failed_symbols", failed_symbols, provider=provider, feed=feed
                 )
@@ -411,7 +420,11 @@ class IngestionCoordinatorService:
                 "symbols_failed": failed_symbols,
                 "total_bars": total_bars,
                 "processing_time_seconds": processing_time,
-                "status": "completed" if failed_symbols == 0 else "partial_success",
+                "status": (
+                    "completed"
+                    if failed_symbols == 0
+                    else "partial_success" if processed_symbols else "failed"
+                ),
             }
 
         except Exception as e:

@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
@@ -16,11 +16,7 @@ class BootstrapResult:
     success: bool
     was_already_bootstrapped: bool = False
     error_message: Optional[str] = None
-    services_registered: list[str] = None
-
-    def __post_init__(self):
-        if self.services_registered is None:
-            self.services_registered = []
+    services_registered: list[str] = field(default_factory=list)
 
 
 class IMigrationService(ABC):

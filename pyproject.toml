@@ -110,7 +110,7 @@ postgres = [
 
 # Code quality and linting tools
 quality = [
-    "black>=23.0.0",
+    "black==25.1.0",
     "mypy>=1.5.0",
     "ruff>=0.1.0",
     "pre-commit>=3.5.0",
@@ -148,7 +148,7 @@ dev = [
     "psycopg2-binary>=2.9.0",
 
     # Code quality
-    "black>=23.0.0",
+    "black==25.1.0",
     "mypy>=1.5.0",
     "ruff>=0.1.0",
     "pre-commit>=3.5.0",
@@ -220,6 +220,7 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
     "I",     # disable isort in ruff - handled by isort tool instead
     "UP007", # Use `X | Y` for type annotations (conflicts with Python 3.9 compatibility)
+    "UP045", # Keep Optional annotations compatible with Python 3.9
 ]
 
 [tool.ruff.lint.per-file-ignores]

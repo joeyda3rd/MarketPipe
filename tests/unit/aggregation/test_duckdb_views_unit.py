@@ -121,7 +121,7 @@ def test_ensure_views():
         duckdb_views.ensure_views()
 
         # Should create views for all standard frames
-        expected_frames = ["5m", "15m", "1h", "1d"]
+        expected_frames = ["5m", "15m", "30m", "1h", "4h", "1d"]
         assert mock_attach.call_count == len(expected_frames)
 
         called_frames = [call[0][0] for call in mock_attach.call_args_list]
@@ -239,7 +239,7 @@ def test_validate_views_all_accessible():
 
             status = duckdb_views.validate_views()
 
-            expected_views = ["bars_5m", "bars_15m", "bars_1h", "bars_1d"]
+            expected_views = ["bars_5m", "bars_15m", "bars_30m", "bars_1h", "bars_4h", "bars_1d"]
             assert len(status) == len(expected_views)
             for view_name in expected_views:
                 assert view_name in status
