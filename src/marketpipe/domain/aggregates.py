@@ -14,7 +14,7 @@ from typing import Optional
 
 from .entities import OHLCVBar
 from .events import BarCollectionCompleted, BarCollectionStarted, DomainEvent, MarketDataReceived
-from .value_objects import Price, Symbol, TimeRange, Timestamp, Volume
+from .value_objects import Price, PriceChange, Symbol, TimeRange, Timestamp, Volume
 
 
 class SymbolBarsAggregate:
@@ -487,9 +487,9 @@ class DailySummary:
     first_bar_time: Timestamp
     last_bar_time: Timestamp
 
-    def calculate_price_change(self) -> Price:
+    def calculate_price_change(self) -> PriceChange:
         """Calculate daily price change."""
-        return Price(self.close_price.value - self.open_price.value)
+        return PriceChange(self.close_price.value - self.open_price.value)
 
     def calculate_price_change_percentage(self) -> float:
         """Calculate daily price change percentage."""
