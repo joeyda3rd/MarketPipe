@@ -1,179 +1,111 @@
-"""Tests for Postgres-specific Alembic database migrations."""
+"""Real PostgreSQL migrations and job repository behavior in disposable databases."""
 
 from __future__ import annotations
 
+import asyncio
 import os
+import uuid
+from pathlib import Path
 
 import pytest
+import sqlalchemy as sa
+from alembic import command
+from alembic.config import Config
 
-# Mark all tests in this file as requiring Postgres
 pytestmark = pytest.mark.postgres
 
 
 @pytest.fixture
-def postgres_url():
-    """Get Postgres database URL from environment."""
-    url = os.getenv("DATABASE_URL")
-    if not url or not url.startswith("postgresql"):
-        pytest.skip("Postgres not available (DATABASE_URL not set or not postgres)")
-    return url
+def postgres_url(monkeypatch):
+    url = os.environ.get("MARKETPIPE_TEST_POSTGRES_URL")
+    if not url:
+        pytest.skip("Dedicated test PostgreSQL URL not configured")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    admin = sa.create_engine(url, isolation_level="AUTOCOMMIT")
+    name = "marketpipe_test_" + uuid.uuid4().hex
+    try:
+        with admin.connect() as connection:
+            connection.execute(sa.text(f'CREATE DATABASE "{name}"'))
+        test_url = sa.engine.make_url(url).set(database=name).render_as_string(hide_password=False)
+        root = Path(__file__).resolve().parents[2]
+        config = Config(str(root / "alembic.ini"))
+        config.set_main_option("script_location", str(root / "alembic"))
+        config.set_main_option("sqlalchemy.url", test_url.replace("%", "%%"))
+        command.upgrade(config, "head")
+        yield test_url
+    finally:
+        with admin.connect() as connection:
+            connection.execute(sa.text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+        admin.dispose()
 
 
-class TestPostgresMigrations:
-    """Test Postgres-specific Alembic migration functionality."""
-
-    def test_postgres_migration_from_scratch(self, postgres_url):
-        """Test Postgres migration from scratch."""
-        # Import asyncpg to ensure it's available
-        pytest.importorskip("asyncpg")
-
-        from alembic import command
-        from alembic.config import Config
-
-        # Create alembic config with Postgres URL
-        alembic_cfg = Config("alembic.ini")
-        alembic_cfg.set_main_option("sqlalchemy.url", postgres_url)
-
-        # Apply migrations
-        command.upgrade(alembic_cfg, "head")
-
-        # Verify current migration version using sync driver
-        from alembic.runtime.migration import MigrationContext
-        from sqlalchemy import create_engine
-
-        # Convert asyncpg URL to psycopg2 URL for sync operations
-        sync_url = postgres_url.replace("+asyncpg", "")
-
-        # Skip if psycopg2 is not available
-        import importlib.util
-
-        if importlib.util.find_spec("psycopg2") is None:
-            pytest.skip("psycopg2 not available for sync operations")
-
-        engine = create_engine(sync_url)
-        with engine.connect() as conn:
-            context = MigrationContext.configure(conn)
-            current_rev = context.get_current_revision()
-            assert current_rev == "0003"  # Should be at latest migration
-
-    def test_postgres_specific_features(self, postgres_url):
-        """Test Postgres-specific SQL features work correctly."""
-        # Import required dependencies
-        pytest.importorskip("asyncpg")
-        pytest.importorskip("sqlalchemy")
-
-        from sqlalchemy import create_engine, text
-
-        # Convert asyncpg URL to psycopg2 URL for sync operations
-        sync_url = postgres_url.replace("+asyncpg", "")
-
-        # Skip if psycopg2 is not available
-        import importlib.util
-
-        if importlib.util.find_spec("psycopg2") is None:
-            pytest.skip("psycopg2 not available for sync operations")
-
-        engine = create_engine(sync_url)
-
-        # Test some Postgres-specific functionality
-        with engine.connect() as conn:
-            # Test table exists
-            result = conn.execute(
-                text(
-                    """
-                SELECT table_name
-                FROM information_schema.tables
-                WHERE table_schema = 'public'
-                AND table_name = 'symbol_bars_aggregates'
-            """
+def test_postgres_fresh_schema_indexes_and_large_timestamps(postgres_url):
+    engine = sa.create_engine(postgres_url)
+    try:
+        with engine.begin() as connection:
+            assert (
+                connection.execute(sa.text("SELECT version_num FROM alembic_version")).scalar()
+                == "0005"
+            )
+            connection.execute(
+                sa.text(
+                    """INSERT INTO ohlcv_bars
+                (id, symbol, timestamp_ns, open_price, high_price, low_price, close_price, volume)
+                VALUES ('test', 'AAPL', 1705329000000000000, '100', '102', '99', '101', 10)"""
                 )
             )
-            tables = result.fetchall()
-            assert len(tables) == 1
-
-            # Test index exists
-            result = conn.execute(
-                text(
-                    """
-                SELECT indexname
-                FROM pg_indexes
-                WHERE schemaname = 'public'
-                AND tablename = 'metrics'
-                AND indexname = 'idx_metrics_name_ts'
-            """
-                )
+            assert (
+                connection.execute(sa.text("SELECT timestamp_ns FROM ohlcv_bars")).scalar()
+                == 1705329000000000000
             )
-            indexes = result.fetchall()
-            assert len(indexes) == 1
+            assert "idx_metrics_name_ts" in {
+                index["name"] for index in sa.inspect(connection).get_indexes("metrics")
+            }
+    finally:
+        engine.dispose()
 
-    def test_postgres_concurrent_migrations(self, postgres_url):
-        """Test that Postgres handles concurrent migration attempts gracefully."""
-        pytest.importorskip("asyncpg")
 
-        import threading
-        import time
+@pytest.mark.asyncio
+async def test_postgres_job_save_fetch_delete_and_concurrent_claims(postgres_url):
+    from datetime import date
 
-        from alembic import command
-        from alembic.config import Config
-
-        # Create alembic config
-        alembic_cfg = Config("alembic.ini")
-        alembic_cfg.set_main_option("sqlalchemy.url", postgres_url)
-
-        # First ensure we're at head
-        command.upgrade(alembic_cfg, "head")
-
-        # Try to run migrations concurrently (should be idempotent)
-        results = []
-
-        def run_migration():
-            try:
-                command.upgrade(alembic_cfg, "head")
-                results.append("success")
-            except Exception as e:
-                results.append(f"error: {e}")
-
-        threads = []
-        for _ in range(3):
-            t = threading.Thread(target=run_migration)
-            threads.append(t)
-            t.start()
-            time.sleep(0.1)  # Stagger starts slightly
-
-        for t in threads:
-            t.join()
-
-        # All should succeed (migrations are idempotent)
-        assert all(r == "success" for r in results), f"Results: {results}"
-
-    @pytest.mark.skipif(
-        not os.getenv("DATABASE_URL", "").startswith("postgresql"),
-        reason="Test requires Postgres DATABASE_URL",
+    from marketpipe.domain.value_objects import Symbol, TimeRange
+    from marketpipe.ingestion.domain.entities import IngestionJob, IngestionJobId, ProcessingState
+    from marketpipe.ingestion.domain.value_objects import IngestionConfiguration
+    from marketpipe.ingestion.infrastructure.postgres_repository import (
+        PostgresIngestionJobRepository,
     )
-    def test_database_url_is_postgres(self):
-        """Verify we're actually testing against Postgres in CI."""
-        db_url = os.getenv("DATABASE_URL", "")
-        assert "postgresql" in db_url, f"Expected Postgres URL, got: {db_url}"
 
-        # Test connection
-        pytest.importorskip("asyncpg")
-
-        from sqlalchemy import create_engine
-
-        # Convert asyncpg URL to psycopg2 URL for sync operations
-        sync_url = db_url.replace("+asyncpg", "")
-
-        # Skip if psycopg2 is not available
-        import importlib.util
-
-        if importlib.util.find_spec("psycopg2") is None:
-            pytest.skip("psycopg2 not available for sync operations")
-
-        engine = create_engine(sync_url)
-
-        with engine.connect() as conn:
-            from sqlalchemy import text
-
-            result = conn.execute(text("SELECT version()"))
-            version = result.scalar()
-            assert "PostgreSQL" in version
+    repository = PostgresIngestionJobRepository(postgres_url)
+    try:
+        for ticker in ("AAPL", "MSFT", "GOOGL"):
+            job = IngestionJob(
+                job_id=IngestionJobId(Symbol(ticker), "2024-01-15"),
+                symbols=[Symbol(ticker)],
+                time_range=TimeRange.from_dates(date(2024, 1, 15), date(2024, 1, 16)),
+                configuration=IngestionConfiguration(
+                    output_path=Path("unused"),
+                    compression="snappy",
+                    max_workers=2,
+                    batch_size=1000,
+                    rate_limit_per_minute=200,
+                    feed_type="iex",
+                ),
+            )
+            await repository.save(job)
+        identity = IngestionJobId(Symbol("AAPL"), "2024-01-15")
+        restored = await repository.get_by_id(identity)
+        assert restored.job_id == identity
+        first, second = await asyncio.wait_for(
+            asyncio.gather(
+                repository.fetch_and_lock(ProcessingState.PENDING, 2),
+                repository.fetch_and_lock(ProcessingState.PENDING, 2),
+            ),
+            timeout=5,
+        )
+        claims = [str(job.job_id) for job in first + second]
+        assert len(claims) == len(set(claims)) == 3
+        assert await repository.delete(identity)
+        assert await repository.get_by_id(identity) is None
+    finally:
+        await repository.close()

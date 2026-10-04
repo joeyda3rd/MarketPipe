@@ -134,12 +134,10 @@ class HttpxClientAdapter:
 
 
 class AsyncHttpxClientAdapter:
-    """Adapter to make httpx.AsyncClient compatible with AsyncHttpClientProtocol."""
+    """Use an injected async client or own and close a client for each request."""
 
     def __init__(self, httpx_client=None):
-        import httpx
-
-        self._client = httpx_client or httpx
+        self._client = httpx_client
 
     async def get(
         self,
@@ -148,13 +146,17 @@ class AsyncHttpxClientAdapter:
         headers: Optional[dict[str, str]] = None,
         timeout: Optional[float] = None,
     ) -> HttpResponse:
-        """Make async GET request using httpx."""
-        response = await self._client.get(
-            url=url,
-            params=params,
-            headers=headers,
-            timeout=timeout,
-        )
+        if self._client is not None:
+            response = await self._client.get(
+                url=url, params=params, headers=headers, timeout=timeout
+            )
+        else:
+            import httpx
+
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    url=url, params=params, headers=headers, timeout=timeout
+                )
         return HttpxResponseAdapter(response)
 
 

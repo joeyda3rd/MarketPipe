@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -74,11 +75,8 @@ class CLIOptionValidator:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            original_cwd = os.getcwd()
 
             try:
-                os.chdir(temp_path)
-
                 # Setup test environment
                 env_vars = self._setup_test_environment(test_case, temp_path)
 
@@ -93,7 +91,7 @@ class CLIOptionValidator:
                     text=True,
                     timeout=30,
                     env=env_vars,
-                    cwd=self.base_dir,
+                    cwd=temp_path,
                 )
                 execution_time = (time.time() - start_time) * 1000
 
@@ -133,11 +131,6 @@ class CLIOptionValidator:
             except Exception as e:
                 result.error_messages.append(f"Execution error: {e}")
                 return result
-            finally:
-                os.chdir(original_cwd)
-
-                # Clean up any test artifacts that might have been created in the root directory
-                self._cleanup_test_artifacts()
 
     def _filter_operational_logs(self, stderr: str) -> str:
         """Filter out normal operational logs from stderr, keeping only actual errors."""
@@ -208,53 +201,18 @@ class CLIOptionValidator:
 
         return False
 
-    def _cleanup_test_artifacts(self) -> None:
-        """Clean up test artifacts that might be left in the root directory."""
-        artifacts_to_clean = [
-            self.base_dir / "test_relative_path",
-            self.base_dir / "temp_test_path",
-            self.base_dir / "test_data",
-            self.base_dir / "test_output",
-            self.base_dir / "ingestion_jobs.db",
-            self.base_dir / "metrics.db",
-            self.base_dir / "core.db",
-        ]
-
-        for artifact in artifacts_to_clean:
-            if artifact.exists():
-                try:
-                    if artifact.is_dir():
-                        import shutil
-
-                        shutil.rmtree(artifact)
-                    else:
-                        artifact.unlink()
-                except (PermissionError, OSError):
-                    pass  # Continue if we can't remove the file
-
     def _setup_test_environment(self, test_case: OptionTestCase, temp_path: Path) -> dict[str, str]:
-        """Setup test environment with config files and environment variables."""
-        import random
-        import time
-
-        # Clean up any existing persistent database files that could cause job conflicts
-        persistent_db_files = [
-            self.base_dir / "data" / "ingestion_jobs.db",
-            self.base_dir / "data" / "metrics.db",
-            self.base_dir / "data" / "db" / "core.db",
-        ]
-        for db_file in persistent_db_files:
-            if db_file.exists():
-                try:
-                    db_file.unlink()
-                except (PermissionError, OSError):
-                    pass  # Continue if we can't remove the file
-
+        """Keep every invocation and all artifacts in its own temporary directory."""
+        (temp_path / "data").mkdir()
         env_vars = os.environ.copy()
 
         # Clear provider API keys to ensure tests for auth-required providers fail as expected
         provider_keys_to_clear = [
             "POLYGON_API_KEY",
+            "MP_POLYGON_API_KEY",
+            "ALPACA_API_KEY",
+            "ALPACA_API_SECRET",
+            "DATABASE_URL",
             "ALPACA_KEY",
             "ALPACA_SECRET",
             "IEX_TOKEN",
@@ -264,12 +222,12 @@ class CLIOptionValidator:
             env_vars.pop(key, None)
 
         # Force databases to be created in temp directory with unique names to avoid conflicts
-        unique_suffix = f"{int(time.time() * 1000)}_{random.randint(1000, 9999)}"
         env_vars.update(
             {
-                "MARKETPIPE_DB_PATH": str(temp_path / f"test_{unique_suffix}.db"),
-                "MARKETPIPE_METRICS_DB_PATH": str(temp_path / f"metrics_{unique_suffix}.db"),
-                "MARKETPIPE_INGESTION_DB_PATH": str(temp_path / f"ingestion_{unique_suffix}.db"),
+                "MARKETPIPE_CHECKPOINT_DB_PATH": str(temp_path / "checkpoints.db"),
+                "MARKETPIPE_DB_PATH": str(temp_path / "core.db"),
+                "MARKETPIPE_METRICS_DB_PATH": str(temp_path / "metrics.db"),
+                "MARKETPIPE_INGESTION_DB_PATH": str(temp_path / "ingestion.db"),
             }
         )
 
@@ -311,7 +269,7 @@ class CLIOptionValidator:
 
     def _build_command_args(self, test_case: OptionTestCase) -> list[str]:
         """Build command arguments from test case."""
-        cmd_args = ["python", "-m", "marketpipe"] + test_case.command_path
+        cmd_args = [sys.executable, "-m", "marketpipe"] + test_case.command_path
 
         for option, value in test_case.options.items():
             if isinstance(value, bool) and value:
@@ -633,18 +591,6 @@ class CLIOptionTestGenerator:
 
 class TestCLIOptionValidation:
     """Test suite for comprehensive CLI option validation."""
-
-    @pytest.fixture(autouse=True)
-    def cleanup_test_artifacts(self):
-        """Automatically clean up test artifacts before and after each test."""
-        # Clean up before test
-        validator = CLIOptionValidator()
-        validator._cleanup_test_artifacts()
-
-        yield
-
-        # Clean up after test
-        validator._cleanup_test_artifacts()
 
     @pytest.fixture
     def option_generator(self):

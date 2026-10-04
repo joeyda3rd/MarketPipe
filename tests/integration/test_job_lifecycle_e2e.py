@@ -26,6 +26,7 @@ EXECUTION TIME: Target <15 seconds for CI
 from __future__ import annotations
 
 import subprocess
+import sys
 
 import pytest
 
@@ -46,12 +47,14 @@ def test_job_creation_via_ingest(tmp_path):
     # Run ingest (this should create a job)
     result = subprocess.run(
         [
+            sys.executable,
+            "-m",
             "marketpipe",
             "ingest",
             "--provider",
             "fake",
             "--symbols",
-            "JOBTEST",
+            "TEST",
             "--start",
             "2025-01-15",
             "--end",
@@ -70,9 +73,8 @@ def test_job_creation_via_ingest(tmp_path):
 
     # Validate data was created (implies job ran)
     data_dir = tmp_path / "data"
-    if data_dir.exists():
-        parquet_files = list(data_dir.rglob("*.parquet"))
-        assert len(parquet_files) > 0, "Job should create data files"
+    parquet_files = list(data_dir.rglob("*.parquet"))
+    assert len(parquet_files) > 0, "Job should create data files"
 
 
 @pytest.mark.integration
@@ -91,12 +93,14 @@ def test_job_listing_command(tmp_path):
     # Create a job by running ingest
     ingest_result = subprocess.run(
         [
+            sys.executable,
+            "-m",
             "marketpipe",
             "ingest",
             "--provider",
             "fake",
             "--symbols",
-            "LISTTEST",
+            "TEST",
             "--start",
             "2025-01-15",
             "--end",
@@ -112,7 +116,11 @@ def test_job_listing_command(tmp_path):
 
     # List jobs
     list_result = subprocess.run(
-        ["marketpipe", "jobs", "list"], capture_output=True, text=True, timeout=30, env=env
+        [sys.executable, "-m", "marketpipe", "jobs", "list"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env=env,
     )
 
     # Jobs list should execute successfully
@@ -141,12 +149,14 @@ def test_job_cleanup_dry_run(tmp_path):
     # Create a job
     ingest_result = subprocess.run(
         [
+            sys.executable,
+            "-m",
             "marketpipe",
             "ingest",
             "--provider",
             "fake",
             "--symbols",
-            "CLEANUP",
+            "TEST",
             "--start",
             "2025-01-15",
             "--end",
@@ -162,12 +172,14 @@ def test_job_cleanup_dry_run(tmp_path):
 
     # Get initial file count
     data_dir = tmp_path / "data"
-    initial_files = list(data_dir.rglob("*.parquet")) if data_dir.exists() else []
+    initial_files = list(data_dir.rglob("*.parquet"))
     initial_count = len(initial_files)
+
+    assert initial_files, "Ingestion must produce data before testing cleanup"
 
     # Run cleanup in dry-run mode
     cleanup_result = subprocess.run(
-        ["marketpipe", "jobs", "cleanup", "--all", "--dry-run"],
+        [sys.executable, "-m", "marketpipe", "jobs", "cleanup", "--all", "--dry-run"],
         capture_output=True,
         text=True,
         timeout=30,
@@ -180,7 +192,7 @@ def test_job_cleanup_dry_run(tmp_path):
     ), f"Cleanup dry-run should succeed. Exit code: {cleanup_result.returncode}\nStderr: {cleanup_result.stderr}"
 
     # Files should NOT be deleted in dry-run mode
-    final_files = list(data_dir.rglob("*.parquet")) if data_dir.exists() else []
+    final_files = list(data_dir.rglob("*.parquet"))
     final_count = len(final_files)
 
     assert (
@@ -210,12 +222,14 @@ def test_complete_job_lifecycle(tmp_path):
     print("\n=== Step 1: Create Job ===")
     ingest_result = subprocess.run(
         [
+            sys.executable,
+            "-m",
             "marketpipe",
             "ingest",
             "--provider",
             "fake",
             "--symbols",
-            "LIFECYCLE",
+            "TEST",
             "--start",
             "2025-01-15",
             "--end",
@@ -248,7 +262,11 @@ def test_complete_job_lifecycle(tmp_path):
     # STEP 3: LIST - Verify job listing works
     print("\n=== Step 3: List Jobs ===")
     list_result = subprocess.run(
-        ["marketpipe", "jobs", "list"], capture_output=True, text=True, timeout=30, env=env
+        [sys.executable, "-m", "marketpipe", "jobs", "list"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env=env,
     )
 
     assert (
@@ -261,7 +279,7 @@ def test_complete_job_lifecycle(tmp_path):
     files_before_dry_run = list(data_dir.rglob("*.parquet"))
 
     dry_run_result = subprocess.run(
-        ["marketpipe", "jobs", "cleanup", "--all", "--dry-run"],
+        [sys.executable, "-m", "marketpipe", "jobs", "cleanup", "--all", "--dry-run"],
         capture_output=True,
         text=True,
         timeout=30,
@@ -293,11 +311,13 @@ def test_multiple_jobs_management(tmp_path):
     env["MP_DATA_DIR"] = str(tmp_path / "data")
 
     # Create multiple jobs
-    symbols = ["JOB1", "JOB2", "JOB3"]
+    symbols = ["AAPL", "MSFT", "GOOGL"]
 
     for symbol in symbols:
         result = subprocess.run(
             [
+                sys.executable,
+                "-m",
                 "marketpipe",
                 "ingest",
                 "--provider",
@@ -323,7 +343,11 @@ def test_multiple_jobs_management(tmp_path):
 
     # List all jobs
     list_result = subprocess.run(
-        ["marketpipe", "jobs", "list"], capture_output=True, text=True, timeout=30, env=env
+        [sys.executable, "-m", "marketpipe", "jobs", "list"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env=env,
     )
 
     assert list_result.returncode == 0, "Jobs list should succeed with multiple jobs"

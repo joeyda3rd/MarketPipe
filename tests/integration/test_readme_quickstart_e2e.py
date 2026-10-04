@@ -1,452 +1,112 @@
 # SPDX-License-Identifier: Apache-2.0
-"""README quickstart command validation tests.
-
-This test file addresses Critical Gap #2 from E2E_TEST_GAP_ANALYSIS.md:
-"README Quickstart Commands Not Validated"
-
-PURPOSE:
-These tests validate every command shown in README.md actually works exactly as
-documented. This ensures users' first experience with MarketPipe is successful.
-
-WHAT THIS TESTS:
-- Exact commands from README.md lines 29-52
-- Command-line argument parsing
-- Output validation
-- Success criteria for each command
-
-WHY THIS MATTERS:
-- First-run user experience is critical for adoption
-- Documentation credibility depends on accuracy
-- Command syntax changes could break examples without detection
-- Prevents user onboarding failures
-
-EXECUTION TIME: Target <45 seconds for CI
-"""
+"""Documented commands execute against real components in temporary storage."""
 
 from __future__ import annotations
 
+import os
+import socket
 import subprocess
+import sys
 import time
+from urllib.error import URLError
+from urllib.request import urlopen
 
+import pandas as pd
 import pytest
 
+pytestmark = pytest.mark.integration
 
-@pytest.mark.integration
-class TestREADMEQuickstartCommands:
-    """Validate README.md quickstart examples work as documented.
 
-    These tests use the EXACT commands from README.md to ensure
-    documentation stays accurate and users can successfully complete
-    the quickstart guide.
-    """
+@pytest.fixture
+def command(tmp_path):
+    env = {
+        "PATH": os.defpath,
+        "PYTHONPATH": os.environ.get("PYTHONPATH", ""),
+        "MARKETPIPE_DB_PATH": str(tmp_path / "data/db/core.db"),
+        "MARKETPIPE_CHECKPOINT_DB_PATH": str(tmp_path / "data/db/core.db"),
+        "MARKETPIPE_INGESTION_DB_PATH": str(tmp_path / "data/ingestion_jobs.db"),
+        "MARKETPIPE_METRICS_DB_PATH": str(tmp_path / "data/metrics.db"),
+    }
 
-    def test_readme_basic_ingest_fake_provider(self, tmp_path):
-        """Test README line 29: marketpipe ingest --provider fake --symbols AAPL GOOGL
-
-        This is the FIRST command new users run. If this fails, users lose
-        confidence immediately.
-        """
-        # Setup isolated environment
-        import os
-
-        env = os.environ.copy()
-        env["MP_DATA_DIR"] = str(tmp_path / "data")
-
-        # Run EXACT command from README line 29
+    def run(*args):
         result = subprocess.run(
-            [
-                "marketpipe",
-                "ingest",
-                "--provider",
-                "fake",
-                "--symbols",
-                "AAPL,GOOGL",
-                "--start",
-                "2025-01-01",
-                "--end",
-                "2025-01-02",
-            ],
+            [sys.executable, "-m", "marketpipe", *args],
+            cwd=tmp_path,
+            env=env,
             capture_output=True,
             text=True,
             timeout=60,
-            env=env,
         )
+        assert result.returncode == 0, result.stdout + result.stderr
+        return result
 
-        # Validate success
-        assert (
-            result.returncode == 0
-        ), f"README ingest command should succeed. Exit code: {result.returncode}\nStderr: {result.stderr}\nStdout: {result.stdout}"
+    return run, env
 
-        # Validate expected output indicators
-        output = result.stdout.lower() + result.stderr.lower()
-        # Should see some indication of success (flexible matching)
-        success_indicators = ["success", "completed", "finished", "ok", "ingested"]
-        assert any(
-            indicator in output for indicator in success_indicators
-        ), f"Should see success indicator in output. Got: {result.stdout}"
 
-        # Validate data files were created
-        data_dir = tmp_path / "data"
-        if data_dir.exists():
-            parquet_files = list(data_dir.rglob("*.parquet"))
-            assert (
-                len(parquet_files) > 0
-            ), f"Should create parquet files. Directory contents: {list(data_dir.rglob('*'))}"
-
-    @pytest.mark.skip(
-        reason="Query requires aggregation first, but aggregate command requires JOB_ID - not ready for README example"
+def test_readme_quickstart_full_workflow(command, tmp_path):
+    run, _env = command
+    run(
+        "ingest",
+        "--provider",
+        "fake",
+        "--symbols",
+        "AAPL,GOOGL",
+        "--start",
+        "2024-01-15",
+        "--end",
+        "2024-01-16",
     )
-    def test_readme_query_command(self, tmp_path):
-        """Test README lines 34-35: marketpipe query "SELECT * FROM bars_1d WHERE symbol='AAPL' AND timestamp >= '2024-01-01' LIMIT 10"
+    raw_files = list((tmp_path / "data/raw").rglob("*.parquet"))
+    assert len(raw_files) == 2
+    assert {pd.read_parquet(path).iloc[0]["symbol"] for path in raw_files} == {"AAPL", "GOOGL"}
+    run("validate-ohlcv")
+    assert len(list((tmp_path / "data/validation_reports").rglob("*.csv"))) == 2
+    run("aggregate-ohlcv")
+    result = run("query", "SELECT symbol, count(*) AS bars FROM bars_1d GROUP BY symbol", "--csv")
+    assert "AAPL,2" in result.stdout
+    assert "GOOGL,2" in result.stdout
+    assert "COMPLETED" in run("jobs", "list").stdout
 
-        This command requires data to exist first, so we ingest, aggregate, then query.
 
-        NOTE: Skipped because aggregate-ohlcv requires JOB_ID argument, making the workflow too complex for README.
-        """
-        # Setup isolated environment
-        import os
-
-        env = os.environ.copy()
-        env["MP_DATA_DIR"] = str(tmp_path / "data")
-
-        # First, ingest data (needed for query to work)
-        ingest_result = subprocess.run(
-            [
-                "marketpipe",
-                "ingest-ohlcv",
-                "--provider",
-                "fake",
-                "--symbols",
-                "AAPL",
-                "--start",
-                "2024-01-01",
-                "--end",
-                "2024-01-02",  # End must be after start for validation
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=env,
-        )
-
-        assert ingest_result.returncode == 0, "Ingest should succeed before query test"
-
-        # Aggregate data (required before querying)
-        aggregate_result = subprocess.run(
-            ["marketpipe", "aggregate-ohlcv"],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=env,
-        )
-
-        assert aggregate_result.returncode == 0, "Aggregate should succeed before query test"
-
-        # Now run EXACT query command from README line 35
-        result = subprocess.run(
-            [
-                "marketpipe",
-                "query",
-                "SELECT * FROM bars_1d WHERE symbol='AAPL' AND timestamp >= '2024-01-01' LIMIT 10",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            env=env,
-        )
-
-        # Validate success
-        assert (
-            result.returncode == 0
-        ), f"README query command should succeed. Exit code: {result.returncode}\nStderr: {result.stderr}"
-
-        # Query should return some data
-        # The output format may vary, but should contain data indicators
-        output = result.stdout + result.stderr
-        # Check for data-like output (timestamps, OHLCV data, etc.)
-        # This is flexible since output format might change
-        assert (
-            len(output) > 100
-        ), f"Query should return substantial output with data. Got {len(output)} bytes"
-
-    @pytest.mark.skip(
-        reason="Metrics command has database migration issues with existing schema - needs investigation"
+def test_readme_metrics_command_serves_prometheus(command, tmp_path):
+    _run, env = command
+    # Reserve adjacent ephemeral ports for the metrics and dashboard listeners.
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    process = subprocess.Popen(
+        [sys.executable, "-m", "marketpipe", "metrics", "--port", str(port)],
+        cwd=tmp_path,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
     )
-    def test_readme_metrics_command_starts(self, tmp_path):
-        """Test README line 37-38: marketpipe metrics --port 8000
-
-        This command starts a server, so we test it starts successfully then
-        stop it immediately (don't wait for it to run).
-
-        NOTE: Skipped due to database migration conflicts when table already exists.
-        """
-        # Setup isolated environment
-        import os
-
-        env = os.environ.copy()
-        env["MP_DATA_DIR"] = str(tmp_path / "data")
-
-        # Run metrics command in background
-        process = subprocess.Popen(
-            ["marketpipe", "metrics", "--port", "8765"],  # Use non-standard port to avoid conflicts
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            env=env,
-        )
-
-        # Give it a moment to start
-        time.sleep(2)
-
-        # Check if process is still running (didn't crash immediately)
-        poll_result = process.poll()
-
-        # Terminate the server
+    try:
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline and process.poll() is None:
+            try:
+                with urlopen(f"http://localhost:{port}/metrics", timeout=0.25) as response:
+                    body = response.read().decode()
+                assert "# HELP" in body
+                assert "# TYPE" in body
+                return
+            except URLError:
+                time.sleep(0.05)
+        pytest.fail("Metrics endpoint did not become ready")
+    finally:
         process.terminate()
         try:
-            process.wait(timeout=5)
+            output, errors = process.communicate(timeout=5)
         except subprocess.TimeoutExpired:
             process.kill()
-            process.wait()
-
-        # Process should have been running (poll returns None when running)
-        assert (
-            poll_result is None
-        ), f"Metrics server should start successfully. Exit code: {poll_result}"
-
-    @pytest.mark.skip(
-        reason="Validate command requires JOB_ID argument - not user-friendly for README example yet"
-    )
-    def test_readme_validate_command(self, tmp_path):
-        """Test README line 51-52: marketpipe validate-ohlcv
-
-        NOTE: Command requires JOB_ID argument which makes it unsuitable for simple README examples.
-        Skipped until command UX is improved.
-        """
-        # Setup isolated environment
-        import os
-
-        env = os.environ.copy()
-        env["MP_DATA_DIR"] = str(tmp_path / "data")
-
-        # First, ingest data (needed for validation)
-        ingest_result = subprocess.run(
-            [
-                "marketpipe",
-                "ingest-ohlcv",
-                "--provider",
-                "fake",
-                "--symbols",
-                "AAPL",
-                "--start",
-                "2025-01-01",
-                "--end",
-                "2025-01-02",  # End must be after start for validation
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=env,
-        )
-
-        assert ingest_result.returncode == 0, "Ingest should succeed before validation test"
-
-        # Now run validation command from README line 52
-        result = subprocess.run(
-            ["marketpipe", "validate-ohlcv"],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=env,
-        )
-
-        # Validate command executes (may not find issues with clean fake data)
-        # Exit code 0 means validation passed or completed
-        # Exit code != 0 means command failed (not acceptable)
-        assert (
-            result.returncode == 0 or "completed" in result.stdout.lower()
-        ), f"README validate command should execute successfully. Exit code: {result.returncode}\nStderr: {result.stderr}"
-
-    @pytest.mark.skip(
-        reason="Aggregate command requires JOB_ID argument - not user-friendly for README example yet"
-    )
-    def test_readme_aggregate_command(self, tmp_path):
-        """Test README line 54-55: marketpipe aggregate-ohlcv
-
-        NOTE: Command requires JOB_ID argument which makes it unsuitable for simple README examples.
-        Skipped until command UX is improved.
-        """
-        # Setup isolated environment
-        import os
-
-        env = os.environ.copy()
-        env["MP_DATA_DIR"] = str(tmp_path / "data")
-
-        # First, ingest 1-minute data (needed for aggregation)
-        ingest_result = subprocess.run(
-            [
-                "marketpipe",
-                "ingest-ohlcv",
-                "--provider",
-                "fake",
-                "--symbols",
-                "AAPL",
-                "--start",
-                "2025-01-01",
-                "--end",
-                "2025-01-02",  # End must be after start for validation
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=env,
-        )
-
-        assert ingest_result.returncode == 0, "Ingest should succeed before aggregation test"
-
-        # Now run aggregation command from README line 55
-        result = subprocess.run(
-            ["marketpipe", "aggregate-ohlcv"],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=env,
-        )
-
-        # Validate command executes
-        assert (
-            result.returncode == 0
-        ), f"README aggregate command should succeed. Exit code: {result.returncode}\nStderr: {result.stderr}"
-
-        # Should see some indication of aggregation success
-        output = result.stdout.lower() + result.stderr.lower()
-        success_indicators = ["success", "completed", "aggregated", "finished"]
-        assert any(
-            indicator in output for indicator in success_indicators
-        ), f"Should see success indicator in aggregation output. Got: {result.stdout}"
+            output, errors = process.communicate(timeout=5)
+        (tmp_path / "metrics-server.log").write_text(output + errors)
 
 
-@pytest.mark.integration
-class TestREADMECommandAvailability:
-    """Test that all commands mentioned in README are available.
-
-    This catches issues where commands are documented but don't exist
-    or have been renamed/removed.
-    """
-
-    def test_all_readme_commands_exist(self):
-        """Verify all commands from README exist and show help."""
-        commands_from_readme = [
-            ["marketpipe", "--help"],
-            ["marketpipe", "ingest", "--help"],
-            ["marketpipe", "query", "--help"],
-            ["marketpipe", "validate", "--help"],
-            ["marketpipe", "aggregate", "--help"],
-            ["marketpipe", "metrics", "--help"],
-        ]
-
-        for cmd in commands_from_readme:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-
-            # Help should always succeed with exit code 0
-            assert (
-                result.returncode == 0
-            ), f"Command {' '.join(cmd)} should exist and show help. Exit code: {result.returncode}"
-
-            # Help output should be substantial
-            assert (
-                len(result.stdout) > 50
-            ), f"Command {' '.join(cmd)} should have meaningful help text"
-
-
-@pytest.mark.integration
-@pytest.mark.skip(
-    reason="Query requires aggregation, but aggregate command requires JOB_ID - UX not ready for simple README workflow"
+@pytest.mark.parametrize(
+    "args", [[], ["ingest"], ["query"], ["validate"], ["aggregate"], ["metrics"]]
 )
-def test_readme_quickstart_full_workflow(tmp_path):
-    """Test the complete README quickstart workflow end-to-end.
-
-    This simulates a new user following the quickstart guide step by step.
-
-    Steps:
-    1. Ingest fake data (README line 29)
-    2. Aggregate the data (README line 32) - BLOCKED: requires JOB_ID
-    3. Query the data (README line 35) - BLOCKED: needs aggregation first
-    4. Success!
-
-    This is the CRITICAL user journey - if this fails, onboarding fails.
-
-    NOTE: Skipped until aggregate-ohlcv command works without JOB_ID.
-    """
-    # Setup isolated environment
-    import os
-
-    env = os.environ.copy()
-    env["MP_DATA_DIR"] = str(tmp_path / "data")
-
-    # Step 1: INGEST (exact command from README)
-    print("\n=== Step 1: Ingest (README line 29) ===")
-    ingest_result = subprocess.run(
-        [
-            "marketpipe",
-            "ingest-ohlcv",
-            "--provider",
-            "fake",
-            "--symbols",
-            "AAPL,GOOGL",
-            "--start",
-            "2025-01-01",
-            "--end",
-            "2025-01-02",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=60,
-        env=env,
-    )
-
-    assert (
-        ingest_result.returncode == 0
-    ), f"Step 1 (ingest) failed. Exit code: {ingest_result.returncode}\nStderr: {ingest_result.stderr}"
-    print(f"✓ Ingest completed: {ingest_result.stdout[:200]}")
-
-    # Step 2: AGGREGATE (README line 32)
-    print("\n=== Step 2: Aggregate (README line 32) ===")
-    aggregate_result = subprocess.run(
-        ["marketpipe", "aggregate-ohlcv"],
-        capture_output=True,
-        text=True,
-        timeout=60,
-        env=env,
-    )
-
-    assert (
-        aggregate_result.returncode == 0
-    ), f"Step 2 (aggregate) failed. Exit code: {aggregate_result.returncode}\nStderr: {aggregate_result.stderr}"
-    print(f"✓ Aggregate completed: {aggregate_result.stdout[:200]}")
-
-    # Step 3: QUERY (exact command from README line 35)
-    print("\n=== Step 3: Query (README line 35) ===")
-    query_result = subprocess.run(
-        [
-            "marketpipe",
-            "query",
-            "SELECT * FROM bars_1d WHERE symbol='AAPL' AND timestamp >= '2024-01-01' LIMIT 10",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        env=env,
-    )
-
-    assert (
-        query_result.returncode == 0 or len(query_result.stdout) > 0
-    ), f"Step 2 (query) failed. Exit code: {query_result.returncode}\nStderr: {query_result.stderr}"
-    print(f"✓ Query completed: {len(query_result.stdout)} bytes of output")
-
-    print("\n=== ✅ README Quickstart Workflow SUCCESSFUL ===")
-
-
-if __name__ == "__main__":
-    # Allow running this file directly for quick testing
-    pytest.main([__file__, "-v", "-s"])
+def test_all_readme_commands_exist(command, args):
+    run, _env = command
+    assert "Usage:" in run(*args, "--help").stdout

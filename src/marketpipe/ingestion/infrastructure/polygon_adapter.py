@@ -124,6 +124,8 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                 response_data = await self._make_request(url, params)
 
                 # Parse response
+                if "results" in response_data and not isinstance(response_data["results"], list):
+                    raise ValueError("Polygon results must be a list")
                 if "results" in response_data and response_data["results"]:
                     page_bars = self._parse_polygon_response(response_data, symbol)
 
@@ -133,9 +135,9 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                     filtered_bars = []
                     for bar in page_bars:
                         bar_ts = int(bar.timestamp.value.timestamp() * 1000)
-                        if start_ts <= bar_ts <= end_ts:
+                        if start_ts <= bar_ts < end_ts:
                             filtered_bars.append(bar)
-                        elif bar_ts > end_ts:
+                        elif bar_ts >= end_ts:
                             # Bar is after our end date - stop pagination after this page
                             self.log.info(
                                 f"⏹️  Reached end of requested date range at bar {bar.timestamp.value}"
@@ -185,7 +187,7 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
                 f"⚠️  No bars returned for {symbol.value} in date range {from_date} to {to_date}"
             )
 
-        return bars
+        return list({bar.timestamp.value: bar for bar in bars}.values())
 
     async def get_supported_symbols(self) -> list[Symbol]:
         """Get list of supported US stock symbols from Polygon.io."""
@@ -435,11 +437,8 @@ class PolygonMarketDataAdapter(IMarketDataProvider):
 
                 bars.append(bar)
 
-            except (KeyError, ValueError, TypeError) as e:
-                self.log.warning(
-                    f"Failed to parse bar data for {symbol.value}: {e}, data: {result}"
-                )
-                continue
+            except (KeyError, ValueError, TypeError):
+                raise ValueError("Invalid Polygon bar response") from None
 
         return bars
 

@@ -224,21 +224,10 @@ def test_pipeline_error_handling(tmp_path, monkeypatch):
 
     runner = CliRunner()
 
-    # Test aggregate command with non-existent job - should succeed with warnings (not fail)
-    result = runner.invoke(app, ["aggregate", "nonexistent-job"])
-    # Changed expectation: this may succeed but log warnings
-    assert "nonexistent-job" in result.stdout or result.exit_code == 0
-
-    # Test validate command with non-existent job - now succeeds with mocking
-    # The validation would only fail in real scenarios without data (JOB_ID is now positional)
-    result = runner.invoke(app, ["validate", "nonexistent-job"])
-    # With our mocked services, this actually succeeds (which is correct for the test)
-    assert result.exit_code == 0
-    # Check for new validation completion message format
-    assert (
-        "Validation completed successfully!" in result.stdout
-        or "✅ Validation completed for job:" in result.stdout
-    )
+    for command in ("aggregate", "validate"):
+        result = runner.invoke(app, [command, "nonexistent-job"])
+        assert result.exit_code != 0
+        assert "nonexistent-job" in result.stdout
 
     # Test query command with invalid SQL
     with patch("marketpipe.aggregation.infrastructure.duckdb_views.query") as mock_query:

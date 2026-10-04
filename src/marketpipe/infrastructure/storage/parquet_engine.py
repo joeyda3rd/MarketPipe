@@ -374,7 +374,7 @@ class ParquetStorageEngine:
 
             except Exception as e:
                 self.log.error(f"Failed to read {parquet_file}: {e}")
-                continue
+                raise OSError(f"Failed to read job partition {parquet_file}") from e
 
         # Combine DataFrames for each symbol
         result = {}

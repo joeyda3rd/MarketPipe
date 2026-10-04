@@ -14,10 +14,10 @@ This module implements Phase 1 of the CLI validation framework:
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -168,119 +168,36 @@ class CLICommandValidator:
         self.runner = CliRunner() if TYPER_AVAILABLE else None
 
     def validate_command(self, command: CommandInfo) -> ValidationResult:
-        """
-        Validate a single command for correctness.
-
-        Args:
-            command: Command to validate
-
-        Returns:
-            ValidationResult with validation details
-        """
+        """One isolated invocation checks help, timing, and filesystem side effects."""
         result = ValidationResult(command=command)
-
-        # Test help command works
-        help_result = self._test_help_command(command)
-        result.help_works = help_result[0]
-        result.help_output = help_result[1]
-        result.execution_time_ms = help_result[2]
-
-        # Test no side effects
-        side_effect_result = self._test_no_side_effects(command)
-        result.side_effects_clean = side_effect_result[0]
-        result.created_files = side_effect_result[1]
-
-        return result
-
-    def _test_help_command(self, command: CommandInfo) -> tuple[bool, str, float]:
-        """
-        Test that help command works and returns valid output.
-
-        Returns:
-            (success, output, execution_time_ms)
-        """
-        import time
-
-        cmd_path = command.path + ["--help"]
-
-        if self.use_subprocess:
-            start_time = time.time()
+        started = time.monotonic()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
             try:
-                result = subprocess.run(
-                    ["python", "-m", "marketpipe"] + cmd_path,
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                    cwd=Path.cwd(),
-                )
-                execution_time = (time.time() - start_time) * 1000
-
-                return (result.returncode == 0, result.stdout + result.stderr, execution_time)
-            except subprocess.TimeoutExpired:
-                return False, "Command timed out", (time.time() - start_time) * 1000
-            except Exception as e:
-                return False, f"Error running command: {e}", (time.time() - start_time) * 1000
-
-        elif self.runner and app:
-            start_time = time.time()
-            try:
-                # Build command for Typer testing
-                full_cmd = cmd_path
-                result = self.runner.invoke(app, full_cmd)
-                execution_time = (time.time() - start_time) * 1000
-
-                return (result.exit_code == 0, result.output, execution_time)
-            except Exception as e:
-                return False, f"CliRunner error: {e}", (time.time() - start_time) * 1000
-
-        return False, "No testing method available", 0.0
-
-    def _test_no_side_effects(self, command: CommandInfo) -> tuple[bool, list[Path]]:
-        """
-        Test that help command doesn't create unwanted files or directories.
-
-        Returns:
-            (no_side_effects, list_of_created_files)
-        """
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            original_cwd = os.getcwd()
-
-            try:
-                os.chdir(temp_path)
-
-                # Capture initial state
-                initial_files = set()
-                if temp_path.exists():
-                    initial_files = set(temp_path.rglob("*"))
-
-                # Run help command
-                cmd_path = command.path + ["--help"]
-
                 if self.use_subprocess:
-                    subprocess.run(
-                        ["python", "-m", "marketpipe"] + cmd_path,
+                    process = subprocess.run(
+                        [sys.executable, "-m", "marketpipe", *command.path, "--help"],
                         capture_output=True,
                         text=True,
                         timeout=10,
-                        cwd=Path.cwd(),
+                        cwd=path,
                     )
+                    result.help_works = process.returncode == 0
+                    result.help_output = process.stdout + process.stderr
+                    result.created_files = list(path.rglob("*"))
                 elif self.runner and app:
-                    self.runner.invoke(app, cmd_path)
-
-                # Check for new files
-                final_files = set()
-                if temp_path.exists():
-                    final_files = set(temp_path.rglob("*"))
-
-                created_files = list(final_files - initial_files)
-
-                return len(created_files) == 0, created_files
-
-            except Exception:
-                return False, []
-            finally:
-                os.chdir(original_cwd)
+                    with self.runner.isolated_filesystem(temp_dir=path) as isolated:
+                        process = self.runner.invoke(app, [*command.path, "--help"])
+                        result.help_works = process.exit_code == 0
+                        result.help_output = process.output
+                        result.created_files = list(Path(isolated).rglob("*"))
+                result.side_effects_clean = not result.created_files
+            except subprocess.TimeoutExpired:
+                result.help_output = "Command timed out"
+            except Exception as error:
+                result.help_output = f"Command failed: {error}"
+        result.execution_time_ms = (time.monotonic() - started) * 1000
+        return result
 
 
 class CLIMatrixTestReporter:

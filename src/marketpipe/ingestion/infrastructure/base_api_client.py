@@ -89,6 +89,7 @@ class BaseApiClient(abc.ABC):
             Raw JSON pages from the vendor API.
         """
         cursor: Optional[str] = None
+        seen_cursors: set[str] = set()
         while True:
             params = self.build_request_params(symbol, start_ts, end_ts, cursor)
             raw_json = self._request(params)
@@ -96,6 +97,9 @@ class BaseApiClient(abc.ABC):
             cursor = self.next_cursor(raw_json)
             if not cursor:
                 break
+            if cursor in seen_cursors:
+                raise RuntimeError("Provider returned a repeated pagination cursor")
+            seen_cursors.add(cursor)
 
     @abc.abstractmethod
     def next_cursor(self, raw_json: dict[str, Any]) -> Optional[str]:
@@ -123,7 +127,24 @@ class BaseApiClient(abc.ABC):
         rows: list[dict[str, Any]] = []
         for page in self.paginate(symbol, start_ts, end_ts):
             rows.extend(self.parse_response(page))
-        return rows
+        return self._unique_rows(rows, start_ts, end_ts)
+
+    @staticmethod
+    def _unique_rows(
+        rows: list[dict[str, Any]], start_ts: int, end_ts: int
+    ) -> list[dict[str, Any]]:
+        """Keep the first bar for each symbol/timestamp across overlapping pages."""
+        unique: dict[tuple[Any, Any], dict[str, Any]] = {}
+        for row in rows:
+            timestamp = row.get("timestamp")
+            if timestamp is not None and not start_ts * 1_000_000 <= timestamp < end_ts * 1_000_000:
+                continue
+            key = (row.get("symbol"), row.get("timestamp", row.get("t")))
+            unique.setdefault(key, row)
+        result = list(unique.values())
+        if all("timestamp" in row for row in result):
+            result.sort(key=lambda row: row["timestamp"])
+        return result
 
     async def async_fetch_batch(
         self,
@@ -134,7 +155,7 @@ class BaseApiClient(abc.ABC):
         rows: list[dict[str, Any]] = []
         async for page in self.async_paginate(symbol, start_ts, end_ts):
             rows.extend(self.parse_response(page))
-        return rows
+        return self._unique_rows(rows, start_ts, end_ts)
 
     async def async_paginate(
         self,
@@ -145,6 +166,7 @@ class BaseApiClient(abc.ABC):
     ):
         """Async generator version of :meth:`paginate`."""
         cursor: Optional[str] = None
+        seen_cursors: set[str] = set()
         while True:
             params = self.build_request_params(symbol, start_ts, end_ts, cursor)
             raw_json = await self._async_request(params)
@@ -152,6 +174,9 @@ class BaseApiClient(abc.ABC):
             cursor = self.next_cursor(raw_json)
             if not cursor:
                 break
+            if cursor in seen_cursors:
+                raise RuntimeError("Provider returned a repeated pagination cursor")
+            seen_cursors.add(cursor)
 
     # ---------- Response handling ----------
     @abc.abstractmethod

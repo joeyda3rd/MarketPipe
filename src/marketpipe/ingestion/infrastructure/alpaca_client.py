@@ -241,7 +241,15 @@ class AlpacaClient(BaseApiClient):
     def parse_response(self, raw_json: dict[str, Any]) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
 
-        bars_obj = raw_json.get("bars", {})
+        if not isinstance(raw_json, dict) or "bars" not in raw_json:
+            raise ValueError("Alpaca response is missing the bars envelope")
+        bars_obj = raw_json["bars"]
+        if bars_obj is not None and not isinstance(bars_obj, (dict, list)):
+            raise ValueError("Alpaca bars must be a mapping or list")
+        if isinstance(bars_obj, dict) and any(
+            not isinstance(bars, list) for bars in bars_obj.values()
+        ):
+            raise ValueError("Alpaca bars entries must be lists")
 
         if isinstance(bars_obj, list):
             # Legacy format returned a list of bars with short field names
