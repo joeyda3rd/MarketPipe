@@ -20,7 +20,7 @@ jobs:
         python-version: ['3.9', '3.13']
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install -e '.[dev]'
@@ -55,7 +55,7 @@ jobs:
       MARKETPIPE_TEST_POSTGRES_URL: postgresql://marketpipe:test-only-password@localhost:5432/marketpipe_test
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - run: python -m pip install -e '.[dev]'
@@ -72,7 +72,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - run: python -m pip install -e '.[dev]'
