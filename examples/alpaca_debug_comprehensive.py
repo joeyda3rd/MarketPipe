@@ -27,7 +27,7 @@ print(f"📂 Current working directory: {cwd}")
 env_locations = [
     Path(".env"),
     Path(cwd / ".env"),
-    Path.home() / "MarketPipe" / ".env",
+    Path(__file__).resolve().parents[1] / ".env",
 ]
 
 env_file_found = None
